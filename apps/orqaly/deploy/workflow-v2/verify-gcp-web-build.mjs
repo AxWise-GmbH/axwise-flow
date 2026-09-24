@@ -8,12 +8,30 @@ for (const file of ['index.html', 'manifest.json', 'logo-line.svg', '.vite/manif
 if (existsSync(resolve(dist, 'sw.js')))
   throw new Error('GCP web build must not ship the legacy service worker');
 
+// The redesign is approved separately from its legal drafts. Keep this fail-closed
+// until a reviewed policy publication change explicitly updates the boundary.
+if (existsSync(resolve(dist, '.well-known/security.txt')))
+  throw new Error('GCP web build must not publish the draft security.txt');
+const manifest = JSON.parse(readFileSync(resolve(dist, '.vite/manifest.json'), 'utf8'));
+for (const [source, asset] of Object.entries(manifest)) {
+  if ([source, asset.src].some((value) => value?.replaceAll('\\', '/').includes('/pages/legal/')))
+    throw new Error(`GCP web build imported an unpublished legal draft: ${source}`);
+}
+for (const file of readdirSync(dist, { recursive: true })) {
+  if (file.endsWith('.draft') || /(?:^|\/)LegalCenter-[^/]+\.js$/u.test(file))
+    throw new Error(`GCP web build contains an unpublished legal draft: ${file}`);
+  if (!file.endsWith('.json')) continue;
+  const content = JSON.parse(readFileSync(resolve(dist, file), 'utf8'));
+  if (content?.meta && Object.hasOwn(content.meta, 'review'))
+    throw new Error(`GCP web build exposes internal document review notes: ${file}`);
+}
+
 const html = readFileSync(resolve(dist, 'index.html'), 'utf8');
 for (const marker of [
   'id="root"',
-  'Cloud reasoning. Local action.',
-  '<title>Orqanix — Cloud reasoning. Local action.</title>',
-  'theme-color" content="#F7F7FC',
+  'Instant Intelligence',
+  '<title>Orqanix — Instant Intelligence on your Mac</title>',
+  'theme-color" content="#000000',
 ]) {
   if (!html.includes(marker)) throw new Error(`GCP index.html is missing ${marker}`);
 }
@@ -95,5 +113,11 @@ const totalBytes = scripts.reduce((sum, name) => sum + statSync(resolve(assetsDi
 // Owner-approved 2026-09-20: allocation for the desktop-first Instant preview landing
 // page (/instant, subpages, solutions showcase, and interactive demo state machine).
 // Measured feature build in Linux container: 1,562,015 bytes across 58 route/feature scripts.
-if (totalBytes > 1_600_000) throw new Error(`GCP JavaScript budget exceeded: ${totalBytes} bytes`);
+// Owner-approved 2026-09-21: +40,000 (products menu and pages), then +25,000 (Enterprise
+// page and the Legal Center), to 1,665,000.
+// Owner-approved 2026-09-22: 1,720,000 for the 15-language landing (language picker,
+// translated pages and Legal Center) plus the light/dark switch, merged with main.
+// Measured build in the Dockerfile.web container: 1,710,114 bytes. The translated words
+// ship as JSON assets and are not counted here.
+if (totalBytes > 1_720_000) throw new Error(`GCP JavaScript budget exceeded: ${totalBytes} bytes`);
 console.log(`Verified retained GCP build: ${scripts.length} scripts, ${totalBytes} bytes.`);

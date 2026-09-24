@@ -1,0 +1,256 @@
+{
+  "meta": {
+    "slug": "subprocessors",
+    "title": "サブプロセッサ",
+    "summary": "本ページでは、当社のために個人データを取り扱う企業、お客様のデータが送られ得るその他の送信先、および当社のサーバーの所在地を記載しています。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "初版。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Email provider for hello@, privacy@ and security@ is not listed: orqanix.com has no mail provider (no MX record) yet. Add it as a sub-processor once chosen.",
+        "Region of the Cloud Storage bucket that serves the Desktop App download is unknown, so the page names no location for it. Confirm and add.",
+        "Google Cloud transfer basis: confirm that Google's Cloud data processing terms (with SCCs) cover any support access from outside the EU.",
+        "Google Gemini: processing location is not pinned in our code. The paid-tier data terms and Google's DPA are shown only once geminiPaidTier is set (open point #3).",
+        "Cloudflare (via Clerk and Turnstile): confirm its location and whether Clerk's DPA covers it. The page now says only that it is used through Clerk.",
+        "Search engines and OpenRegister are described as independent recipients, not processors. Lawyer to confirm the role split (open point #11). Confirm OpenRegister's location.",
+        "Data Act Art. 28 statement: lawyer to confirm the wording on the jurisdiction of Google and Clerk and our measures against foreign government access. We have no written request-handling process yet; create one so the promises here are true in practice.",
+        "Notice to DPA customers of new sub-processors: the notice period and how objections work must match the Data Processing Addendum.",
+        "Clerk runs a development instance today (open point #4). Move to production before relying on Clerk's DPA.",
+        "EU transfers, Gemini: while geminiPaidTier is empty, the EU version names no transfer safeguard for data sent to Google Gemini (GDPR Art. 13(1)(f), Chapter V). This is an EU launch blocker, not a wording issue (open point #3).",
+        "EU transfers, search engines and OpenRegister: queries leave our EU servers for engines that may be in the US. Lawyer to confirm the transfer basis for these independent recipients.",
+        "Mobile App: the phone notifies you when a job is done, so a push service (and possibly a relay) will receive data. Which ones is unknown; add them here before the Mobile App handles personal data.",
+        "Clerk development instance may send usage events to Clerk's telemetry host (uncertain). Confirm; it goes away with the move to production.",
+        "The intro promises that a provider is added to this page before it starts handling personal data. The owner must follow this for every new provider (and for the email provider, open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "what-this-page-is",
+      "text": "本ページについて"
+    },
+    {
+      "type": "p",
+      "text": "サブプロセッサとは、当社が対価を支払い、当社の指示に基づき当社のために個人データを取り扱う企業です。本ページには、当社のサブプロセッサ、お客様が {company.name} を利用する際にお客様のデータが送られ得るその他の送信先、および当社のサーバーの所在地を記載しています。本ページは、当社のウェブサイトおよびすべての製品を対象とします。当社は、プロバイダーが当社のために個人データの取扱いを開始する前に、そのプロバイダーを本ページに追加します。"
+    },
+    {
+      "type": "p",
+      "text": "当社による個人データの利用方法は、当社の[プライバシーポリシー](/instant/legal/privacy)で説明しています。API、当社のエンタープライズサービスまたはアシスタントボットの法人顧客が処理のために当社に個人データを提供する場合は、当社の[データ処理補遺](/instant/legal/dpa)が適用されます。"
+    },
+    {
+      "type": "h2",
+      "id": "sub-processors",
+      "text": "当社のサブプロセッサ"
+    },
+    {
+      "type": "table",
+      "head": [
+        "企業",
+        "用途",
+        "データ",
+        "所在地",
+        "移転の根拠"
+      ],
+      "rows": [
+        [
+          "Google Cloud",
+          "ウェブサイト、ウェブアプリ、デスクトップアプリの接続先サービス、API、当社のデータベース、保存ファイルおよびサーバーログのホスティング",
+          "アカウント ID、ワークスペースのコンテンツ（チャット、目標、ファイル、レポートおよび自動化）、デスクトップアプリからのリサーチの質問、API のタスクと判断、IP アドレスおよびリクエストログ",
+          "EU（オランダ）",
+          "データは EU 内でホストされています。Google の Cloud データ処理規約が適用されます。"
+        ],
+        [
+          "Google（Gemini API。Google 検索によるグラウンディングを含む）",
+          "デスクトップアプリ、クラウドアシスタントおよび API のデフォルトの AI モデル",
+          "お客様のプロンプト、それまでの会話、ファイルの内容やコマンドの出力などのツールの出力、および音声入力を使用する場合はお客様の音声",
+          "当社は指定していません。Google は EU 域外で処理することがあります。",
+          "Google の Gemini API 利用規約。Google がこのデータをどのように使用し得るかは、[AI の仕組み](/instant/legal/ai#data-models-see)で説明しています。"
+        ],
+        [
+          "Clerk, Inc.",
+          "サインインおよびアカウント",
+          "メールアドレス、氏名、プロフィール画像（Google でサインインする場合）、サインインおよびセッションの記録、IP アドレスならびにデバイスデータ",
+          "米国",
+          "EU-米国データプライバシーフレームワーク。補完的に標準契約条項（Clerk のデータ処理規約）"
+        ],
+        [
+          "Cloudflare（Clerk が使用。登録時の Turnstile を含む）",
+          "サインインページおよび登録ページでのボット対策",
+          "IP アドレス、デバイスおよびブラウザのシグナル",
+          "当社は指定していません。Cloudflare のネットワークは EU 域外で処理することがあります。",
+          "Clerk のサービスの一部として、Clerk を通じて使用"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "デスクトップアプリのダウンロードも Google Cloud Storage から配信されます。ダウンロードの際、Google はお客様の IP アドレスを知ることになります。"
+    },
+    {
+      "type": "h2",
+      "id": "other-recipients",
+      "text": "その他の受領者"
+    },
+    {
+      "type": "p",
+      "text": "以下の企業は当社のサブプロセッサではありません。これらの企業は、お客様が特定の機能を利用する際にデータを受け取り、その利用方法を自らの規約に基づいて決定します。"
+    },
+    {
+      "type": "table",
+      "head": [
+        "受領者",
+        "タイミング",
+        "データ",
+        "所在地",
+        "役割"
+      ],
+      "rows": [
+        [
+          "公開検索エンジン：Google、Bing、Brave および DuckDuckGo",
+          "クラウドアシスタント、クラウドリサーチまたは API がウェブを検索するとき。クエリは当社独自の検索サービスを経由します。",
+          "お客様のリクエストから作成された検索クエリ。お客様のアカウント情報は送信しません。",
+          "各検索エンジン独自のサーバー（米国その他の場所にある場合があります）",
+          "独立した事業者。各社独自の規約およびプライバシーポリシーが適用されます。"
+        ],
+        [
+          "OpenRegister",
+          "API またはクラウドリサーチが公開の商業登記で企業を照会するとき",
+          "企業名。結果には取締役の氏名が含まれることがあります。",
+          "OpenRegister が決定",
+          "独立した事業者。同社独自の規約が適用されます。"
+        ],
+        [
+          "Google（Google でサインイン）",
+          "お客様が Google アカウントでのサインインを選択した場合のみ",
+          "お客様の Google プロフィール：氏名、メールアドレスおよびプロフィール画像",
+          "Google 独自のサーバー（米国にある場合があります）",
+          "お客様の選択。Google の規約が適用されます。"
+        ],
+        [
+          "お客様がデスクトップアプリで接続する AI プロバイダー（OpenAI や Anthropic など）",
+          "お客様がデスクトップアプリをご自身のプロバイダーに切り替えた場合のみ",
+          "デフォルトのモデルと同様、会話およびツールの出力",
+          "当該プロバイダーが決定",
+          "お客様が選択し、お客様がそのプロバイダーと独自に契約します。当社ではなく、そのプロバイダーの規約が適用されます。"
+        ],
+        [
+          "お客様が接続するアプリ、ツールおよびアカウント（デスクトップアプリの拡張機能や、アシスタントボットに接続するメッセージアプリおよびメールアカウントなど）",
+          "お客様が接続した場合のみ",
+          "エージェントまたはボットがお客様のタスクを行う間にそれらに送信し、またはそれらから読み取る内容",
+          "当該サービスが決定",
+          "お客様が選択し、お客様がそのサービスと独自に契約します。そのサービスの規約が適用されます。"
+        ],
+        [
+          "Hostinger",
+          "orqanix.com のドメインネームサービス（DNS）",
+          "当社のドメイン名の技術的な名前解決。アカウントデータは含みません。",
+          "Hostinger が決定",
+          "技術的サービス"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "お客様が Mac 上でローカルの AI モデルを使用する場合、お客様の会話は AI プロバイダーではなくそのモデルに送られます。エージェントが {company.name} クラウドリサーチに送信する質問は、引き続き当社のクラウドおよび上記のプロバイダーに送られます。"
+    },
+    {
+      "type": "p",
+      "text": "当社は、決済プロバイダー、分析サービスおよび広告ネットワークを利用していません。当社は個人データを販売しません。"
+    },
+    {
+      "type": "h2",
+      "id": "servers",
+      "text": "当社のサーバーの所在地"
+    },
+    {
+      "type": "p",
+      "text": "当社は、クラウドサービスおよびデータベースを、EU 内のオランダ（リージョン europe-west4）にある Google Cloud でホストしています。これには、ウェブサイト、ウェブアプリ、デスクトップアプリの接続先サービス、API およびその専用データベース、ならびにお客様のエージェントがクラウドに保存するファイルおよびレポートが含まれます。各エンタープライズプロジェクトは、顧客と合意した EU 内の Google Cloud リージョンでホストされます。"
+    },
+    {
+      "type": "p",
+      "text": "Clerk や Google Gemini など一部のプロバイダーは、米国その他の場所でデータを処理することがあります。データは通信中に暗号化され（HTTPS）、保存時には当社のクラウドプロバイダーによって暗号化されます。"
+    },
+    {
+      "type": "h3",
+      "id": "transfers",
+      "text": "EU 域外への移転",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "個人データが EEA、英国またはスイスの外に移転される場合、法律は保護措置を求めています。Clerk については、保護措置は EU-米国データプライバシーフレームワークであり、補完的に EU の標準契約条項が用いられます（GDPR Art. 45 および 46）。Google Cloud では、お客様のデータは EU 内でホストされています。"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Google Gemini については、当社は Google の有料サービスを利用しています。当社が送信するデータには、Google の有料サービス規約およびそのデータ処理規約が適用されます。"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "お客様のデータに適用される保護措置の写しを入手するには、{company.privacyEmail} までご連絡ください。"
+    },
+    {
+      "type": "h3",
+      "id": "government-access",
+      "text": "外国政府からの要求",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "EU 法は、クラウドプロバイダーに対し、そのインフラストラクチャの所在地と、EU 域外の政府からの要求に対する対応を明らかにするよう求めています（EUデータ法, Art. 28）。これは個人データに限らず、すべてのデータに適用されます。"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "当社のインフラストラクチャ：当社のクラウドサービスおよびデータベースは、EU 法の下、オランダの Google Cloud 上で稼働しています。サインインは米国の Clerk 上で稼働しています。",
+        "Google と Clerk は米国企業または米国企業グループの一部であるため、米国法も適用される場合があります。",
+        "EU 域外の政府または裁判所がお客様のデータを当社に要求した場合、当社は、その要求が適法であるか、また EU 法または国内法が当社の応答を認めているかを確認します。",
+        "可能な場合、当社は違法または過度に広範な要求に異議を申し立てます。当社は、その要求が適法に求める最小限のもののみを提供します。",
+        "法律が禁止している場合を除き、当社は応答する前に関係する顧客に通知します。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "service-providers",
+      "text": "米国の州のプライバシー法",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "米国の州のプライバシー法の下では、Google Cloud、Clerk および Cloudflare は、サービスプロバイダーまたは処理者として当社のために業務を行います。当社が Gemini API に送信するデータを Google がどのように使用し得るかは、[AI の仕組み](/instant/legal/ai#data-models-see)で説明しているとおり、Google の規約で定められています。当社は、個人データを販売せず、ターゲティング広告のために共有することもありません。"
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "本リストの変更"
+    },
+    {
+      "type": "p",
+      "text": "当社がサブプロセッサを追加または変更する場合、本ページおよび冒頭の日付を更新します。"
+    },
+    {
+      "type": "p",
+      "text": "当社の[データ処理補遺](/instant/legal/dpa)の対象となる法人顧客には、新しいサブプロセッサがそのデータの取扱いを開始する前に通知します。法人顧客は、同補遺の定めに従い異議を申し立てることができます。"
+    }
+  ]
+}

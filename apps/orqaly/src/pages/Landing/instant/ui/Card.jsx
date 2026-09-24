@@ -1,6 +1,7 @@
 import { CheckGlyph } from './Glyphs';
 import More from './More';
 import Reveal from './Reveal';
+import { useT } from '../i18n/useT';
 
 // The card's glow follows the pointer; CSS reads --mx/--my (see .oi-card::before). The
 // pointer reports far more often than the screen repaints: one measure and write per frame.
@@ -21,6 +22,7 @@ function trackPointer(event) {
 
 /** A capability card: a title, at most three short lines, the rest under More. */
 export default function Card({ title, lines, more, delay = 0 }) {
+  const { t } = useT('pg');
   return (
     <Reveal
       as="section"
@@ -39,7 +41,10 @@ export default function Card({ title, lines, more, delay = 0 }) {
         ))}
       </ul>
       {more?.length > 0 && (
-        <More label={`More about ${title.toLowerCase()}`} openLabel="Less">
+        <More
+          label={t('pg.card.more', 'More about {name}', { name: title.toLowerCase() })}
+          openLabel={t('more.less', 'Less')}
+        >
           <ul>
             {more.map((item) => (
               <li key={item.text}>

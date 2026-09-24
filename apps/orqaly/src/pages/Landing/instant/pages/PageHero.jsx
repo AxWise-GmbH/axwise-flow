@@ -1,5 +1,5 @@
 import LineOrb from '../../../../components/Common/LineOrb';
-import { ORB_ACCENT } from '../palette';
+import { useOrbAccent } from '../useInstantTheme';
 
 // The box in pages.css is 720px. The canvas is drawn at half that and zoomed back up from
 // its corner (.oi-orb-zoom in perf.css): it is a soft light bleeding off the edge, and a
@@ -12,6 +12,7 @@ const ORB_RENDER_SCALE = 0.5;
  * line, with the line-orb burning off the right edge as the page's light.
  */
 export default function PageHero({ id, tag, title, line }) {
+  const orbInk = useOrbAccent();
   return (
     <section className="oip-hero" aria-labelledby={id}>
       <div className="oip-hero-orb" data-orb aria-hidden="true">
@@ -20,7 +21,7 @@ export default function PageHero({ id, tag, title, line }) {
           className="oi-orb-zoom oi-orb-zoom-corner"
           style={{ '--oi-orb-zoom': 1 / ORB_RENDER_SCALE }}
           size={ORB_SIZE * ORB_RENDER_SCALE}
-          accent={ORB_ACCENT}
+          accent={orbInk}
           hollow={0.64}
           speed={0.6}
           title=""

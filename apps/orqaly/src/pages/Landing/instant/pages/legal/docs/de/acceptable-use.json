@@ -1,0 +1,321 @@
+{
+  "meta": {
+    "slug": "acceptable-use",
+    "title": "Nutzungsrichtlinie",
+    "summary": "Diese Richtlinie legt fest, was Sie mit Orqanix-Produkten oder deren Agenten nicht tun dürfen und wie Sie Inhalte oder Aktivitäten melden, die gegen die Regeln verstoßen.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Erste Fassung."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Reports go to hello@orqanix.com with the subject \"Report\", but orqanix.com has no MX record, so reports probably cannot arrive today (FACTS open point 2). Must be fixed before publishing (DSA Art. 16).",
+        "The policy promises: confirmation of receipt, review by a person, a statement of reasons to the affected user, and a second review by a different person \"where we can\". Owner to confirm this process can be run (and a template for statements of reasons exists).",
+        "Health data: the AUP bans protected patient health information without a signed agreement but does not ban all health data, so the US Consumer Health Data Privacy Policy and its visible footer link stay needed (FACTS open point 16).",
+        "AI Act Art. 5 new points on non-consensual intimate imagery and CSAM: banned here for all users at once; the providers safeguard date of 2 Dec 2026 (verify.md row 4) is our own duty, not stated in the text.",
+        "Google flow-down links to Google's Generative AI Prohibited Use Policy and the Gemini API terms; lawyer to confirm the competing-models wording matches the current Gemini API terms.",
+        "CSAM reporting to authorities \"as the law requires\" (US: NCMEC under 18 U.S.C. 2258A if applicable); owner to set up the process.",
+        "Agent AI disclosure (AI Act Art. 50(1)) is put on the user here; Desktop/Bot agents that send email or messages may need a built-in label from us as provider (eu.md row 13). Owner decision.",
+        "AI Act Art. 26 deployer duties for Annex III uses apply from 2 Dec 2027 (verify.md row 2); the EU text says \"as they apply to you\" instead of a date. Housing and non-life insurance in the list are not Annex III, so the EU sentence now says \"most of these\".",
+        "AI Act Art. 50(2) output marking is our duty as provider, not the user's; the AUP does not claim any marking (none exists, FACTS §12). Owner to settle the Desktop first EU market date (FACTS open point 10).",
+        "DSA Art. 23 (\"stop handling clearly unfounded reports after a warning\") is an online-platform rule we adopt voluntarily; fine to keep, but the process needs a record of warnings."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "Geltungsbereich dieser Richtlinie"
+    },
+    {
+      "type": "p",
+      "text": "Diese Richtlinie legt die Regeln für die Nutzung aller Orqanix-Produkte fest: die Desktop-App, die Handy-App, den Assistenz-Bot, die API, unsere Leistungen für Unternehmen und unsere Website (zusammen die „Dienste“). Sie gilt für Privatpersonen wie für Unternehmen und ist Bestandteil unserer [AGB](/instant/legal/terms)."
+    },
+    {
+      "type": "p",
+      "text": "Sie umfasst, worum Sie bitten, was Sie mit Ausgaben tun und was Ihre Agenten tun. Wenn Sie anderen Zugang gewähren, etwa über die API, stellen Sie sicher, dass auch diese die Richtlinie einhalten."
+    },
+    {
+      "type": "note",
+      "text": "Kurz gesagt: Nutzen Sie Orqanix nicht, um gegen Gesetze zu verstoßen, Menschen zu schaden, Systeme anzugreifen oder jemanden darüber zu täuschen, mit wem oder was er es zu tun hat."
+    },
+    {
+      "type": "h2",
+      "id": "illegal-harm",
+      "text": "Rechtswidrige und schädliche Nutzung"
+    },
+    {
+      "type": "p",
+      "text": "Nutzen Sie die Dienste nicht, um:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "gegen ein Gesetz zu verstoßen oder anderen dabei zu helfen;",
+        "jemanden zu bedrohen, zu belästigen, zu mobben oder zu stalken oder Gewalt oder Hass gegen Menschen aufgrund dessen, wer sie sind, zu fördern;",
+        "Terrorismus, gewalttätigen Extremismus oder die Herstellung von Waffen, die massenhaften Schaden anrichten können, zu planen oder zu unterstützen;",
+        "Betrug, Schwindel oder Identitätsdiebstahl zu begehen oder Menschen um des Geldes willen zu täuschen;",
+        "Menschen ohne Rechtsgrundlage zu erfassen, zu verfolgen oder Profile über sie zu erstellen oder ihre privaten Informationen ohne ihre Einwilligung preiszugeben;",
+        "Menschen rechtswidrig zu diskriminieren, zum Beispiel bei Wohnraum, Arbeit, Krediten oder Dienstleistungen;",
+        "zu Selbstverletzung, Suizid oder Essstörungen zu ermutigen."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "banned-ai",
+      "text": "Verbotene KI-Praktiken"
+    },
+    {
+      "type": "p",
+      "text": "Nutzen Sie die Dienste nicht für Praktiken, die das EU-Recht für KI-Systeme verbietet. Wir wenden diese Liste weltweit an. (KI-Verordnung, Art. 5)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Menschen durch Techniken, derer sie sich nicht bewusst sind, oder durch Täuschung so zu manipulieren, dass ihre Entscheidungen verzerrt werden und ihnen wahrscheinlich ein erheblicher Schaden entsteht;",
+        "Schwächen von Menschen aufgrund ihres Alters, einer Behinderung oder ihrer sozialen oder wirtschaftlichen Lage auszunutzen;",
+        "soziale Bewertung: Menschen nach ihrem sozialen Verhalten oder ihren persönlichen Eigenschaften so zu bewerten, dass dies zu einer ungerechtfertigten oder sachfremden Behandlung führt;",
+        "vorherzusagen, ob jemand eine Straftat begehen wird, allein auf Grundlage von Profiling oder seiner Persönlichkeitsmerkmale;",
+        "Gesichtserkennungsdatenbanken durch ungezieltes Auslesen von Gesichtsbildern aus dem Internet oder aus Kameraaufnahmen aufzubauen oder zu erweitern;",
+        "Emotionen von Menschen am Arbeitsplatz oder in Bildungseinrichtungen zu erkennen, außer aus medizinischen Gründen oder Sicherheitsgründen;",
+        "Menschen anhand ihrer biometrischen Daten zu kategorisieren, um auf ihre Rasse, ihre politischen Meinungen, ihre Gewerkschaftszugehörigkeit, ihre Religion oder Weltanschauung, ihr Sexualleben oder ihre sexuelle Orientierung zu schließen;",
+        "Menschen in öffentlich zugänglichen Räumen zu Strafverfolgungszwecken in Echtzeit biometrisch aus der Ferne zu identifizieren."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Nutzen Sie die Dienste niemals, um Darstellungen sexuellen Kindesmissbrauchs zu erstellen, zu teilen oder zu suchen oder um intime oder sexuelle Bilder einer realen Person ohne deren Einwilligung zu erstellen oder zu teilen, auch keine gefälschten."
+    },
+    {
+      "type": "h2",
+      "id": "children",
+      "text": "Kinder"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix ist für Erwachsene (ab 18 Jahren) bestimmt. Lassen Sie Kinder nicht Ihr Konto nutzen. Nutzen Sie die Dienste, einschließlich der API, nicht in Angeboten, die sich an Personen unter 18 Jahren richten oder voraussichtlich von ihnen genutzt werden."
+    },
+    {
+      "type": "p",
+      "text": "Nutzen Sie die Dienste niemals, um Kinder zu sexualisieren, sie gezielt anzusprechen, um Missbrauch anzubahnen (Grooming), sie auszubeuten oder zu gefährden. Darstellungen sexuellen Kindesmissbrauchs melden wir, wie gesetzlich vorgeschrieben, den Behörden, und wir schließen die betroffenen Konten."
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "Sicherheit und Missbrauch"
+    },
+    {
+      "type": "p",
+      "text": "Weder Sie noch Ihre Agenten dürfen die Dienste nutzen, um:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Schadsoftware, Ransomware oder anderen schädlichen Code zu erstellen, zu verbreiten oder auszuführen;",
+        "ohne Erlaubnis des Eigentümers in Computer, Netzwerke oder Konten einzudringen, sie auszuforschen oder zu stören;",
+        "Agenten auf Computern, Konten oder Systemen auszuführen, die Sie nicht nutzen dürfen, oder ihnen Zugriffe zu gewähren, die sie nicht haben dürfen;",
+        "unsere Sicherheits-, Anmelde-, Beschränkungs- oder Schutzmaßnahmen oder die der von Ihnen verbundenen Dienste zu umgehen;",
+        "die Dienste oder deren Nutzung durch andere zu überlasten, anzugreifen oder zu beeinträchtigen;",
+        "den Zugang zu Ihrem Konto oder zu den Diensten ohne unsere schriftliche Vereinbarung zu teilen, zu verkaufen oder weiterzuverkaufen;",
+        "unseren Code, unsere Prompts oder die von uns verwendeten Modelle zu extrahieren, außer soweit das Gesetz oder eine Open-Source-Lizenz dies erlaubt."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Sicherheitsforschung an unseren eigenen Systemen ist willkommen, wenn Sie unsere Richtlinie [Sicherheit & Meldung von Schwachstellen](/instant/legal/security) einhalten."
+    },
+    {
+      "type": "h2",
+      "id": "honesty",
+      "text": "Ehrlichkeit im Umgang mit KI"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Geben Sie eine KI nicht als Menschen aus und geben Sie KI-Ausgaben nicht als von einer Person geschrieben oder erstellt aus, wenn dies jemanden täuschen könnte.",
+        "Wenn ein Agent oder Bot für Sie Nachrichten oder E-Mails an andere sendet oder mit anderen spricht, muss er spätestens in seiner ersten Nachricht klar angeben, dass er eine KI ist.",
+        "Nutzen Sie die Dienste nicht, um sich als eine reale Person oder Organisation auszugeben oder um gefälschte Bewertungen, Aufzeichnungen oder Identitäten zu erstellen.",
+        "Wenn Sie realistische KI-erzeugte Bilder, Audio- oder Videoinhalte von realen Personen, Orten oder Ereignissen (Deepfakes) veröffentlichen, geben Sie klar an, dass sie von KI erzeugt oder verändert wurden.",
+        "Nutzen Sie die Dienste nicht, um Desinformationskampagnen durchzuführen oder Wahlen zu beeinflussen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie KI-erzeugte Texte veröffentlichen, um die Öffentlichkeit über Angelegenheiten von öffentlichem Interesse zu informieren, geben Sie an, dass sie von KI erzeugt wurden, es sei denn, eine Person hat sie überprüft und trägt die redaktionelle Verantwortung dafür. (KI-Verordnung, Art. 50(4))",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "sensitive-uses",
+      "text": "Nicht unterstützte Nutzungen"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix ist für die Arbeit gemacht. Nutzen Sie es nicht für:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Gesellschaft, Freundschaft, Romantik oder irgendeine emotionale Beziehung mit einer KI;",
+        "Therapie, Beratung oder die Behandlung psychischer Erkrankungen. Wenn Sie sich in einer Krise befinden, wenden Sie sich an Ihren örtlichen Notdienst oder eine Krisenhotline;",
+        "professionelle medizinische, rechtliche, steuerliche oder finanzielle Beratung für andere, es sei denn, eine qualifizierte Fachperson prüft sie und übernimmt die Verantwortung dafür;",
+        "die Diagnose oder Behandlung von Patienten oder Entscheidungen über sie."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Geben Sie keine Gesundheitsinformationen von Patienten in die Dienste ein, die durch Gesundheitsdatenschutzrecht geschützt sind, es sei denn, wir haben dies schriftlich mit Ihnen vereinbart."
+    },
+    {
+      "type": "p",
+      "text": "Nach HIPAA, dem US-Gesundheitsdatenschutzgesetz, wäre dafür ein Business Associate Agreement erforderlich, und solche Vereinbarungen unterzeichnen wir nicht. Unsere [Datenschutzerklärung für Verbraucher-Gesundheitsdaten](/instant/legal/health-data) erläutert, wie wir mit anderen Gesundheitsdaten umgehen.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "high-risk",
+      "text": "Entscheidungen mit hohem Risiko"
+    },
+    {
+      "type": "p",
+      "text": "Manche Nutzungen können das Leben von Menschen erheblich beeinflussen. Sie dürfen die Dienste zur Unterstützung solcher Nutzungen nur verwenden, wenn Sie alle für Sie geltenden Gesetze einhalten, jede Entscheidung in der Verantwortung einer qualifizierten Person belassen und betroffene Personen informieren, wo das Gesetz dies verlangt. Zu diesen Nutzungen gehören:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "die Einstellung, Beförderung, Führung oder Entlassung von Beschäftigten;",
+        "die Zulassung, Bewertung oder Überwachung von Lernenden oder das Aufdecken von Täuschungsversuchen in Prüfungen;",
+        "Entscheidungen über Kredite, Versicherungen, Wohnraum oder den Zugang zu öffentlichen Leistungen oder grundlegenden Diensten;",
+        "die biometrische Identifizierung oder Kategorisierung von Menschen;",
+        "die Verwaltung kritischer Infrastruktur wie Energie, Wasser oder Verkehr;",
+        "Strafverfolgung, Migration, Asyl, Grenzkontrolle, Justiz oder Wahlen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "In der EU sind die meisten dieser Nutzungen „Hochrisiko“-Anwendungen im Sinne der KI-Verordnung, die allen, die KI dafür einsetzen, zusätzliche Pflichten auferlegt. Sie sind dafür verantwortlich, diese Pflichten zu erfüllen, soweit sie für Sie gelten. (KI-Verordnung, Art. 26 und Anhang III)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Verwenden Sie Ausgaben nicht als alleinige Grundlage für eine Entscheidung, die rechtliche oder ähnlich erhebliche Auswirkungen auf eine Person hat.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "spam-rights",
+      "text": "Spam, Rechte und Scraping"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Versenden Sie keinen Spam: massenhafte oder unerwünschte Nachrichten oder Nachrichten, die gegen Anti-Spam- oder Werbegesetze verstoßen. Wenn Agenten oder Bots für Sie Nachrichten senden, sind Sie der Absender.",
+        "Verbinden Sie nur Messaging-Apps, E-Mail-Konten und Kontaktlisten, zu deren Nutzung Sie berechtigt sind, und verarbeiten Sie Daten anderer Personen nur, soweit das Gesetz es erlaubt.",
+        "Verletzen Sie keine Urheberrechte, Marken, Geschäftsgeheimnisse oder sonstigen Rechte und nutzen Sie die Dienste nicht, um Bezahlschranken oder Kopierschutz zu umgehen.",
+        "Lassen Sie Agenten keine Daten von Websites entgegen deren Bedingungen, Zugriffsregeln oder robots.txt-Anweisungen oder in einer Häufigkeit sammeln, die den Websites schadet."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "google",
+      "text": "Regeln von Google"
+    },
+    {
+      "type": "p",
+      "text": "Unser Standard-KI-Modell ist Google Gemini. Wenn Sie es über Orqanix nutzen, müssen Sie auch Googles [Richtlinie zur unzulässigen Nutzung generativer KI](https://policies.google.com/terms/generative-ai/use-policy) einhalten. Sie dürfen die Dienste nicht nutzen, um KI-Modelle zu entwickeln, die mit denen von Google konkurrieren, soweit [Googles Gemini API-Bedingungen](https://ai.google.dev/gemini-api/terms) dies verbieten. Wenn Sie in der Desktop-App einen anderen Modellanbieter verbinden, gelten für diese Nutzung die Regeln dieses Anbieters. [So funktioniert unsere KI](/instant/legal/ai) erläutert, welche Modelle wir verwenden."
+    },
+    {
+      "type": "h2",
+      "id": "report",
+      "text": "Einen Verstoß melden"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie in den Diensten Inhalte oder Aktivitäten sehen, die Ihrer Ansicht nach rechtswidrig sind oder gegen diese Richtlinie verstoßen, schreiben Sie an {company.email} mit dem Betreff „Meldung“. Jede Person kann eine Meldung abgeben, mit oder ohne Konto. (Gesetz über digitale Dienste, Art. 16)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie in den Diensten Inhalte oder Aktivitäten sehen, die Ihrer Ansicht nach rechtswidrig sind oder gegen diese Richtlinie verstoßen, schreiben Sie an {company.email} mit dem Betreff „Meldung“. Jede Person kann eine Meldung abgeben, mit oder ohne Konto.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Wenn das Leben oder die Sicherheit einer Person unmittelbar in Gefahr ist, wenden Sie sich zuerst an die Polizei oder den Notdienst."
+    },
+    {
+      "type": "h3",
+      "id": "what-to-include",
+      "text": "Was Ihre Meldung enthalten sollte"
+    },
+    {
+      "type": "list",
+      "items": [
+        "wo sich der Inhalt befindet, so genau wie möglich: ein Link, ein Bot- oder Kontoname, eine Nachricht, ein Datum und eine Uhrzeit;",
+        "warum Sie ihn für rechtswidrig oder für einen Verstoß gegen diese Richtlinie halten und, bei rechtswidrigen Inhalten, gegen welches Gesetz;",
+        "Ihren Namen und Ihre E-Mail-Adresse, damit wir antworten können. Sie können diese Angaben weglassen, wenn Ihre Meldung Darstellungen sexuellen Kindesmissbrauchs betrifft;",
+        "eine Erklärung, dass Sie in gutem Glauben davon ausgehen, dass Ihre Meldung zutreffend und vollständig ist."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "how-we-decide",
+      "text": "Wie wir entscheiden"
+    },
+    {
+      "type": "p",
+      "text": "Wir bestätigen den Eingang Ihrer Meldung. Ein Mensch prüft sie und entscheidet zeitnah, sorgfältig und objektiv. Dabei werden der Inhalt, der Kontext und die Rechte aller Beteiligten berücksichtigt, einschließlich der Meinungsfreiheit. Anschließend teilen wir Ihnen mit, wie wir entschieden haben und warum."
+    },
+    {
+      "type": "p",
+      "text": "Wenn wir gegen Inhalte oder ein Konto vorgehen, erhält der betroffene Nutzer von uns eine Begründung: was wir getan haben, die zugrunde liegenden Tatsachen, ob automatisierte Mittel eingesetzt wurden, die Regel oder das Gesetz, auf die wir uns gestützt haben, und wie die Entscheidung angefochten werden kann. Wir teilen ihm nicht mit, wer die Meldung abgegeben hat, es sei denn, das Gesetz verlangt es. (Gesetz über digitale Dienste, Art. 17)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wenn wir gegen Inhalte oder ein Konto vorgehen, teilen wir dem betroffenen Nutzer mit, was wir getan haben und warum, es sei denn, das Gesetz verbietet es oder die Mitteilung würde Schaden verursachen. Wir teilen ihm nicht mit, wer die Meldung abgegeben hat, es sei denn, das Gesetz verlangt es.",
+      "only": "us"
+    },
+    {
+      "type": "h3",
+      "id": "disagree",
+      "text": "Wenn Sie nicht einverstanden sind"
+    },
+    {
+      "type": "p",
+      "text": "Sowohl die meldende Person als auch der betroffene Nutzer können unsere Entscheidung anfechten. Antworten Sie auf unsere Nachricht oder schreiben Sie an {company.email} und erläutern Sie Ihre Gründe. Soweit möglich, prüft eine Person, die nicht an der ersten Entscheidung beteiligt war, die Entscheidung, und wir teilen Ihnen das Ergebnis mit."
+    },
+    {
+      "type": "p",
+      "text": "Sie können auch vor Gericht gehen oder sich beim Koordinator für digitale Dienste in dem EU-Land beschweren, in dem Sie leben.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wir können die Bearbeitung von Meldungen einer Person einstellen, die häufig offensichtlich unbegründete Meldungen einreicht, nachdem wir sie verwarnt haben."
+    },
+    {
+      "type": "h2",
+      "id": "enforcement",
+      "text": "Durchsetzung"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie gegen diese Richtlinie verstoßen, können wir Sie je nach Schwere des Verstoßes verwarnen, Inhalte entfernen oder sperren, einen Agenten oder Bot stoppen, Funktionen einschränken oder Ihr Konto sperren oder schließen. In den schwerwiegendsten Fällen, etwa bei Darstellungen sexuellen Kindesmissbrauchs, handeln wir sofort und ohne Vorwarnung und informieren die Behörden, soweit das Gesetz dies verlangt oder erlaubt."
+    },
+    {
+      "type": "p",
+      "text": "Wir handeln verhältnismäßig und begründen unsere Entscheidung wie unter [Wie wir entscheiden](#how-we-decide) beschrieben. Unsere [AGB](/instant/legal/terms#ending) erläutern die Sperrung und Schließung von Konten ausführlicher."
+    }
+  ]
+}

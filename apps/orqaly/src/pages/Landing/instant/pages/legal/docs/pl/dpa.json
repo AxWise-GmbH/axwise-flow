@@ -1,0 +1,531 @@
+{
+  "meta": {
+    "slug": "dpa",
+    "title": "Umowa powierzenia danych",
+    "summary": "Jak przetwarzamy dane osobowe jako Państwa podmiot przetwarzający, gdy Państwa firma korzysta z API, prac w ramach usług Dla firm lub Bota-asystenta.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Pierwsza wersja."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the party block (legalName, address) and the SCC governing-law sentence (law) stay hidden until company.js is filled (FACTS open point 1).",
+        "SCC structure depends on the entity (critique point 13): with an EU processor serving EU controllers no SCCs are needed between the parties; non-EU customers need Module Four; a non-EU entity needs Modules Two and Three and an EU representative (euRepresentative). The text covers all cases; lawyer to confirm, and to confirm the Clause 17/18 fallback.",
+        "Google Gemini: the processor promises only hold once the paid Gemini tier and Google's data processing terms apply (geminiPaidTier). Until then Google may use content under its free-tier terms, which conflicts with this DPA and with the US service-provider promises (FACTS open point 3; us.md). Do not offer this DPA to customers before that.",
+        "Google Cloud: accept Google's Cloud data processing terms for both projects (site and API) and record it.",
+        "Roles split (processor for customer data; controller for account data, logs, web searches and OpenRegister lookups) needs lawyer confirmation (FACTS open point 11; critique point 14).",
+        "Deletion at the end: the workspace database refuses deletion of some records (immutable tables) and there is no deletion, export or retention code. The text promises deletion or anonymisation, or an explanation where a record must be kept. A working process is needed before the first customer (FACTS open point 5).",
+        "Backups: the workspace database keeps 7 daily backups plus point-in-time recovery (about 7 days); the API database's backup settings were not checked, so the annex states backups only for the cloud workspace.",
+        "Sub-processor changes: the notice period is 'before the change takes effect', with no fixed number. Owner to set one (commonly 30 days) and a way to notify customers (needs working email).",
+        "Breach notice: 'without undue delay' only; an internal breach runbook is needed (critique point 19).",
+        "Assistant Bot: no code exists; the DPA only names it in scope and makes no feature or data claims (FACTS open point 13).",
+        "Security annex lists only measures FACTS supports; encryption is stated only as 'in transit (HTTPS) and at rest by our cloud provider'. Download-bucket region is unknown and not mentioned.",
+        "Mailboxes: privacy@ and security@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: 'Where' row and the transfers section now say the cloud workspace, the API and Enterprise hosting store data in the EU, instead of all customer data, because where the Assistant Bot keeps messages and tokens is unknown (FACTS §6). Secret Manager checked in both deploy scripts. Added a 'Frequency' row for SCC Annex I.",
+        "Legal review 2026-09-21: added the EU representative block (needs euRepresentative; required if the entity is outside the EU, GDPR Art. 27); instructions now cover transfers and we tell you 'at once' about unlawful instructions (GDPR Art. 28(3)(a) and last sentence); connected messaging and email accounts named as the customer's own providers, not our sub-processors (lawyer to confirm).",
+        "SCC Clause 9(a) Option 2 needs a fixed advance-notice period for sub-processor changes; the DPA only says 'before the change takes effect'. Owner to set a number of days before the DPA is used with non-EEA transfers.",
+        "SCC Clause 17/18 fallback: if company.law is not an EU member state and the customer is outside the EU, no governing law is named. Lawyer to pick a fallback member state.",
+        "Scope: business use of the Desktop App and the cloud workspace (outside the Assistant Bot) is not covered by this DPA. Owner to decide whether business users of those products can rely on it (the Terms of Service already point business users here)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "O niniejszej umowie"
+    },
+    {
+      "type": "p",
+      "text": "Niniejsza Umowa powierzenia przetwarzania danych („Umowa powierzenia”) określa zasady dotyczące danych osobowych, które przetwarzamy dla klientów biznesowych. Stanowi ona część [Warunków API](/instant/legal/api-terms), [Warunków dla firm](/instant/legal/enterprise-terms) oraz — gdy korzystają Państwo z Bota-asystenta na potrzeby swojej firmy — [Warunków Bota-asystenta](/instant/legal/assistant-bot-terms). Ten z tych dokumentów, który ma do Państwa zastosowanie, nazywamy „umową główną”."
+    },
+    {
+      "type": "p",
+      "text": "Umowa powierzenia obowiązuje automatycznie z chwilą zaakceptowania przez Państwa umowy głównej. Podpis nie jest wymagany. Jeśli potrzebują Państwo podpisanego egzemplarza do swojej dokumentacji, prosimy napisać na adres {company.privacyEmail}."
+    },
+    {
+      "type": "p",
+      "text": "Jeśli niniejsza Umowa powierzenia i umowa główna są ze sobą sprzeczne w zakresie danych osobowych, pierwszeństwo ma niniejsza Umowa powierzenia. Tam, gdzie mają zastosowanie standardowe klauzule umowne (zob. [Przekazywanie danych do państw trzecich](#transfers)), mają one pierwszeństwo przed obydwoma dokumentami."
+    },
+    {
+      "type": "h2",
+      "id": "parties",
+      "text": "Strony"
+    },
+    {
+      "type": "p",
+      "text": "Niniejsza Umowa powierzenia zostaje zawarta między Państwem jako klientem biznesowym („Państwo”) a Orqanix („my” lub „nas”)."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix prowadzi {company.legalName}, {company.address}, która jest stroną niniejszej Umowy powierzenia.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Naszym przedstawicielem w UE jest {company.euRepresentative}.",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Nasz kontakt w sprawach ochrony danych to {company.privacyEmail}. Prosimy wskazać nam swoją osobę kontaktową, abyśmy mogli kontaktować się z Państwem w sprawach niniejszej Umowy powierzenia."
+    },
+    {
+      "type": "h2",
+      "id": "words",
+      "text": "Używane pojęcia"
+    },
+    {
+      "type": "list",
+      "items": [
+        "„Dane osobowe” oznaczają wszelkie informacje o zidentyfikowanej lub możliwej do zidentyfikowania osobie.",
+        "„Przetwarzanie” oznacza każdą czynność wykonywaną na danych osobowych, taką jak ich przechowywanie, odczytywanie, przesyłanie lub usuwanie.",
+        "„Administrator” decyduje, w jakim celu i w jaki sposób przetwarzane są dane osobowe. „Podmiot przetwarzający” przetwarza je w imieniu administratora i na jego polecenie. „Podprzetwarzający” to podmiot przetwarzający, z którego usług korzystamy.",
+        "„Dane osobowe klienta” oznaczają dane osobowe, które przetwarzamy dla Państwa na podstawie umowy głównej.",
+        "„Przepisy o ochronie danych” oznaczają wszystkie przepisy o ochronie prywatności mające zastosowanie do przetwarzania, takie jak unijne ogólne rozporządzenie o ochronie danych (RODO), brytyjskie RODO (UK GDPR), szwajcarska federalna ustawa o ochronie danych (FADP) oraz stanowe przepisy o ochronie prywatności w USA."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "roles",
+      "text": "Nasze role"
+    },
+    {
+      "type": "p",
+      "text": "Są Państwo administratorem danych osobowych klienta albo podmiotem przetwarzającym działającym na rzecz własnych klientów. My jesteśmy Państwa podmiotem przetwarzającym lub podprzetwarzającym. Niektóre dane przetwarzamy we własnych celach i w odniesieniu do tych danych jesteśmy administratorem:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Dane",
+        "Nasza rola",
+        "Co ma zastosowanie"
+      ],
+      "rows": [
+        [
+          "Dane osobowe zawarte w tym, co Państwo lub Państwa użytkownicy przesyłają do API, w pracach w ramach usług Dla firm lub w przestrzeni roboczej i podłączonych kontach firmowego Bota-asystenta",
+          "Podmiot przetwarzający działający dla Państwa",
+          "Niniejsza Umowa powierzenia"
+        ],
+        [
+          "Dane kont i logowania Państwa pracowników, Państwa osób kontaktowych oraz nasza dokumentacja umów i faktur",
+          "Administrator",
+          "Nasza [Polityka prywatności](/instant/legal/privacy)"
+        ],
+        [
+          "Dzienniki usług i bezpieczeństwa (adres IP, przeglądarka, czas, żądany adres)",
+          "Administrator",
+          "Nasza Polityka prywatności"
+        ],
+        [
+          "Zapytania wyszukiwania, które nasza własna usługa wyszukiwania wysyła do wyszukiwarek internetowych w celu wykonania zadania",
+          "Administrator",
+          "Nasza Polityka prywatności"
+        ],
+        [
+          "Wyszukiwania w rejestrach spółek za pośrednictwem OpenRegister, których wyniki mogą obejmować nazwiska członków zarządu",
+          "Administrator",
+          "Nasza Polityka prywatności"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "To my decydujemy o tym, jak działają nasze wyszukiwania i wyszukiwania w rejestrach, dlatego w ich zakresie działamy we własnym imieniu (RODO art. 4 pkt 7). Zapytania wyszukiwania są tworzone na podstawie Państwa zadania, dlatego prosimy nie umieszczać danych osobowych w treści zadania, chyba że zadanie tego wymaga."
+    },
+    {
+      "type": "h2",
+      "id": "details",
+      "text": "Szczegóły przetwarzania"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Pozycja",
+        "Szczegóły"
+      ],
+      "rows": [
+        [
+          "Przedmiot",
+          "Świadczenie usługi objętej umową główną: API, prac w ramach usług Dla firm lub Bota-asystenta używanego na potrzeby Państwa firmy."
+        ],
+        [
+          "Czas trwania",
+          "Przez cały okres obowiązywania umowy głównej, a następnie do czasu usunięcia lub zwrotu danych osobowych klienta zgodnie z niniejszą Umową powierzenia."
+        ],
+        [
+          "Charakter",
+          "Odbieranie, przechowywanie, porządkowanie, odczytywanie, analizowanie za pomocą modeli AI, tworzenie odpowiedzi i plików, przesyłanie do Państwa i Państwa systemów oraz usuwanie."
+        ],
+        [
+          "Cel",
+          "Wyłącznie świadczenie usługi na Państwa rzecz, zapewnienie jej bezpieczeństwa i wypełnianie naszych obowiązków prawnych."
+        ],
+        [
+          "Rodzaje danych osobowych",
+          "Wszelkie dane, które zdecydują się Państwo nam przesłać lub podłączyć. Zwykle imiona i nazwiska, dane kontaktowe, stanowiska, relacje biznesowe oraz treść zadań, wiadomości, dokumentów i plików."
+        ],
+        [
+          "Osoby, których dane dotyczą",
+          "Państwa pracownicy, Państwa klienci i użytkownicy końcowi, Państwa dostawcy i kontakty biznesowe oraz wszelkie inne osoby wymienione w przesyłanych lub podłączanych przez Państwa danych, w tym kontakty w kontach e-mail i komunikatorach podłączonych przez Państwa do firmowego Bota-asystenta."
+        ],
+        [
+          "Szczególne kategorie",
+          "Brak, chyba że uzgodniliśmy inaczej na piśmie. Bez takiego uzgodnienia prosimy nie przesyłać nam danych dotyczących zdrowia, danych biometrycznych ani innych danych szczególnych kategorii, ani danych dotyczących wyroków skazujących."
+        ],
+        [
+          "Częstotliwość",
+          "W sposób ciągły, za każdym razem, gdy Państwo lub Państwa użytkownicy korzystają z usługi."
+        ],
+        [
+          "Miejsce",
+          "Nasza chmurowa przestrzeń robocza i API przechowują dane w Google Cloud w UE (w Holandii). Prace w ramach usług Dla firm są hostowane w regionie Google Cloud w UE wskazanym w zamówieniu. Podprzetwarzający mogą przetwarzać dane w innych miejscach, jak wskazuje strona [Podprzetwarzający](/instant/legal/subprocessors)."
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "our-duties",
+      "text": "Nasze zobowiązania"
+    },
+    {
+      "type": "p",
+      "text": "Te zobowiązania opisują prostym językiem obowiązki podmiotu przetwarzającego (RODO art. 28 ust. 3; UK GDPR art. 28 ust. 3; FADP art. 9)."
+    },
+    {
+      "type": "h3",
+      "id": "instructions",
+      "text": "Państwa polecenia"
+    },
+    {
+      "type": "p",
+      "text": "Przetwarzamy dane osobowe klienta wyłącznie na Państwa udokumentowane polecenie, w tym w odniesieniu do przekazywania ich do innych państw. Państwa polecenia stanowią umowa główna, niniejsza Umowa powierzenia oraz sposób, w jaki konfigurują Państwo usługę i z niej korzystają. Mogą Państwo wydawać dalsze pisemne polecenia, jeśli są one zgodne z charakterem usługi. Możemy przetwarzać dane bez Państwa polecenia wyłącznie wtedy, gdy wymaga tego prawo. W takim przypadku najpierw Państwa o tym informujemy, chyba że to prawo tego zabrania. Jeśli uznamy, że polecenie narusza przepisy o ochronie danych, niezwłocznie Państwa o tym informujemy."
+    },
+    {
+      "type": "h3",
+      "id": "confidentiality",
+      "text": "Poufność"
+    },
+    {
+      "type": "p",
+      "text": "Dostęp do danych osobowych klienta mają wyłącznie osoby, które potrzebują ich do swojej pracy, a każda z nich jest zobowiązana do zachowania ich w poufności."
+    },
+    {
+      "type": "h3",
+      "id": "security",
+      "text": "Bezpieczeństwo"
+    },
+    {
+      "type": "p",
+      "text": "Stosujemy środki techniczne i organizacyjne odpowiednie do ryzyka, aby chronić dane osobowe klienta przed przypadkową lub niezgodną z prawem utratą, zmianą, ujawnieniem lub dostępem (RODO art. 32). Opisuje je [załącznik dotyczący bezpieczeństwa](#security-measures) na końcu niniejszej Umowy powierzenia. Możemy z czasem je zmieniać, ale nie obniżymy ogólnego poziomu ochrony."
+    },
+    {
+      "type": "h3",
+      "id": "sub-processors",
+      "text": "Podprzetwarzający"
+    },
+    {
+      "type": "p",
+      "text": "Zezwalają nam Państwo na korzystanie z podprzetwarzających. Strona [Podprzetwarzający](/instant/legal/subprocessors) wymienia tych, z których korzystamy obecnie, oraz informuje, co robią i gdzie. W przypadku prac w ramach usług Dla firm zamówienie może wskazywać kolejnych."
+    },
+    {
+      "type": "p",
+      "text": "Zanim dodamy lub zastąpimy podprzetwarzającego, aktualizujemy tę stronę i informujemy Państwa o tym, aby mogli Państwo wnieść sprzeciw, zanim zmiana wejdzie w życie. Jeśli wniosą Państwo sprzeciw z uzasadnionych przyczyn związanych z ochroną danych, wspólnie z Państwem poszukamy rozwiązania. Jeśli go nie znajdziemy, mogą Państwo zakończyć korzystanie z danej części usługi."
+    },
+    {
+      "type": "p",
+      "text": "Każdego podprzetwarzającego zobowiązujemy na piśmie do przestrzegania obowiązków w zakresie ochrony danych zapewniających co najmniej taką ochronę jak niniejsza Umowa powierzenia. Pozostajemy wobec Państwa odpowiedzialni za ich pracę."
+    },
+    {
+      "type": "p",
+      "text": "Komunikatory, konta e-mail i inne podłączane przez Państwa usługi są Państwa własnymi, wybranymi przez Państwa dostawcami. Nie są one naszymi podprzetwarzającymi, a to, co robią z danymi, podlega ich własnym warunkom."
+    },
+    {
+      "type": "p",
+      "text": "Jako modelu AI używamy Google Gemini, dlatego treść zadań i rozmów jest przesyłana do Google. Google może ją przetwarzać poza UE."
+    },
+    {
+      "type": "p",
+      "text": "Korzystamy z płatnego Gemini API od Google. W tym zakresie Google działa jako nasz podmiot przetwarzający na podstawie swoich warunków przetwarzania danych i nie wykorzystuje treści do ulepszania swoich produktów.",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "rights-requests",
+      "text": "Prawa osób"
+    },
+    {
+      "type": "p",
+      "text": "Osoby mogą żądać dostępu do swoich danych, ich sprostowania, usunięcia lub przeniesienia albo wnieść sprzeciw wobec ich wykorzystywania. Jeśli otrzymamy takie żądanie dotyczące danych osobowych klienta, przekazujemy je Państwu i nie odpowiadamy na nie sami, chyba że Państwo nas o to poproszą. Pomagamy Państwu odpowiadać na żądania w zakresie, w jakim pozwala na to charakter usługi (RODO art. 12–23)."
+    },
+    {
+      "type": "h3",
+      "id": "breaches",
+      "text": "Naruszenia ochrony danych"
+    },
+    {
+      "type": "p",
+      "text": "Jeśli dowiemy się o naruszeniu bezpieczeństwa, które dotyczy danych osobowych klienta, informujemy Państwa o tym bez zbędnej zwłoki. Przekazujemy Państwu to, co wiemy, a w miarę uzyskiwania informacji — kolejne szczegóły (RODO art. 33 ust. 2 i 3):"
+    },
+    {
+      "type": "list",
+      "items": [
+        "co się stało;",
+        "jakich rodzajów danych i jakich osób dotyczy naruszenie oraz w przybliżeniu ilu;",
+        "prawdopodobne skutki;",
+        "co zrobiliśmy i co planujemy zrobić w tej sprawie;",
+        "z kim mogą Państwo się kontaktować."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Poinformowanie Państwa nie stanowi przyznania się do winy."
+    },
+    {
+      "type": "h3",
+      "id": "other-help",
+      "text": "Inna pomoc"
+    },
+    {
+      "type": "p",
+      "text": "W zakresie, w jakim pozwalają na to charakter usługi i posiadane przez nas informacje, pomagamy Państwu w wypełnianiu obowiązków w zakresie bezpieczeństwa, w przeprowadzaniu ocen skutków dla ochrony danych oraz w konsultacjach z Państwa organem ochrony danych (RODO art. 32–36)."
+    },
+    {
+      "type": "h3",
+      "id": "end",
+      "text": "Zwrot i usunięcie"
+    },
+    {
+      "type": "p",
+      "text": "Po zakończeniu umowy głównej usuwamy dane osobowe klienta. Jeśli poproszą nas Państwo o to wcześniej, najpierw je Państwu zwracamy. Kopię zachowujemy wyłącznie wtedy, gdy wymaga tego prawo, tylko tak długo, jak tego wymaga, i chronimy ją zgodnie z niniejszą Umową powierzenia. Kopie w naszych kopiach zapasowych znikają wraz z wygaśnięciem tych kopii zapasowych."
+    },
+    {
+      "type": "p",
+      "text": "Niektóre zapisy działań agentów są przechowywane w postaci stałego dziennika, którego nie można zmienić. Jeśli taki zapis zawiera dane osobowe klienta, usuwamy go lub anonimizujemy albo, jeśli musimy go zachować, informujemy Państwa dlaczego."
+    },
+    {
+      "type": "h3",
+      "id": "audits",
+      "text": "Audyty"
+    },
+    {
+      "type": "p",
+      "text": "Udostępniamy Państwu informacje, których w rozsądnym zakresie potrzebują Państwo, aby wykazać, że wypełniamy te obowiązki. Jeśli to nie wystarczy, Państwo lub niezależny audytor zobowiązany do zachowania poufności mogą przeprowadzić u nas audyt. Uprzedzają nas Państwo o nim z rozsądnym wyprzedzeniem, a audyt nie może zakłócać świadczenia naszej usługi ani narażać danych innych klientów. Koszty audytu ponoszą Państwo sami. Organ ochrony danych może zawsze przeprowadzić u nas audyt w zakresie dozwolonym przez prawo."
+    },
+    {
+      "type": "h2",
+      "id": "your-duties",
+      "text": "Państwa zobowiązania"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Mają Państwo podstawę prawną do przetwarzania i przekazują osobom informacje o ochronie prywatności wymagane przez prawo, w tym informację, że korzystają Państwo z naszych usług.",
+        "Państwa polecenia są zgodne z przepisami o ochronie danych.",
+        "Przesyłają nam Państwo wyłącznie dane osobowe potrzebne do świadczenia usługi i nie przesyłają danych szczególnych kategorii, chyba że uzgodniliśmy to na piśmie.",
+        "Konfigurują Państwo usługę w bezpieczny sposób po swojej stronie, w tym chronią klucze dostępu i dane logowania oraz wybierają odpowiednie ustawienia zatwierdzania działań agentów."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "transfers",
+      "text": "Przekazywanie danych do państw trzecich"
+    },
+    {
+      "type": "p",
+      "text": "Nasza chmurowa przestrzeń robocza, API i hosting usług Dla firm przechowują dane osobowe klienta w UE. Niektórzy podprzetwarzający mogą przetwarzać je w innych państwach, jak wskazuje strona [Podprzetwarzający](/instant/legal/subprocessors)."
+    },
+    {
+      "type": "p",
+      "text": "Przekazujemy dane osobowe poza EOG, Wielką Brytanię lub Szwajcarię wyłącznie wtedy, gdy zezwalają na to przepisy o ochronie danych. Przekazujemy je na przykład do państwa, co do którego UE stwierdziła odpowiedni stopień ochrony danych, do amerykańskiej spółki certyfikowanej w ramach Ram ochrony danych UE–USA (EU-US Data Privacy Framework) lub na podstawie standardowych klauzul umownych."
+    },
+    {
+      "type": "h3",
+      "id": "sccs",
+      "text": "Standardowe klauzule umowne"
+    },
+    {
+      "type": "p",
+      "text": "Jeśli przekazywanie danych między Państwem a nami tego wymaga, standardowe klauzule umowne zatwierdzone przez Komisję Europejską (decyzja wykonawcza (UE) 2021/914, „SKU”) stanowią część niniejszej Umowy powierzenia. To, która część SKU („moduł”) ma zastosowanie, zależy od tego, gdzie każda ze stron ma siedzibę:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Moduł drugi (przekazywanie od administratora do podmiotu przetwarzającego), gdy są Państwo administratorem i przesyłają nam dane poza EOG.",
+        "Moduł trzeci (przekazywanie od podmiotu przetwarzającego do podmiotu przetwarzającego), gdy są Państwo podmiotem przetwarzającym dla własnych klientów i przesyłają nam dane poza EOG.",
+        "Moduł czwarty (przekazywanie od podmiotu przetwarzającego do administratora), gdy znajdujemy się w EOG i zwracamy Państwu dane poza EOG."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "W odniesieniu do SKU dokonujemy następujących wyborów:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Klauzula 7: ma zastosowanie opcjonalna klauzula przystąpienia.",
+        "Klauzula 9: ma zastosowanie opcja 2 (ogólne upoważnienie do korzystania z podprzetwarzających), z powiadamianiem zgodnie z częścią [Podprzetwarzający](#sub-processors).",
+        "Klauzula 11: opcjonalne sformułowanie nie ma zastosowania.",
+        "Klauzula 13: organem nadzorczym jest organ właściwy dla Państwa jako podmiotu przekazującego dane.",
+        "Załączniki: części [Nasze role](#roles) i [Szczegóły przetwarzania](#details) wypełniają załącznik I, [załącznik dotyczący bezpieczeństwa](#security-measures) wypełnia załącznik II, a strona Podprzetwarzający wypełnia załącznik III."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Zgodnie z klauzulami 17 i 18 SKU podlegają prawu państwa członkowskiego UE, w którym mają Państwo siedzibę, a spory rozstrzygają sądy tego państwa. Jeśli nie mają Państwo siedziby w UE, SKU podlegają prawu {company.law} i właściwe są sądy tego państwa, o ile jest ono państwem członkowskim UE.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "uk-switzerland",
+      "text": "Wielka Brytania i Szwajcaria"
+    },
+    {
+      "type": "p",
+      "text": "W przypadku przekazywania danych z Wielkiej Brytanii ma zastosowanie Addendum w sprawie międzynarodowego przekazywania danych do SKU wydane przez brytyjskiego Information Commissioner („Addendum brytyjskie”), uzupełnione o szczegóły zawarte w niniejszej Umowie powierzenia."
+    },
+    {
+      "type": "p",
+      "text": "W przypadku przekazywania danych ze Szwajcarii SKU mają zastosowanie z następującymi zmianami: organem nadzorczym w odniesieniu do przekazywania danych na podstawie FADP jest szwajcarski Federalny Komisarz ds. Ochrony Danych i Informacji; odniesienia do RODO oznaczają również FADP; a pojęcie „państwo członkowskie” obejmuje Szwajcarię, tak aby osoby tam przebywające mogły dochodzić roszczeń w miejscu swojego zamieszkania."
+    },
+    {
+      "type": "h3",
+      "id": "onward",
+      "text": "Przekazywanie danych przez podprzetwarzających"
+    },
+    {
+      "type": "p",
+      "text": "Jeśli podprzetwarzający przekazuje dane osobowe klienta poza EOG, Wielką Brytanię lub Szwajcarię, dbamy o to, aby miało to ważną podstawę, taką jak Ramy ochrony danych lub SKU zawarte w naszej umowie z tym podprzetwarzającym."
+    },
+    {
+      "type": "h2",
+      "id": "us-state-law",
+      "text": "Stanowe przepisy o ochronie prywatności w USA",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Jeśli są Państwo „przedsiębiorstwem” („business”) w rozumieniu California Consumer Privacy Act lub administratorem w rozumieniu innych stanowych przepisów o ochronie prywatności w USA, jesteśmy Państwa „usługodawcą” („service provider”), „wykonawcą” („contractor”) lub „podmiotem przetwarzającym” („processor”) w odniesieniu do danych osobowych klienta. My:",
+      "only": "us"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "nie sprzedajemy ani nie udostępniamy danych osobowych klienta w rozumieniu definicji zawartych w tych przepisach;",
+        "przetwarzamy je wyłącznie w celach biznesowych określonych w umowie głównej i w niniejszej Umowie powierzenia, a nie w jakichkolwiek innych celach komercyjnych;",
+        "nie przechowujemy, nie wykorzystujemy ani nie ujawniamy ich poza naszą bezpośrednią relacją biznesową z Państwem;",
+        "nie łączymy ich z danymi osobowymi, które otrzymujemy od innych podmiotów lub zbieramy sami, z wyjątkiem przypadków dozwolonych przez te przepisy;",
+        "przestrzegamy tych przepisów i zapewniamy taki sam poziom ochrony prywatności, jakiego one wymagają;",
+        "informujemy Państwa, jeśli uznamy, że nie jesteśmy już w stanie wypełniać tych obowiązków."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Mogą Państwo podejmować rozsądne i odpowiednie kroki, aby upewnić się, że wykorzystujemy dane osobowe klienta zgodnie z tymi przepisami, oraz aby powstrzymać i naprawić każde niedozwolone wykorzystanie. Rozumiemy te ograniczenia i będziemy ich przestrzegać.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Odpowiedzialność"
+    },
+    {
+      "type": "p",
+      "text": "Odpowiedzialność każdej ze stron na podstawie niniejszej Umowy powierzenia podlega ograniczeniom określonym w umowie głównej, w zakresie dozwolonym przez przepisy o ochronie danych. Ograniczenia te nie umniejszają praw, które przysługują osobom bezpośrednio na podstawie przepisów o ochronie danych."
+    },
+    {
+      "type": "h2",
+      "id": "term",
+      "text": "Czas obowiązywania i aktualizacje"
+    },
+    {
+      "type": "p",
+      "text": "Niniejsza Umowa powierzenia obowiązuje tak długo, jak przetwarzamy dla Państwa dane osobowe klienta, również po zakończeniu umowy głównej."
+    },
+    {
+      "type": "p",
+      "text": "Możemy aktualizować niniejszą Umowę powierzenia, aby uwzględnić zmiany w prawie, wśród naszych podprzetwarzających lub w naszych usługach. Bez Państwa zgody nie zmienimy jej w sposób obniżający ochronę danych osobowych klienta, chyba że zmiany wymaga prawo."
+    },
+    {
+      "type": "h2",
+      "id": "security-measures",
+      "text": "Załącznik: środki bezpieczeństwa"
+    },
+    {
+      "type": "p",
+      "text": "Oto główne środki techniczne i organizacyjne, które obecnie stosujemy. Strona [Bezpieczeństwo i zgłaszanie podatności](/instant/legal/security) wyjaśnia, jak zgłosić problem z bezpieczeństwem na adres {company.securityEmail}."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Obszar",
+        "Co robimy"
+      ],
+      "rows": [
+        [
+          "Hosting",
+          "Nasze usługi chmurowe i bazy danych działają w Google Cloud w UE (w Holandii). Prace w ramach usług Dla firm są hostowane w regionie Google Cloud w UE wskazanym w zamówieniu."
+        ],
+        [
+          "Szyfrowanie",
+          "Dane są szyfrowane podczas przesyłania (HTTPS) oraz w stanie spoczynku przez naszego dostawcę chmury."
+        ],
+        [
+          "Dostęp do kont",
+          "Użytkownicy logują się do przestrzeni roboczej Orqanix za pośrednictwem naszego dostawcy usług logowania, Clerk, z weryfikacją chroniącą przed botami przy rejestracji. Dostęp do API jest możliwy wyłącznie za pomocą wydanego przez nas tajnego klucza dostępu."
+        ],
+        [
+          "Przechowywane klucze i sekrety",
+          "Klucze aplikacji do automatyzacji są przechowywane wyłącznie w postaci skrótów (hashy), a nie w czytelnej formie. Sekrety używane przez nasze usługi są przechowywane w Google Cloud Secret Manager, a nie w naszym kodzie."
+        ],
+        [
+          "Przechowywane pliki",
+          "Pliki tworzone przez chmurową przestrzeń roboczą są przechowywane w prywatnym zasobniku Google Cloud Storage w UE."
+        ],
+        [
+          "Dostęp pracowników",
+          "Dostęp mają wyłącznie osoby, które potrzebują go do swojej pracy, i są one zobowiązane do zachowania poufności."
+        ],
+        [
+          "Zapisy działań agentów",
+          "To, co zrobili agenci, co zostało zatwierdzone, oraz utworzone przez nich pliki są zapisywane w dzienniku, którego nie można później zmienić. Klienci korzystający z usług Dla firm ustawiają zatwierdzenia („Zezwól raz”, „Zawsze zezwalaj”, „Odmów”) i dostęp oparty na rolach."
+        ],
+        [
+          "Dzienniki",
+          "Dzienniki żądań zawierają adres IP, przeglądarkę, czas, żądany adres i wynik. Nie zapisujemy w dziennikach treści poleceń ani wiadomości."
+        ],
+        [
+          "Kopie zapasowe",
+          "Baza danych chmurowej przestrzeni roboczej ma codzienne automatyczne kopie zapasowe, możliwość odtworzenia stanu z dowolnego momentu oraz ochronę przed przypadkowym usunięciem."
+        ],
+        [
+          "Modele",
+          "Nie trenujemy własnych modeli AI na danych klientów."
+        ],
+        [
+          "Incydenty",
+          "O naruszeniach ochrony danych osobowych informujemy klientów, których one dotyczą, bez zbędnej zwłoki, zgodnie z częścią [Naruszenia ochrony danych](#breaches)."
+        ]
+      ]
+    }
+  ]
+}

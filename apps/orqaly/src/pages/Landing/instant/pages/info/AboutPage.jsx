@@ -1,8 +1,53 @@
-import Reveal from '../../ui/Reveal';
-import { InfoHead, Numeral } from './InfoParts';
+import { useEffect, useState } from 'react';
+import { InfoHead } from './InfoParts';
+import { loadAboutCopy } from './about.copy';
+import { AboutFounders, AboutGoal, AboutMission, AboutStory } from './AboutSections';
+import { useLang, useT } from '../../i18n/useT';
 
-/** A manifesto: one centred line in the light, one big statement, three beliefs, a way in. */
+const CHAPTERS = ['story', 'goal', 'mission', 'founders'];
+
+/** The chapter the reader is in: the last one whose top has passed the upper third. */
+function useActiveChapter(ready) {
+  const [active, setActive] = useState(CHAPTERS[0]);
+  useEffect(() => {
+    if (!ready || typeof IntersectionObserver === 'undefined') return undefined;
+    const seen = new Map();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => seen.set(entry.target.id, entry.isIntersecting));
+        const current = CHAPTERS.find((id) => seen.get(`about-${id}`));
+        if (current) setActive(current);
+      },
+      { rootMargin: '-35% 0px -60% 0px' }
+    );
+    CHAPTERS.forEach((id) => {
+      const section = document.getElementById(`about-${id}`);
+      if (section) observer.observe(section);
+    });
+    return () => observer.disconnect();
+  }, [ready]);
+  return active;
+}
+
+/** Who we are: a hero, then four chapters: story, goal, mission, founders. */
 export default function AboutPage({ page }) {
+  const { t } = useT('pg');
+  const lang = useLang();
+  const [copy, setCopy] = useState(null);
+
+  useEffect(() => {
+    let live = true;
+    loadAboutCopy(lang).then(
+      (text) => live && setCopy(text),
+      () => {}
+    );
+    return () => {
+      live = false;
+    };
+  }, [lang]);
+
+  const active = useActiveChapter(Boolean(copy));
+
   return (
     <>
       <section className="oin-about-hero" aria-labelledby="instant-page-heading">
@@ -12,36 +57,31 @@ export default function AboutPage({ page }) {
         </div>
       </section>
 
-      <div className="oi-container">
-        <Reveal as="p" className="oin-big">
-          {page.statement.map((sentence, index) => (
-            <span key={sentence} className={index ? 'oin-big-lit' : undefined}>
-              {sentence}{' '}
-            </span>
-          ))}
-        </Reveal>
+      {copy && (
+        <>
+          <nav className="oin-chapters" aria-label={t('pg.about.chapters', 'On this page')}>
+            <ol>
+              {CHAPTERS.map((id) => (
+                <li key={id}>
+                  <a
+                    href={`#about-${id}`}
+                    aria-current={active === id ? 'location' : undefined}
+                  >
+                    {copy.chapters[id]}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
 
-        <ol className="oin-principles" aria-label="What we believe">
-          {page.principles.map(({ title, text }, index) => (
-            <Reveal as="li" key={title} delay={index * 90} className="oin-principle">
-              <Numeral index={index} />
-              <h2>{title}</h2>
-              <p>{text}</p>
-            </Reveal>
-          ))}
-        </ol>
-
-        <Reveal as="section" className="oin-why" aria-labelledby="oin-why-heading">
-          <h2 id="oin-why-heading" className="oi-tag oi-tag-bracket">
-            Why we make it
-          </h2>
-          <p className="oin-why-text">{page.why}</p>
-          <a className="oin-mail" href={`mailto:${page.email}`}>
-            {page.email}
-            <span aria-hidden="true">→</span>
-          </a>
-        </Reveal>
-      </div>
+          <div className="oi-container oin-about">
+            <AboutStory copy={copy.story} />
+            <AboutGoal copy={copy.goal} />
+            <AboutMission copy={copy.mission} />
+            <AboutFounders copy={copy.founders} />
+          </div>
+        </>
+      )}
     </>
   );
 }

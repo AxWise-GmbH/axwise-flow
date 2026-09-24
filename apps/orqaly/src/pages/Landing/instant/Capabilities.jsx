@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Seen } from './SpeedStrip';
-import { PLANNED, STRIP_NOTES } from './capabilities.data';
+import { PLANNED, STRIP_NOTES, stripKey } from './capabilities.data';
+import { useT } from './i18n/useT';
 import './sections.css';
 
 /*
@@ -63,6 +64,7 @@ const STRIP_ICON_FALLBACK = <circle cx="12" cy="12" r="5" pathLength="1" />;
 
 /** The seven cards. The strip renders them twice; the second copy only feeds the loop. */
 function StripCards({ copy = false }) {
+  const { t } = useT();
   // The arrival wave runs on through the second copy, for screens wide enough to show it.
   const offset = copy ? PLANNED.length : 0;
   return (
@@ -81,8 +83,8 @@ function StripCards({ copy = false }) {
               </svg>
             </span>
             <div className="ois-strip-text">
-              <p className="ois-strip-name">{item}</p>
-              <p className="ois-strip-note">{STRIP_NOTES[item]}</p>
+              <p className="ois-strip-name">{t(stripKey(item, 'name'), item)}</p>
+              <p className="ois-strip-note">{t(stripKey(item, 'note'), STRIP_NOTES[item])}</p>
             </div>
           </div>
         </li>
@@ -232,13 +234,14 @@ function useStripRail() {
 }
 
 export default function Capabilities() {
+  const { t } = useT();
   const railRef = useStripRail();
   return (
     <Seen
       as="section"
       id="control"
       className="oi-section oi-section-tight ois-section"
-      aria-label="More inside"
+      aria-label={t('cap.section', 'More inside')}
     >
       <div className="oi-container">
         <Seen className="ois-gate ois-strip-gate">
@@ -246,13 +249,17 @@ export default function Capabilities() {
            * "oi-planned" is only a hook other tests find the strip by. The rail is an ordinary
            * sideways scroller that also glides on its own, endlessly: see useStripRail.
            */}
-          <div className="oi-planned ois-strip" role="group" aria-label="More capabilities">
+          <div
+            className="oi-planned ois-strip"
+            role="group"
+            aria-label={t('cap.strip.label', 'More capabilities')}
+          >
             <div
               ref={railRef}
               className="ois-strip-rail"
               tabIndex={0}
               role="region"
-              aria-label="Capabilities, scroll sideways"
+              aria-label={t('cap.strip.rail', 'Capabilities, scroll sideways')}
             >
               <div className="ois-strip-track">
                 <StripCards />

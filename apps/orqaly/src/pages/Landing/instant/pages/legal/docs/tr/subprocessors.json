@@ -1,0 +1,256 @@
+{
+  "meta": {
+    "slug": "subprocessors",
+    "title": "Alt İşleyenler",
+    "summary": "Bu sayfa, kişisel verileri bizim adımıza işleyen şirketleri, verilerinizin gidebileceği diğer yerleri ve sunucularımızın nerede olduğunu listeler.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "İlk sürüm."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Email provider for hello@, privacy@ and security@ is not listed: orqanix.com has no mail provider (no MX record) yet. Add it as a sub-processor once chosen.",
+        "Region of the Cloud Storage bucket that serves the Desktop App download is unknown, so the page names no location for it. Confirm and add.",
+        "Google Cloud transfer basis: confirm that Google's Cloud data processing terms (with SCCs) cover any support access from outside the EU.",
+        "Google Gemini: processing location is not pinned in our code. The paid-tier data terms and Google's DPA are shown only once geminiPaidTier is set (open point #3).",
+        "Cloudflare (via Clerk and Turnstile): confirm its location and whether Clerk's DPA covers it. The page now says only that it is used through Clerk.",
+        "Search engines and OpenRegister are described as independent recipients, not processors. Lawyer to confirm the role split (open point #11). Confirm OpenRegister's location.",
+        "Data Act Art. 28 statement: lawyer to confirm the wording on the jurisdiction of Google and Clerk and our measures against foreign government access. We have no written request-handling process yet; create one so the promises here are true in practice.",
+        "Notice to DPA customers of new sub-processors: the notice period and how objections work must match the Data Processing Addendum.",
+        "Clerk runs a development instance today (open point #4). Move to production before relying on Clerk's DPA.",
+        "EU transfers, Gemini: while geminiPaidTier is empty, the EU version names no transfer safeguard for data sent to Google Gemini (GDPR Art. 13(1)(f), Chapter V). This is an EU launch blocker, not a wording issue (open point #3).",
+        "EU transfers, search engines and OpenRegister: queries leave our EU servers for engines that may be in the US. Lawyer to confirm the transfer basis for these independent recipients.",
+        "Mobile App: the phone notifies you when a job is done, so a push service (and possibly a relay) will receive data. Which ones is unknown; add them here before the Mobile App handles personal data.",
+        "Clerk development instance may send usage events to Clerk's telemetry host (uncertain). Confirm; it goes away with the move to production.",
+        "The intro promises that a provider is added to this page before it starts handling personal data. The owner must follow this for every new provider (and for the email provider, open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "what-this-page-is",
+      "text": "Bu sayfa hakkında"
+    },
+    {
+      "type": "p",
+      "text": "Alt işleyen, kişisel verileri bizim adımıza ve talimatlarımız doğrultusunda işlemesi için ücret ödediğimiz bir şirkettir. Bu sayfa, alt işleyenlerimizi, {company.name} ürününü kullandığınızda verilerinizin gidebileceği diğer yerleri ve sunucularımızın nerede olduğunu listeler. Web sitemizi ve tüm ürünlerimizi kapsar. Bir sağlayıcıyı, bizim adımıza kişisel veri işlemeye başlamadan önce buraya ekleriz."
+    },
+    {
+      "type": "p",
+      "text": "[Gizlilik Politikamız](/instant/legal/privacy), kişisel verileri nasıl kullandığımızı açıklar. API'nin, Kurumsal hizmetlerimizin veya Asistan Botunun kurumsal müşterileri işlenmek üzere bize kişisel veri verdiğinde [Veri İşleme Ekimiz](/instant/legal/dpa) uygulanır."
+    },
+    {
+      "type": "h2",
+      "id": "sub-processors",
+      "text": "Alt işleyenlerimiz"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Şirket",
+        "Amaç",
+        "Veriler",
+        "Konum",
+        "Aktarım dayanağı"
+      ],
+      "rows": [
+        [
+          "Google Cloud",
+          "Web sitesi, web uygulaması, Masaüstü Uygulamasının iletişim kurduğu hizmet, API, veritabanımız, saklanan dosyalar ve sunucu günlük kayıtları için barındırma",
+          "Hesap kimlikleri, çalışma alanı içeriği (sohbetler, Hedefler, dosyalar, raporlar ve otomasyonlar), Masaüstü Uygulamasından gelen araştırma soruları, API görevleri ve kararları, IP adresleri ve istek günlük kayıtları",
+          "AB (Hollanda)",
+          "Veriler AB'de barındırılır. Google'ın Cloud veri işleme koşulları geçerlidir."
+        ],
+        [
+          "Google (Gemini API, Google Arama ile temellendirme dahil)",
+          "Masaüstü Uygulaması, bulut asistanı ve API için varsayılan yapay zekâ modeli",
+          "İstemleriniz, o ana kadarki konuşma, dosya içerikleri ve komut çıktıları gibi araç çıktıları ve dikte kullanırsanız sesiniz",
+          "Tarafımızca sabitlenmemiştir. Google verileri AB dışında işleyebilir.",
+          "Google'ın Gemini API koşulları. [Yapay Zekâmız Nasıl Çalışır](/instant/legal/ai#data-models-see), Google'ın bu verileri nasıl kullanabileceğini açıklar."
+        ],
+        [
+          "Clerk, Inc.",
+          "Oturum açma ve hesaplar",
+          "E-posta adresi, ad, profil resmi (Google ile oturum açarsanız), oturum açma ve oturum kayıtları, IP adresi ve cihaz verileri",
+          "Amerika Birleşik Devletleri",
+          "EU-US Data Privacy Framework ve yedek olarak Standart Sözleşme Maddeleri (Clerk'in veri işleme koşulları)"
+        ],
+        [
+          "Cloudflare (Clerk tarafından ve kayıt sırasında Turnstile için kullanılır)",
+          "Oturum açma ve kayıt sayfalarında bot koruması",
+          "IP adresi, cihaz ve tarayıcı sinyalleri",
+          "Tarafımızca sabitlenmemiştir. Cloudflare'in ağı verileri AB dışında işleyebilir.",
+          "Clerk üzerinden, Clerk'in hizmetinin bir parçası olarak kullanılır"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Masaüstü Uygulamasının indirme dosyası da Google Cloud Storage üzerinden sunulur. Uygulamayı indirdiğinizde Google IP adresinizi görür."
+    },
+    {
+      "type": "h2",
+      "id": "other-recipients",
+      "text": "Diğer alıcılar"
+    },
+    {
+      "type": "p",
+      "text": "Bu şirketler alt işleyenlerimiz değildir. Belirli özellikleri kullandığınızda veri alırlar ve bu verileri nasıl kullanacaklarına kendi koşulları kapsamında kendileri karar verirler."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Alıcı",
+        "Ne zaman",
+        "Veriler",
+        "Konum",
+        "Rolleri"
+      ],
+      "rows": [
+        [
+          "Kamuya açık arama motorları: Google, Bing, Brave ve DuckDuckGo",
+          "Bulut asistanı, bulut araştırması veya API web'de arama yaptığında. Sorgular kendi arama hizmetimiz üzerinden gider.",
+          "İsteğinizden oluşturulan arama sorguları. Hesap bilgilerinizi göndermeyiz.",
+          "Her arama motorunun kendi sunucuları; bunlar ABD'de veya başka bir yerde olabilir",
+          "Bağımsız. Kendi koşulları ve gizlilik politikaları geçerlidir."
+        ],
+        [
+          "OpenRegister",
+          "API veya bulut araştırması, kamuya açık şirket sicillerinde bir şirketi aradığında",
+          "Şirket adları. Sonuçlar yöneticilerin adlarını içerebilir.",
+          "OpenRegister tarafından belirlenir",
+          "Bağımsız. Kendi koşulları geçerlidir."
+        ],
+        [
+          "Google (Google ile oturum açma)",
+          "Yalnızca Google hesabınızla oturum açmayı seçerseniz",
+          "Google profiliniz: ad, e-posta adresi ve profil resmi",
+          "Google'ın kendi sunucuları; bunlar ABD'de olabilir",
+          "Sizin seçiminiz. Google'ın koşulları geçerlidir."
+        ],
+        [
+          "Masaüstü Uygulamasında bağladığınız, OpenAI veya Anthropic gibi yapay zekâ sağlayıcıları",
+          "Yalnızca Masaüstü Uygulamasını kendi seçtiğiniz bir sağlayıcıya geçirirseniz",
+          "Varsayılan modelde olduğu gibi konuşma ve araç çıktıları",
+          "O sağlayıcı tarafından belirlenir",
+          "Onları siz seçersiniz ve onlarla kendi sözleşmeniz vardır. Bizim değil, onların koşulları geçerlidir."
+        ],
+        [
+          "Masaüstü Uygulamasındaki uzantılar veya Asistan Botuna bağladığınız mesajlaşma uygulamaları ve e-posta hesapları gibi bağladığınız uygulamalar, araçlar ve hesaplar",
+          "Yalnızca onları bağlarsanız",
+          "Bir ajanın veya botun görevinizi yaparken onlara gönderdiği veya onlardan okuduğu veriler",
+          "O hizmet tarafından belirlenir",
+          "Onları siz seçersiniz ve onlarla kendi sözleşmeniz vardır. Onların koşulları geçerlidir."
+        ],
+        [
+          "Hostinger",
+          "orqanix.com için alan adı sistemi (DNS) hizmeti",
+          "Alan adımıza ilişkin teknik sorgular. Hesap verisi yoktur.",
+          "Hostinger tarafından belirlenir",
+          "Teknik hizmet"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Mac'inizde yerel bir yapay zekâ modeli kullanırsanız konuşmanız, bir yapay zekâ sağlayıcısı yerine o modele gider. Ajanların {company.name} bulut araştırmasına gönderdiği sorular ise yine bulutumuza ve yukarıdaki sağlayıcılara gider."
+    },
+    {
+      "type": "p",
+      "text": "Ödeme sağlayıcımız, analiz hizmetimiz veya reklam ağımız yoktur. Kişisel verileri satmıyoruz."
+    },
+    {
+      "type": "h2",
+      "id": "servers",
+      "text": "Sunucularımız nerede"
+    },
+    {
+      "type": "p",
+      "text": "Bulut hizmetlerimizi ve veritabanlarımızı AB'de, Hollanda'da (europe-west4 bölgesi) Google Cloud üzerinde barındırıyoruz. Buna web sitesi, web uygulaması, Masaüstü Uygulamasının iletişim kurduğu hizmet, API ve onun kendi veritabanı ile ajanlarınızın bulutta sakladığı dosyalar ve raporlar dahildir. Her Kurumsal proje, müşteriyle üzerinde anlaştığımız bir AB Google Cloud bölgesinde barındırılır."
+    },
+    {
+      "type": "p",
+      "text": "Clerk ve Google Gemini gibi bazı sağlayıcılar verileri ABD'de veya başka bir yerde işleyebilir. Veriler aktarım sırasında şifrelenir (HTTPS) ve bulut sağlayıcımız verileri depolama sırasında şifreler."
+    },
+    {
+      "type": "h3",
+      "id": "transfers",
+      "text": "AB dışına aktarımlar",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Kişisel veriler AEA, Birleşik Krallık veya İsviçre dışına çıktığında hukuk bir güvence gerektirir. Clerk için güvence, EU-US Data Privacy Framework ve yedek olarak AB Standart Sözleşme Maddeleridir (GDPR Art. 45 and 46). Google Cloud ile verileriniz AB'de barındırılır."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Google Gemini için Google'ın ücretli hizmetini kullanıyoruz. Gönderdiğimiz veriler için Google'ın ücretli hizmet koşulları ve veri işleme koşulları geçerlidir."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Verilerinize uygulanan güvencelerin bir kopyasını almak için {company.privacyEmail} adresine yazın."
+    },
+    {
+      "type": "h3",
+      "id": "government-access",
+      "text": "Yabancı hükümet talepleri",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "AB hukuku, bulut sağlayıcılarından altyapılarının nerede olduğunu ve AB dışındaki hükümetlerden gelen taleplere ilişkin ne yaptıklarını açıklamalarını ister (EU Data Act, Art. 28). Bu, yalnızca kişisel verileri değil, tüm verileri kapsar."
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Altyapımız: bulut hizmetlerimiz ve veritabanlarımız, AB hukukuna tabi olarak Hollanda'da Google Cloud üzerinde çalışır. Oturum açma, Amerika Birleşik Devletleri'nde Clerk üzerinde çalışır.",
+        "Google ve Clerk, ABD şirketleridir veya ABD gruplarının parçasıdır; bu nedenle onlara ABD hukuku da uygulanabilir.",
+        "AB dışındaki bir hükümet veya mahkeme bizden verilerinizi talep ederse, talebin hukuka uygun olup olmadığını ve AB hukukunun veya ulusal hukukun talebe yanıt vermemize izin verip vermediğini kontrol ederiz.",
+        "Mümkün olduğunda, hukuka aykırı veya aşırı geniş kapsamlı taleplere itiraz ederiz. Yalnızca talebin hukuken gerektirdiği asgari veriyi teslim ederiz.",
+        "Hukuk yasaklamadıkça, yanıt vermeden önce ilgili müşteriyi bilgilendiririz."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "service-providers",
+      "text": "ABD eyaletlerinin gizlilik yasaları",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "ABD eyaletlerinin gizlilik yasaları kapsamında Google Cloud, Clerk ve Cloudflare bizim için hizmet sağlayıcı veya işleyen olarak çalışır. Gemini API'ye gönderdiğimiz verileri Google'ın nasıl kullanabileceğini, [Yapay Zekâmız Nasıl Çalışır](/instant/legal/ai#data-models-see) sayfasında açıklandığı üzere Google'ın koşulları belirler. Kişisel verileri satmıyor veya hedefli reklamcılık için paylaşmıyoruz."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Bu listedeki değişiklikler"
+    },
+    {
+      "type": "p",
+      "text": "Bir alt işleyen eklediğimizde veya değiştirdiğimizde, bu sayfayı ve en üstteki tarihi güncelleriz."
+    },
+    {
+      "type": "p",
+      "text": "[Veri İşleme Ekimiz](/instant/legal/dpa) kapsamındaki kurumsal müşteriler, yeni bir alt işleyen verilerini işlemeye başlamadan önce bildirim alır. Ekte belirtildiği şekilde itiraz edebilirler."
+    }
+  ]
+}

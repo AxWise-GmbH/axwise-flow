@@ -1,0 +1,202 @@
+{
+  "meta": {
+    "slug": "legal-notice",
+    "title": "法律声明",
+    "summary": "本页面说明由谁运营 Orqanix 以及如何联系我们（Impressum）。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "首个版本。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The whole page stays hidden until legalName and address are filled (legal.links.js). If the company is German, § 5 DDG requires an Impressum on the live site now; that makes choosing the company a blocker (open point #1).",
+        "Fill representative, phone (or another fast contact channel besides email), register, vatId and newsResponsible. § 5 DDG needs a second fast contact channel besides email; without phone the page shows email only.",
+        "The legal form (e.g. GmbH, UG) must be part of legalName.",
+        "euRepresentative only applies if the company sits outside the EU; leave empty otherwise.",
+        "Consumer dispute resolution (§ 36 VSBG): the page now says only that we do not take part and are not willing to (no claim about being \"not obliged\", which depends on headcount). Owner to confirm this choice; the block appears automatically once legalName is filled. Remove it if the company is not German.",
+        "No link to the EU ODR platform: it closed on 20 Jul 2025.",
+        "If the company holds a licence that needs a supervisory authority, or states share capital, add those lines.",
+        "Mail to hello@orqanix.com probably does not arrive today (no MX record, open point #2); § 5 DDG requires a working email address.",
+        "The headings use German terms and the provider line cites § 5 DDG, which assumes a German company. The VAT line no longer cites § 27a UStG. Adjust if the company is elsewhere.",
+        "DSA Art. 11(3): the contact point must also accept an official language of the Member State where the company is established (German, if German). \"We communicate in English\" alone may not be enough; lawyer to confirm and add the language.",
+        "Added the DSA illegal-content reporting route (subject \"Report\") per the owner decision; it must match the Terms of Service and Acceptable Use Policy.",
+        "Removed \"product pages are not binding\" wording: for EU consumers, public statements about a product count toward what it must do (Dir. 2019/770 Art. 8(1)(b)), so disclaiming them is risky."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "provider",
+      "text": "提供者（Anbieter）"
+    },
+    {
+      "type": "p",
+      "text": "本网站及 {company.name} 产品由 {company.legalName}（地址：{company.address}）提供（依据 § 5 DDG 提供的信息）。",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "represented-by",
+      "text": "代表人（Vertreten durch）",
+      "needs": [
+        "representative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "{company.representative}",
+      "needs": [
+        "representative"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "联系方式（Kontakt）"
+    },
+    {
+      "type": "p",
+      "text": "电子邮件：{company.email}"
+    },
+    {
+      "type": "p",
+      "text": "电话：{company.phone}",
+      "needs": [
+        "phone"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "如有隐私问题，请发送邮件至 {company.privacyEmail}。如需报告安全问题，请发送邮件至 {company.securityEmail}。"
+    },
+    {
+      "type": "h2",
+      "id": "register",
+      "text": "商业登记（Registereintrag）",
+      "needs": [
+        "register"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "登记于 {company.register}。",
+      "needs": [
+        "register"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "vat",
+      "text": "增值税号（Umsatzsteuer-Identifikationsnummer）",
+      "needs": [
+        "vatId"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "增值税识别号：{company.vatId}",
+      "needs": [
+        "vatId"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "content-responsible",
+      "text": "内容负责人（Verantwortlich für den Inhalt）",
+      "needs": [
+        "newsResponsible"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "本网站新闻性内容（包括新闻页面）的负责人：{company.newsResponsible}，地址：{company.address}（§ 18 (2) MStV）。",
+      "needs": [
+        "newsResponsible",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "eu-representative",
+      "text": "欧盟代表",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "我们在欧盟的代表：{company.euRepresentative}（GDPR 第 27 条和《数字服务法》第 13 条）。",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "authorities",
+      "text": "面向主管机关和用户的联系方式（DSA）"
+    },
+    {
+      "type": "p",
+      "text": "根据欧盟《数字服务法》，我们面向主管机关和用户的单一联络点为 {company.email}。我们使用英语沟通。"
+    },
+    {
+      "type": "p",
+      "text": "如需举报非法内容，请发送邮件至 {company.email}，主题注明“Report”。我们会对每一份举报作出决定，并将理由告知举报人和受影响的用户。"
+    },
+    {
+      "type": "h2",
+      "id": "consumer-disputes",
+      "text": "消费者争议解决（Verbraucherstreitbeilegung）",
+      "needs": [
+        "legalName"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "{company.legalName} 不参加、也不愿意参加消费者仲裁机构的争议解决程序（§ 36 VSBG）。",
+      "needs": [
+        "legalName"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "our-content",
+      "text": "我们的内容"
+    },
+    {
+      "type": "p",
+      "text": "我们用心撰写本网站的内容，但无法保证其中的所有内容始终完整、正确和最新。使用我们产品的规则载于我们的[服务条款](/instant/legal/terms)。"
+    },
+    {
+      "type": "h2",
+      "id": "links",
+      "text": "指向其他网站的链接"
+    },
+    {
+      "type": "p",
+      "text": "我们的网站包含指向他人运营的网站的链接。我们无法控制这些网站，也不对其内容负责。如果我们得知某个链接页面违反法律，我们会删除该链接。"
+    },
+    {
+      "type": "h2",
+      "id": "privacy",
+      "text": "隐私"
+    },
+    {
+      "type": "p",
+      "text": "我们如何处理个人数据，请参阅我们的[隐私政策](/instant/legal/privacy)。"
+    }
+  ]
+}

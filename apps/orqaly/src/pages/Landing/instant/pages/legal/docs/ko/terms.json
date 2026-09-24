@@ -1,0 +1,725 @@
+{
+  "meta": {
+    "slug": "terms",
+    "title": "서비스 약관",
+    "summary": "본 약관은 모든 Orqanix 제품에 적용되는 기본 계약으로, 귀하의 계정, 콘텐츠, 에이전트, 책임 및 분쟁에 관한 사항을 다룹니다.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "최초 버전."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company: legal name, address, register, VAT number and governing law are empty, so \"Who we are\", the governing-law sentences (US and EU), the business-user venue (EU) and the postal notice address stay hidden. Owner to fill company.js.",
+        "EU representative (DSA Art. 13; also GDPR Art. 27) needed only if the company is outside the EU; the sentence is hidden until {company.euRepresentative} is set.",
+        "Mailboxes: hello@, privacy@ and security@ orqanix.com have no MX record, so the DSA contact point, reports and account requests probably receive nothing today (FACTS open point 2). Must be fixed before publishing.",
+        "US liability cap \"the greater of 12 months of fees or 100 US dollars\" is a drafting choice (US market norm), not an owner decision. Owner and lawyer to confirm the amount.",
+        "EU liability clause uses the essential-obligation (cardinal duty) model from German law; lawyer to adapt once the governing law is chosen. Product Liability Directive 2024/2853 carve-out included.",
+        "EU withdrawal: text says the free service can be ended at any time at no cost, which goes further than the 14-day right. Lawyer to confirm whether withdrawal information is still required for free contracts where the consumer provides personal data (CRD Art. 3(1a)).",
+        "EU update duty (Dir. 2019/770 Art. 8): terms say updates come as a new Desktop download because auto-update is off. Owner needs a way to tell users about required updates (FACTS open point 8/critique 18).",
+        "DSA moderation text states that a person reviews each report and that we do not proactively scan or recommend content. Owner to confirm this matches practice. If public sharing or a marketplace ever ships, online-platform duties (Art. 20 complaints system etc.) apply.",
+        "Account closure and data copy are by email to privacy@ (no self-service deletion or export, records partly immutable). Terms say \"ask us\"; matches FACTS §3.",
+        "Age 18+ and \"region at sign-up\" need a self-declaration and an acceptance record at sign-up (FACTS open point 9).",
+        "Consumer arbitration board statement (EU) follows the German VSBG pattern and now uses the same wording as the Legal Notice (\"do not take part, and are not willing to\"; no claim about being \"not obliged\", which depends on headcount). Keep, change or remove once the company country is known.",
+        "Indemnity applies to business users only (both regions); consumers excluded.",
+        "EU changes clause: 30 days notice by email, explicit agreement where the law requires it, no consent by silence (German BGH 2021 line on deemed consent). Needs a notice process, the account email and an acceptance record (FACTS open points 2, 9). Drafting choice; lawyer to confirm.",
+        "EU Data Act switching (Art. 23, 25): an EU-only paragraph promises a free copy in a machine-readable format and help with moving, on request to privacy@. No export code exists (FACTS §3, open point 5), so this is a manual process the owner must be able to run. Full Art. 25 terms (2-month notice, 30-day transition, data-format list) and the Art. 28 jurisdiction and government-access statement belong in the API and Enterprise terms or the Security / Sub-processors page; lawyer to confirm whether the free cloud workspace counts as a data processing service.",
+        "EU conformity (Dir. 2019/770 Art. 8(5)): the \"AI can be wrong\" paragraph in \"Legal guarantee\" is written as a description, not a deviation. If a lawyer treats it as a deviation from objective conformity, sign-up needs a separate, express acceptance tick.",
+        "E-commerce information (Dir. 2000/31 Art. 10): Terms say the language (English) and how you accept, but not whether we store the contract text for the user. Past versions are not shown on the page (meta.history is not rendered), so the old sentence \"earlier versions are listed with it\" was removed. Owner to decide whether to show the version archive or email a copy at sign-up.",
+        "Removed \"notices by email count as received on the day they are sent\" (deemed-receipt fictions are unfair against EU consumers). Business-user deemed receipt can go into the API/Enterprise terms if wanted.",
+        "Severability now says the invalid part is replaced by the rule the law provides (no \"closest valid rule\" salvage, which EU unfair-terms law rejects for consumers). Assignment now lets the user end the contract after a transfer. Lawyer to confirm both once the governing law is chosen."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "who-we-are",
+      "text": "회사 소개"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix는 AI 제품군으로, 데스크톱 앱, 모바일 앱, 어시스턴트 봇, API 및 엔터프라이즈 서비스로 구성됩니다. 당사는 이들을 본 웹사이트 및 귀하의 Orqanix 계정과 함께 “서비스”라고 합니다."
+    },
+    {
+      "type": "p",
+      "text": "본 서비스 약관은 귀하와 Orqanix를 운영하는 회사(“Orqanix” 또는 “당사”) 간의 계약입니다."
+    },
+    {
+      "type": "p",
+      "text": "해당 회사는 {company.legalName}, {company.address}입니다.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "해당 회사는 {company.register}에 등록되어 있습니다. 부가가치세 번호는 {company.vatId}입니다.",
+      "only": "eu",
+      "needs": [
+        "register",
+        "vatId"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "{company.email}(으)로 당사에 연락하실 수 있습니다. 당사의 [개인정보 처리방침](/instant/legal/privacy)은 당사가 개인정보를 처리하는 방법을 설명합니다. 개인정보 처리방침은 본 계약의 일부는 아니지만, 꼭 읽어 주시기 바랍니다."
+    },
+    {
+      "type": "h2",
+      "id": "accepting",
+      "text": "약관 동의"
+    },
+    {
+      "type": "p",
+      "text": "귀하는 계정을 생성하거나 서비스 중 어느 하나를 다운로드 또는 이용하는 때에 본 약관에 동의하게 됩니다. 동의하지 않는 경우 서비스를 이용하지 마십시오."
+    },
+    {
+      "type": "p",
+      "text": "회사 또는 기타 단체를 위하여 동의하는 경우, 귀하는 해당 단체를 구속할 권한이 있음을 확인합니다. 이 경우 “귀하”는 해당 단체를 의미하며, 서비스를 이용하는 개인으로서 귀하 역시 본 약관을 준수해야 합니다."
+    },
+    {
+      "type": "p",
+      "text": "본 약관에서 “소비자”란 주로 자신의 영업, 사업, 수공업 또는 직업 이외의 목적으로 서비스를 이용하는 개인을 말합니다. “사업자 이용자”란 그 밖의 모든 이용자를 말합니다. 법률이 소비자에게 더 많은 보호를 부여하므로, 아래의 일부 규정은 소비자에게 다르게 적용됩니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "아래의 일부 규정은 귀하가 서비스를 본인을 위해 이용하는지 또는 사업을 위해 이용하는지에 따라 달라집니다. “사업자 이용자”란 영업, 사업 또는 직업을 위하여, 또는 단체를 대신하여 서비스를 이용하는 모든 자를 말합니다.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "eligibility",
+      "text": "Orqanix 이용 자격"
+    },
+    {
+      "type": "p",
+      "text": "거주지와 관계없이 서비스를 이용하려면 만 18세 이상이어야 합니다. 서비스는 아동을 대상으로 하지 않으며, 귀하는 서비스를 이용하여 18세 미만인 사람을 대상으로 하는 어떠한 것도 만들어서는 안 됩니다."
+    },
+    {
+      "type": "p",
+      "text": "또한 [제재 및 수출](#sanctions)의 규정을 포함하여 법률이 금지하는 경우, 또는 귀하의 이전 계정이 본 약관의 중대한 위반으로 당사에 의해 폐쇄된 경우에는 서비스를 이용할 수 없습니다."
+    },
+    {
+      "type": "p",
+      "text": "API 및 엔터프라이즈 서비스는 사업자 이용자만 이용할 수 있습니다."
+    },
+    {
+      "type": "h2",
+      "id": "your-account",
+      "text": "귀하의 계정"
+    },
+    {
+      "type": "p",
+      "text": "대부분의 서비스는 Orqanix 계정이 필요합니다. 로그인은 로그인 제공업체가 당사를 대신하여 운영하며, Google로도 로그인할 수 있습니다. 정확한 정보를 제공하고 최신 상태로 유지하십시오."
+    },
+    {
+      "type": "p",
+      "text": "로그인 정보를 안전하게 보관하고 계정을 공유하지 마십시오. 당사의 과실로 발생한 경우를 제외하고, 귀하는 귀하의 계정에서 발생하는 일에 대해 책임을 집니다. 다른 사람이 귀하의 계정을 사용했다고 생각되면 즉시 {company.email}(으)로 알려 주십시오."
+    },
+    {
+      "type": "p",
+      "text": "계정을 폐쇄하거나 데이터 사본을 받으려면 {company.privacyEmail}(으)로 연락하십시오. 당사의 [개인정보 처리방침](/instant/legal/privacy)은 당사가 무엇을 보관하며 그 이유가 무엇인지 설명합니다."
+    },
+    {
+      "type": "h2",
+      "id": "products",
+      "text": "당사 제품"
+    },
+    {
+      "type": "p",
+      "text": "본 약관은 모든 서비스에 적용됩니다. 각 제품에는 해당 제품에 관한 규정을 추가하는 별도의 약관도 있습니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "[데스크톱 앱 약관](/instant/legal/desktop-app-terms): AI 에이전트가 귀하의 Mac에서 조사하고, 계획하고, 실제 파일을 만드는 macOS 앱.",
+        "[모바일 앱 약관](/instant/legal/mobile-app-terms): 데스크톱 앱의 원격 제어 역할을 하는 휴대폰 앱.",
+        "[어시스턴트 봇 약관](/instant/legal/assistant-bot-terms): 귀하가 연결한 메시징 앱과 이메일 계정에서 이용하는 비즈니스 어시스턴트.",
+        "[API 약관](/instant/legal/api-terms): 다른 제품을 위한 추론 레이어(사업자 이용자 전용).",
+        "[엔터프라이즈 약관](/instant/legal/enterprise-terms): 당사의 에이전트와 전문가가 귀하를 위해 솔루션을 구축하는 서비스(사업자 이용자 전용)."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "귀하가 제품을 이용하는 경우, 해당 제품의 약관과 본 약관이 모두 적용됩니다. 양자가 상충하는 경우, 해당 제품에 대해서는 제품 약관이 우선합니다. 엔터프라이즈 주문서 등 귀하가 당사와 서명한 서면 계약은 그 계약이 다루는 사항에 대하여 두 약관 모두에 우선합니다."
+    },
+    {
+      "type": "p",
+      "text": "API, 당사의 엔터프라이즈 서비스 또는 어시스턴트 봇의 사업자 이용자가 자신을 대신하여 처리하도록 당사에 개인정보를 제공하는 경우, 당사의 [데이터 처리 부속서](/instant/legal/dpa)도 적용됩니다."
+    },
+    {
+      "type": "h2",
+      "id": "price",
+      "text": "가격"
+    },
+    {
+      "type": "p",
+      "text": "서비스는 현재 초기 단계 동안 무료입니다. 귀하가 유료 요금제에 동의하지 않는 한 당사는 어떠한 요금도 청구하지 않습니다."
+    },
+    {
+      "type": "p",
+      "text": "유료 요금제를 시작하기 전에 당사는 그 가격과 결제 및 해지에 관한 규정을 게시합니다. 귀하는 그 후 이용 여부를 결정할 수 있습니다.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "유료 요금제를 시작하기 전에 당사는 세금을 포함한 가격과 결제, 해지 및 청약철회에 관한 규정을 게시합니다. 당사는 그 시점에 소비자로서 귀하가 가지는 청약철회권을 설명합니다. 귀하는 그 후 이용 여부를 결정할 수 있습니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "서비스는 무료이므로, 귀하는 언제든지 비용 없이, 이유를 밝히지 않고 본 계약을 종료할 수 있습니다. 이는 EU 법률이 소비자에게 부여하는 14일간의 청약철회권보다 넓은 권리입니다.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "your-content",
+      "text": "귀하의 콘텐츠"
+    },
+    {
+      "type": "p",
+      "text": "“입력”이란 귀하가 서비스에 제공하는 것을 의미합니다. 프롬프트, 메시지, 파일, 음성, 지시 및 귀하의 허락을 받아 에이전트가 읽는 모든 것이 이에 해당합니다. “출력”이란 서비스가 반환하는 것을 의미합니다. 답변, 보고서, 파일 및 기타 결과가 이에 해당합니다. 이들을 합하여 “귀하의 콘텐츠”라고 합니다."
+    },
+    {
+      "type": "p",
+      "text": "귀하와 당사 사이에서 귀하의 콘텐츠는 귀하에게 속합니다. 당사는 그에 대한 소유권을 주장하지 않습니다. 당사가 귀하의 출력에 대하여 어떠한 권리를 가지는 경우, 당사는 그 권리를 귀하에게 부여합니다."
+    },
+    {
+      "type": "p",
+      "text": "서비스를 운영하기 위해 당사는 귀하의 콘텐츠를 사용할 수 있는 허락이 필요합니다. 귀하는 당사에 귀하의 콘텐츠를 호스팅, 저장, 복제, 처리, 전송 및 표시할 수 있는 전 세계적, 비독점적, 무상의 라이선스를 부여합니다. 당사는 이 라이선스를 오로지 귀하를 위해 서비스를 제공, 보호 및 지원하고, 서비스를 적법하게 유지하며, 본 약관을 집행하기 위해서만 사용합니다. 이 라이선스는 귀하의 콘텐츠가 당사 시스템에서 삭제되는 때에 종료됩니다. 다만 법률에 따라 또는 당사의 [개인정보 처리방침](/instant/legal/privacy)에 설명된 바에 따라 당사가 보관해야 하는 사본은 예외로 합니다."
+    },
+    {
+      "type": "p",
+      "text": "당사는 귀하의 콘텐츠로 당사의 AI 모델을 학습시키지 않습니다. 당사는 귀하의 개인정보를 판매하지 않으며, 광고를 게재하지 않습니다."
+    },
+    {
+      "type": "p",
+      "text": "귀하는 귀하의 입력에 대해 책임을 집니다. 귀하는 입력에 개인정보가 포함된 사람들로부터 받은 권리와 허락을 포함하여 이를 당사에 제공할 권리와 허락을 보유하고 있으며, 이를 서비스와 함께 사용하는 것이 법률이나 본 약관을 위반하지 않음을 확인합니다."
+    },
+    {
+      "type": "p",
+      "text": "AI 모델은 서로 다른 사람에게 유사한 출력을 제공할 수 있습니다. 다른 사람이 받은 출력은 귀하의 것과 비슷해 보이더라도 귀하의 콘텐츠가 아닙니다."
+    },
+    {
+      "type": "h2",
+      "id": "ai-limits",
+      "text": "AI는 틀릴 수 있습니다"
+    },
+    {
+      "type": "p",
+      "text": "서비스는 인공지능을 사용합니다. AI 출력은 확신에 찬 것처럼 들리더라도 틀리거나, 불완전하거나, 오래되었거나, 불쾌할 수 있습니다. 또한 요청할 때마다 달라질 수 있습니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "출력에 의존하거나 이를 공유하기 전에, 특히 중요한 사항에 대해서는 반드시 확인하십시오.",
+        "출력은 법률, 의료, 금융, 세무 또는 기타 전문적인 조언이 아니며, 자격을 갖춘 전문가를 대체하지 않습니다.",
+        "사람들의 권리, 건강, 금전 또는 일자리에 영향을 미치는 결정에서 출력을 유일한 근거로 사용하지 마십시오."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[AI 작동 방식](/instant/legal/ai)은 당사가 어떤 모델을 어떻게 사용하는지 설명합니다."
+    },
+    {
+      "type": "h2",
+      "id": "agents",
+      "text": "에이전트"
+    },
+    {
+      "type": "p",
+      "text": "일부 서비스는 AI 에이전트를 사용합니다. 에이전트는 답변만 하는 것이 아니라 작업을 실행합니다. 제품과 귀하의 설정에 따라 에이전트는 파일을 읽고 변경하며, 귀하의 컴퓨터에서 명령을 실행하고, 웹을 검색하고, 귀하가 연결한 도구를 사용할 수 있으며, 여기에는 귀하를 대신하여 메시지나 이메일을 보내는 것이 포함될 수 있습니다."
+    },
+    {
+      "type": "p",
+      "text": "에이전트는 귀하의 지시에 따라, 귀하가 부여한 권한 범위 내에서 작동합니다. 기본적으로 데스크톱 앱은 에이전트의 작업을 자동으로 승인합니다. 귀하는 이를 먼저 귀하에게 묻도록, 민감한 작업에 대해서만 묻도록, 또는 대화만 하도록 변경할 수 있습니다. [데스크톱 앱 약관](/instant/legal/desktop-app-terms)에서 설정을 설명합니다."
+    },
+    {
+      "type": "p",
+      "text": "귀하는 작업을 하나씩 승인하든 미리 승인하든, 귀하가 허용한 작업에 대해 책임을 집니다. 특히 다음 사항에 유의하십시오."
+    },
+    {
+      "type": "list",
+      "items": [
+        "귀하가 사용할 권한이 있는 컴퓨터, 계정, 파일 및 시스템만 에이전트가 사용하도록 하십시오.",
+        "중요한 경우 에이전트가 하려는 작업을 검토하고, 에이전트가 스스로 실행하도록 할 때에는 그 작업을 지켜보십시오.",
+        "중요한 모든 것은 백업해 두십시오. 에이전트가 실수로 파일을 변경하거나 삭제할 수 있습니다.",
+        "다른 사람에게 메시지를 보내는 에이전트는 귀하의 이름으로 메시지를 보냅니다. 귀하는 그 메시지에 대해 책임을 지며, 당사의 [허용 가능한 사용 정책](/instant/legal/acceptable-use) 또는 법률이 요구하는 경우 해당 메시지가 AI로부터 온 것임을 상대방에게 알릴 책임이 있습니다."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "이는 서비스 자체에 결함이 있는 경우 당사의 책임을 면제하지 않습니다. [책임](#liability)을 참조하십시오."
+    },
+    {
+      "type": "h2",
+      "id": "third-party",
+      "text": "연결된 서비스"
+    },
+    {
+      "type": "p",
+      "text": "당사의 기본 AI 모델은 Google Gemini입니다. 귀하의 콘텐츠가 해당 모델로 전송되는 경우, Google이 이를 처리하는 방식에는 해당 서비스에 대한 Google의 약관도 적용됩니다. [AI 작동 방식](/instant/legal/ai)과 당사의 [개인정보 처리방침](/instant/legal/privacy)에서 무엇이 전송되는지 설명합니다. 귀하는 또한 당사의 [허용 가능한 사용 정책](/instant/legal/acceptable-use)에 열거된 Google의 규정을 준수해야 합니다."
+    },
+    {
+      "type": "p",
+      "text": "일부 제품에서는 OpenAI, Anthropic 또는 기타 업체의 AI 모델, 메시징 앱, 이메일 계정 또는 기타 도구 등 다른 서비스를 귀하가 직접 연결할 수 있습니다. 이 경우 다음이 적용됩니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "해당 서비스와의 관계는 귀하와 그 제공업체 사이의 관계이며, 해당 서비스의 약관과 가격이 적용됩니다.",
+        "해당 서비스는 귀하의 대화 등 작업 수행에 필요한 콘텐츠를 수신합니다.",
+        "귀하는 해당 서비스의 키와 계정, 그리고 해당 서비스가 부과하는 모든 비용에 대해 책임을 집니다.",
+        "당사는 해당 서비스를 통제하지 않으며, 법률이 당사에 책임을 지우는 경우를 제외하고 해당 서비스가 하는 일에 대해 책임을 지지 않습니다."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "acceptable-use",
+      "text": "허용 가능한 사용"
+    },
+    {
+      "type": "p",
+      "text": "귀하는 본 약관의 일부인 당사의 [허용 가능한 사용 정책](/instant/legal/acceptable-use)을 준수해야 합니다. 요약하면, 불법적인 행위, 사람에게 해를 끼치는 행위, 당사나 타인에 대한 공격, 기만 행위, 그리고 해당 정책이 특별 계약에 따라서만 허용하는 용도는 금지됩니다."
+    },
+    {
+      "type": "p",
+      "text": "또한 귀하는 당사의 서면 동의 없이 서비스를 복제, 판매 또는 재판매하거나, 당사의 제한이나 안전 조치를 우회하거나, 서비스의 보안 또는 다른 이용자를 위험에 빠뜨리는 방식으로 서비스를 이용해서는 안 됩니다."
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "피드백"
+    },
+    {
+      "type": "p",
+      "text": "당사는 아이디어와 제안을 환영합니다. 귀하가 당사에 피드백을 보내는 경우, 당사는 귀하에게 대가를 지급하거나 귀하에 대해 어떠한 의무를 지지 않고 서비스 개선을 위해 이를 자유롭게 사용할 수 있습니다. 당사는 귀하의 허락 없이 피드백과 함께 귀하의 이름을 공개하지 않습니다."
+    },
+    {
+      "type": "h2",
+      "id": "our-rights",
+      "text": "당사의 권리"
+    },
+    {
+      "type": "p",
+      "text": "당사의 소프트웨어, 디자인, 명칭 및 로고를 포함한 서비스는 당사 또는 당사의 라이선스 제공자에게 속하며 법률의 보호를 받습니다. 본 약관은 귀하가 서비스를 이용할 수 있는 기간 동안 본 약관에 설명된 대로 서비스를 이용할 권리를 부여합니다. 본 약관은 그 밖의 어떠한 권리도 부여하지 않습니다."
+    },
+    {
+      "type": "p",
+      "text": "서비스의 일부는 오픈 소스 소프트웨어입니다. 해당 부분은 자체 라이선스의 적용을 받으며, 해당 부분에 대해서는 그 라이선스가 본 약관에 우선합니다. [오픈 소스 고지](/instant/legal/open-source)를 참조하십시오."
+    },
+    {
+      "type": "p",
+      "text": "법률 또는 오픈 소스 라이선스가 허용하는 경우를 제외하고, 귀하는 서비스를 분해, 디컴파일 또는 리버스 엔지니어링해서는 안 됩니다."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "이용 정지 및 종료"
+    },
+    {
+      "type": "p",
+      "text": "[귀하의 계정](#your-account)에 설명된 바와 같이, 귀하는 언제든지 서비스 이용을 중단하고 계정 폐쇄를 요청할 수 있습니다."
+    },
+    {
+      "type": "p",
+      "text": "당사는 다음의 경우 귀하의 접근을 정지 또는 제한하거나, 콘텐츠를 삭제하거나, 계정을 폐쇄할 수 있습니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "귀하가 본 약관 또는 [허용 가능한 사용 정책](/instant/legal/acceptable-use)을 중대하게 또는 반복적으로 위반하는 경우,",
+        "법률 또는 당국이 이를 요구하는 경우,",
+        "귀하의 이용으로 인해 다른 사람, 서비스 또는 당사가 피해나 법적 책임의 위험에 처하는 경우, 또는",
+        "귀하의 계정이 장기간 사용되지 않았고 당사가 이를 사전에 통지한 경우."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "가능한 경우 당사는 먼저 경고하고 문제를 해결할 기회를 드립니다. 당사는 발생한 일에 비례하여 조치합니다. 당사가 조치하는 경우, 법률이 금지하거나 이를 알리는 것이 피해를 초래하는 경우를 제외하고 당사가 무엇을 했으며 그 이유가 무엇인지 알려 드립니다."
+    },
+    {
+      "type": "p",
+      "text": "당사는 또한 하나의 서비스 또는 모든 서비스의 제공을 중단할 수 있습니다. 이 경우 법적 또는 보안상의 이유로 더 일찍 중단해야 하는 경우를 제외하고, 당사는 합리적인 기간을 두고 이를 통지하며 귀하가 데이터 사본을 요청할 시간을 드립니다."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "귀하의 데이터를 다른 제공업체나 귀하의 자체 시스템으로 옮기려면 {company.privacyEmail}(으)로 연락하십시오. 당사는 귀하의 콘텐츠와 데이터 사본을 구조화되고 일반적으로 사용되며 기계가 읽을 수 있는 형식으로 제공하고, 이전을 무료로 지원합니다. 귀하는 언제든지 계약을 종료할 수 있습니다. (EU 데이터법(Data Act) 제23조 및 제25조)"
+    },
+    {
+      "type": "p",
+      "text": "귀하의 계정에 관한 결정에 동의하지 않는 경우, 당사의 메시지에 회신하거나 {company.email}(으)로 연락하십시오. 담당자가 이를 다시 검토합니다."
+    },
+    {
+      "type": "p",
+      "text": "콘텐츠, 책임, 면책 및 분쟁에 관한 조항 등 그 성질상 존속해야 하는 본 약관의 부분은 계약 종료 후에도 효력을 유지합니다."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "서비스 및 본 약관의 변경"
+    },
+    {
+      "type": "p",
+      "text": "서비스는 초기 단계에 있으며 변경될 것입니다. 당사는 기능을 추가, 개선 및 삭제하고, 사용하는 AI 모델을 변경합니다."
+    },
+    {
+      "type": "p",
+      "text": "당사는 예를 들어 서비스, 법률 또는 당사의 사업이 변경되는 경우 본 약관을 변경할 수 있습니다. 상단의 날짜는 현재 버전의 시행일을 나타냅니다. 변경 사항은 과거의 이용이나 이미 존재하는 분쟁에는 적용되지 않습니다."
+    },
+    {
+      "type": "p",
+      "text": "귀하에게 중요한 변경 사항에 대해서는 이메일 또는 서비스 내에서 사전에 알려 드립니다. 변경 사항이 시행된 후에도 서비스를 계속 이용하는 경우 새 약관이 적용됩니다. 동의하지 않는 경우 서비스 이용을 중단하고 계정을 폐쇄하십시오.",
+      "only": "us"
+    },
+    {
+      "type": "h3",
+      "id": "changes-eu",
+      "text": "당사가 변경하는 경우 귀하의 권리",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "당사는 정당한 사유가 있는 경우에만 귀하에게 영향을 미치는 방식으로 서비스를 변경합니다. 정당한 사유란 새로운 기술이나 당사가 의존하는 모델 제공업체의 변경에 대응하기 위한 경우, 서비스의 보안을 유지하기 위한 경우, 법적 의무를 이행하기 위한 경우, 또는 서비스를 개선하거나 재편하기 위한 경우를 말합니다. 모든 변경은 귀하에게 추가 비용 없이 이루어집니다. (지침(EU) 2019/770 제19조)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "변경으로 인해 귀하의 서비스 접근 또는 이용이 경미한 정도를 넘어 불리해지는 경우, 당사는 이메일 등 지속적인 매체를 통해 사전에 명확하게 알려 드립니다. 이 경우 귀하는 통지일 또는 변경일 중 늦은 날로부터 30일 이내에 무료로 계약을 종료할 수 있습니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "귀하에게 영향을 미치는 본 약관의 변경에 대해서는 시행일로부터 최소 30일 전에 이메일로 알려 드리고 무엇이 변경되는지 설명합니다. 법률이 귀하의 동의를 요구하는 경우 당사는 귀하의 동의를 요청합니다. 당사는 귀하의 침묵을 동의로 간주하지 않습니다. 동의하지 않는 경우, 귀하는 변경 사항이 시행되기 전에 비용 없이 계정을 폐쇄할 수 있습니다. 당사는 법률이 귀하에게 부여하는 권리를 박탈하기 위해 변경을 이용하지 않습니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "당사는 서비스가 설명된 대로 작동하도록 유지하기 위해 법률이 요구하는 업데이트(보안 업데이트 포함)를 법률이 요구하는 기간 동안 제공합니다. 데스크톱 앱의 경우 [데스크톱 앱 약관](/instant/legal/desktop-app-terms)에 설명된 바와 같이 새 버전은 새로운 다운로드로 제공됩니다. 당사가 업데이트와 이를 설치하지 않을 경우 발생하는 일을 알린 경우, 당사는 해당 업데이트를 설치했다면 해결되었을 문제에 대해 책임을 지지 않습니다.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "warranty",
+      "text": "면책 조항",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "서비스는 초기 단계에 있으며 무료로 제공됩니다. 서비스는 변경되거나, 고장 나거나, 중단될 수 있으며, 출력은 틀릴 수 있습니다.",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "법률이 허용하는 범위 내에서, 서비스 및 모든 출력은 “있는 그대로” 및 “이용 가능한 상태로” 제공됩니다. 당사는 상품성, 특정 목적에의 적합성, 권원, 비침해성 및 정확성에 대한 보증을 포함하여 명시적, 묵시적 또는 법률상의 보증 여부를 불문하고 어떠한 종류의 보증도 하지 않습니다. 당사는 서비스가 중단 없이, 안전하게 또는 오류 없이 제공될 것, 콘텐츠가 손실되지 않을 것, 또는 어떠한 출력이나 에이전트 작업이 정확하거나 안전할 것을 보장하지 않습니다.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "일부 지역에서는 특정 보증의 배제를 허용하지 않습니다. 그러한 지역에서는 위의 배제가 법률이 허용하는 범위 내에서만 적용됩니다.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "warranty",
+      "text": "법정 보증",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 소비자인 경우, EU 법률은 디지털 콘텐츠 및 디지털 서비스에 대한 법정 보증을 귀하에게 부여합니다. 서비스는 본 약관과 제품 약관에 설명된 내용과 일치해야 하며, 일치하지 않는 경우 당사가 책임을 집니다. 본 약관의 어떠한 내용도 그 보증을 제한하지 않습니다. (지침(EU) 2019/770)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "서비스는 초기 단계에 있으며, 기능은 [서비스 및 본 약관의 변경](#changes)에 설명된 대로 변경될 수 있습니다. 가입하기 전에 당사는 AI 출력이 틀릴 수 있음을 알려 드립니다([AI는 틀릴 수 있습니다](#ai-limits) 참조). 그러한 종류의 잘못된 출력은 오늘날 AI 서비스가 작동하는 방식의 일부입니다. 서비스 자체의 결함은 여전히 당사의 책임입니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 사업자 이용자인 경우, 당사는 법률이 요구하고 당사가 배제하는 것을 허용하지 않는 보증을 제외하고는 아무런 보증 없이 서비스를 있는 그대로 제공합니다.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "책임",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "법률이 허용하는 범위 내에서: (A) 당사는 그 가능성을 통지받았더라도 간접적, 부수적, 특별, 결과적, 징벌적 또는 제재적 손해, 또는 이익, 수익, 데이터 또는 영업권의 손실에 대해 책임을 지지 않으며, (B) 서비스 또는 본 약관에 관한 모든 청구에 대한 당사의 총 책임은 청구의 원인이 된 사건 이전 12개월 동안 귀하가 서비스에 대해 당사에 지급한 금액 또는 100 미국 달러 중 큰 금액으로 제한됩니다.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "이는 계약, 보증, 불법행위(과실 포함) 또는 기타 어떠한 법리에 의하든 관계없이 적용됩니다. 이는 사기에 대한 책임, 또는 당사의 과실로 인한 사망이나 신체 상해에 대한 책임 등 법률이 당사가 제한하는 것을 허용하지 않는 책임을 제한하지 않습니다. 일부 지역에서는 이러한 제한을 허용하지 않습니다. 그러한 지역에서는 이러한 제한이 법률이 허용하는 범위 내에서만 적용됩니다.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "[에이전트](#agents)에 설명된 바와 같이, 귀하는 에이전트에게 허용한 작업과 출력을 사용하는 방식에 대해 책임을 집니다.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "책임",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "당사는 다음의 경우 무제한으로 책임을 집니다.",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "items": [
+        "당사가 고의 또는 중과실로 야기한 손해,",
+        "생명, 신체 또는 건강에 대한 침해,",
+        "제조물 책임법에 따른 책임 및 당사가 제공한 보증에 따른 책임,",
+        "그 밖에 법률이 책임의 제한을 허용하지 않는 모든 경우."
+      ],
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "그 밖의 경우, 당사에 경과실만 있는 때에는 당사가 본질적 의무를 위반한 경우에만 책임을 집니다. 본질적 의무란 계약의 이행을 비로소 가능하게 하고 귀하가 통상적으로 신뢰할 수 있는 의무를 말합니다. 이 경우 당사의 책임은 이러한 종류의 계약에 전형적이며 귀하가 계약에 동의한 시점에 예견할 수 있었던 손해로 제한됩니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "당사는 백업 보관, 출력 확인, 승인 전 작업 검토 등 귀하 스스로의 합리적인 조치로 피할 수 있었던 손해에 대해서는 책임을 지지 않습니다([에이전트](#agents) 참조). 이는 법률이 그러한 규정으로부터 귀하를 보호하는 경우에는 적용되지 않습니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "이 규정은 당사의 직원 및 당사를 위해 일하는 사람들도 보호합니다.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "indemnity",
+      "text": "면책"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 사업자 이용자인 경우, 귀하는 귀하의 콘텐츠, 본 약관 또는 법률을 위반한 귀하의 서비스 이용, 또는 귀하가 에이전트에게 허용한 작업으로 인해 발생하는 제3자의 청구에 대하여 당사를 방어하고 면책해야 합니다. “면책”이란 귀하가 당사의 합리적인 비용, 손실 및 법률 비용을 부담하는 것을 의미합니다. 당사는 그러한 청구에 대해 귀하에게 신속히 알리고, 귀하가 방어를 주도하도록 하며, 귀하의 비용으로 합리적으로 협조합니다. 귀하는 당사의 동의 없이 당사의 잘못을 인정하거나 당사를 구속하는 방식으로 청구를 합의해서는 안 됩니다."
+    },
+    {
+      "type": "p",
+      "text": "귀하가 소비자인 경우, 이 조항은 귀하에게 적용되지 않습니다. 귀하는 귀하가 야기한 피해에 대해 법률에 따라 계속 책임을 집니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 사업이 아닌 본인만을 위해 서비스를 이용하는 경우, 이 조항은 귀하에게 적용되지 않습니다. 귀하는 귀하가 야기한 피해에 대해 법률에 따라 계속 책임을 집니다.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "제재 및 수출"
+    },
+    {
+      "type": "p",
+      "text": "당사는 미국 및 유럽연합의 제재 및 수출 규정을 준수하며, 귀하도 이를 준수해야 합니다. 다음의 경우 귀하는 서비스를 이용할 수 없습니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "귀하가 미국 또는 EU의 포괄적 제재 대상인 국가나 지역에 소재하거나 통상적으로 거주하는 경우,",
+        "귀하가 미국 또는 EU의 제재 명단에 올라 있거나, 그러한 자가 소유하거나 지배하는 경우, 또는",
+        "귀하의 이용이 미국 또는 EU의 제재나 수출 규정을 위반하게 되는 경우(예: 그러한 자에게 또는 금지된 목적을 위해 서비스를 제공하는 경우)."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "당사는 이러한 규정을 준수하기 위해 접근을 차단하거나, 계정을 폐쇄하거나, 서비스 제공을 거부할 수 있습니다."
+    },
+    {
+      "type": "h2",
+      "id": "disputes",
+      "text": "분쟁 및 준거법",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "서비스에 문제가 있는 경우, 먼저 {company.email}(으)로 연락해 주십시오. 대부분의 문제는 이 방법으로 신속히 해결할 수 있으며, 당사는 신의성실에 따라 해결하기 위해 노력합니다.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "본 약관 및 본 약관 또는 서비스에 관한 모든 분쟁은 저촉법 규정과 관계없이 {company.law}의 법률을 준거법으로 합니다.",
+      "only": "us",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "분쟁은 중재가 아닌 법원에서 해결합니다. 귀하는 법률이 허용하는 경우 집단소송 또는 단체소송에 참여할 권리를 포기하지 않습니다. 청구는 관련 법률에 따라 관할권을 가진 법원에 제기하며, 현지 법률이 귀하에게 그 권리를 부여하는 경우 귀하의 거주지 법원도 이에 포함됩니다.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "당사자 중 누구든지 대신 소액사건 법원에 개인 청구를 제기할 수 있으며, 이는 해당 청구가 그 요건을 충족하는 경우 귀하의 거주지 또는 당사의 소재지에서 할 수 있습니다.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "본 약관의 어떠한 내용도 귀하의 거주지 소비자 보호법이 박탈을 허용하지 않는 경우 그 법률에 따라 귀하가 가지는 권리를 박탈하지 않습니다.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "disputes",
+      "text": "분쟁 및 준거법",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "서비스에 문제가 있는 경우, 먼저 {company.email}(으)로 연락해 주십시오. 대부분의 문제는 이 방법으로 신속히 해결할 수 있으며, 당사는 신의성실에 따라 해결하기 위해 노력합니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "본 약관은 {company.law}의 법률을 준거법으로 합니다. 국제물품매매계약에 관한 국제연합 협약은 적용되지 않습니다.",
+      "only": "eu",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "귀하가 소비자인 경우, 본 약관이 어떤 법률을 선택하든 귀하는 귀하의 거주 국가의 강행법규에 따른 보호를 계속 받습니다. 귀하는 귀하의 거주지 법원에 당사를 상대로 소를 제기할 수 있습니다. 당사는 귀하의 거주지 법원에서만 귀하를 상대로 소를 제기할 수 있습니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 사업자 이용자인 경우, 법률이 허용하는 범위 내에서 당사의 등록된 본점 소재지 법원이 관할권을 가집니다. 당사는 귀하의 소재지에서도 소를 제기할 수 있습니다.",
+      "only": "eu",
+      "needs": [
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "중재는 없으며, 본 약관의 어떠한 내용도 법률이 허용하는 경우 대표소송 또는 집단소송에 참여할 귀하의 권리를 제한하지 않습니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "당사는 소비자 중재위원회에서의 분쟁 해결 절차에 참여하지 않으며, 참여할 의사도 없습니다.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "dsa",
+      "text": "연락 창구 및 콘텐츠 관리",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "EU 디지털 서비스법(DSA)은 당사에 연락하는 방법과 당사가 콘텐츠를 처리하는 방법을 귀하에게 알리도록 요구합니다.",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "contact-points",
+      "text": "연락 창구",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "이용자 및 EU 회원국 당국, 유럽연합 집행위원회, 디지털 서비스 유럽 위원회를 위한 당사의 단일 연락 창구는 {company.email}입니다. 귀하는 영어로 당사에 연락할 수 있으며, 자동화된 시스템만이 아니라 언제든지 사람과 연락할 수 있습니다. (DSA 제11조 및 제12조)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "당사의 EU 법정 대리인은 {company.euRepresentative}입니다. 귀하는 DSA에 따른 모든 사안에 관하여 대리인에게 연락할 수 있습니다. (DSA 제13조)",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "moderation",
+      "text": "당사가 호스팅하는 콘텐츠와 관리 방식",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 당사의 클라우드 작업 공간, 데스크톱 앱의 클라우드 리서치, 어시스턴트 봇 또는 API를 이용하는 경우, 당사는 귀하의 요청에 따라 귀하의 채팅, 리서치 질문, 목표, 파일 및 보고서 등의 콘텐츠를 저장합니다. 당사는 이를 공개하거나 다른 이용자와 공유하지 않습니다. 당사는 일반적으로 이를 모니터링하지 않으며, 콘텐츠의 순위를 매기거나 추천하지 않습니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "당사의 콘텐츠 규정은 본 약관과 [허용 가능한 사용 정책](/instant/legal/acceptable-use)에 있습니다. 당사는 주로 신고를 통해 불법 콘텐츠 또는 해당 규정 위반을 알게 된 경우 조치를 취합니다.",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "items": [
+        "[위반 신고](/instant/legal/acceptable-use#report)에 설명된 바와 같이, 누구든지 불법이거나 당사의 규정을 위반한다고 생각하는 콘텐츠를 신고할 수 있습니다.",
+        "각 신고는 담당자가 검토하고 결정합니다. 당사는 적시에, 신중하게, 객관적으로 조치하며 표현의 자유를 포함하여 관련된 모든 사람의 권리를 존중합니다.",
+        "조치에는 콘텐츠의 삭제 또는 비활성화, 기능 제한, 계정의 정지 또는 폐쇄가 포함될 수 있습니다. 당사는 효과적인 조치 중 가장 경미한 조치를 선택합니다.",
+        "당사는 영향을 받는 이용자에게 이유서를 제공합니다. 이유서에는 당사가 취한 조치, 사실관계, 자동화된 수단의 사용 여부, 당사가 근거로 삼은 규정 또는 법률, 그리고 결정에 이의를 제기하는 방법이 포함됩니다. (DSA 제17조)",
+        "누군가의 생명이나 안전을 위협하는 범죄를 알게 된 경우, 당사는 당국에 이를 알립니다. (DSA 제18조)"
+      ],
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "결정에 동의하지 않는 경우, 당사의 메시지에 회신하거나 {company.email}(으)로 연락하시면 담당자가 이를 다시 검토합니다. 귀하는 또한 법원에 소를 제기하거나, 귀하의 거주 국가의 디지털 서비스 조정관에게 불만을 제기할 수 있습니다.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "notices",
+      "text": "통지"
+    },
+    {
+      "type": "p",
+      "text": "당사는 귀하의 계정에 등록된 이메일 주소로 통지를 보내거나 서비스 내에서 통지를 표시합니다. 이메일 주소를 최신 상태로 유지하십시오. 귀하는 {company.email}(으)로 당사에 통지를 보낼 수 있습니다."
+    },
+    {
+      "type": "p",
+      "text": "공식적인 법적 통지는 {company.legalName}, {company.address}(으)로 우편으로도 보낼 수 있습니다.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "일반 조항"
+    },
+    {
+      "type": "list",
+      "items": [
+        "본 약관, 제품 약관 및 이들이 링크하는 정책은 서비스에 관한 귀하와 당사 간의 완전한 합의를 구성합니다. 귀하가 당사와 서명한 별도의 서면 계약은 그 계약이 다루는 사항에 대하여 우선합니다.",
+        "법원이 본 약관의 일부를 무효로 판단하는 경우에도 나머지 부분은 계속 적용됩니다. 무효인 부분은 법률이 정하는 규정으로 대체됩니다.",
+        "당사가 권리를 즉시 행사하지 않더라도 이를 포기하는 것은 아닙니다.",
+        "귀하는 당사의 서면 동의 없이 본 약관에 따른 귀하의 권리나 의무를 양도할 수 없습니다. 당사는 귀하의 권리가 축소되지 않는 경우 서비스를 인수하는 회사에 계약을 양도할 수 있습니다. 당사는 이를 사전에 알려 드리며, 귀하는 그 후 언제든지 계약을 종료할 수 있습니다.",
+        "당사는 당사가 의존하는 제공업체의 장애, 자연재해 또는 정부의 조치 등 당사의 합리적인 통제를 벗어난 사건으로 인한 지연이나 불이행에 대해 책임을 지지 않습니다. 이는 소비자로서 귀하의 권리를 축소하지 않습니다.",
+        "귀하와 당사 외의 누구도 본 약관에 따른 권리를 가지지 않습니다.",
+        "본 약관은 영어로 작성되었습니다. 당사가 번역본을 제공하는 경우, 법률이 달리 정하지 않는 한 양자 간에 차이가 있을 때에는 영어 버전이 적용됩니다."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,253 @@
+{
+  "meta": {
+    "slug": "mobile-app-terms",
+    "title": "Mobile App Terms",
+    "summary": "These terms cover using the Orqanix phone app as a remote for Orqanix on your Mac, including the terms app stores require.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "First version."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Platforms and stores are unknown (no Mobile App code exists). The app-store sections are written as conditions (\"if you got the Mobile App from...\") and name no platform as fact. Remove the section for any store the app is not offered in.",
+        "How the phone reaches the Mac, whether the phone signs in with an Orqanix account, what is stored on the phone or in our cloud, and the push-notification provider are unknown. The document makes no data claims (removed \"same account on both\" and \"signing out\", which the product page does not support) and defers to the Privacy Policy, which must cover them before release.",
+        "Voice input: the product page says you can say what you need; how voice is processed is unknown and is not described here.",
+        "Apple standard EULA point \"developer name and address\" needs the company's legal name and address (needs block, FACTS open point #1). App-store DSA trader details (address, phone, email, shown publicly) must match the Legal Notice.",
+        "Apple App Store Guideline 5.1.1(v) and Google Play require in-app account deletion (and a web deletion path for Google Play). No self-service deletion exists (FACTS open point #5); the text does not promise one.",
+        "Apple 5.1.2(i): a consent screen naming Google Gemini before data is first shared with third-party AI is needed in the app; Google Play AI-generated content policy needs in-app reporting. Not document items.",
+        "US app-store age laws (Texas SB 2420 enforceable now; Utah May 2027; Louisiana 1 Jul 2027; California AB 1043 from 1 Jan 2027): the app must use store age signals. The document states 18+ only.",
+        "EU change notice by email (Dir. 2019/770 Art. 19) needs working mailboxes (no MX record, FACTS open point #2).",
+        "Product pages present the Mobile App as available while no code exists (FACTS open point #13); these terms cannot cure that. Consider holding this document until the app ships.",
+        "Lawyer review of the Apple and Google clauses (including the US-embargo representation Apple requires, shown in both regions) and of the EU consumer wording."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "About these terms"
+    },
+    {
+      "type": "p",
+      "text": "These terms add to our [Terms of Service](/instant/legal/terms) for the Orqanix app for your phone (the \"Mobile App\"). With the Terms of Service, the [Desktop App Terms](/instant/legal/desktop-app-terms), our [Acceptable Use Policy](/instant/legal/acceptable-use) and our [Privacy Policy](/instant/legal/privacy), they form one agreement. If these terms and the Terms of Service disagree about the Mobile App, these terms apply."
+    },
+    {
+      "type": "p",
+      "text": "The Mobile App is free while our products are early. Before any paid plan starts, we will publish the price and the rules for paying and cancelling."
+    },
+    {
+      "type": "p",
+      "text": "Before then, we will also publish the rules for withdrawing from a purchase, as EU law requires.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "a-remote-for-your-mac",
+      "text": "A remote for your Mac"
+    },
+    {
+      "type": "p",
+      "text": "The Mobile App is a remote for Orqanix on your Mac. When you use it:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "you need the Orqanix app on your Mac (the Desktop App). Start with the Mac app, then add your phone;",
+        "all work runs on your Mac, with its files, tools and settings. The phone shows what is happening and lets you give the next job;",
+        "files are made on your Mac and stay in its project folder. The phone shows what was made; the Mac keeps the originals;",
+        "the Mobile App works only while your Mac is online and has Orqanix open. When the Mac sleeps or goes offline, the phone shows that and waits until it is back."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "We do not promise that your phone can always reach your Mac. Networks, sleep settings and your devices are outside our control."
+    },
+    {
+      "type": "h2",
+      "id": "work-from-your-phone",
+      "text": "Work from your phone"
+    },
+    {
+      "type": "p",
+      "text": "You can check a running job, read results, re-run saved tasks (recipes) and start new work by typing or saying what you need. The Desktop App on your Mac carries out that work, under the [Desktop App Terms](/instant/legal/desktop-app-terms). That means:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "the agents on your Mac can take real actions, such as changing files and running commands. By default they do so without asking first, unless you [changed that setting](/instant/legal/desktop-app-terms#approval-modes) on your Mac;",
+        "you are responsible for work you start from the phone as if you had started it at your Mac;",
+        "you are not at your Mac to watch, so choose carefully what you ask for and check the results before you rely on them."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "AI makes mistakes. Results can be wrong, incomplete or out of date. See [How Our AI Works](/instant/legal/ai)."
+    },
+    {
+      "type": "h2",
+      "id": "notifications",
+      "text": "Notifications"
+    },
+    {
+      "type": "p",
+      "text": "The Mobile App can tell you when a job is finished. You can turn notifications off in your phone's settings. They may appear on your lock screen, so set your notification previews to suit you. We do not promise that every notification arrives, or arrives on time."
+    },
+    {
+      "type": "h2",
+      "id": "account-and-security",
+      "text": "Your account and phone"
+    },
+    {
+      "type": "list",
+      "items": [
+        "You must be 18 or older to use the Mobile App.",
+        "Anyone who can use your unlocked phone may be able to start work on your Mac through the Mobile App. Keep your phone locked. If you lose it or give it away, remove the Mobile App if you can, and tell us.",
+        "Tell us at {company.email} if you think someone else used your account."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "The [Privacy Policy](/instant/legal/privacy) explains what we collect when you use the Mobile App, and why."
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "Your licence"
+    },
+    {
+      "type": "p",
+      "text": "While you follow these terms, we give you a personal, non-exclusive, non-transferable licence to install and use the Mobile App on phones you own or control. You may not sell, rent, lend or sublicense it, get around its security measures or limits, or copy it to build a competing product."
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Updates and changes"
+    },
+    {
+      "type": "p",
+      "text": "We may release new versions of the Mobile App and change or remove features. If you got it from an app store, updates come through that store under its rules. The rules for changes are in [Changes to the Services and these terms](/instant/legal/terms#changes)."
+    },
+    {
+      "type": "p",
+      "text": "If you use the Mobile App as a consumer (outside your trade or business), you have the rights EU law gives consumers for digital content. They apply even though the app is free, because you give us personal data to use it (Dir. (EU) 2019/770). For as long as the law requires, we will make available the updates, including security updates, needed to keep it working as described.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Beyond that, we will change the Mobile App only for a valid reason and at no cost to you. If such a change harms your use of the app more than a little, we will email you in good time before it happens. You may then end this agreement free of charge within 30 days of our notice or of the change, whichever is later, unless we let you keep the unchanged version at no extra cost.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Liability"
+    },
+    {
+      "type": "p",
+      "text": "As far as the law allows, the Mobile App is provided \"as is\" and \"as available\", without warranties of any kind. [Disclaimers](/instant/legal/terms#warranty) and [Liability](/instant/legal/terms#liability) in the Terms of Service apply to it.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "We are liable for the Mobile App under the law of your country, as set out in [Liability](/instant/legal/terms#liability) in the Terms of Service. Nothing in these terms or in an app store's terms limits your statutory rights as a consumer.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "app-stores",
+      "text": "App store terms"
+    },
+    {
+      "type": "p",
+      "text": "This section applies if you got the Mobile App from an app store. The store's own terms also apply to your download and use. You must follow them and any terms of your mobile network, such as your data plan."
+    },
+    {
+      "type": "h3",
+      "id": "apple",
+      "text": "Apple App Store"
+    },
+    {
+      "type": "p",
+      "text": "If you got the Mobile App from Apple's App Store, you and we agree that:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "these terms are between you and us only, not Apple. We, not Apple, are solely responsible for the Mobile App and its content;",
+        "your licence covers use on Apple-branded products that you own or control, as the Usage Rules in Apple's [Media Services Terms and Conditions](https://www.apple.com/legal/internet-services/itunes/) allow. Other people linked to your account through Family Sharing or volume purchasing may also use it as those rules permit;",
+        "we alone are responsible for maintenance and support of the Mobile App. Apple has no duty to provide any;",
+        "if the Mobile App fails to meet a warranty that applies to it, you may tell Apple, and Apple will refund the price you paid for the app, if any. As far as the law allows, Apple has no other warranty duty for the Mobile App. Any other claims, losses, liabilities, damages, costs or expenses caused by such a failure are our responsibility, to the extent these terms and the law make them so;",
+        "we, not Apple, will handle any claims by you or others about the Mobile App or your use of it, including product liability claims, claims that it fails to meet a legal or regulatory requirement, and claims under consumer protection, privacy or similar laws;",
+        "if someone claims the Mobile App or your use of it infringes their intellectual property, we, not Apple, are responsible for investigating, defending, settling and resolving that claim, to the extent these terms make us responsible;",
+        "you are not located in a country that is subject to a US government embargo or that the US government has named a \"terrorist supporting\" country, and you are not on any US government list of prohibited or restricted parties;",
+        "Apple and its subsidiaries are third-party beneficiaries of these terms. Once you accept these terms, Apple has the right, and is deemed to have accepted the right, to enforce them against you as a third-party beneficiary."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Send questions, complaints or claims about the Mobile App to us at {company.email}, not to Apple."
+    },
+    {
+      "type": "p",
+      "text": "The developer of the Mobile App is {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "google-play",
+      "text": "Google Play"
+    },
+    {
+      "type": "p",
+      "text": "If you got the Mobile App from Google Play, you and we agree that:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "these terms are between you and us only, not Google. Google is not responsible for the Mobile App, its content, its support or any claims about it;",
+        "the [Google Play Terms of Service](https://play.google.com/about/play-terms/) also apply to your download and use. Where they conflict with these terms about your relationship with Google, the Google Play Terms of Service apply;",
+        "refunds for anything bought through Google Play follow Google Play's rules."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Sanctions and export"
+    },
+    {
+      "type": "p",
+      "text": "You may not download or use the Mobile App where US or EU sanctions or export rules forbid it, or if you are named on a US or EU sanctions list. See [Sanctions and export](/instant/legal/terms#sanctions) in the Terms of Service."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Ending use"
+    },
+    {
+      "type": "p",
+      "text": "You can stop using the Mobile App at any time by deleting it from your phone. This does not stop the Desktop App, delete files on your Mac or close your Orqanix account. To close your account or ask us to delete your data, see the [Terms of Service](/instant/legal/terms) and [Privacy Policy](/instant/legal/privacy)."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Contact"
+    },
+    {
+      "type": "p",
+      "text": "Questions about these terms: {company.email}. Privacy requests: {company.privacyEmail}."
+    }
+  ]
+}

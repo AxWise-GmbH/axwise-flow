@@ -1,0 +1,117 @@
+{
+  "meta": {
+    "slug": "accessibility",
+    "title": "Deklaracja dostępności",
+    "summary": "Niniejsza deklaracja wyjaśnia, w jakim stopniu strona internetowa Orqanix jest dostępna, w czym jeszcze nie spełnia wymagań i jak zgłosić barierę.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Pierwsza wersja."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The statement rests on a code review of the landing pages on 21 Sep 2026 (reduced-motion handling in the animated sections, focus-visible styles, aria labels, decorative SVGs hidden, Escape closes menus, lang=\"en\"). No full WCAG 2.1 AA audit or screen-reader test has been done; do one and update the known gaps.",
+        "Known gaps found in code: many labels inside illustrations are 9-11 px; the dim grey token (#6b6b6b on black) is about 3.9:1, below the 4.5:1 WCAG needs for small text. Fix or keep listed.",
+        "EAA / BFSG: whether Orqanix is a microenterprise (fewer than 10 staff and at most EUR 2m turnover) decides whether the EAA applies to its consumer services. Owner to confirm headcount and turnover. Once a paid consumer checkout exists, the EAA Annex V information may be required.",
+        "EU enforcement contact: the page names no authority because it depends on the company's country (Germany: the market surveillance authority for the BFSG). Add it once the company is chosen.",
+        "Feedback goes to hello@orqanix.com, which probably receives no mail today (no MX record, open point #2).",
+        "The page targets WCAG 2.1 AA. EN 301 549 (the EAA benchmark) now points to WCAG 2.1; if the owner wants to aim for WCAG 2.2, change the target line.",
+        "US: no ADA-specific text is needed; a working feedback channel (hello@, open point #2) is the main risk reducer for demand letters."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "our-aim",
+      "text": "Nasz cel"
+    },
+    {
+      "type": "p",
+      "text": "Chcemy, aby każdy mógł korzystać ze strony internetowej {company.name}, w tym osoby korzystające z klawiatury, czytnika ekranu, powiększenia lub innych technologii wspomagających. Naszym celem jest poziom AA wytycznych Web Content Accessibility Guidelines (WCAG) 2.1, powszechnie stosowanego standardu międzynarodowego."
+    },
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "Zakres"
+    },
+    {
+      "type": "p",
+      "text": "Niniejsza deklaracja obejmuje stronę internetową orqanix.com: stronę główną, strony produktów i rozwiązań, stronę Aktualności oraz Centrum prawne. Nie obejmuje aplikacji internetowej, Aplikacji desktopowej ani stron logowania udostępnianych przez Clerk, naszego dostawcę usług logowania."
+    },
+    {
+      "type": "h2",
+      "id": "status",
+      "text": "Obecny stan"
+    },
+    {
+      "type": "p",
+      "text": "Strona internetowa jest częściowo zgodna z poziomem AA WCAG 2.1. Nie przeszła jeszcze pełnego audytu i nie deklarujemy pełnej zgodności. Znane nam niezgodności wymieniamy w części [Znane niezgodności](#known-gaps)."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-did",
+      "text": "Co zrobiliśmy"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Klawiatura: do linków, przycisków i menu można dotrzeć za pomocą klawiatury, a klawisz Escape zamyka otwarte menu.",
+        "Widoczny fokus: linki i przyciski są wyraźnie wyróżniane, gdy przechodzą Państwo do nich za pomocą klawiatury.",
+        "Mniej ruchu: jeśli Państwa urządzenie jest ustawione na ograniczenie ruchu, animowane sceny przestają się poruszać, a treści pojawiają się bez animacji.",
+        "Kontrast: tekst główny i nagłówki są prawie białe na czarnym tle.",
+        "Alternatywy tekstowe: menu, elementy sterujące i sceny, które niosą znaczenie, mają etykiety tekstowe dla czytników ekranu. Grafiki czysto dekoracyjne są przed czytnikami ukryte.",
+        "Struktura: strony zawierają nagłówki, główny obszar treści, opisane menu główne i opisane menu stopki, a język strony jest ustawiony na angielski.",
+        "Małe ekrany: układ dostosowuje się do telefonów i wąskich okien."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "known-gaps",
+      "text": "Znane niezgodności"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Niektóre ilustracje zawierają drobny tekst, na przykład etykiety w animowanych scenach produktów. Może on być trudny do odczytania, nawet po powiększeniu.",
+        "Niektóre etykiety drugorzędne mają przygaszony szary kolor o niższym kontraście, niż WCAG wymaga dla drobnego tekstu.",
+        "Animowane sceny mogą być dla niektórych osób trudne do śledzenia. Przestają się poruszać, jeśli Państwa urządzenie jest ustawione na ograniczenie ruchu."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Zamierzamy usunąć te niezgodności. Jeśli któraś z nich uniemożliwia Państwu uzyskanie potrzebnych informacji, [prosimy nam o tym napisać](#feedback), a postaramy się przekazać je Państwu w inny sposób."
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "Zgłoszenia"
+    },
+    {
+      "type": "p",
+      "text": "Jeśli napotkają Państwo barierę na naszej stronie internetowej, prosimy o informację na adres {company.email}. Prosimy podać, na której stronie wystąpiła, co próbowali Państwo zrobić oraz, jeśli Państwo chcą, z jakiej przeglądarki i technologii wspomagającej korzystają. Staramy się szybko odpowiadać i usuwać to, co możemy."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Jeśli mieszkają Państwo w UE, a nasza odpowiedź nie rozwiąże problemu, mogą Państwo zwrócić się do organu w swoim kraju, który nadzoruje dostępność."
+    },
+    {
+      "type": "h2",
+      "id": "about-this-statement",
+      "text": "O niniejszej deklaracji"
+    },
+    {
+      "type": "p",
+      "text": "Niniejszą deklarację przygotowaliśmy 21 września 2026 r. na podstawie własnego przeglądu strony internetowej. Zaktualizujemy ją, gdy usuniemy którąś z niezgodności lub przeprowadzimy audyt."
+    }
+  ]
+}

@@ -1,0 +1,234 @@
+{
+  "meta": {
+    "slug": "health-data",
+    "title": "Política de Privacidade de Dados de Saúde do Consumidor",
+    "summary": "Esta política explica como o Orqanix coleta, usa e compartilha dados de saúde do consumidor nos termos das leis de Washington, Nevada e Connecticut, e como você pode exercer os seus direitos sobre eles.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Primeira versão."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company identity (legalName, address): the 'Orqanix is run by' line is hidden until filled (FACTS §14.1).",
+        "geminiPaidTier: the paid-tier sentence stays hidden until the owner confirms Google's paid Gemini tier and DPA; until then Google's use is described only by linking Google's terms (FACTS §14.3).",
+        "Lawyer: under MHMDA, do search queries sent to public search engines (which may contain health terms) count as 'sharing' that needs separate consent? The policy discloses them and treats them as part of the service requested.",
+        "Lawyer: MHMDA deletion duty vs. the immutable workspace tables (messages, artifacts, events). The text promises 'delete or anonymise, or tell you why'; a working deletion process is still missing (FACTS §3, §14.5).",
+        "Lawyer: confirm the response-time wording meets WA/NV/CT rules: requests \"within one month\" (the laws allow 45 days), appeals \"within 45 days\" (MHMDA); Attorney General contact given.",
+        "Consent UX: the policy now relies on \"necessary to provide the requested service\" (MHMDA) for collection and sharing, and promises consent for anything else; no in-product consent screen exists. Decide whether one is needed (FACTS §14.16).",
+        "Email: privacy@orqanix.com must receive mail (no MX record today, FACTS §14.2).",
+        "Keep a prominent footer/home-page link to this policy (Washington), unless health marketing is removed and the AUP bans health data (FACTS §14.16).",
+        "Lawyer/owner: Gemini tier. On Google's unpaid Gemini terms Google may use prompts for its own purposes, so Google would be a third party, not a processor; sending health data there may be \"sharing\" beyond what is necessary, and a free-service-for-data exchange could be argued to be a \"sale\". Confirm the paid tier before publishing (FACTS §14.3).",
+        "Lawyer: FTC Health Breach Notification Rule (16 CFR 318) may apply given the healthcare marketing; the text only says we notify where the law requires (verify.md, missing requirement 2).",
+        "Lawyer: HIPAA. Healthcare solution pages imply clinic use; this policy covers consumers only. A BAA or a \"no PHI\" clause is needed before clinics use it (us.md row 9)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Sobre esta política"
+    },
+    {
+      "type": "p",
+      "text": "Alguns estados dos EUA protegem os “dados de saúde do consumidor”: informações pessoais que identificam você, ou que poderiam razoavelmente ser vinculadas a você, e que revelam algo sobre a sua saúde física ou mental passada, presente ou futura. Isso inclui informações inferidas sobre você, por exemplo, a partir do que você pergunta. As principais leis são o My Health My Data Act de Washington, a lei de dados de saúde do consumidor de Nevada e as regras de Connecticut sobre dados de saúde do consumidor."
+    },
+    {
+      "type": "p",
+      "text": "Esta política explica como o Orqanix (“nós”) trata dados de saúde do consumidor. Ela se aplica a pessoas nos Estados Unidos e complementa a nossa [Política de Privacidade](/instant/legal/privacy), que abrange todos os demais dados pessoais."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "O Orqanix é operado por {company.legalName}, {company.address}."
+    },
+    {
+      "type": "note",
+      "text": "Em resumo: não pedimos os seus dados de saúde. Eles só chegam até nós se você os digitar, falar, enviar ou conectar. Nós os usamos apenas para fazer o que você pediu. Nunca os vendemos e não os usamos para publicidade."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-collect",
+      "text": "O que pode chegar até nós"
+    },
+    {
+      "type": "p",
+      "text": "O Orqanix é um assistente de IA de uso geral, não um serviço de saúde. Não pedimos informações de saúde e não as coletamos de sensores, dispositivos ou apps de saúde. Os dados de saúde do consumidor só chegam até nós quando você escolhe incluí-los, por exemplo:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "sintomas, condições, diagnósticos, medicamentos ou tratamentos que você menciona em uma solicitação;",
+        "documentos de saúde que você envia ou pede a um agente para ler, como resultados de exames, formulários ou cartas de um médico;",
+        "consultas, contas ou dados de plano de saúde em arquivos ou mensagens que você nos fornece;",
+        "a sua voz, se você falar sobre a sua saúde ao usar o ditado no Aplicativo para computador;",
+        "informações de saúde nas mensagens, contatos e arquivos das contas que você conecta ao Assistente Virtual;",
+        "qualquer coisa que a IA deduza sobre a sua saúde a partir do que você pergunta e inclua na resposta."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Não usamos localização precisa para obter informações sobre a sua saúde e não criamos limites virtuais (geofences) em torno de locais onde são prestados serviços de saúde."
+    },
+    {
+      "type": "h2",
+      "id": "sources",
+      "text": "De onde eles vêm"
+    },
+    {
+      "type": "list",
+      "items": [
+        "De você, quando você digita, fala ou envia algo.",
+        "Dos apps de mensagens e contas de e-mail que você conecta ao Assistente Virtual, e dos arquivos que você pede aos agentes para ler.",
+        "De páginas públicas da web que a nossa pesquisa encontra quando você pede uma pesquisa.",
+        "Das respostas do modelo de IA às suas solicitações."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "how-we-use",
+      "text": "Como os usamos"
+    },
+    {
+      "type": "p",
+      "text": "Coletamos e usamos dados de saúde do consumidor somente na medida necessária para prestar o serviço que você solicitou. Isso significa:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "enviar a sua solicitação ao modelo de IA e entregar a resposta a você;",
+        "fazer o trabalho que você pede, como pesquisas, organização de documentos ou criação de arquivos;",
+        "manter o seu trabalho no seu espaço de trabalho na nuvem ou no seu Mac para que você possa voltar a ele, conforme descrito na nossa [Política de Privacidade](/instant/legal/privacy#what-we-collect);",
+        "manter o serviço seguro e cumprir as nossas obrigações legais."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Não usamos dados de saúde do consumidor para publicidade, não criamos perfis a partir deles e não treinamos os nossos próprios modelos de IA com eles."
+    },
+    {
+      "type": "h2",
+      "id": "who-gets-it",
+      "text": "Quem os recebe"
+    },
+    {
+      "type": "p",
+      "text": "Compartilhamos dados de saúde do consumidor somente com os provedores que nos ajudam a prestar o serviço, e somente para essa finalidade. Compartilhamos os dados de saúde contidos na sua solicitação e na conversa (os tipos listados em [O que pode chegar até nós](#what-we-collect)) com:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Google Cloud, que hospeda os nossos servidores, banco de dados e arquivos na UE (Países Baixos).",
+        "Google, cuja Gemini API fornece o modelo de IA que responde a você por padrão. Ele recebe a sua solicitação e a conversa e pode tratá-las fora da UE.",
+        "Mecanismos de busca públicos (Google, Bing, Brave e DuckDuckGo), quando você pede uma pesquisa. O nosso serviço de busca envia a eles consultas elaboradas a partir da sua solicitação, de modo que uma consulta pode incluir termos de saúde que você usou. Enviamos somente a consulta, não o seu nome nem os dados da sua conta."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Os [termos da Gemini API do Google](https://ai.google.dev/gemini-api/terms) definem como o Google pode usar os dados que recebe por meio da Gemini API."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Usamos o serviço pago da Gemini API do Google. Nos termos do Google para serviços pagos, o Google trata as suas solicitações para nós e não as usa para aprimorar os seus produtos."
+    },
+    {
+      "type": "p",
+      "text": "Se você conectar outro provedor de IA no Aplicativo para computador, como a OpenAI ou a Anthropic, ele receberá a sua conversa por sua determinação, nos termos do seu próprio contrato com ele. Também podemos divulgar dados quando a lei exigir. A lista completa dos nossos provedores está na nossa página de [Suboperadores](/instant/legal/subprocessors)."
+    },
+    {
+      "type": "h2",
+      "id": "no-sale",
+      "text": "Nunca os vendemos"
+    },
+    {
+      "type": "p",
+      "text": "Não vendemos dados de saúde do consumidor. A lei de Washington exigiria a sua autorização por escrito e assinada antes de qualquer venda, e não pedimos essa autorização."
+    },
+    {
+      "type": "h2",
+      "id": "consent",
+      "text": "Consentimento"
+    },
+    {
+      "type": "p",
+      "text": "Coletamos e compartilhamos dados de saúde do consumidor somente na medida necessária para prestar o serviço que você solicitou, o que a lei permite sem consentimento separado. Não os coletaremos nem usaremos para nenhuma outra finalidade, nem os compartilharemos além dos provedores indicados em [Quem os recebe](#who-gets-it), sem antes pedir o seu consentimento. Se você der o seu consentimento, poderá retirá-lo a qualquer momento escrevendo para {company.privacyEmail}. Você também pode deixar de compartilhar dados de saúde a qualquer momento: não os inclua no que você nos fornece e exclua-os conforme descrito em [Seus direitos](#your-rights)."
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "Seus direitos"
+    },
+    {
+      "type": "p",
+      "text": "Seja qual for o estado em que você mora, você pode nos pedir para:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "confirmar se coletamos, compartilhamos ou vendemos os seus dados de saúde do consumidor;",
+        "dar a você acesso a esses dados, com uma lista dos terceiros e afiliadas com quem os compartilhamos e de como contatá-los;",
+        "excluí-los, inclusive dos nossos registros e dos provedores que os mantêm para nós;",
+        "retirar o seu consentimento para a coleta ou o compartilhamento deles."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Quando você nos pede para excluí-los, nós os excluímos ou anonimizamos no seu espaço de trabalho na nuvem e pedimos aos provedores que os mantêm para nós que façam o mesmo. As cópias nos nossos backups desaparecem quando esses backups expiram, em cerca de 7 dias. Quando precisarmos manter um registro, informaremos o motivo. Os dados mantidos pelo Aplicativo para computador no seu Mac estão nas suas mãos: você pode excluí-los ali a qualquer momento."
+    },
+    {
+      "type": "p",
+      "text": "Não trataremos você de forma diferente, por exemplo, recusando o serviço ou alterando a sua qualidade, por você ter exercido um direito."
+    },
+    {
+      "type": "h2",
+      "id": "how-to",
+      "text": "Como exercer os seus direitos"
+    },
+    {
+      "type": "p",
+      "text": "Escreva para {company.privacyEmail} e diga qual direito você deseja exercer. Podemos pedir que você confirme a sua identidade, por exemplo, escrevendo a partir do endereço de e-mail da sua conta. Uma pessoa autorizada por você pode fazer uma solicitação em seu nome. Podemos pedir uma comprovação de que você deu essa permissão. Exercer os seus direitos é gratuito. Respondemos dentro de um mês."
+    },
+    {
+      "type": "h3",
+      "id": "appeal",
+      "text": "Recursos"
+    },
+    {
+      "type": "p",
+      "text": "Se recusarmos a sua solicitação, você pode recorrer respondendo à nossa resposta com o assunto “Recurso”. Informaremos por escrito o que decidimos e por quê, dentro de 45 dias. Se ainda discordar, você pode entrar em contato com o Attorney General (procurador-geral) do seu estado. Em Washington, consulte a [página do Attorney General sobre dados de saúde](https://www.atg.wa.gov/protecting-washingtonians-personal-health-data-and-privacy)."
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "Segurança"
+    },
+    {
+      "type": "p",
+      "text": "Protegemos os dados de saúde do consumidor conforme descrito na nossa [Política de Privacidade](/instant/legal/privacy#security): eles trafegam criptografados, o nosso provedor de nuvem os criptografa em repouso e eles são hospedados na UE. O Aplicativo para computador mantém o histórico de chats no seu Mac sem criptografia adicional própria, portanto mantenha o seu Mac bloqueado. Se dados de saúde do consumidor forem acessados ou divulgados sem autorização, informaremos você e as autoridades quando a lei exigir."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Alterações"
+    },
+    {
+      "type": "p",
+      "text": "Quando esta política mudar, nós a atualizaremos aqui e alteraremos a data no topo. Antes de usarmos dados de saúde do consumidor de uma nova forma, pediremos o seu consentimento. Dúvidas: {company.privacyEmail}."
+    }
+  ]
+}

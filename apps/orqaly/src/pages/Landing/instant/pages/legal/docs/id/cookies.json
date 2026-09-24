@@ -1,0 +1,260 @@
+{
+  "meta": {
+    "slug": "cookies",
+    "title": "Cookie & Penyimpanan",
+    "summary": "Halaman ini mencantumkan cookie dan penyimpanan browser yang digunakan oleh situs web dan aplikasi web Orqanix, alasan masing-masing diperlukan, berapa lama disimpan, dan cara menghapusnya.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Versi pertama."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Describes the state AFTER this build: marketing/legal pages with self-hosted fonts, no Clerk code and no cookies. Publish only once that build is live (critique #31).",
+        "Clerk: __clerk_db_jwt exists only while sign-in runs on Clerk's development instance; remove the row after the move to the live instance (FACTS §14.4).",
+        "__session lifetime is written as 'short-lived, renewed' (about 1 minute per Clerk, not confirmed in our project).",
+        "Cloudflare __cf_bm (30 min) and _cfuvid (session, rate limiting) lifetimes and purposes are quoted 'according to Cloudflare' from Cloudflare's docs; not measured on our sign-in pages. Clerk's sign-in domain name not printed.",
+        "Clerk development instances may send usage events to Clerk's telemetry host (uncertain); not mentioned. Confirm it is off after the Clerk move.",
+        "Cloudflare Turnstile: whether it stores anything in the browser is not listed; confirm and add a row if it does.",
+        "Lawyer: confirm the no-banner reasoning (ePrivacy Art. 5(3), § 25(2) no. 2 TDDDG, UK PECR) for the menu-layout keys and the router sessionStorage key.",
+        "Fact check: the Desktop App (Electron) does use its own built-in local storage on the Mac (theme, navigation, pinned chats, recent typed messages kept up to 30 days); the old \"does not use browser cookies\" line was replaced with a no-tracking statement. Whether the Desktop sign-in flow sets cookies inside the app was not checked.",
+        "Sign in with Google: Google's cookies on Google's pages are mentioned generically, not listed.",
+        "Fonts: the \"no files from other companies\" statement depends on self-hosted fonts shipping in this build (eu.md row 10, LG München I risk)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "in-short",
+      "text": "Singkatnya"
+    },
+    {
+      "type": "note",
+      "text": "Halaman pemasaran dan halaman hukum kami tidak menetapkan cookie apa pun. Satu-satunya hal yang mungkin disimpan oleh halaman tersebut adalah pilihan Anda: bahasa, tampilan terang atau gelap, dan versi AS atau UE dari halaman hukum kami, masing-masing hanya setelah Anda mengklik. Cookie hanya muncul di halaman masuk dan di aplikasi web, karena proses masuk tidak dapat berfungsi tanpanya. Kami tidak menggunakan cookie iklan, analitik, atau pelacakan."
+    },
+    {
+      "type": "h2",
+      "id": "what-this-covers",
+      "text": "Cookie dan penyimpanan"
+    },
+    {
+      "type": "p",
+      "text": "Cookie adalah file teks kecil yang disimpan oleh situs web di browser Anda. Browser Anda mengirimkannya kembali pada kunjungan berikutnya. Local storage (penyimpanan lokal) dan session storage (penyimpanan sesi) adalah tempat serupa di browser Anda tempat situs web dapat menyimpan potongan informasi kecil. Penyimpanan lokal menyimpannya sampai dihapus; penyimpanan sesi menyimpannya sampai Anda menutup tab. Halaman ini mencakup ketiganya, di orqanix.com dan di aplikasi web Orqanix."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-store",
+      "text": "Apa yang kami simpan"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Nama",
+        "Lokasi",
+        "Ditetapkan oleh",
+        "Alasan",
+        "Durasi"
+      ],
+      "rows": [
+        [
+          "orqanix_legal_region",
+          "Penyimpanan lokal, di halaman hukum kami. Hanya ditulis saat Anda mengklik pengalih wilayah atau saran wilayah.",
+          "Orqanix",
+          "Mengingat apakah Anda memilih versi AS atau UE dari halaman hukum kami.",
+          "Sampai Anda menghapusnya"
+        ],
+        [
+          "orqanix_lang",
+          "Penyimpanan lokal, di halaman pemasaran kami. Hanya ditulis saat Anda memilih bahasa di footer.",
+          "Orqanix",
+          "Mengingat bahasa yang Anda pilih untuk halaman kami.",
+          "Sampai Anda menghapusnya"
+        ],
+        [
+          "orqanix_theme",
+          "Penyimpanan lokal, di halaman pemasaran kami. Hanya ditulis saat Anda menekan pengalih terang/gelap di footer.",
+          "Orqanix",
+          "Mengingat apakah Anda memilih tampilan terang atau gelap.",
+          "Sampai Anda menghapusnya"
+        ],
+        [
+          "__client_uat (dan salinannya dengan akhiran)",
+          "Cookie di orqanix.com dan subdomainnya, di halaman masuk dan di aplikasi web",
+          "Clerk, penyedia layanan masuk kami",
+          "Mencatat apakah, dan sejak kapan, Anda telah masuk.",
+          "Sekitar 1 tahun"
+        ],
+        [
+          "__clerk_db_jwt (dan salinannya dengan akhiran)",
+          "Cookie di orqanix.com, di halaman masuk dan di aplikasi web",
+          "Clerk",
+          "Menghubungkan browser Anda dengan sesi masuk Anda dalam konfigurasi Clerk kami saat ini.",
+          "Sekitar 1 tahun"
+        ],
+        [
+          "__session (dan salinannya dengan akhiran)",
+          "Cookie di orqanix.com, setelah Anda masuk",
+          "Clerk",
+          "Menyimpan token masuk berumur pendek yang membuktikan identitas Anda kepada server kami.",
+          "Berumur pendek, diperbarui selama Anda tetap masuk"
+        ],
+        [
+          "__cf_bm",
+          "Cookie di domain Clerk, di halaman masuk",
+          "Cloudflare, untuk Clerk",
+          "Membedakan manusia dari bot, untuk melindungi proses masuk dari penyalahgunaan.",
+          "Sekitar 30 menit, menurut Cloudflare"
+        ],
+        [
+          "_cfuvid",
+          "Cookie di domain Clerk, di halaman masuk",
+          "Cloudflare, untuk Clerk",
+          "Membantu menerapkan batas yang wajar terhadap permintaan, untuk melindungi proses masuk dari penyalahgunaan.",
+          "Sampai Anda menutup browser, menurut Cloudflare"
+        ],
+        [
+          "__clerk_environment",
+          "Penyimpanan lokal di orqanix.com, di halaman masuk dan di aplikasi web",
+          "Clerk",
+          "Menyimpan salinan pengaturan Clerk agar proses masuk dimuat lebih cepat.",
+          "Sampai Anda menghapusnya"
+        ],
+        [
+          "Tata letak menu",
+          "Penyimpanan lokal di aplikasi web, satu entri per akun",
+          "Orqanix",
+          "Mengingat bagian menu mana yang Anda sembunyikan, urutkan ulang, atau sematkan.",
+          "Sampai Anda menghapusnya"
+        ],
+        [
+          "Menu diciutkan",
+          "Penyimpanan lokal di aplikasi web, satu entri per akun",
+          "Orqanix",
+          "Mengingat apakah Anda menciutkan menu samping.",
+          "Sampai Anda menghapusnya"
+        ],
+        [
+          "remix-router-transitions",
+          "Penyimpanan sesi di aplikasi web, hanya jika digunakan",
+          "Pustaka perutean halaman aplikasi web",
+          "Mengingat status perpindahan halaman, sehingga navigasi mundur dan maju berfungsi.",
+          "Sampai Anda menutup tab"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Saat Anda mendaftar, Cloudflare Turnstile juga menjalankan pemeriksaan singkat di browser Anda untuk memastikan bahwa Anda adalah manusia, bukan bot. Pemeriksaan ini merupakan bagian dari proses masuk dan dijalankan untuk Clerk."
+    },
+    {
+      "type": "h2",
+      "id": "where-it-applies",
+      "text": "Tempat masing-masing berlaku"
+    },
+    {
+      "type": "h3",
+      "id": "marketing-pages",
+      "text": "Halaman pemasaran dan halaman hukum"
+    },
+    {
+      "type": "p",
+      "text": "Halaman beranda, halaman produk, dan halaman hukum ini tidak memuat kode masuk, tidak menetapkan cookie, dan tidak melakukan panggilan ke perusahaan lain. Font-nya berasal dari server kami sendiri. Satu-satunya item yang mungkin disimpan oleh halaman tersebut adalah pilihan bahasa, tampilan, dan wilayah Anda, masing-masing hanya setelah Anda mengklik. Penyedia hosting kami, Google Cloud, menyimpan log server biasa untuk setiap kunjungan (alamat IP, browser, waktu, dan halaman), sebagaimana dijelaskan dalam [Kebijakan Privasi](/instant/legal/privacy#website) kami. Log ini tetap berada di server; tidak ada yang disimpan di browser Anda untuk keperluan tersebut. Jika Anda mengklik Unduh, Aplikasi Desktop diunduh dari Google Cloud Storage, sehingga Google melihat alamat IP Anda."
+    },
+    {
+      "type": "h3",
+      "id": "sign-in-pages",
+      "text": "Halaman masuk dan aplikasi web"
+    },
+    {
+      "type": "p",
+      "text": "Halaman masuk dan pendaftaran serta aplikasi web memuat Clerk, yang menjalankan proses masuk kami. Clerk, dan Cloudflare yang bekerja untuk Clerk, menetapkan cookie dan penyimpanan untuk proses masuk yang tercantum dalam [Apa yang kami simpan](#what-we-store). Di aplikasi web, kami juga menyimpan tata letak menu Anda agar tampilannya tetap seperti yang Anda tinggalkan. Jika Anda memilih Masuk dengan Google, halaman milik Google sendiri akan terbuka, dan cookie serta ketentuan Google berlaku di sana."
+    },
+    {
+      "type": "h2",
+      "id": "no-banner",
+      "text": "Tanpa banner cookie",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Hukum UE dan Inggris hanya mengizinkan situs web menyimpan atau membaca informasi di perangkat Anda tanpa meminta izin terlebih dahulu apabila hal tersebut benar-benar diperlukan untuk menyediakan layanan yang secara tegas Anda minta (ePrivacy Directive Art. 5(3); di Jerman, § 25(2) no. 2 TDDDG; di Inggris, Privacy and Electronic Communications Regulations). Semua yang kami simpan memenuhi uji tersebut. Pilihan bahasa, tampilan, dan wilayah Anda disimpan karena Anda mengkliknya. Proses masuk memerlukan cookie dan perlindungan botnya. Aplikasi web mengingat tata letak menu yang Anda atur. Kami tidak menggunakan apa pun untuk iklan, analitik, atau pelacakan, sehingga tidak ada yang perlu dimintakan persetujuan Anda, dan tidak ada banner."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Jika suatu saat kami ingin menggunakan penyimpanan yang tidak benar-benar diperlukan, kami akan meminta persetujuan Anda terlebih dahulu dan memperbarui halaman ini."
+    },
+    {
+      "type": "h2",
+      "id": "no-banner",
+      "text": "Tanpa banner cookie",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Semua yang kami simpan diperlukan untuk sesuatu yang Anda minta: pilihan wilayah Anda, proses masuk, perlindungan proses masuk dari bot, dan pengingatan tata letak menu Anda. Kami tidak menggunakan cookie iklan, analitik, atau pelacakan, dan kami tidak mengizinkan perusahaan lain melacak Anda di situs kami. Jadi, tidak ada yang perlu Anda tolak (opt out), dan tidak ada banner. Jika browser Anda mengirimkan sinyal Global Privacy Control, kami memperlakukannya sebagai permintaan untuk menolak penjualan dan pembagian informasi pribadi Anda. Kami tidak melakukan keduanya, sehingga tidak ada yang berubah."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Jika suatu saat kami ingin menggunakan penyimpanan untuk tujuan lain, kami akan memperbarui halaman ini terlebih dahulu dan memberi Anda pilihan yang diwajibkan oleh hukum."
+    },
+    {
+      "type": "h2",
+      "id": "not-used",
+      "text": "Yang tidak kami gunakan"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Tidak ada cookie iklan atau jaringan iklan.",
+        "Tidak ada alat analitik atau pelacakan, dan tidak ada piksel pelacak.",
+        "Tidak ada font atau file lain yang dimuat dari perusahaan lain di halaman pemasaran dan halaman hukum kami.",
+        "Tidak ada penyimpanan yang mengikuti Anda di situs web lain."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "clear-it",
+      "text": "Menghapus dan memblokir"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Anda dapat melihat, menghapus, dan memblokir cookie serta data situs di pengaturan browser Anda, biasanya di bagian Privasi atau Data situs. Menghapus data situs untuk orqanix.com dan untuk domain masuk Clerk akan menghapus semua yang tercantum dalam tabel.",
+        "Untuk mengubah pilihan wilayah Anda, gunakan pengalih AS / UE di halaman hukum mana pun. Untuk menghapusnya, hapus data situs browser Anda untuk orqanix.com.",
+        "Keluar dari akun akan mengakhiri sesi masuk Anda.",
+        "Jika Anda memblokir cookie masuk atau pemeriksaan Cloudflare, Anda tetap dapat membaca situs web kami, tetapi proses masuk dan aplikasi web tidak akan berfungsi."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "Aplikasi Desktop"
+    },
+    {
+      "type": "p",
+      "text": "Aplikasi Desktop bukan situs web. Aplikasi ini tidak menggunakan cookie atau penyimpanan untuk iklan, analitik, atau pelacakan. Aplikasi ini menyimpan datanya di Mac Anda: riwayat obrolan, pengaturan, log, data masuk Orqanix Anda (di macOS Keychain), dan item-item kecil di penyimpanan bawaan aplikasi itu sendiri, seperti tema, tata letak menu, obrolan yang disematkan, dan daftar pesan yang baru-baru ini Anda ketik. [Kebijakan Privasi](/instant/legal/privacy#desktop-app) kami menjelaskan apa yang tetap berada di Mac Anda dan apa yang keluar darinya."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Perubahan"
+    },
+    {
+      "type": "p",
+      "text": "Apabila hal yang kami simpan berubah, kami memperbarui halaman ini beserta tanggal di bagian atas. Pertanyaan: {company.privacyEmail}."
+    }
+  ]
+}

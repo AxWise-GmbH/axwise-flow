@@ -1,0 +1,317 @@
+{
+  "meta": {
+    "slug": "assistant-bot-terms",
+    "title": "Términos del Bot Asistente",
+    "summary": "Normas adicionales para los bots asistentes de Orqanix, que pueden actuar por usted en sus archivos y en las aplicaciones de mensajería y cuentas de correo electrónico que conecte.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Primera versión."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "No Assistant Bot code exists yet. These terms state rules for use only and make no claim about channels, storage location or retention. Check every section against the product once it exists (FACTS.md §6, open point 13). The product page presents the bot as available ('Try For Free'); that misleading-claims risk cannot be cured by these terms.",
+        "AI disclosure to other people (EU AI Act Art. 50(1), applies since 2 Aug 2026; Utah and Maine chatbot rules; Colorado HB 26-1263 from 2027-01-01): the terms require that the bot identifies itself as an AI. Under Art. 50(1) this is our duty as provider, not only the user's. The product must actually do this (greeting, signature or footer on messages and email it sends) before launch.",
+        "Stopping a bot and removing its access: the terms only say you can change a bot's role (product page) and remove its access in the connected service's own settings. Confirm an in-product stop and disconnect control before launch, then state it.",
+        "Where the bot's map, messages and connection tokens are stored, and for how long, is unknown. The Privacy Policy and the Sub-processors list must cover this before launch, including GDPR Art. 14 information for people whose contacts the bot gathers.",
+        "Which messaging channels the bot will use, and each channel's own rules on AI assistants (some restrict general AI assistants in some countries). Channel-specific terms may be needed; brand names are banned in documents today. If a channel is text messages or voice, US TCPA consent, opt-out and call-recording rules need their own section.",
+        "Whether bots can be shared with other people in a Workspace (the 'Sharing a bot' section is written as a conditional rule).",
+        "Role split for business users: we act as processor under the DPA for contacts and client data they connect, but as an independent controller for our own web searches and register lookups (FACTS.md §7). Lawyer to confirm, including for consumers who use the bot for personal matters.",
+        "US health information: the US version bars HIPAA-protected health information and says we do not sign business associate agreements, matching the API Terms, Enterprise Terms and Acceptable Use Policy (cross-check 2026-09-21). Owner to decide whether a business associate agreement will ever be offered (us.md rows 8-9).",
+        "DSA Art. 14(1): the Terms of Service states that a person reviews each report and no automated moderation is used. Owner to confirm this holds for bots.",
+        "EU changes: this document points to the Terms of Service rules (30-day email notice, free termination, no silent acceptance). Those need email that works and a record of which version each user accepted (FACTS.md open points 2 and 9).",
+        "EU Data Act switching (Arts. 23-31, applies since 12 Sept 2025): bot data in the Workspace is part of a cloud service; the Terms of Service or Privacy Policy should cover export and switching. Lawyer to confirm.",
+        "Company name, address and governing law are empty; the Terms of Service carries them.",
+        "Mailboxes: orqanix.com has no MX record, so hello@ may not receive reports today (FACTS.md open point 2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "Acerca de estos términos"
+    },
+    {
+      "type": "p",
+      "text": "Estos términos complementan nuestros [Términos del servicio](/instant/legal/terms). Se aplican cuando usted utiliza el Bot Asistente, incluido cada asistente que cree con él (un \"bot\"). Un bot es un asistente de IA con un rol, como ventas, finanzas, atención al cliente, la oficina o un rol que usted mismo redacte. Puede trabajar para usted en las aplicaciones de mensajería y cuentas de correo electrónico que conecte, y en su Espacio de trabajo de Orqanix."
+    },
+    {
+      "type": "p",
+      "text": "También se aplican nuestra [Política de uso aceptable](/instant/legal/acceptable-use), nuestra [Política de privacidad](/instant/legal/privacy) y [Cómo funciona nuestra IA](/instant/legal/ai). Si estos términos y los Términos del servicio se contradicen en algún punto relativo a los bots, prevalecen estos términos."
+    },
+    {
+      "type": "h2",
+      "id": "access-and-use",
+      "text": "Acceso y uso"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Debe tener 18 años o más y una cuenta de Orqanix.",
+        "Puede crear tantos bots como necesite y cambiar el rol de un bot en cualquier momento. El bot sigue el nuevo rol a partir de su siguiente tarea.",
+        "Un bot puede utilizar lo que puede hacer la aplicación de Orqanix: chats, investigación, recetas, programaciones, herramientas conectadas y archivos. Sus archivos se guardan en su Espacio de trabajo de Orqanix.",
+        "Los bots son gratuitos mientras los productos estén en su fase inicial. Antes de que empiece cualquier plan de pago, publicaremos el precio y las normas de pago y cancelación."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Antes de que empiece cualquier plan de pago, también publicaremos las normas para desistir de una compra.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "agentic-actions",
+      "text": "Acciones autónomas"
+    },
+    {
+      "type": "p",
+      "text": "Un bot hace algo más que responder. Según lo que usted conecte y permita, puede realizar acciones por usted (\"acciones autónomas\"). Por ejemplo, puede:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "leer, ordenar y archivar documentos, como facturas, contratos, fotos y notas;",
+        "reunir en una sola lista los contactos de las cuentas de correo electrónico y del teléfono que conecte, y fusionar los duplicados;",
+        "recopilar cifras y datos de su correo, sus archivos y sus herramientas;",
+        "responder mensajes y redactar respuestas, resúmenes e informes, de la manera que usted permita;",
+        "ejecutar recetas y tareas programadas que se repiten cada día o cada semana."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "authorization",
+      "text": "Su autorización"
+    },
+    {
+      "type": "p",
+      "text": "Cuando usted asigna un rol a un bot, conecta una cuenta o le pide que realice una tarea, lo autoriza a actuar por usted dentro de ese ámbito. Frente a las personas y los servicios con los que trata, las acciones de un bot dentro del acceso que usted le concedió cuentan como acciones suyas."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Conecte solo cuentas, dispositivos y datos que esté autorizado a utilizar, y conceda a un bot solo el acceso que necesite.",
+        "Defina el rol y las instrucciones con claridad. Usted es responsable de lo que pide a un bot que haga.",
+        "Mantenga seguras su cuenta de Orqanix y sus cuentas conectadas. Avísenos en {company.email} si cree que otra persona las está utilizando.",
+        "Puede dejar de utilizar un bot en cualquier momento y retirarle el acceso a una cuenta conectada, por ejemplo en los ajustes de esa cuenta. Es posible que las acciones ya realizadas no puedan deshacerse."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "human-review",
+      "text": "Revisión humana"
+    },
+    {
+      "type": "p",
+      "text": "Un bot puede equivocarse, ser incompleto o estar desactualizado. Puede interpretar mal una situación, elegir el archivo o el contacto equivocado, o escribir algo falso."
+    },
+    {
+      "type": "p",
+      "text": "Usted puede ver lo que ha hecho cada bot. Compruebe el trabajo de un bot antes de confiar en él y revise los borradores antes de que se envíen. Extreme la precaución con todo lo que sea difícil de deshacer o afecte a otras personas, por ejemplo:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "mensajes a clientes, proveedores o grupos grandes;",
+        "todo lo que implique dinero, facturas, contratos o plazos legales;",
+        "eliminar, mover o compartir archivos;",
+        "información personal o sensible sobre otras personas."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Cuando Orqanix le permita elegir si un bot debe consultarle antes de actuar, la decisión es suya. Si permite que un bot actúe sin consultarle, acepta que actúe sin su revisión. Los resultados de un bot no constituyen asesoramiento jurídico, médico, fiscal ni financiero."
+    },
+    {
+      "type": "h3",
+      "id": "liability",
+      "text": "Responsabilidad"
+    },
+    {
+      "type": "p",
+      "text": "Usted es responsable de las acciones que autoriza a un bot a realizar y de sus resultados. Esto incluye los mensajes que envía y los cambios que realiza en sus archivos y cuentas conectadas. No somos responsables de las pérdidas causadas por acciones que usted permitió o instrucciones que usted dio, salvo que nuestros [Términos del servicio](/instant/legal/terms) o la ley dispongan otra cosa.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "En la medida en que lo permita la ley, las exenciones y limitaciones de responsabilidad de los Términos del servicio se aplican a los bots y a sus acciones. Los bots se ofrecen \"tal cual\". No garantizamos que un bot actúe de forma correcta, completa o puntual.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Si un tercero presenta una reclamación contra nosotros por una acción de un bot basada en sus instrucciones, usted cubrirá nuestras pérdidas razonables derivadas de esa reclamación. Esto se aplica en la medida en que lo permita la ley y la reclamación se derive de su incumplimiento de estos términos o de la ley.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Usted es responsable de las instrucciones que da, los ajustes que elige y el acceso que concede. Seguimos siendo responsables cuando un bot causa daños porque nuestro servicio era defectuoso. En ese caso, nuestra responsabilidad se rige por los [Términos del servicio](/instant/legal/terms#liability) y por la ley.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Nada de lo dispuesto en estos términos limita nuestra responsabilidad cuando la ley no lo permite, por ejemplo en caso de dolo, negligencia grave, daños a la vida, la integridad física o la salud, o conforme a la normativa sobre responsabilidad por productos. Si usted es consumidor, conserva los derechos que le otorga la ley de su país de residencia.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Si utiliza bots para su empresa y un tercero presenta una reclamación contra nosotros por una acción de un bot basada en sus instrucciones, usted cubrirá nuestras pérdidas razonables derivadas de esa reclamación, en la medida en que esta se derive de su incumplimiento de estos términos o de la ley. Esto no se aplica a los consumidores.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "connected-services",
+      "text": "Servicios conectados"
+    },
+    {
+      "type": "p",
+      "text": "Un bot trabaja a través de las aplicaciones de mensajería, las cuentas de correo electrónico y las herramientas que usted conecta, y con los archivos que le proporciona. Estos servicios los gestionan otras empresas."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Sus propias condiciones y políticas se aplican al uso que usted haga de ellos, incluidas sus normas sobre mensajes automatizados, bots e IA. Usted es responsable de cumplirlas.",
+        "Al conectar un servicio, nos permite acceder a él por usted en la medida necesaria para operar sus bots. Puede retirar ese acceso en cualquier momento.",
+        "Algunos servicios limitan, prohíben o cobran por los asistentes de IA en algunos países. Si un servicio bloquea, limita o suspende un bot o su cuenta, es posible que no podamos restablecerlo.",
+        "No controlamos estos servicios y no somos responsables de cómo funcionan ni de cómo tratan sus datos."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "people-the-bot-talks-to",
+      "text": "Personas con las que habla el bot"
+    },
+    {
+      "type": "p",
+      "text": "Un bot puede escribir a personas distintas de usted, como clientes, proveedores o compañeros de trabajo. Cuando lo hace, se aplican estas normas:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "El bot debe dejar claro que es una IA, no una persona. No elimine ni oculte esa indicación, y no pida a un bot que se haga pasar por humano.",
+        "Si alguien pregunta si está hablando con una IA, el bot debe responder que sí.",
+        "Los mensajes que un bot envía por usted se envían en su nombre, y usted es su remitente.",
+        "Debe tener derecho a ponerse en contacto con cada persona, por ejemplo porque es su cliente o ha aceptado recibir comunicaciones suyas. Cumpla las leyes sobre correo electrónico, mensajes de texto y marketing que se apliquen a usted y a esas personas.",
+        "No utilice un bot para mensajes masivos no solicitados, spam, acoso o engaño.",
+        "Los bots están diseñados para el trabajo y las tareas cotidianas. No configure un bot como compañía ni como pareja sentimental o emocional, ni para ofrecer terapia, diagnósticos u otro asesoramiento profesional regulado."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Cuando un bot reúne contactos o lee mensajes, trata datos personales de otras personas. Usted es responsable de contar con un motivo lícito para ello y, cuando la ley lo exija, de informar a esas personas. Si utiliza bots para su empresa, consulte [Usuarios empresariales](#business-users)."
+    },
+    {
+      "type": "p",
+      "text": "No utilice bots para tratar información de salud protegida por la HIPAA, la ley estadounidense de privacidad sanitaria. No firmamos acuerdos de socio comercial (business associate agreements).",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "business-map",
+      "text": "Su mapa de negocio"
+    },
+    {
+      "type": "p",
+      "text": "Para hacer su trabajo, un bot crea y mantiene un mapa de su negocio: su equipo, clientes, proveedores y archivos, y cómo se relacionan entre sí. Amplía el mapa a medida que trabaja."
+    },
+    {
+      "type": "list",
+      "items": [
+        "El mapa forma parte de su contenido. Lo utilizamos para operar sus bots y prestarle nuestros servicios, tal como describe nuestra [Política de privacidad](/instant/legal/privacy). [Cómo funciona nuestra IA](/instant/legal/ai#data-models-see) explica lo que ven los modelos de IA.",
+        "No entrenamos nuestros propios modelos de IA con él y no lo vendemos.",
+        "El mapa puede contener datos sobre otras personas. Las normas de [Personas con las que habla el bot](#people-the-bot-talks-to) también se aplican a él.",
+        "Para obtener una copia del mapa o de otros datos de los bots, o para que se corrijan o eliminen, escriba a {company.privacyEmail}. Algunos registros de lo que hicieron los agentes se conservan como un registro inalterable. Cuando nos pide que eliminemos datos, los eliminamos o anonimizamos o, cuando debamos conservar un registro, le explicamos por qué."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "sharing-a-bot",
+      "text": "Compartir un bot"
+    },
+    {
+      "type": "p",
+      "text": "Si comparte un bot o su Espacio de trabajo, las personas con las que lo comparte pueden ver lo que el bot sabe y lo que ha hecho, y asignarle tareas. Compártalo solo con personas que deban tener ese acceso."
+    },
+    {
+      "type": "h2",
+      "id": "content-removal",
+      "text": "Retirada de contenidos"
+    },
+    {
+      "type": "p",
+      "text": "Podemos retirar o bloquear contenidos, detener una acción de un bot, pausar un bot o desconectar un servicio si creemos razonablemente que infringe estos términos, la [Política de uso aceptable](/instant/legal/acceptable-use) o la ley, o que pone en riesgo a personas, sistemas o servicios conectados. Cuando sea posible, le comunicamos qué hemos hecho y por qué."
+    },
+    {
+      "type": "p",
+      "text": "Para denunciar contenidos ilegales o un uso indebido por parte de un bot, envíe un correo electrónico a {company.email} con el asunto \"Denuncia\". [Denunciar una infracción](/instant/legal/acceptable-use#report) indica qué debe incluir. Revisamos cada denuncia, tomamos una decisión y comunicamos nuestros motivos al denunciante y al usuario afectado."
+    },
+    {
+      "type": "p",
+      "text": "Si restringimos su contenido, un bot o su cuenta, le facilitamos una exposición de nuestros motivos (Reglamento de Servicios Digitales de la UE, art. 17). Puede solicitarnos que revisemos la decisión escribiendo a {company.email}, y también puede acudir a los tribunales. Nuestro punto único de contacto para autoridades y usuarios es {company.email}, en inglés.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "business-users",
+      "text": "Usuarios empresariales"
+    },
+    {
+      "type": "p",
+      "text": "Si utiliza bots para su empresa, a menudo tratarán datos personales de su personal, sus clientes y sus proveedores. Respecto de esos datos, usted decide para qué y cómo se utilizan, y nosotros los tratamos por cuenta de usted siguiendo sus instrucciones."
+    },
+    {
+      "type": "p",
+      "text": "Nuestro [Anexo de tratamiento de datos](/instant/legal/dpa) (DPA) forma parte de su acuerdo con nosotros cuando tratamos datos personales para su empresa. Abarca la seguridad, nuestros [subencargados](/instant/legal/subprocessors) y cómo ayudamos con las solicitudes de las personas. Cuando utilizamos datos para nuestros propios fines, tal como describe la [Política de privacidad](/instant/legal/privacy), somos nosotros los responsables de ese uso."
+    },
+    {
+      "type": "p",
+      "text": "En términos de protección de datos, esto le convierte a usted en el responsable del tratamiento y a nosotros en su encargado del tratamiento respecto de esos datos (RGPD, art. 28). Usted es responsable de contar con una base jurídica, de informar a las personas afectadas (RGPD, arts. 13 y 14) y de atender sus solicitudes. Nosotros le ayudamos según lo descrito en el DPA.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Cuando se apliquen leyes estatales de privacidad de EE. UU., actuamos como su proveedor de servicios o encargado del tratamiento respecto de esos datos y los utilizamos únicamente para prestarle los servicios.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Cambios"
+    },
+    {
+      "type": "p",
+      "text": "Mejoramos los bots con el tiempo y podemos añadir, modificar o eliminar funciones, conexiones o roles. La fecha que figura en la parte superior de esta página indica la versión vigente de estos términos."
+    },
+    {
+      "type": "p",
+      "text": "Si un cambio en estos términos es relevante para usted, se lo comunicamos antes de que entre en vigor. Si sigue utilizando bots después de esa fecha, se aplican los nuevos términos. Si no está de acuerdo, deje de utilizar los bots y retíreles el acceso a sus cuentas.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Si usted es consumidor, las normas de [Sus derechos cuando hacemos cambios](/instant/legal/terms#changes-eu) se aplican a los bots y a estos términos. En resumen: solo modificamos los bots por un motivo válido y sin coste adicional, le avisamos con antelación de los cambios que le afecten y, si no está de acuerdo, puede resolver el contrato sin coste alguno.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Si utiliza bots para su empresa, le avisamos antes de que entre en vigor un cambio en estos términos que sea relevante para usted. Si sigue utilizando bots después de esa fecha, se aplican los nuevos términos.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Contacto"
+    },
+    {
+      "type": "p",
+      "text": "Preguntas sobre estos términos: {company.email}. Solicitudes relativas a datos: {company.privacyEmail}. Problemas de seguridad: {company.securityEmail}."
+    }
+  ]
+}

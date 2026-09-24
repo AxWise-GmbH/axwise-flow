@@ -1,0 +1,996 @@
+/*
+ * The wires banner: chat -> orb -> one of six agents -> back to the chat, three times a loop.
+ *
+ * Clock (percent of --nb-loop). Each ask lands at P = 0, 28, 56:
+ *   P-4 to P        the ask rises into the chat, which scrolls up one step
+ *   P+0.5 to P+5.5  it pulses down the chat wire into the orb
+ *   P+5 to P+12     the orb flashes and pings; every agent wire and chip brightens (it looks)
+ *   P+7 to P+12     it picks one: a pulse runs down that wire and the chip lights up
+ *   P+14 to P+21    the result pulses back through the orb into the chat
+ *   P+20 to P+24    "Done" lands; the chip settles
+ * 80-92 all three answers rest; 92-95.5 they fade; 96-100 the first ask comes back.
+ *
+ * The SVG layers use a viewBox equal to the canvas in scene units, so their numbers are u.
+ */
+
+/* The stage shares its class name with the shared SVG wire layer; keep it a normal box. */
+.nb.nb-wires {
+  position: relative;
+  inset: auto;
+  width: auto;
+  height: auto;
+  overflow: hidden;
+  fill: initial;
+  stroke: initial;
+  stroke-width: initial;
+}
+
+.nb.nb-wires * {
+  vector-effect: none;
+}
+
+/* --nb-stroke is set on .nb, where --u does not exist yet, so it comes out empty there;
+   the same value again where --u lives brings back the hairlines. */
+.nb-wires > .nb-scene {
+  --nb-stroke: max(1px, calc(var(--u) * 0.14));
+  /* The orb's glossy core below its white top light, and its glow at rest, at the flash and
+     in between; the ink on a lit agent chip, and that chip's glow. */
+  --nb-wires-core-a: #c9c9c9;
+  --nb-wires-core-b: #5c5c5c;
+  --nb-wires-core-c: #202020;
+  --nb-wires-core-glow: 0 0 calc(var(--u) * 1.6) rgba(var(--oi-fg-rgb), 0.28);
+  --nb-wires-core-flash: 0 0 calc(var(--u) * 3.4) rgba(var(--oi-fg-rgb), 0.62);
+  --nb-wires-core-mid: 0 0 calc(var(--u) * 2.4) rgba(var(--oi-fg-rgb), 0.45);
+  --nb-wires-on: #0a0a0a;
+  --nb-wires-lift: 0 0 calc(var(--u) * 2.4) rgba(var(--oi-fg-rgb), 0.4);
+}
+
+/* Light: the core keeps its glossy material and sits on a soft shadow that grows as it
+   flashes; a lit chip turns dark with light ink and lifts instead of glowing. */
+[data-oi-theme='light'] .nb-wires > .nb-scene {
+  --nb-wires-core-glow: 0 calc(var(--u) * 0.5) calc(var(--u) * 1.3) rgba(var(--oi-fg-rgb), 0.2);
+  --nb-wires-core-flash: 0 calc(var(--u) * 0.7) calc(var(--u) * 2.2) rgba(var(--oi-fg-rgb), 0.28);
+  --nb-wires-core-mid: 0 calc(var(--u) * 0.6) calc(var(--u) * 1.8) rgba(var(--oi-fg-rgb), 0.24);
+  --nb-wires-on: #ffffff;
+  --nb-wires-lift: 0 calc(var(--u) * 0.5) calc(var(--u) * 1.6) rgba(var(--oi-fg-rgb), 0.22);
+}
+
+/* Wires ------------------------------------------------------------------------------- */
+
+.nb-wires-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.nb-wires-phone {
+  display: none;
+}
+
+.nb-wires-line {
+  stroke: var(--nb-line-strong);
+  stroke-width: 0.13;
+}
+
+.nb-wires-base {
+  stroke: var(--nb-line);
+  stroke-width: 0.13;
+  animation: nb-wires-scan var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* A used wire stays drawn, a little brighter than the idle ones. */
+.nb-wires-lit {
+  stroke: var(--nb-ink);
+  stroke-width: 0.15;
+  stroke-linecap: butt;
+  stroke-dasharray: 100 110;
+  stroke-dashoffset: 0;
+  opacity: 0.4;
+}
+
+/* The layer that glows: filtering the outer svg works in every browser. */
+.nb-wires-glow {
+  filter: drop-shadow(0 0 calc(var(--u) * 0.3) rgba(var(--oi-fg-rgb), 0.9))
+    drop-shadow(0 0 calc(var(--u) * 1.1) rgba(var(--oi-fg-rgb), 0.4));
+}
+
+/* Light: the pulses are dark strokes; a strong dark glow would smudge them. */
+[data-oi-theme='light'] .nb-wires-glow {
+  filter: drop-shadow(0 0 calc(var(--u) * 0.3) rgba(var(--oi-fg-rgb), 0.2));
+}
+
+/* Pulses rest just before their wire starts, so the finished frame shows none. */
+.nb-wires-go,
+.nb-wires-talk {
+  stroke: rgb(var(--oi-fg-rgb));
+  stroke-width: 0.4;
+  stroke-dasharray: 7 130;
+  stroke-dashoffset: 20;
+}
+
+.nb-wires-talk {
+  animation: nb-wires-talk var(--nb-loop) linear infinite;
+}
+
+[data-pick='1'] > .nb-wires-lit {
+  animation: nb-wires-lit1 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+[data-pick='2'] > .nb-wires-lit {
+  animation: nb-wires-lit2 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+[data-pick='3'] > .nb-wires-lit {
+  animation: nb-wires-lit3 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+[data-pick='1'] > .nb-wires-go {
+  animation: nb-wires-go1 var(--nb-loop) linear infinite;
+}
+
+[data-pick='2'] > .nb-wires-go {
+  animation: nb-wires-go2 var(--nb-loop) linear infinite;
+}
+
+[data-pick='3'] > .nb-wires-go {
+  animation: nb-wires-go3 var(--nb-loop) linear infinite;
+}
+
+/* The orb ------------------------------------------------------------------------------ */
+
+.nb-wires-orb {
+  position: absolute;
+  top: calc(var(--u) * 22);
+  left: calc(var(--u) * 66);
+  width: calc(var(--u) * 15);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+}
+
+/* Its light on the floor around it. */
+.nb-wires-orb::before {
+  content: '';
+  position: absolute;
+  inset: -45%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-fg-rgb), calc(0.09 * var(--oi-halo-k))),
+    transparent
+  );
+}
+
+/* Light: its light on the floor is white, not a grey shade. */
+[data-oi-theme='light'] .nb-wires-orb::before {
+  background: radial-gradient(closest-side, rgba(var(--oi-lift-rgb), 0.9), transparent);
+}
+
+.nb-wires-orb svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--nb-line-strong);
+}
+
+.nb-wires-ring {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  animation: nb-wires-turn var(--nb-loop) linear infinite;
+}
+
+.nb-wires-ring-outer circle {
+  stroke: rgba(var(--oi-fg-rgb), 0.34);
+  stroke-width: 0.9;
+  stroke-dasharray: 22 3 6 3 11 5;
+}
+
+.nb-wires-ring-mid {
+  animation-name: nb-wires-turn-back;
+}
+
+.nb-wires-ring-mid circle {
+  stroke: var(--nb-line);
+  stroke-width: 0.9;
+}
+
+.nb-wires-ring-mid .nb-wires-node {
+  fill: var(--nb-ink);
+  stroke: none;
+}
+
+/* Short radial ticks, like the Orqanix mark. */
+.nb-wires-ring-ticks circle {
+  stroke: rgba(var(--oi-fg-rgb), 0.5);
+  stroke-width: 3.2;
+  stroke-dasharray: 0.9 3.2667;
+}
+
+.nb-wires-core,
+.nb-wires-ping {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  border-radius: 50%;
+}
+
+.nb-wires-core {
+  width: 30%;
+  height: 30%;
+  background: radial-gradient(
+    circle at 36% 30%,
+    rgb(var(--oi-lift-rgb)),
+    var(--nb-wires-core-a) 26%,
+    var(--nb-wires-core-b) 68%,
+    var(--nb-wires-core-c)
+  );
+  box-shadow: var(--nb-wires-core-glow);
+  animation: nb-wires-core var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-wires-ping {
+  width: 46%;
+  height: 46%;
+  border: var(--nb-stroke) solid rgba(var(--oi-fg-rgb), 0.85);
+  box-shadow: 0 0 calc(var(--u) * 0.8) rgba(var(--oi-fg-rgb), 0.35);
+  opacity: 0;
+  animation: nb-wires-ping var(--nb-loop) var(--nb-ease) infinite;
+}
+
+[data-oi-theme='light'] .nb-wires-ping {
+  box-shadow: 0 0 calc(var(--u) * 0.8) rgba(var(--oi-fg-rgb), 0.1);
+}
+
+/* Agents ------------------------------------------------------------------------------- */
+
+.nb-wires-agent {
+  position: absolute;
+  top: calc(var(--y) * var(--u));
+  left: calc(var(--x) * var(--u));
+  translate: -50% -50%;
+  color: var(--nb-muted);
+}
+
+.nb-wires-agent > i {
+  width: calc(var(--u) * 0.45);
+  height: calc(var(--u) * 0.45);
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Finished frame: the three agents that answered stand out. */
+.nb-wires-agent[data-pick] {
+  border-color: var(--nb-line-strong);
+  background: var(--nb-panel-2);
+  color: var(--nb-ink);
+}
+
+.nb-wires-agent:not([data-pick]) {
+  animation: nb-wires-ready var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-wires-agent[data-pick='1'] {
+  animation: nb-wires-pick1 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-wires-agent[data-pick='2'] {
+  animation: nb-wires-pick2 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-wires-agent[data-pick='3'] {
+  animation: nb-wires-pick3 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* The chat ----------------------------------------------------------------------------- */
+
+.nb-wires-chat {
+  top: calc(var(--u) * 10);
+  left: calc(var(--u) * 6);
+  width: calc(var(--u) * 26);
+  height: calc(var(--u) * 24);
+}
+
+/* Newest at the bottom, like a real chat: each new ask pushes the earlier ones up a step. */
+.nb-wires-log {
+  --nb-wires-step: calc(var(--u) * 6.6);
+
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1);
+  padding: calc(var(--u) * 1.3) calc(var(--u) * 1.2);
+}
+
+/* A fixed height per ask and answer keeps the scroll step exact. */
+.nb-wires-pair {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  height: calc(var(--u) * 5.6);
+}
+
+.nb-wires-pair[data-pick='1'] {
+  animation: nb-wires-scroll1 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-wires-pair[data-pick='2'] {
+  animation: nb-wires-scroll2 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-wires-ask {
+  align-self: flex-end;
+}
+
+.nb-wires-reply {
+  gap: calc(var(--u) * 0.55);
+  padding-left: calc(var(--u) * 0.4);
+  background: var(--nb-panel-2);
+  color: var(--nb-ink);
+}
+
+[data-pick='1'] > .nb-wires-ask {
+  animation: nb-wires-ask1 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+[data-pick='2'] > .nb-wires-ask {
+  animation: nb-wires-ask2 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+[data-pick='3'] > .nb-wires-ask {
+  animation: nb-wires-ask3 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+[data-pick='1'] > .nb-wires-reply {
+  animation: nb-wires-reply1 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+[data-pick='2'] > .nb-wires-reply {
+  animation: nb-wires-reply2 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+[data-pick='3'] > .nb-wires-reply {
+  animation: nb-wires-reply3 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* Where the chat wire leaves the window; it blinks as an ask goes and an answer comes. */
+.nb-wires-port {
+  position: absolute;
+  top: calc(var(--u) * 22);
+  left: calc(var(--u) * 32);
+  width: calc(var(--u) * 0.9);
+  height: calc(var(--u) * 0.9);
+  border: var(--nb-stroke) solid var(--nb-line-strong);
+  border-radius: 50%;
+  background: var(--nb-panel-2);
+  translate: -50% -50%;
+  animation: nb-wires-port var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* Phone: chat on top, the orb below with three agents on each side. -------------------- */
+
+@container nb (max-width: 600px) {
+  .nb-wires-wide {
+    display: none;
+  }
+
+  .nb-wires-phone {
+    display: block;
+  }
+
+  .nb-wires-orb {
+    top: calc(var(--u) * 39.5);
+    left: calc(var(--u) * 20.83);
+    width: calc(var(--u) * 14);
+  }
+
+  .nb-wires-agent {
+    top: calc(var(--py) * var(--u));
+    left: calc(var(--px) * var(--u));
+  }
+
+  .nb-wires-chat {
+    top: calc(var(--u) * 2);
+    left: calc(var(--u) * 2.5);
+    width: calc(var(--u) * 36.67);
+    height: calc(var(--u) * 23);
+  }
+
+  .nb-wires-log {
+    --nb-wires-step: calc(var(--u) * 6.4);
+
+    gap: calc(var(--u) * 0.8);
+    padding: calc(var(--u) * 0.9) calc(var(--u) * 1.1);
+  }
+
+  /* A touch larger than the shared parts, so the words stay easy to read on a phone. */
+  .nb-wires-ask {
+    font-size: calc(var(--u) * 1.15);
+  }
+
+  .nb-wires-reply,
+  .nb-wires-agent {
+    font-size: calc(var(--u) * 1);
+  }
+
+  .nb-wires-port {
+    top: calc(var(--u) * 25);
+    left: calc(var(--u) * 20.83);
+  }
+
+  /* The phone's wires are short; longer dashes keep the pulses the same size. */
+  .nb-wires-phone .nb-wires-talk {
+    stroke-dasharray: 18 130;
+  }
+
+  .nb-wires-phone .nb-wires-go {
+    stroke-dasharray: 13 130;
+  }
+}
+
+/* Keyframes ---------------------------------------------------------------------------- */
+
+@keyframes nb-wires-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes nb-wires-turn-back {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+/* Down the chat wire with each ask, back up with each answer. */
+@keyframes nb-wires-talk {
+  0%,
+  0.5%,
+  21%,
+  28.5%,
+  49%,
+  56.5%,
+  77%,
+  100% {
+    stroke-dashoffset: 20;
+  }
+  5.5%,
+  17%,
+  33.5%,
+  45%,
+  61.5%,
+  73% {
+    stroke-dashoffset: -120;
+  }
+}
+
+/* The orb looks around: every agent wire brightens for a beat before it picks. */
+@keyframes nb-wires-scan {
+  0%,
+  5%,
+  8.5%,
+  33%,
+  36.5%,
+  61%,
+  64.5%,
+  100% {
+    stroke: var(--nb-line);
+  }
+  6.5%,
+  34.5%,
+  62.5% {
+    stroke: rgba(var(--oi-fg-rgb), 0.42);
+  }
+}
+
+@keyframes nb-wires-core {
+  0%,
+  5.5%,
+  9%,
+  17%,
+  19.5%,
+  33.5%,
+  37%,
+  45%,
+  47.5%,
+  61.5%,
+  65%,
+  73%,
+  75.5%,
+  100% {
+    scale: 1;
+    box-shadow: var(--nb-wires-core-glow);
+  }
+  6.5%,
+  34.5%,
+  62.5% {
+    scale: 1.18;
+    box-shadow: var(--nb-wires-core-flash);
+  }
+  17.8%,
+  45.8%,
+  73.8% {
+    scale: 1.08;
+    box-shadow: var(--nb-wires-core-mid);
+  }
+}
+
+/* A ring leaves the orb as each ask arrives. */
+@keyframes nb-wires-ping {
+  0%,
+  5.5%,
+  33.5%,
+  61.5%,
+  100% {
+    scale: 0.7;
+    opacity: 0;
+  }
+  6%,
+  34%,
+  62% {
+    scale: 0.75;
+    opacity: 1;
+  }
+  8%,
+  36%,
+  64% {
+    scale: 1.45;
+    opacity: 0.55;
+  }
+  12%,
+  40%,
+  68% {
+    scale: 2;
+    opacity: 0;
+  }
+}
+
+@keyframes nb-wires-port {
+  0%,
+  2.5%,
+  19.5%,
+  23%,
+  26.5%,
+  30.5%,
+  47.5%,
+  51%,
+  54.5%,
+  58.5%,
+  75.5%,
+  79%,
+  100% {
+    scale: 1;
+    background: var(--nb-panel-2);
+  }
+  0.5%,
+  21%,
+  28.5%,
+  49%,
+  56.5%,
+  77% {
+    scale: 1.5;
+    background: var(--nb-ink);
+  }
+}
+
+/* The first ask starts in the bottom slot and moves up a step with each new ask. */
+@keyframes nb-wires-scroll1 {
+  0%,
+  24%,
+  96%,
+  100% {
+    translate: 0 calc(var(--nb-wires-step) * 2);
+  }
+  28%,
+  52% {
+    translate: 0 var(--nb-wires-step);
+  }
+  56%,
+  95.5% {
+    translate: 0 0;
+  }
+}
+
+@keyframes nb-wires-scroll2 {
+  0%,
+  52%,
+  96%,
+  100% {
+    translate: 0 var(--nb-wires-step);
+  }
+  56%,
+  95.5% {
+    translate: 0 0;
+  }
+}
+
+/* While the orb looks around, every waiting agent brightens for a beat. */
+@keyframes nb-wires-ready {
+  0%,
+  5%,
+  9%,
+  33%,
+  37%,
+  61%,
+  65%,
+  100% {
+    border-color: var(--nb-line);
+    color: var(--nb-muted);
+  }
+  6.5%,
+  34.5%,
+  62.5% {
+    border-color: rgba(var(--oi-fg-rgb), 0.45);
+    color: var(--nb-text);
+  }
+}
+
+/* Each picked wire: drawn by the pulse, bright while its agent works, then calm. */
+@keyframes nb-wires-lit1 {
+  0%,
+  100% {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+  7% {
+    stroke-dashoffset: 100;
+    opacity: 0.9;
+  }
+  11%,
+  21% {
+    stroke-dashoffset: 0;
+    opacity: 0.9;
+  }
+  24%,
+  92% {
+    stroke-dashoffset: 0;
+    opacity: 0.4;
+  }
+  95.5% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes nb-wires-lit2 {
+  0%,
+  100% {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+  35% {
+    stroke-dashoffset: 100;
+    opacity: 0.9;
+  }
+  39%,
+  49% {
+    stroke-dashoffset: 0;
+    opacity: 0.9;
+  }
+  52%,
+  92% {
+    stroke-dashoffset: 0;
+    opacity: 0.4;
+  }
+  95.5% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes nb-wires-lit3 {
+  0%,
+  100% {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+  63% {
+    stroke-dashoffset: 100;
+    opacity: 0.9;
+  }
+  67%,
+  77% {
+    stroke-dashoffset: 0;
+    opacity: 0.9;
+  }
+  80%,
+  92% {
+    stroke-dashoffset: 0;
+    opacity: 0.4;
+  }
+  95.5% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+/* Each picked wire's pulse: out to the agent, a short wait, back with the result. */
+@keyframes nb-wires-go1 {
+  0%,
+  7%,
+  17%,
+  100% {
+    stroke-dashoffset: 20;
+  }
+  11%,
+  14% {
+    stroke-dashoffset: -120;
+  }
+}
+
+@keyframes nb-wires-go2 {
+  0%,
+  35%,
+  45%,
+  100% {
+    stroke-dashoffset: 20;
+  }
+  39%,
+  42% {
+    stroke-dashoffset: -120;
+  }
+}
+
+@keyframes nb-wires-go3 {
+  0%,
+  63%,
+  73%,
+  100% {
+    stroke-dashoffset: 20;
+  }
+  67%,
+  70% {
+    stroke-dashoffset: -120;
+  }
+}
+
+/* Each picked agent: idle, lit while it works, then settled as done. */
+@keyframes nb-wires-pick1 {
+  0%,
+  5%,
+  9%,
+  10.5%,
+  95.5%,
+  100% {
+    border-color: var(--nb-line);
+    background: var(--nb-panel);
+    color: var(--nb-muted);
+    box-shadow: 0 0 0 0 rgba(var(--oi-fg-rgb), 0);
+    scale: 1;
+  }
+  6.5% {
+    border-color: rgba(var(--oi-fg-rgb), 0.45);
+    background: var(--nb-panel);
+    color: var(--nb-text);
+    box-shadow: 0 0 0 0 rgba(var(--oi-fg-rgb), 0);
+    scale: 1;
+  }
+  12%,
+  21% {
+    border-color: var(--nb-ink);
+    background: var(--nb-ink);
+    color: var(--nb-wires-on);
+    box-shadow: var(--nb-wires-lift);
+    scale: 1.08;
+  }
+  24%,
+  92% {
+    border-color: var(--nb-line-strong);
+    background: var(--nb-panel-2);
+    color: var(--nb-ink);
+    box-shadow: 0 0 0 0 rgba(var(--oi-fg-rgb), 0);
+    scale: 1;
+  }
+}
+
+@keyframes nb-wires-pick2 {
+  0%,
+  5%,
+  9%,
+  33%,
+  37%,
+  38.5%,
+  95.5%,
+  100% {
+    border-color: var(--nb-line);
+    background: var(--nb-panel);
+    color: var(--nb-muted);
+    box-shadow: 0 0 0 0 rgba(var(--oi-fg-rgb), 0);
+    scale: 1;
+  }
+  6.5%,
+  34.5% {
+    border-color: rgba(var(--oi-fg-rgb), 0.45);
+    background: var(--nb-panel);
+    color: var(--nb-text);
+    box-shadow: 0 0 0 0 rgba(var(--oi-fg-rgb), 0);
+    scale: 1;
+  }
+  40%,
+  49% {
+    border-color: var(--nb-ink);
+    background: var(--nb-ink);
+    color: var(--nb-wires-on);
+    box-shadow: var(--nb-wires-lift);
+    scale: 1.08;
+  }
+  52%,
+  92% {
+    border-color: var(--nb-line-strong);
+    background: var(--nb-panel-2);
+    color: var(--nb-ink);
+    box-shadow: 0 0 0 0 rgba(var(--oi-fg-rgb), 0);
+    scale: 1;
+  }
+}
+
+@keyframes nb-wires-pick3 {
+  0%,
+  5%,
+  9%,
+  33%,
+  37%,
+  61%,
+  65%,
+  66.5%,
+  95.5%,
+  100% {
+    border-color: var(--nb-line);
+    background: var(--nb-panel);
+    color: var(--nb-muted);
+    box-shadow: 0 0 0 0 rgba(var(--oi-fg-rgb), 0);
+    scale: 1;
+  }
+  6.5%,
+  34.5%,
+  62.5% {
+    border-color: rgba(var(--oi-fg-rgb), 0.45);
+    background: var(--nb-panel);
+    color: var(--nb-text);
+    box-shadow: 0 0 0 0 rgba(var(--oi-fg-rgb), 0);
+    scale: 1;
+  }
+  68%,
+  77% {
+    border-color: var(--nb-ink);
+    background: var(--nb-ink);
+    color: var(--nb-wires-on);
+    box-shadow: var(--nb-wires-lift);
+    scale: 1.08;
+  }
+  80%,
+  92% {
+    border-color: var(--nb-line-strong);
+    background: var(--nb-panel-2);
+    color: var(--nb-ink);
+    box-shadow: 0 0 0 0 rgba(var(--oi-fg-rgb), 0);
+    scale: 1;
+  }
+}
+
+/* The asks rise into the chat; the first one comes back at the end of the loop. */
+@keyframes nb-wires-ask1 {
+  0%,
+  92%,
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  95.5% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  96% {
+    opacity: 0;
+    translate: 0 calc(var(--u) * 1.2);
+  }
+}
+
+@keyframes nb-wires-ask2 {
+  0%,
+  24%,
+  100% {
+    opacity: 0;
+    translate: 0 calc(var(--u) * 1.2);
+  }
+  28%,
+  92% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  95.5% {
+    opacity: 0;
+    translate: 0 0;
+  }
+}
+
+@keyframes nb-wires-ask3 {
+  0%,
+  52%,
+  100% {
+    opacity: 0;
+    translate: 0 calc(var(--u) * 1.2);
+  }
+  56%,
+  92% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  95.5% {
+    opacity: 0;
+    translate: 0 0;
+  }
+}
+
+/* The answers land under their asks. */
+@keyframes nb-wires-reply1 {
+  0%,
+  20%,
+  100% {
+    opacity: 0;
+    translate: calc(var(--u) * -0.6) calc(var(--u) * 0.8);
+    scale: 0.94;
+  }
+  23%,
+  92% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+  95.5% {
+    opacity: 0;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+@keyframes nb-wires-reply2 {
+  0%,
+  48%,
+  100% {
+    opacity: 0;
+    translate: calc(var(--u) * -0.6) calc(var(--u) * 0.8);
+    scale: 0.94;
+  }
+  51%,
+  92% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+  95.5% {
+    opacity: 0;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+@keyframes nb-wires-reply3 {
+  0%,
+  76%,
+  100% {
+    opacity: 0;
+    translate: calc(var(--u) * -0.6) calc(var(--u) * 0.8);
+    scale: 0.94;
+  }
+  79%,
+  92% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+  95.5% {
+    opacity: 0;
+    translate: 0 0;
+    scale: 1;
+  }
+}

@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Reveal from './ui/Reveal';
 import { OrqanixMark } from './ui/Glyphs';
+import { useT } from './i18n/useT';
 import './Anywhere.css';
 
 /*
  * "Chat from anywhere": Orqanix is the chat card in the middle, the five ways into it are
  * small device mocks around it, and messages travel the curved lines between them.
  */
-const CHANNELS = [
+export const CHANNELS = [
   {
     id: 'desktop',
     name: 'Desktop App',
@@ -39,6 +40,12 @@ const CHANNELS = [
     glyph: 'phone',
   },
 ];
+
+// The words key of a channel's name or line: `anywhere.<id>.<field>`. Shared with
+// i18n/words/anywhere.js.
+export function channelKey(id, field) {
+  return `anywhere.${id}.${field}`;
+}
 
 /*
  * Two arrangements of the same scene, in units of a 1000-wide drawing: a square one, and a
@@ -203,6 +210,7 @@ function usePointerLean(sectionRef, sceneRef) {
 }
 
 function Row({ channel, index, pinned, active, onPin, onPreview }) {
+  const { t } = useT();
   return (
     <li className="oia-item" style={{ '--i': index }}>
       <button
@@ -222,8 +230,8 @@ function Row({ channel, index, pinned, active, onPin, onPreview }) {
           <Glyph name={channel.glyph} />
         </span>
         <span className="oia-row-text">
-          <span className="oia-row-name">{channel.name}</span>
-          <span className="oia-row-line">{channel.line}</span>
+          <span className="oia-row-name">{t(channelKey(channel.id, 'name'), channel.name)}</span>
+          <span className="oia-row-line">{t(channelKey(channel.id, 'line'), channel.line)}</span>
         </span>
         <span className="oia-row-rule" aria-hidden="true">
           <i />
@@ -449,6 +457,7 @@ function Link({ channel, index, layout, active }) {
 
 // Orqanix itself: a small chat window. Its newest line answers whichever channel is active.
 function ChatCard({ layout, channel }) {
+  const { t } = useT();
   const [x, y] = layout.card;
   return (
     <div
@@ -487,7 +496,9 @@ function ChatCard({ layout, channel }) {
           </div>
           <div className="oia-card-ask">
             <i className="oia-caret" />
-            <span className="oia-card-placeholder">Ask whatever&rsquo;s on your mind.</span>
+            <span className="oia-card-placeholder">
+              {t('anywhere.card.placeholder', 'Ask whatever’s on your mind.')}
+            </span>
             <span className="oia-card-mic">
               <Glyph name="mic" />
             </span>
@@ -501,6 +512,7 @@ function ChatCard({ layout, channel }) {
 }
 
 export default function Anywhere() {
+  const { t } = useT();
   const sceneRef = useRef(null);
   const [sectionRef, seen, live] = useGate(0.2);
   const tall = useSyncExternalStore(subscribeTall, readTall, () => false);
@@ -524,11 +536,13 @@ export default function Anywhere() {
       <div className="oi-container oia-grid">
         <header className="oia-head">
           <Reveal as="h2" id="anywhere-heading" className="oi-h2 oia-title">
-            <span className="oia-title-line">Chat from</span>{' '}
-            <span className="oia-title-line oia-title-glow">anywhere.</span>
+            <span className="oia-title-line">{t('anywhere.title.lead', 'Chat from')}</span>{' '}
+            <span className="oia-title-line oia-title-glow">
+              {t('anywhere.title.glow', 'anywhere.')}
+            </span>
           </Reveal>
           <Reveal as="p" className="oi-line oia-lede" delay={90}>
-            Reach Orqanix from where you already are.
+            {t('anywhere.lede', 'Reach Orqanix from where you already are.')}
           </Reveal>
         </header>
 
@@ -536,6 +550,7 @@ export default function Anywhere() {
           ref={sceneRef}
           className="oia-scene"
           aria-hidden="true"
+          dir="ltr"
           data-layout={tall ? 'tall' : 'wide'}
         >
           <div className="oia-stage">
@@ -572,7 +587,7 @@ export default function Anywhere() {
           </div>
         </div>
 
-        <ul className="oia-list" aria-label="Channels">
+        <ul className="oia-list" aria-label={t('anywhere.list', 'Channels')}>
           {CHANNELS.map((channel, index) => (
             <Row
               key={channel.id}

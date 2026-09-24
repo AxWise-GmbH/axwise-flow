@@ -1,0 +1,129 @@
+{
+  "meta": {
+    "slug": "open-source",
+    "title": "Informacje o otwartym oprogramowaniu",
+    "summary": "Na tej stronie wymieniono otwarte oprogramowanie zawarte w Aplikacji desktopowej Orqanix i na naszej stronie internetowej, jego licencje oraz sposób uzyskania tekstów licencji.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Pierwsza wersja."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Checked in the app build: the app bundles the Goose Apache 2.0 licence and a NOTICE file, the engineering runtime's MIT licence and third-party notices, and the Electron, Chromium and Node.js licence files. The licences of the other npm and Rust packages are NOT collected into the app. Owner: add a generated third-party licence file (or SBOM) to the build, then update the \"For the smaller packages\" sentence.",
+        "Apache 2.0 section 4 (Goose): the bundled NOTICE file describes the Orqanix changes. Lawyer to confirm this meets the \"prominent notice in changed files\" duty for the modified source. The in-app NOTICE file says \"Built on Goose\", a phrase the website avoids; owner to decide whether to reword it.",
+        "The engineering runtime is not named on this page (the in-app notice names it). Owner to decide whether to name it.",
+        "Licence names for Electron (MIT) and Node.js (MIT with other bundled parts) match the bundled files; Chromium (BSD-style and others) is general knowledge. Confirm with a licence scan or SBOM of the shipped app.",
+        "Whether any bundled component is under a licence that gives a right to source code (for example LGPL parts of Chromium). The page offers source on request by email; the owner must be able to fulfil it.",
+        "Mailbox hello@orqanix.com may not receive mail yet (no MX record, FACTS open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-this-page",
+      "text": "O tej stronie"
+    },
+    {
+      "type": "p",
+      "text": "Część naszych produktów stanowi otwarte oprogramowanie, czyli oprogramowanie, którego autorzy pozwalają każdemu na jego używanie, modyfikowanie i rozpowszechnianie na podstawie opublikowanej licencji. Na tej stronie wymieniono główne komponenty otwartego oprogramowania oraz sposób uzyskania tekstów ich licencji."
+    },
+    {
+      "type": "p",
+      "text": "Każdy komponent pozostaje objęty własną licencją. Żadne postanowienie naszego [Regulaminu](/instant/legal/terms) ani [Warunków korzystania z aplikacji desktopowej](/instant/legal/desktop-app-terms) nie ogranicza praw, które przyznają Państwu te licencje. Jeśli licencja stanowi, że jej autorzy nie udzielają żadnej gwarancji, dotyczy to ich utworu. Nasze własne zobowiązania dotyczące naszych produktów zawierają nasze warunki."
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "Aplikacja desktopowa"
+    },
+    {
+      "type": "p",
+      "text": "Aplikacja Orqanix na Maca zawiera otwarte oprogramowanie, takie jak:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Oprogramowanie",
+        "Funkcja w aplikacji",
+        "Licencja"
+      ],
+      "rows": [
+        [
+          "Goose",
+          "Platforma agentowa, na której działają agenci aplikacji",
+          "Apache License 2.0"
+        ],
+        [
+          "Opcjonalne środowisko uruchomieniowe dla narzędzi inżynierskich dołączone do aplikacji",
+          "Uruchamia narzędzia inżynierskie aplikacji",
+          "MIT License"
+        ],
+        [
+          "Electron",
+          "Okno aplikacji i jej powłoka desktopowa",
+          "MIT License"
+        ],
+        [
+          "Chromium (zawarty w Electron)",
+          "Wyświetla ekrany aplikacji",
+          "Licencja typu BSD oraz inne"
+        ],
+        [
+          "Node.js",
+          "Uruchamia części aplikacji",
+          "MIT License, przy czym niektóre dołączone komponenty są objęte innymi licencjami"
+        ],
+        [
+          "Wiele mniejszych pakietów npm i Rust",
+          "Elementy składowe używane w całej aplikacji",
+          "Różne licencje otwartego oprogramowania, takie jak MIT, Apache 2.0 i BSD"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Aplikacja zawiera teksty licencji i informacje dotyczące Goose, środowiska uruchomieniowego dla narzędzi inżynierskich, Electron, Chromium i Node.js. Aby je wyświetlić, prosimy kliknąć aplikację w Finderze z wciśniętym klawiszem Control, wybrać „Pokaż zawartość pakietu”, a następnie otworzyć folder Contents, a w nim Resources. Te pliki zawierają wiążące teksty; niniejsza tabela jest jedynie podsumowaniem. W przypadku mniejszych pakietów prosimy o kontakt w sposób opisany w sekcji [Teksty licencji i kod źródłowy](#get-the-texts)."
+    },
+    {
+      "type": "h2",
+      "id": "website",
+      "text": "Nasza strona internetowa"
+    },
+    {
+      "type": "p",
+      "text": "Nasza strona internetowa korzysta z krojów pisma Geist, Geist Mono i Inter, udostępnionych na licencji [SIL Open Font License 1.1](https://openfontlicense.org)."
+    },
+    {
+      "type": "h2",
+      "id": "names",
+      "text": "Nazwy i znaki towarowe"
+    },
+    {
+      "type": "p",
+      "text": "Nazwy projektów otwartego oprogramowania należą do ich właścicieli. Korzystanie przez nas z ich oprogramowania nie oznacza, że projekty te lub ich właściciele popierają Orqanix, a licencje nie przyznają nikomu praw do ich nazw ani logo."
+    },
+    {
+      "type": "h2",
+      "id": "get-the-texts",
+      "text": "Teksty licencji i kod źródłowy"
+    },
+    {
+      "type": "p",
+      "text": "Aby otrzymać kopię tekstu licencji lub kod źródłowy, jeśli licencja przyznaje Państwu do niego prawo, prosimy napisać na adres {company.email}, wpisując w temacie „Open source”. Prosimy podać, którą wersję Aplikacji desktopowej Państwo posiadają."
+    },
+    {
+      "type": "p",
+      "text": "Jeśli uważają Państwo, że pominęliśmy jakąś informację lub użyliśmy otwartego oprogramowania w sposób niedozwolony przez jego licencję, prosimy o wiadomość na ten sam adres, a przyjrzymy się sprawie."
+    }
+  ]
+}

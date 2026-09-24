@@ -75,6 +75,15 @@ afterEach(() => {
 });
 
 describe('FeaturesPage', () => {
+  it('counts nothing over the deep dives or "And the rest" (owner, 2026-09-21)', () => {
+    const { container } = renderPage();
+    const stories = container.querySelectorAll('.ofd-section');
+    expect(stories.length).toBeGreaterThan(0);
+    for (const story of stories) expect(story.querySelector('.oi-tag-bracket')).toBeNull();
+    expect(container.querySelector('#features-rest .oi-tag-bracket')).toBeNull();
+    expect(screen.queryByText(/^\d+ more$/i)).toBeNull();
+  });
+
   it('opens straight on the explorer: no opening wall, no tag, its heading the page title', () => {
     const { container } = renderPage();
     // The owner took the opening block ("Everything it does." and its wall of twelve tiles),
@@ -154,11 +163,11 @@ describe('FeaturesPage', () => {
     }
   });
 
-  it('puts the other eight features in one grid of cards', () => {
+  it('puts the other fourteen features in one grid of cards', () => {
     const { container } = renderPage();
     const cards = within(container.querySelector('#features-rest')).getAllByRole('article');
     const rest = FEATURES.filter((feature) => !DEEP_DIVE_IDS.includes(feature.id));
-    expect(cards).toHaveLength(8);
+    expect(cards).toHaveLength(14);
     rest.forEach((feature, index) => {
       const card = within(cards[index]);
       expect(card.getByRole('heading', { level: 3, name: feature.name })).toBeVisible();
@@ -166,16 +175,16 @@ describe('FeaturesPage', () => {
     });
   });
 
-  it('lists all 12 features as buttons, with the first one pressed', () => {
+  it('lists all 18 features as buttons, with the first one pressed', () => {
     renderPage();
     const buttons = within(screen.getByRole('list', { name: 'Features' })).getAllByRole('button');
     expect(buttons.map((button) => button.textContent.replace(/\d+$/, ''))).toEqual(
       FEATURES.map((feature) => feature.name)
     );
-    expect(buttons).toHaveLength(12);
+    expect(buttons).toHaveLength(18);
     expect(buttons.map((button) => button.getAttribute('aria-pressed'))).toEqual([
       'true',
-      ...Array(11).fill('false'),
+      ...Array(17).fill('false'),
     ]);
     expect(explorer().getByText(FEATURES[0].today)).toBeVisible();
   });
@@ -224,11 +233,11 @@ describe('FeaturesPage', () => {
     expect(row(names[0])).toHaveAttribute('aria-pressed', 'true');
 
     fireEvent.keyDown(row(names[0]), { key: 'End' });
-    expect(row(names[11])).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.keyDown(row(names[11]), { key: 'ArrowDown' });
-    expect(row(names[11])).toHaveAttribute('aria-pressed', 'true');
+    expect(row(names[17])).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyDown(row(names[17]), { key: 'ArrowDown' });
+    expect(row(names[17])).toHaveAttribute('aria-pressed', 'true');
 
-    fireEvent.keyDown(row(names[11]), { key: 'Home' });
+    fireEvent.keyDown(row(names[17]), { key: 'Home' });
     expect(row(names[0])).toHaveAttribute('aria-pressed', 'true');
   });
 
@@ -393,7 +402,7 @@ describe('FeaturesPage on a phone', () => {
     const list = screen.getByRole('list', { name: 'Features' });
     expect(within(list).queryAllByRole('button')).toHaveLength(0);
     const cards = within(list).getAllByRole('article');
-    expect(cards).toHaveLength(12);
+    expect(cards).toHaveLength(18);
     FEATURES.forEach((feature, index) => {
       const card = within(cards[index]);
       expect(card.getByRole('heading', { level: 3, name: feature.name })).toBeVisible();

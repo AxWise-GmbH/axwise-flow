@@ -1,4 +1,5 @@
 import { CheckGlyph } from '../../ui/Glyphs';
+import { useT } from '../../i18n/useT';
 import { SolutionIcon } from './solutionIcons';
 import './scenes.css';
 
@@ -9,14 +10,21 @@ const WAVE = [
   0.7, 0.35, 0.6, 0.9, 0.5, 0.3,
 ];
 
-const STATE_WORDS = { done: 'Done', now: 'In progress', next: 'Next' };
+// Words for a state, said to screen readers next to the drawn mark.
+function stateWord(t, state) {
+  return {
+    done: t('sp.scene.state.done', 'Done'),
+    now: t('sp.scene.state.now', 'In progress'),
+    next: t('sp.scene.state.next', 'Next'),
+  }[state];
+}
 
 // `--i` is the step's place in the entrance; scenes.css turns it into a delay.
 function step(index) {
   return { '--i': index };
 }
 
-function ChatScene({ scene }) {
+function ChatScene({ scene, t }) {
   return (
     <>
       <ul className="osc-chat">
@@ -27,20 +35,22 @@ function ChatScene({ scene }) {
             data-from={message.from}
             style={step(index)}
           >
-            <span className="oi-sr-only">{message.from === 'you' ? 'You: ' : 'Orqanix: '}</span>
+            <span className="oi-sr-only">
+              {message.from === 'you' ? t('sp.scene.chat.you', 'You:') : 'Orqanix:'}{' '}
+            </span>
             {message.text}
           </li>
         ))}
       </ul>
       <p className="osc-composer" aria-hidden="true">
-        Say what you need
+        {t('sp.scene.chat.composer', 'Say what you need')}
         <SolutionIcon name="voice" className="osc-composer-icon" />
       </p>
     </>
   );
 }
 
-function CallScene({ scene }) {
+function CallScene({ scene, t }) {
   return (
     <>
       <div className="osc-wave" aria-hidden="true">
@@ -56,7 +66,7 @@ function CallScene({ scene }) {
             data-from={line.from}
             style={step(index)}
           >
-            <span className="osc-who">{line.from === 'app' ? 'Orqanix' : 'Caller'}</span>
+            <span className="osc-who">{line.from === 'app' ? 'Orqanix' : t('sp.scene.call.caller', 'Caller')}</span>
             <span>{line.text}</span>
           </li>
         ))}
@@ -69,7 +79,7 @@ function CallScene({ scene }) {
   );
 }
 
-function DocScene({ scene }) {
+function DocScene({ scene, t }) {
   return (
     <>
       <ol className="osc-doc">
@@ -87,7 +97,7 @@ function DocScene({ scene }) {
   );
 }
 
-function TableScene({ scene }) {
+function TableScene({ scene, t }) {
   return (
     <table className="osc-table" style={{ '--cols': scene.columns.length }}>
       <thead>
@@ -113,7 +123,7 @@ function TableScene({ scene }) {
   );
 }
 
-function BoardScene({ scene }) {
+function BoardScene({ scene, t }) {
   // Cards enter one after another across the lanes, so each lane starts where the last ended.
   const starts = scene.lanes.map((_, index) =>
     scene.lanes.slice(0, index).reduce((count, lane) => count + lane.cards.length, 0)
@@ -139,7 +149,7 @@ function BoardScene({ scene }) {
   );
 }
 
-function TimelineScene({ scene }) {
+function TimelineScene({ scene, t }) {
   return (
     <ol className="osc-timeline">
       {scene.steps.map((item, index) => (
@@ -153,7 +163,7 @@ function TimelineScene({ scene }) {
             {item.state === 'done' && <CheckGlyph className="osc-node-check" />}
           </i>
           <span className="osc-tick-label">
-            <span className="oi-sr-only">{STATE_WORDS[item.state]}: </span>
+            <span className="oi-sr-only">{stateWord(t, item.state)}: </span>
             {item.label}
           </span>
           {item.meta && <span className="osc-tick-meta">{item.meta}</span>}
@@ -163,9 +173,29 @@ function TimelineScene({ scene }) {
   );
 }
 
-const SLOT_WORDS = { booked: 'Booked', held: 'Held', free: 'Free' };
-const MAIL_WORDS = { replied: 'Replied', draft: 'Draft', waiting: 'Waiting' };
-const TILE_WORDS = { ok: 'Done', now: 'In progress', alert: 'Needs attention' };
+function slotWord(t, state) {
+  return {
+    booked: t('sp.scene.slot.booked', 'Booked'),
+    held: t('sp.scene.slot.held', 'Held'),
+    free: t('sp.scene.slot.free', 'Free'),
+  }[state];
+}
+
+function mailWord(t, state) {
+  return {
+    replied: t('sp.scene.mail.replied', 'Replied'),
+    draft: t('sp.scene.mail.draft', 'Draft'),
+    waiting: t('sp.scene.mail.waiting', 'Waiting'),
+  }[state];
+}
+
+function tileWord(t, state) {
+  return {
+    ok: t('sp.scene.tile.ok', 'Done'),
+    now: t('sp.scene.tile.now', 'In progress'),
+    alert: t('sp.scene.tile.alert', 'Needs attention'),
+  }[state];
+}
 const CAL_FROM = 9;
 const CAL_ROWS = 8;
 const MAP_H = 56;
@@ -182,7 +212,7 @@ function Mark({ state }) {
   );
 }
 
-function CalendarScene({ scene }) {
+function CalendarScene({ scene, t }) {
   const hours = Array.from({ length: CAL_ROWS + 1 }, (_, index) => CAL_FROM + index);
   return (
     <>
@@ -210,7 +240,7 @@ function CalendarScene({ scene }) {
                     style={{ '--i': index, '--s': slot.start - CAL_FROM, '--l': slot.len }}
                   >
                     <span className="osc-slot-label">
-                      <span className="oi-sr-only">{SLOT_WORDS[slot.state]}: </span>
+                      <span className="oi-sr-only">{slotWord(t, slot.state)}: </span>
                       {slot.label}
                     </span>
                   </li>
@@ -229,7 +259,7 @@ function CalendarScene({ scene }) {
   );
 }
 
-function MapScene({ scene }) {
+function MapScene({ scene, t }) {
   const y = (pin) => (pin.y / 100) * MAP_H;
   // The route turns at right angles, and a street runs under every leg of it. It leaves a pin
   // sideways and arrives from above or below, so a label sits left of its pin, or under it.
@@ -278,7 +308,7 @@ function MapScene({ scene }) {
                 {index + 1}
               </i>
               <span className="osc-pin-label">
-                <span className="oi-sr-only">{STATE_WORDS[pin.state]}: </span>
+                <span className="oi-sr-only">{stateWord(t, pin.state)}: </span>
                 {pin.label}
               </span>
             </li>
@@ -295,7 +325,7 @@ function MapScene({ scene }) {
   );
 }
 
-function ChartScene({ scene }) {
+function ChartScene({ scene, t }) {
   const { series, bars = series, xLabels, callout } = scene;
   const count = series.length;
   const top = Math.max(...series, ...bars) * 1.35;
@@ -371,7 +401,7 @@ function ChartScene({ scene }) {
   );
 }
 
-function InboxScene({ scene }) {
+function InboxScene({ scene, t }) {
   const open = scene.threads.findIndex((thread) => thread.state === 'draft');
   return (
     <ul className="osc-inbox">
@@ -390,7 +420,7 @@ function InboxScene({ scene }) {
           <span className="osc-mail-tag">{thread.tag}</span>
           <span className="osc-mail-state">
             <Mark state={thread.state} />
-            {MAIL_WORDS[thread.state]}
+            {mailWord(t, thread.state)}
           </span>
           <span className="osc-mail-subject">{thread.subject}</span>
           {index === open && (
@@ -410,8 +440,8 @@ function InboxScene({ scene }) {
                 </p>
               ))}
               <p className="osc-draft-actions" aria-hidden="true">
-                <span>Approve</span>
-                <span>Edit</span>
+                <span>{t('sp.scene.inbox.approve', 'Approve')}</span>
+                <span>{t('sp.scene.inbox.edit', 'Edit')}</span>
               </p>
             </div>
           )}
@@ -421,7 +451,7 @@ function InboxScene({ scene }) {
   );
 }
 
-function GraphScene({ scene }) {
+function GraphScene({ scene, t }) {
   const lit = new Set(scene.highlight);
   const onPath = (a, b) => {
     const at = scene.highlight.indexOf(a);
@@ -463,7 +493,7 @@ function GraphScene({ scene }) {
   );
 }
 
-function TilesScene({ scene }) {
+function TilesScene({ scene, t }) {
   return (
     <>
       <p className="osc-chart-title">{scene.title}</p>
@@ -477,7 +507,7 @@ function TilesScene({ scene }) {
           >
             <Mark state={cell.state} />
             <span className="osc-tile-label">
-              <span className="oi-sr-only">{TILE_WORDS[cell.state]}: </span>
+              <span className="oi-sr-only">{tileWord(t, cell.state)}: </span>
               {cell.label}
             </span>
             {cell.meta && <span className="osc-tile-meta">{cell.meta}</span>}
@@ -496,7 +526,7 @@ function TilesScene({ scene }) {
   );
 }
 
-function PaperScene({ scene }) {
+function PaperScene({ scene, t }) {
   const after = scene.rows.length + 1;
   return (
     <div className="osc-paper-stage">
@@ -537,7 +567,7 @@ const CLIP_WAVE = Array.from(
   (_, index) => 0.18 + 0.82 * Math.abs(Math.sin(index * 1.7) * Math.cos(index * 0.23))
 );
 
-function ClipsScene({ scene }) {
+function ClipsScene({ scene, t }) {
   return (
     <>
       <p className="osc-clips-source">
@@ -586,7 +616,7 @@ function ClipsScene({ scene }) {
   );
 }
 
-function PhoneScene({ scene }) {
+function PhoneScene({ scene, t }) {
   return (
     <div className="osc-phone-stage">
       <div className="osc-step osc-phone" style={step(0)}>
@@ -600,7 +630,9 @@ function PhoneScene({ scene }) {
               data-from={message.from === 'app' ? 'you' : 'them'}
               style={step(index + 1)}
             >
-              <span className="oi-sr-only">{message.from === 'app' ? 'Orqanix: ' : 'Reply: '}</span>
+              <span className="oi-sr-only">
+                {message.from === 'app' ? 'Orqanix:' : t('sp.scene.phone.reply', 'Reply:')}{' '}
+              </span>
               {message.text}
             </li>
           ))}
@@ -615,22 +647,75 @@ function PhoneScene({ scene }) {
   );
 }
 
+// Each kind's body, and the title and tag on its window bar.
 const KINDS = {
-  chat: { Body: ChatScene, title: () => 'Orqanix', tag: 'Chat' },
-  call: { Body: CallScene, title: (scene) => scene.caller, tag: 'Voice · live' },
-  doc: { Body: DocScene, title: (scene) => scene.file, tag: 'Draft' },
-  table: { Body: TableScene, title: (scene) => scene.file, tag: 'Table' },
-  board: { Body: BoardScene, title: () => 'Board', tag: 'Tasks' },
-  timeline: { Body: TimelineScene, title: () => 'Activity', tag: 'Every step' },
-  calendar: { Body: CalendarScene, title: () => 'Calendar', tag: 'Week' },
-  map: { Body: MapScene, title: () => 'Map', tag: 'Route' },
-  chart: { Body: ChartScene, title: () => 'Report', tag: 'Trend' },
-  inbox: { Body: InboxScene, title: () => 'Inbox', tag: 'Mail' },
-  graph: { Body: GraphScene, title: () => 'Connections', tag: 'Graph' },
-  tiles: { Body: TilesScene, title: () => 'Status', tag: 'Live' },
-  paper: { Body: PaperScene, title: () => 'Document', tag: 'Draft' },
-  clips: { Body: ClipsScene, title: () => 'Editor', tag: 'Clips' },
-  phone: { Body: PhoneScene, title: () => 'Messages', tag: 'Mobile' },
+  chat: { Body: ChatScene, title: () => 'Orqanix', tag: (t) => t('sp.scene.chat.tag', 'Chat') },
+  call: {
+    Body: CallScene,
+    title: (scene) => scene.caller,
+    tag: (t) => t('sp.scene.call.tag', 'Voice · live'),
+  },
+  doc: { Body: DocScene, title: (scene) => scene.file, tag: (t) => t('sp.scene.doc.tag', 'Draft') },
+  table: {
+    Body: TableScene,
+    title: (scene) => scene.file,
+    tag: (t) => t('sp.scene.table.tag', 'Table'),
+  },
+  board: {
+    Body: BoardScene,
+    title: (scene, t) => t('sp.scene.board.title', 'Board'),
+    tag: (t) => t('sp.scene.board.tag', 'Tasks'),
+  },
+  timeline: {
+    Body: TimelineScene,
+    title: (scene, t) => t('sp.scene.timeline.title', 'Activity'),
+    tag: (t) => t('sp.scene.timeline.tag', 'Every step'),
+  },
+  calendar: {
+    Body: CalendarScene,
+    title: (scene, t) => t('sp.scene.calendar.title', 'Calendar'),
+    tag: (t) => t('sp.scene.calendar.tag', 'Week'),
+  },
+  map: {
+    Body: MapScene,
+    title: (scene, t) => t('sp.scene.map.title', 'Map'),
+    tag: (t) => t('sp.scene.map.tag', 'Route'),
+  },
+  chart: {
+    Body: ChartScene,
+    title: (scene, t) => t('sp.scene.chart.title', 'Report'),
+    tag: (t) => t('sp.scene.chart.tag', 'Trend'),
+  },
+  inbox: {
+    Body: InboxScene,
+    title: (scene, t) => t('sp.scene.inbox.title', 'Inbox'),
+    tag: (t) => t('sp.scene.inbox.tag', 'Mail'),
+  },
+  graph: {
+    Body: GraphScene,
+    title: (scene, t) => t('sp.scene.graph.title', 'Connections'),
+    tag: (t) => t('sp.scene.graph.tag', 'Graph'),
+  },
+  tiles: {
+    Body: TilesScene,
+    title: (scene, t) => t('sp.scene.tiles.title', 'Status'),
+    tag: (t) => t('sp.scene.tiles.tag', 'Live'),
+  },
+  paper: {
+    Body: PaperScene,
+    title: (scene, t) => t('sp.scene.paper.title', 'Document'),
+    tag: (t) => t('sp.scene.paper.tag', 'Draft'),
+  },
+  clips: {
+    Body: ClipsScene,
+    title: (scene, t) => t('sp.scene.clips.title', 'Editor'),
+    tag: (t) => t('sp.scene.clips.tag', 'Clips'),
+  },
+  phone: {
+    Body: PhoneScene,
+    title: (scene, t) => t('sp.scene.phone.title', 'Messages'),
+    tag: (t) => t('sp.scene.phone.tag', 'Mobile'),
+  },
 };
 
 /**
@@ -638,22 +723,24 @@ const KINDS = {
  * unseen, and with reduced motion they are simply there.
  */
 export default function Scene({ scene, play = true, className = '' }) {
+  const { t } = useT('sp');
   const kind = KINDS[scene.kind];
   if (!kind) return null;
   const { Body } = kind;
   return (
-    <div className={`osc ${className}`.trim()} data-kind={scene.kind} data-play={play}>
+    // A picture of an app window: it keeps its left-to-right layout in every language.
+    <div className={`osc ${className}`.trim()} data-kind={scene.kind} data-play={play} dir="ltr">
       <div className="osc-bar">
         <span className="osc-lights" aria-hidden="true">
           <i />
           <i />
           <i />
         </span>
-        <span className="osc-title">{kind.title(scene)}</span>
-        <span className="osc-kind">{kind.tag}</span>
+        <span className="osc-title">{kind.title(scene, t)}</span>
+        <span className="osc-kind">{kind.tag(t)}</span>
       </div>
       <div className="osc-body">
-        <Body scene={scene} />
+        <Body scene={scene} t={t} />
       </div>
     </div>
   );

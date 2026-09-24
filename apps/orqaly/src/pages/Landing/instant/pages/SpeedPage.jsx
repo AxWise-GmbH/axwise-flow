@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import SpeedHero from './heroes/SpeedHero';
+import SpeedHero, { measuredOn } from './heroes/SpeedHero';
 import Reveal from '../ui/Reveal';
 import CountUp from '../ui/CountUp';
 import { Seen } from '../SpeedStrip';
+import { SKIP_KEYS, localeWords, localize } from '../i18n/localize';
+import { useT } from '../i18n/useT';
 import './SpeedPage.css';
 
 const UNIT = ' s';
@@ -58,6 +60,20 @@ function cardId(id) {
 }
 
 const HERO_RUNS = RUNS.map((run) => ({ ...run, href: `#${cardId(run.id)}` }));
+
+// Words in other languages: pg.speed.run.<id>.label, pg.speed.made.<id>.*, pg.speed.rules.<n>.
+// Times and numbers stay as written.
+const SPEED_SKIP = new Set([...SKIP_KEYS, 'time']);
+const localRun = (run, t) => localize(run, `pg.speed.run.${run.id}`, t, SPEED_SKIP);
+const localMade = (item, t) => localize(item, `pg.speed.made.${item.id}`, t, SPEED_SKIP);
+
+export function speedWords() {
+  return Object.assign(
+    localeWords(METHOD, 'pg.speed.rules'),
+    ...RUNS.map((run) => localeWords(run, `pg.speed.run.${run.id}`, SPEED_SKIP)),
+    ...MADE.map((item) => localeWords(item, `pg.speed.made.${item.id}`, SPEED_SKIP))
+  );
+}
 
 const WAVE_MS = 110;
 
@@ -196,6 +212,7 @@ function Track({ item, position, run, stageSeen, stacked }) {
 }
 
 function Race() {
+  const { t } = useT('pg');
   const [run, setRun] = useState(0);
   const stacked = useStacked();
   const onPointerMove = useSpotlight();
@@ -212,7 +229,7 @@ function Race() {
                   {RUNS.map((item, i) => (
                     <Track
                       key={item.id}
-                      item={item}
+                      item={localRun(item, t)}
                       position={i}
                       run={run}
                       stageSeen={stageSeen}
@@ -232,7 +249,7 @@ function Race() {
                       </span>
                     ))}
                   </div>
-                  <span className="osp-axis-unit">seconds</span>
+                  <span className="osp-axis-unit">{t('pg.speed.seconds', 'seconds')}</span>
                 </div>
               </>
             )}
@@ -241,12 +258,12 @@ function Race() {
       </Seen>
       <Seen className="ois-gate osp-under">
         <Reveal as="p" className="osp-note">
-          Animation is sped up. Figures are real.
+          {t('pg.speed.note', 'Animation is sped up. Figures are real.')}
         </Reveal>
         <Reveal delay={90}>
           <button type="button" className="osp-replay" onClick={() => setRun((n) => n + 1)}>
             <ReplayGlyph />
-            Replay
+            {t('pg.speed.replay', 'Replay')}
           </button>
         </Reveal>
       </Seen>
@@ -333,9 +350,10 @@ function MadeCard({ item, position }) {
 }
 
 export default function SpeedPage() {
+  const { t, lang } = useT('pg');
   return (
     <>
-      <SpeedHero runs={HERO_RUNS} methodHref="#speed-method" />
+      <SpeedHero runs={HERO_RUNS.map((run) => localRun(run, t))} methodHref="#speed-method" />
 
       <Seen
         as="section"
@@ -346,10 +364,10 @@ export default function SpeedPage() {
         <div className="oi-container">
           <Seen className="ois-gate ois-head">
             <Reveal as="p" className="oi-tag oi-tag-bracket">
-              The cloud side · 18 Sep 2026
+              {t('pg.speed.race.tag', 'The cloud side · {date}', { date: measuredOn(lang) })}
             </Reveal>
             <Reveal as="h2" id="speed-race-heading" className="oi-h2" delay={90}>
-              Three timings
+              {t('pg.speed.race.title', 'Three timings')}
             </Reveal>
           </Seen>
           <Race />
@@ -365,17 +383,17 @@ export default function SpeedPage() {
         <div className="oi-container">
           <Seen className="ois-gate ois-head">
             <Reveal as="p" className="oi-tag oi-tag-bracket">
-              The output
+              {t('pg.speed.made.tag', 'The output')}
             </Reveal>
             <Reveal as="h2" id="speed-made-heading" className="oi-h2" delay={90}>
-              What each run made
+              {t('pg.speed.made.title', 'What each run made')}
             </Reveal>
           </Seen>
           <div className="osp-cards">
             {MADE.map((item, i) => (
               // One gate per card: on a phone they stack, and each arrives as it is reached.
               <Seen key={item.id} id={cardId(item.id)} className="ois-gate osp-card-slot">
-                <MadeCard item={item} position={i} />
+                <MadeCard item={localMade(item, t)} position={i} />
               </Seen>
             ))}
           </div>
@@ -391,18 +409,18 @@ export default function SpeedPage() {
         <div className="oi-container osp-method-layout">
           <Seen className="ois-gate osp-method-head">
             <Reveal as="p" className="oi-tag oi-tag-bracket">
-              The fine print
+              {t('pg.speed.method.tag', 'The fine print')}
             </Reveal>
             <Reveal as="h2" id="speed-method-heading" className="oi-h2" delay={90}>
-              How we measured
+              {t('pg.speed.method.title', 'How we measured')}
             </Reveal>
             <Reveal as="p" className="oi-line osp-method-line" delay={180}>
-              The limits matter as much as the numbers.
+              {t('pg.speed.method.line', 'The limits matter as much as the numbers.')}
             </Reveal>
           </Seen>
           <div>
             <ol className="osp-rules" role="list">
-              {METHOD.map((text, i) => (
+              {localize(METHOD, 'pg.speed.rules', t).map((text, i) => (
                 <Seen as="li" key={text} className="ois-gate osp-rule">
                   <Reveal className="osp-rule-inner">
                     <span className="osp-rule-idx" aria-hidden="true">
@@ -416,7 +434,7 @@ export default function SpeedPage() {
             <Seen className="ois-gate osp-link-row">
               <Reveal as="p">
                 <a className="oi-link osp-link" href="/benchmark">
-                  <span>Open the full benchmark page</span>
+                  <span>{t('pg.speed.benchmark', 'Open the full benchmark page')}</span>
                   <ArrowGlyph />
                 </a>
               </Reveal>

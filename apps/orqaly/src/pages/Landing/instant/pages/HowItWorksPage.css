@@ -17,6 +17,35 @@
   --hiw-accent-dark: var(--oi-accent-dark, var(--oi-purple-dark));
   --hiw-accent-deep: var(--oi-accent-deep, var(--oi-purple-deep));
   --hiw-pale: color-mix(in srgb, var(--hiw-accent) 48%, #ffffff);
+  /* The colour of every glow that the lit accent throws. */
+  --hiw-glow: var(--oi-accent, var(--oi-purple));
+  --hiw-num-end: #a1a1a1;
+  --hiw-marker-ink: #222222;
+  --hiw-send-ink: #1e1e1e;
+  --hiw-added: #e6e6e6;
+  --hiw-removed: #7a7a7a;
+  --hiw-added-row: rgba(230, 230, 230, 0.1);
+  --hiw-added-bar: rgba(230, 230, 230, 0.55);
+  --hiw-removed-row: rgba(122, 122, 122, 0.09);
+  --hiw-removed-bar: rgba(122, 122, 122, 0.5);
+  --hiw-dial-face: #0b0c11;
+}
+
+/*
+ * Light: the light that travels becomes ink. The palest accent (live dots, carets, rims)
+ * turns near-black, glows shrink to soft shadows, and the dial face takes the page's tone.
+ */
+[data-oi-theme='light'] .hiw-steps-section,
+[data-oi-theme='light'] .hiw-control {
+  --hiw-pale: var(--oi-app-light);
+  --hiw-glow: rgba(0, 0, 0, 0.12);
+  --hiw-accent-dark: rgba(0, 0, 0, 0.12);
+  --hiw-marker-ink: #ffffff;
+  --hiw-send-ink: #ffffff;
+  --hiw-added: #141414;
+  --hiw-added-row: rgba(0, 0, 0, 0.05);
+  --hiw-added-bar: rgba(0, 0, 0, 0.42);
+  --hiw-dial-face: #f3f3f3;
 }
 
 /* The story ------------------------------------------------------------------ */
@@ -62,9 +91,9 @@
     transparent,
     var(--hiw-accent-deep) 12%,
     var(--hiw-accent) 72%,
-    #ffffff
+    rgb(var(--oi-fg-rgb))
   );
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--hiw-accent) 90%, transparent));
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--hiw-glow) 90%, transparent));
   transform-origin: 50% 0;
   scale: 1 var(--hiw-p, 0);
 }
@@ -76,10 +105,10 @@
   width: 3px;
   height: 22px;
   border-radius: 3px;
-  background: #ffffff;
+  background: rgb(var(--oi-fg-rgb));
   box-shadow:
-    0 0 0 5px color-mix(in srgb, var(--hiw-accent) 16%, transparent),
-    0 0 18px 4px color-mix(in srgb, var(--hiw-accent) 95%, transparent),
+    0 0 0 5px color-mix(in srgb, var(--hiw-glow) 16%, transparent),
+    0 0 18px 4px color-mix(in srgb, var(--hiw-glow) 95%, transparent),
     0 0 70px 16px color-mix(in srgb, var(--hiw-accent-dark) 55%, transparent);
   /* Opacity clamps itself to 0..1, so the light fades in over the first stretch of the line. */
   opacity: calc(var(--hiw-p, 0) * 40);
@@ -98,7 +127,7 @@
   border-radius: 3px;
   background: linear-gradient(
     to top,
-    rgba(255, 255, 255, 0.95),
+    rgba(var(--oi-fg-rgb), 0.95),
     color-mix(in srgb, var(--hiw-accent) 40%, transparent) 38%,
     transparent
   );
@@ -186,7 +215,7 @@
   font-variant-numeric: tabular-nums;
   /* The filled copy on top must start where the outline starts, whichever way the step reads. */
   text-align: left;
-  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3);
+  -webkit-text-stroke: 1px rgba(var(--oi-fg-rgb), 0.3);
 }
 
 .hiw-num::after {
@@ -197,8 +226,8 @@
   inset: 0 -0.14em 0 0;
   background: linear-gradient(
     180deg,
-    #ffffff 18%,
-    color-mix(in srgb, var(--hiw-accent) 55%, #a1a1a1) 118%
+    rgb(var(--oi-fg-rgb)) 18%,
+    color-mix(in srgb, var(--hiw-accent) 55%, var(--hiw-num-end)) 118%
   );
   -webkit-background-clip: text;
   background-clip: text;
@@ -274,7 +303,7 @@
   height: 13px;
   border: 1px solid var(--oi-hairline-strong);
   border-radius: 50%;
-  background: #000000;
+  background: var(--oi-page);
 }
 
 .hiw-node-dot,
@@ -285,10 +314,10 @@
 }
 
 .hiw-node-dot {
-  background: #ffffff;
+  background: rgb(var(--oi-fg-rgb));
   box-shadow:
-    0 0 0 5px color-mix(in srgb, var(--hiw-accent) 14%, transparent),
-    0 0 16px 3px color-mix(in srgb, var(--hiw-accent) 90%, transparent);
+    0 0 0 5px color-mix(in srgb, var(--hiw-glow) 14%, transparent),
+    0 0 16px 3px color-mix(in srgb, var(--hiw-glow) 90%, transparent);
   transition:
     opacity 700ms var(--oi-ease),
     scale 700ms var(--oi-ease);
@@ -320,7 +349,7 @@
   left: calc(100% + 10px);
   width: 44px;
   height: 1px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.12));
+  background: linear-gradient(90deg, rgba(var(--oi-fg-rgb), 0.75), rgba(var(--oi-fg-rgb), 0.12));
   transform-origin: 0 50%;
   transition: scale 1100ms var(--oi-ease) 260ms;
 }
@@ -328,7 +357,7 @@
 .hiw-step:nth-child(even) .hiw-node-link {
   right: calc(100% + 10px);
   left: auto;
-  background: linear-gradient(270deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.12));
+  background: linear-gradient(270deg, rgba(var(--oi-fg-rgb), 0.75), rgba(var(--oi-fg-rgb), 0.12));
   transform-origin: 100% 50%;
 }
 
@@ -361,9 +390,9 @@
   border-radius: 18px;
   background: var(--oi-app-surface);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 0 0 1px rgba(0, 0, 0, 0.6),
-    0 50px 110px -30px rgba(0, 0, 0, 0.95),
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16),
+    0 0 0 1px rgba(var(--oi-shadow-rgb), calc(0.6 * var(--oi-shadow-k))),
+    0 50px 110px -30px rgba(var(--oi-shadow-rgb), calc(0.95 * var(--oi-shadow-k))),
     0 0 80px -16px color-mix(in srgb, var(--hiw-accent-dark) 45%, transparent);
   color: var(--hm-text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -409,7 +438,7 @@
   z-index: -1;
   background: radial-gradient(
     360px circle at var(--mx, 50%) var(--my, 0%),
-    color-mix(in srgb, var(--hiw-accent) 20%, transparent),
+    color-mix(in srgb, var(--hiw-glow) 20%, transparent),
     transparent 62%
   );
   opacity: 0;
@@ -494,7 +523,7 @@
   gap: 7px;
   padding: 3px 10px 3px 9px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.09);
+  background: rgba(var(--oi-fg-rgb), 0.09);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -505,7 +534,7 @@
   height: 6px;
   border-radius: 50%;
   background: var(--hm-light);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--hiw-accent) 90%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--hiw-glow) 90%, transparent);
 }
 
 /* The status dot pings, the way a live indicator does. */
@@ -531,7 +560,7 @@
   flex: none;
   border-radius: 1px;
   background: var(--hm-light);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--hiw-accent) 90%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--hiw-glow) 90%, transparent);
   animation: hiw-blink 1.15s ease-in-out infinite;
 }
 
@@ -541,7 +570,7 @@
   width: var(--w, 60%);
   height: 6px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(var(--oi-fg-rgb), 0.14);
 }
 
 /* 01: the message box */
@@ -566,7 +595,7 @@
   padding: 10px 10px 10px 12px;
   border: 1px solid var(--hm-border);
   border-radius: 14px;
-  background: rgba(0, 0, 0, 0.24);
+  background: rgba(var(--oi-shadow-rgb), calc(0.24 * var(--oi-shadow-k)));
 }
 
 .hiw-attachment {
@@ -604,7 +633,7 @@
   height: 28px;
   flex: none;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--oi-fg-rgb), 0.08);
 }
 
 .hiw-tool .hiw-icon {
@@ -625,7 +654,7 @@
   height: 100%;
   border-radius: 1px;
   background: var(--hm-light);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--hiw-accent) 80%, transparent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--hiw-glow) 80%, transparent);
   transform: scaleY(0.3);
   animation: hiw-wave 1.2s ease-in-out infinite alternate;
   animation-delay: calc(var(--b, 0) * -0.31s);
@@ -660,7 +689,7 @@
   height: 4px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.13);
+  background: rgba(var(--oi-fg-rgb), 0.13);
 }
 
 .hiw-segment i {
@@ -686,7 +715,13 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, #ffffff 45%, var(--hm-light) 55%, transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--oi-fg-rgb)) 45%,
+    var(--hm-light) 55%,
+    transparent
+  );
   transform: translate3d(-110%, 0, 0);
   animation: hiw-shimmer 2.4s ease-in-out infinite;
 }
@@ -730,7 +765,7 @@
 .hiw-road-done .hiw-marker {
   border-color: var(--hm-soft);
   background: var(--hm-soft);
-  color: #222222;
+  color: var(--hiw-marker-ink);
 }
 
 .hiw-marker-check {
@@ -834,7 +869,7 @@
   padding: 4px 12px;
   border: 1px solid var(--hm-border-strong);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(var(--oi-fg-rgb), 0.03);
 }
 
 /* "Tap the answers": a touch ring opens over the first answer, again and again. */
@@ -863,7 +898,7 @@
   padding: 5px 14px;
   border-radius: 999px;
   background: var(--hm-soft);
-  color: #1e1e1e;
+  color: var(--hiw-send-ink);
   font-size: 12px;
   font-weight: 600;
 }
@@ -936,7 +971,7 @@
 .hiw-spinner {
   width: 13px;
   height: 13px;
-  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  border: 1.5px solid rgba(var(--oi-fg-rgb), 0.16);
   border-top-color: var(--hm-light);
   border-radius: 50%;
   animation: hiw-turn 1.1s linear infinite;
@@ -949,7 +984,7 @@
   margin-top: 10px;
   padding: 12px;
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.32);
+  background: rgba(var(--oi-shadow-rgb), calc(0.32 * var(--oi-shadow-k)));
 }
 
 .hiw-output .hiw-caret {
@@ -985,11 +1020,11 @@
 }
 
 .hiw-added {
-  color: #e6e6e6;
+  color: var(--hiw-added);
 }
 
 .hiw-removed {
-  color: #7a7a7a;
+  color: var(--hiw-removed);
 }
 
 .hiw-diff {
@@ -997,7 +1032,7 @@
   gap: 2px;
   padding: 8px 0;
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.32);
+  background: rgba(var(--oi-shadow-rgb), calc(0.32 * var(--oi-shadow-k)));
 }
 
 .hiw-diffline {
@@ -1007,19 +1042,19 @@
 }
 
 .hiw-diffline-added {
-  background: rgba(230, 230, 230, 0.1);
+  background: var(--hiw-added-row);
 }
 
 .hiw-diffline-added .hiw-ghost-line {
-  background: rgba(230, 230, 230, 0.55);
+  background: var(--hiw-added-bar);
 }
 
 .hiw-diffline-removed {
-  background: rgba(122, 122, 122, 0.09);
+  background: var(--hiw-removed-row);
 }
 
 .hiw-diffline-removed .hiw-ghost-line {
-  background: rgba(122, 122, 122, 0.5);
+  background: var(--hiw-removed-bar);
 }
 
 /* The plus and minus in the gutter, drawn so they add nothing to the text. */
@@ -1034,15 +1069,27 @@
   height: 1.5px;
   margin-top: -0.75px;
   border-radius: 1px;
-  background: #e6e6e6;
+  background: var(--hiw-added);
 }
 
 .hiw-diffline-removed::before {
-  background: #7a7a7a;
+  background: var(--hiw-removed);
 }
 
 .hiw-diffline-added::after {
   transform: rotate(90deg);
+}
+
+/* Light: the wells are as shallow as in the app's light theme, and the top-edge catch light
+   is only a trace (at full strength ink it would read as a dark rule). */
+[data-oi-theme='light'] .hiw-composer,
+[data-oi-theme='light'] .hiw-output,
+[data-oi-theme='light'] .hiw-diff {
+  background: var(--oi-app-fill);
+}
+
+[data-oi-theme='light'] .hiw-mock::before {
+  opacity: 0.3;
 }
 
 /* Under the story -------------------------------------------------------------- */
@@ -1119,14 +1166,14 @@
 }
 
 .hiw-dial-bezel {
-  stroke: rgba(255, 255, 255, 0.34);
+  stroke: rgba(var(--oi-fg-rgb), 0.34);
   stroke-width: 7;
   stroke-dasharray: 0.5 5.5;
   transition: rotate 1800ms var(--oi-ease);
 }
 
 .hiw-dial-track {
-  stroke: rgba(255, 255, 255, 0.16);
+  stroke: rgba(var(--oi-fg-rgb), 0.16);
   stroke-width: 1;
 }
 
@@ -1137,46 +1184,46 @@
   stroke-linecap: round;
   stroke-dasharray: var(--len) 300;
   stroke-dashoffset: 0;
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--hiw-accent) 90%, transparent));
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--hiw-glow) 90%, transparent));
   transition: stroke-dashoffset 2000ms var(--oi-ease) calc(var(--d, 0ms) + 500ms);
 }
 
 /* Light travels from the start of the track to the hand, again and again. */
 .hiw-dial-light {
-  stroke: #ffffff;
+  stroke: rgb(var(--oi-fg-rgb));
   stroke-width: 3;
   stroke-linecap: round;
   stroke-dasharray: 5 400;
   stroke-dashoffset: 8;
   opacity: 0;
-  filter: drop-shadow(0 0 4px #ffffff);
+  filter: drop-shadow(0 0 4px rgba(var(--oi-fg-rgb), calc(1 * var(--oi-halo-k))));
   animation: hiw-dial-light 3.8s ease-in-out calc(var(--d, 0ms) + 2600ms) infinite;
 }
 
 .hiw-dial-stop {
-  fill: #000000;
+  fill: rgb(var(--oi-bg-rgb));
   stroke: var(--oi-hairline-strong);
   stroke-width: 1;
 }
 
 .hiw-dial-stop-lit {
-  fill: #ffffff;
+  fill: rgb(var(--oi-fg-rgb));
   stroke: none;
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--hiw-accent) 95%, transparent));
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--hiw-glow) 95%, transparent));
 }
 
 .hiw-dial-face {
-  fill: #0b0c11;
-  stroke: rgba(255, 255, 255, 0.2);
+  fill: var(--hiw-dial-face);
+  stroke: rgba(var(--oi-fg-rgb), 0.2);
   stroke-width: 1;
 }
 
 .hiw-dial-hand {
-  fill: #ffffff;
-  stroke: #ffffff;
+  fill: rgb(var(--oi-fg-rgb));
+  stroke: rgb(var(--oi-fg-rgb));
   stroke-width: 2;
   stroke-linecap: round;
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--hiw-accent) 90%, transparent));
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--hiw-glow) 90%, transparent));
   rotate: var(--a);
   transition:
     rotate 2000ms var(--oi-ease) calc(var(--d, 0ms) + 500ms),
@@ -1200,8 +1247,8 @@
 
 .hiw-rule:hover .hiw-dial-hand,
 .hiw-rule:focus-visible .hiw-dial-hand {
-  filter: drop-shadow(0 0 10px #ffffff)
-    drop-shadow(0 0 3px color-mix(in srgb, var(--hiw-accent) 90%, transparent));
+  filter: drop-shadow(0 0 10px rgba(var(--oi-fg-rgb), calc(1 * var(--oi-halo-k))))
+    drop-shadow(0 0 3px color-mix(in srgb, var(--hiw-glow) 90%, transparent));
 }
 
 .hiw-rule:hover .hiw-rule-index,
@@ -1402,7 +1449,7 @@
     right: auto;
     left: calc(100% + 10px);
     width: 22px;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.12));
+    background: linear-gradient(90deg, rgba(var(--oi-fg-rgb), 0.75), rgba(var(--oi-fg-rgb), 0.12));
     transform-origin: 0 50%;
   }
 

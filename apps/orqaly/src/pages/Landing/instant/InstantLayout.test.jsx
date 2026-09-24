@@ -1,7 +1,9 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, render } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import InstantLayout from './InstantLayout';
+import { PAGE_BACKGROUND, PAGE_BACKGROUND_LIGHT } from './palette';
+import { THEME_KEY, resetThemeForTests } from './themeMode';
 
 function renderLayout(props) {
   return render(
@@ -14,7 +16,6 @@ function renderLayout(props) {
 }
 
 const root = (container) => container.querySelector('[data-landing-root]');
-const geistLink = () => document.head.querySelector('link[href*="family=Geist"]');
 
 describe('InstantLayout opening', () => {
   afterEach(() => {
@@ -45,13 +46,16 @@ describe('InstantLayout opening', () => {
     const { container } = renderLayout({ entrance: true });
     expect(root(container)).toHaveAttribute('data-entrance', 'wait');
 
-    await act(async () => {
-      geistLink().dispatchEvent(new Event('load'));
-    });
+    await act(async () => {});
     expect(load).toHaveBeenCalledWith('400 1em Geist');
     // The hero's second line is set in the light weight.
     expect(load).toHaveBeenCalledWith('300 1em Geist');
     expect(root(container)).toHaveAttribute('data-entrance', 'go');
+  });
+
+  it('loads no font from Google: the faces come with the site', () => {
+    renderLayout({ entrance: true });
+    expect(document.head.querySelector('link[href*="fonts.googleapis.com"]')).toBeNull();
   });
 
   it('never waits longer than 1.5 s for a slow font', () => {
@@ -64,5 +68,55 @@ describe('InstantLayout opening', () => {
     expect(root(container)).toHaveAttribute('data-entrance', 'wait');
     act(() => vi.advanceTimersByTime(1));
     expect(root(container)).toHaveAttribute('data-entrance', 'go');
+  });
+});
+
+describe('InstantLayout look (light / dark)', () => {
+  let meta;
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    resetThemeForTests();
+    meta = document.createElement('meta');
+    meta.name = 'theme-color';
+    meta.content = '#000000';
+    document.head.append(meta);
+  });
+
+  afterEach(() => {
+    meta.remove();
+    window.localStorage.clear();
+    resetThemeForTests();
+  });
+
+  it('is dark by default, on the root and on the ground behind the page', () => {
+    const { container, unmount } = renderLayout();
+    expect(root(container)).toHaveAttribute('data-oi-theme', 'dark');
+    expect(root(container)).toHaveStyle({ backgroundColor: PAGE_BACKGROUND });
+    expect(document.documentElement.dataset.oiTheme).toBe('dark');
+    expect(meta.content).toBe('#000000');
+    unmount();
+    // Leaving the landing takes the look off the page again.
+    expect(document.documentElement.dataset.oiTheme).toBeUndefined();
+  });
+
+  it('opens light when the visitor picked light before, bar colour included', () => {
+    window.localStorage.setItem(THEME_KEY, 'light');
+    const { container, unmount } = renderLayout();
+    expect(root(container)).toHaveAttribute('data-oi-theme', 'light');
+    expect(root(container)).toHaveStyle({ backgroundColor: PAGE_BACKGROUND_LIGHT });
+    expect(document.documentElement.dataset.oiTheme).toBe('light');
+    expect(meta.content).toBe(PAGE_BACKGROUND_LIGHT);
+    unmount();
+    expect(meta.content).toBe('#000000');
+  });
+
+  it('turns light from the switch in its footer, and back', () => {
+    const { container } = renderLayout();
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to light mode' }));
+    expect(root(container)).toHaveAttribute('data-oi-theme', 'light');
+    expect(document.documentElement.dataset.oiTheme).toBe('light');
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to dark mode' }));
+    expect(root(container)).toHaveAttribute('data-oi-theme', 'dark');
   });
 });

@@ -1,0 +1,476 @@
+/*
+ * Desktop App page (class prefix pdp-): a full-bleed, centred showcase. A huge light title,
+ * one very large app window that lies back and stands up as you arrive, then close-ups of the
+ * same app, what is inside and a few questions. Every picture is a cut of the Desktop App
+ * scene inside a graphite card; the words stay short, muted and at most about 62ch wide.
+ */
+
+.pdp {
+  position: relative;
+}
+
+/* The graphite card every cut plays in. */
+.pdp-card {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: var(--oi-radius-card);
+  background: var(--oi-app-surface), var(--oi-page);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
+}
+
+/* Hero ------------------------------------------------------------------------------------ */
+
+.pdp-hero {
+  position: relative;
+  padding-top: clamp(40px, 8vh, 96px);
+  overflow: clip;
+}
+
+.pdp-top {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+.pdp-title {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: clamp(3.4rem, 11.5vw, 10rem);
+  font-weight: 300;
+  line-height: 0.92;
+  letter-spacing: -0.065em;
+}
+
+.pdp-lede {
+  max-width: 44ch;
+  margin: 28px 0 0;
+  color: var(--oi-muted);
+  font-size: clamp(1.05rem, 1.7vw, 1.3rem);
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.pdp-acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 30px;
+  margin-top: 36px;
+}
+
+.pdp-cta,
+.pdp-go {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  font-family: var(--oi-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pdp-cta {
+  padding: 0 28px;
+  border-radius: var(--oi-radius-pill);
+  background: var(--oi-ink);
+  color: var(--oi-page);
+  transition:
+    box-shadow 400ms ease,
+    transform 400ms var(--oi-ease);
+}
+
+.pdp-cta:hover {
+  box-shadow: 0 0 36px rgba(var(--oi-accent-rgb), calc(0.55 * var(--oi-halo-k)));
+  transform: translate3d(0, -1px, 0);
+}
+
+.pdp-go {
+  gap: 10px;
+  color: var(--oi-muted);
+  transition: color 300ms ease;
+}
+
+.pdp-go span {
+  transition: transform 400ms var(--oi-ease);
+}
+
+.pdp-go:hover {
+  color: var(--oi-ink);
+}
+
+.pdp-go:hover span {
+  transform: translate3d(2px, -2px, 0);
+}
+
+.pdp-cta:focus-visible,
+.pdp-go:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 4px;
+  border-radius: var(--oi-radius-pill);
+}
+
+/* The window: very large, centred, lying back until it arrives. A light blooms behind it
+   and a lit edge sits under it, like a screen on a dark desk. */
+.pdp-show {
+  position: relative;
+  max-width: 1148px;
+  margin-top: clamp(48px, 7vw, 88px);
+  perspective: 2400px;
+  container-type: inline-size;
+}
+
+.pdp-show::before,
+.pdp-show::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+.pdp-show::before {
+  inset: -18% -6% 30%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-fg-rgb), calc(0.1 * var(--oi-halo-k))),
+    transparent
+  );
+}
+
+.pdp-show::after {
+  right: 14%;
+  bottom: -2px;
+  left: 14%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(var(--oi-fg-rgb), 0.55), transparent);
+  box-shadow: 0 0 28px 6px rgba(var(--oi-fg-rgb), calc(0.08 * var(--oi-halo-k)));
+}
+
+.pdp-win {
+  aspect-ratio: 16 / 10;
+  transform-origin: 50% 100%;
+  transition: transform 1800ms var(--oi-ease);
+}
+
+.pdp-show[data-seen='false'] .pdp-win {
+  transform: rotateX(22deg) scale(0.94);
+}
+
+/* Sections -------------------------------------------------------------------------------- */
+
+.pdp-head {
+  display: grid;
+  gap: 22px;
+  margin-bottom: clamp(40px, 5vw, 64px);
+}
+
+/* The paragraph under each heading: muted, calm, never wider than about 62 characters
+   (52ch of this face's wide zero holds about 75 letters). */
+.pdp-line {
+  max-width: 52ch;
+  margin: 0;
+  color: var(--oi-muted);
+  font-size: clamp(1.02rem, 1.3vw, 1.14rem);
+  line-height: 1.7;
+  letter-spacing: -0.005em;
+  text-wrap: pretty;
+}
+
+/* The one sentence under a card title. */
+.pdp-say {
+  max-width: 38ch;
+  margin: 10px 0 0;
+  color: var(--oi-muted);
+  font-size: 0.98rem;
+  line-height: 1.6;
+  text-wrap: balance;
+}
+
+/* Ask. Plan. Files: three close-ups on one line of time. */
+.pdp-flow .pdp-head {
+  justify-items: center;
+  text-align: center;
+}
+
+.pdp-flow .pdp-line {
+  text-wrap: balance;
+}
+
+.pdp-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pdp-cap {
+  position: relative;
+  margin: 22px 0 0;
+  padding-top: 22px;
+  color: var(--oi-ink);
+  font-size: 1.1rem;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+
+/* The line of time under the three: a hairline that draws itself, a dot on each close-up. */
+.pdp-cap::before,
+.pdp-cap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+}
+
+.pdp-cap::before {
+  right: -16px;
+  left: 0;
+  height: 1px;
+  background: var(--oi-hairline-strong);
+  transform-origin: left;
+  transition: transform 1400ms var(--oi-ease) calc(var(--d, 0ms) + 200ms);
+}
+
+.pdp-strip li:last-child .pdp-cap::before {
+  right: 0;
+  background: linear-gradient(90deg, var(--oi-hairline-strong), transparent);
+}
+
+.pdp-cap::after {
+  top: -3px;
+  left: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--oi-ink);
+  box-shadow: 0 0 12px rgba(var(--oi-fg-rgb), calc(0.6 * var(--oi-halo-k)));
+}
+
+[data-reveal][data-shown='false'] .pdp-cap::before,
+.ois-gate[data-seen='false'] .pdp-cap::before {
+  transform: scaleX(0);
+}
+
+/* Set it once: the title and its paragraph, the week under them, wide. */
+.pdp-wide {
+  aspect-ratio: 2.4;
+}
+
+/* You stay in charge: the words on the left, level with the middle of the approval. */
+.pdp-charge .pdp-in {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  align-items: center;
+  gap: 0 clamp(32px, 5vw, 72px);
+}
+
+.pdp-charge .pdp-head {
+  margin: 0;
+}
+
+.pdp-ok .pdp-card {
+  aspect-ratio: 4 / 3;
+}
+
+/* What's inside: six graphite cards, a drawn glyph in a ring at the top, the words at the foot. */
+.pdp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pdp-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  --pdp-pad: clamp(24px, 2.4vw, 32px);
+
+  min-height: 232px;
+  padding: var(--pdp-pad);
+  border: 1px solid var(--oi-app-edge);
+  border-radius: var(--oi-radius-card);
+  background: var(--oi-app-surface);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
+  box-sizing: border-box;
+}
+
+.pdp-tile::before,
+.pdp-tile .ps-icon {
+  position: absolute;
+  top: var(--pdp-pad);
+  left: var(--pdp-pad);
+}
+
+.pdp-tile::before {
+  content: '';
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: 50%;
+  background: rgba(var(--oi-fg-rgb), 0.03);
+  box-sizing: border-box;
+}
+
+.pdp-tile .ps-icon {
+  width: 20px;
+  height: 20px;
+  margin: 14px;
+  color: var(--oi-ink);
+}
+
+.pdp-tile h3 {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: 1.2rem;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+/* Questions: the home page's rows (sections.css), the heading held beside them. */
+.pdp-ask .pdp-in {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  align-items: start;
+  column-gap: var(--oi-s4);
+}
+
+.pdp-ask .pdp-head {
+  position: sticky;
+  top: 120px;
+  margin: 0;
+}
+
+.pdp-ask .oi-more-region p {
+  text-wrap: balance;
+}
+
+/* A quiet row to the rest of the site. */
+.pdp-more {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 40px;
+  padding-bottom: var(--oi-s4);
+}
+
+/* Narrower screens ------------------------------------------------------------------------ */
+
+@media (max-width: 1000px) {
+  .pdp-cap {
+    margin-top: 18px;
+    padding-top: 18px;
+  }
+
+  .pdp-charge .pdp-in,
+  .pdp-ask .pdp-in {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pdp-charge .pdp-head,
+  .pdp-ask .pdp-head {
+    position: static;
+    margin-bottom: clamp(40px, 5vw, 64px);
+  }
+
+  .pdp-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pdp-ok .pdp-card {
+    aspect-ratio: 16 / 10;
+  }
+}
+
+/* The three close-ups stay side by side on a tablet; below that they stack. */
+@media (max-width: 759px) {
+  .pdp-strip {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 520px;
+    margin-inline: auto;
+    gap: 40px;
+  }
+
+  .pdp-cap::before,
+  .pdp-strip li:last-child .pdp-cap::before {
+    right: 0;
+    background: linear-gradient(90deg, var(--oi-hairline-strong), transparent);
+  }
+}
+
+@media (max-width: 700px) {
+  /* A long centred paragraph reads badly on a phone: this head reads from the left, like the rest. */
+  .pdp-flow .pdp-head {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .pdp-flow .pdp-line {
+    text-wrap: pretty;
+  }
+
+  .pdp-acts {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .pdp-show {
+    perspective: 1200px;
+  }
+
+  .pdp-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  /* The glyph beside the words, not above them. */
+  .pdp-tile {
+    --pdp-pad: 22px;
+
+    justify-content: flex-start;
+    min-height: 0;
+    padding-left: 86px;
+  }
+
+  .pdp-wide,
+  .pdp-ok .pdp-card {
+    aspect-ratio: 5 / 4;
+  }
+}
+
+/* A card of 480px or less (the container is measured inside its padding, so it is the card) plays the scene's tall hero, so it stands 4:5. */
+@container (max-width: 480px) {
+  .pdp-win {
+    aspect-ratio: 4 / 5;
+  }
+}
+
+/* On the smallest phones the scene's words stop shrinking (9px), so the card grows a little
+   taller instead of cutting off the last file. */
+@container (max-width: 320px) {
+  .pdp-win {
+    aspect-ratio: 18 / 25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdp-win,
+  .pdp-cap::before {
+    transition: none;
+  }
+
+  .pdp-show[data-seen='false'] .pdp-win {
+    transform: none;
+  }
+}

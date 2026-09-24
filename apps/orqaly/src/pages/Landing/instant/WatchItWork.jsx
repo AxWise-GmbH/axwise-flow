@@ -1,48 +1,36 @@
 import { useEffect, useId, useReducer, useRef, useState } from 'react';
-import { DesktopDownloadButton } from '../simple/DesktopDownload';
 import DemoCallout, { DemoCalloutCaption } from './DemoCallouts';
-import More from './ui/More';
 import { CheckGlyph, ChevronGlyph, OrqanixMark } from './ui/Glyphs';
 import WorkspaceFiles from './WorkspaceFiles';
-import { ASSUMPTIONS_LINE, SCENES } from './watchItWork.scenes';
+import { SCENES, localScene, sceneKey } from './watchItWork.scenes';
+import { useT } from './i18n/useT';
 import {
   NODE_MS,
   STEP_COUNT,
   TICK_MS,
   activeStep,
   answeredCount,
+  filmOption,
+  finishedState,
   initialState,
   introBeat,
   reducer,
+  sceneProgress,
   typedCount,
   workspaceStatus,
 } from './watchItWorkMachine';
 import './WatchItWork.css';
 
-const CHOICES = [
-  ['ask', 'Sure, ask me'],
-  ['proceed', 'Proceed with assumptions'],
-];
+const CHOICES = ['ask', 'proceed'];
 
-const STATUS_LABELS = { waiting: 'Needs you', working: 'Working', done: 'Done' };
-
-const CONTROL_LABELS = {
-  idle: 'Play from the start',
-  playing: 'Pause demo',
-  paused: 'Resume demo',
-  awaiting: 'Skip to results',
-  complete: 'Replay demo',
-};
-
-const ANNOUNCEMENTS = {
-  intro: 'Playing the example from the start.',
-  gate: 'The plan is ready. Choose a next step.',
-  question: 'Your turn. Three questions are waiting.',
-  answer: 'Your turn. Three questions are waiting.',
-  build: 'Working through the five steps.',
-  results: 'The steps are done. The files are appearing.',
-  complete: 'Example complete. The first drafts are listed.',
-};
+/*
+ * The owner, 2026-09-21: the demo only plays. It asks the visitor for nothing, so it has no
+ * Play / Skip / Replay / Download buttons, and nothing inside the window can be clicked: the
+ * film makes every pick itself and loops through the four examples. The example tabs stay
+ * above it (owner: bring them back): they follow the film, and a click only jumps ahead.
+ * The window is hidden from assistive tech, since it changes by itself every few seconds;
+ * an sr-only line in the section (wiw.description) tells the same story in words.
+ */
 
 // The window gets a head start on its fade before the first result moves.
 const RISE_OFFSET = 3;
@@ -95,21 +83,15 @@ function LineIcon({ name }) {
   );
 }
 
-function fileKind(name) {
-  if (/\.csv$/.test(name)) return 'table';
-  if (/\.md$/.test(name)) return 'doc';
-  return /HTML|SVG/.test(name) ? 'code' : 'list';
-}
-
-const SIDEBAR_SECTIONS = [
-  ['spark', 'Intelligence'],
-  ['plug', 'Plugins'],
-  ['tools', 'Instruments'],
-  ['history', 'History'],
-];
-
 // The desktop app's left menu, as scenery: hidden from assistive tech, nothing in it focusable.
 function AppSidebar({ chatTitle }) {
+  const { t } = useT();
+  const sections = [
+    ['spark', t('wiw.side.intelligence', 'Intelligence')],
+    ['plug', t('wiw.side.plugins', 'Plugins')],
+    ['tools', t('wiw.side.instruments', 'Instruments')],
+    ['history', t('wiw.side.history', 'History')],
+  ];
   return (
     <div className="wiw-sidebar" aria-hidden="true">
       <span className="wiw-dots wiw-side-traffic">
@@ -124,29 +106,29 @@ function AppSidebar({ chatTitle }) {
       </span>
       <span className="wiw-side-item wiw-side-new">
         <LineIcon name="newChat" />
-        <span className="wiw-side-text">New Chat</span>
+        <span className="wiw-side-text">{t('wiw.side.new', 'New Chat')}</span>
       </span>
       <span className="wiw-side-chats">
         <span className="wiw-side-label">
-          <span className="wiw-side-text">RECENT</span>
+          <span className="wiw-side-text">{t('wiw.side.recent', 'RECENT')}</span>
         </span>
         <span className="wiw-side-chat" data-selected="true">
           <span className="wiw-side-text">{chatTitle}</span>
           <i />
         </span>
         <span className="wiw-side-chat">
-          <span className="wiw-side-text">Getting started</span>
+          <span className="wiw-side-text">{t('wiw.side.start', 'Getting started')}</span>
         </span>
         <span className="wiw-side-label">
-          <span className="wiw-side-text">PINNED</span>
+          <span className="wiw-side-text">{t('wiw.side.pinned', 'PINNED')}</span>
         </span>
         <span className="wiw-side-chat">
-          <span className="wiw-side-text">Brand guide</span>
+          <span className="wiw-side-text">{t('wiw.side.brand', 'Brand guide')}</span>
         </span>
       </span>
       <span className="wiw-side-foot">
-        {SIDEBAR_SECTIONS.map(([icon, label]) => (
-          <span className="wiw-side-item" key={label}>
+        {sections.map(([icon, label]) => (
+          <span className="wiw-side-item" key={icon}>
             <LineIcon name={icon} />
             <span className="wiw-side-text">{label}</span>
           </span>
@@ -154,17 +136,20 @@ function AppSidebar({ chatTitle }) {
       </span>
       <span className="wiw-side-settings">
         <LineIcon name="gear" />
-        <span className="wiw-side-text">Settings</span>
+        <span className="wiw-side-text">{t('wiw.side.settings', 'Settings')}</span>
       </span>
     </div>
   );
 }
 
-// The app's composer card. Scenery too: the demo's real controls are the cards above it.
+// The app's composer card. Scenery, like everything in the window.
 function Composer() {
+  const { t } = useT();
   return (
     <div className="wiw-composer" aria-hidden="true">
-      <span className="wiw-composer-copy">Ask whatever&apos;s on your mind.</span>
+      <span className="wiw-composer-copy">
+        {t('wiw.composer', "Ask whatever's on your mind.")}
+      </span>
       <span className="wiw-composer-controls">
         <LineIcon name="clip" />
         <LineIcon name="sliders" />
@@ -178,125 +163,120 @@ function Composer() {
   );
 }
 
-// Mounted only while the card is open, so a replay or a new scenario starts unpicked.
-function StepChoices({ labelledBy, onStart, autoPicked }) {
-  const [picked, setPicked] = useState(null);
-  const name = useId();
-
+// The app's two cards as the film shows them: its picks light up, nothing takes a click.
+function StepCard({ open, started, rise, picked, children }) {
+  const { t } = useT();
+  const labels = {
+    ask: t('wiw.choice.ask', 'Sure, ask me'),
+    proceed: t('wiw.choice.proceed', 'Proceed with assumptions'),
+  };
   return (
-    <form
-      className="wiw-card-body"
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (picked) onStart(picked);
-      }}
-    >
-      <div className="wiw-choices" role="radiogroup" aria-labelledby={labelledBy}>
-        {CHOICES.map(([value, label]) => (
-          <label className="wiw-choice" key={value}>
-            <input
-              type="radio"
-              name={name}
-              value={value}
-              checked={(picked ?? autoPicked) === value}
-              onChange={() => setPicked(value)}
-            />
-            <span>{label}</span>
-          </label>
-        ))}
-      </div>
-      <div className="wiw-card-foot">
-        <button type="submit" className="wiw-button" disabled={!picked}>
-          Start
-        </button>
-      </div>
-    </form>
-  );
-}
-
-function StepCard({ open, started, rise, headingRef, onStart, autoPicked, children }) {
-  const titleId = useId();
-  return (
-    <section className={rise ? 'wiw-card wiw-rise' : 'wiw-card'} aria-labelledby={titleId}>
+    <section className={rise ? 'wiw-card wiw-rise' : 'wiw-card'}>
       <div className="wiw-card-head">
-        <h3 className="wiw-card-title" id={titleId} ref={headingRef} tabIndex={-1}>
-          Choose a next step
-          {started && <span className="wiw-card-note"> · Started</span>}
+        <h3 className="wiw-card-title">
+          {t('wiw.gate.title', 'Choose a next step')}
+          {started && (
+            <span className="wiw-card-note"> · {t('wiw.gate.started', 'Started')}</span>
+          )}
         </h3>
       </div>
-      {open && <StepChoices labelledBy={titleId} onStart={onStart} autoPicked={autoPicked} />}
+      {open && (
+        <div className="wiw-card-body">
+          <div className="wiw-choices">
+            {CHOICES.map((value) => (
+              <span className="wiw-choice" key={value} data-checked={picked === value}>
+                <i className="wiw-radio" />
+                <span>{labels[value]}</span>
+              </span>
+            ))}
+          </div>
+          <div className="wiw-card-foot">
+            <span className="wiw-button" data-ready={picked !== null}>
+              {t('wiw.gate.start', 'Start')}
+            </span>
+          </div>
+        </div>
+      )}
       {children}
     </section>
   );
 }
 
-function QuestionCard({ questions, answers, open, sent, headingRef, onAnswer, onSend }) {
-  const titleId = useId();
+function QuestionCard({ questions, answers, open, sent }) {
+  const { t } = useT();
   const count = answers.filter((answer) => answer !== null).length;
-  const sendLabel = count === 0 ? 'Send' : `Send ${count} ${count === 1 ? 'answer' : 'answers'}`;
+  const sendLabel =
+    count === 0
+      ? t('wiw.send.none', 'Send')
+      : count === 1
+        ? t('wiw.send.one', 'Send 1 answer')
+        : t('wiw.send.many', 'Send {count} answers', { count });
 
   return (
-    <section className="wiw-card wiw-rise" aria-labelledby={titleId}>
+    <section className="wiw-card wiw-rise">
       <div className="wiw-card-head">
-        <h3 className="wiw-card-title" id={titleId} ref={headingRef} tabIndex={-1}>
-          Your Turn to Answer
-          {sent && <span className="wiw-card-note"> · Answers sent</span>}
+        <h3 className="wiw-card-title">
+          {t('wiw.questions.title', 'Your Turn to Answer')}
+          {sent && (
+            <span className="wiw-card-note"> · {t('wiw.questions.sent', 'Answers sent')}</span>
+          )}
         </h3>
         {!sent && (
           <span className="wiw-card-count">
-            {count} of {questions.length} answered
+            {t('wiw.questions.count', '{count} of {total} answered', {
+              count,
+              total: questions.length,
+            })}
           </span>
         )}
       </div>
       {open && (
-        <form
-          className="wiw-card-body wiw-rise"
-          onSubmit={(event) => {
-            event.preventDefault();
-            onSend();
-          }}
-        >
+        <div className="wiw-card-body wiw-rise">
           <ol className="wiw-questions">
             {questions.map((question, questionIndex) => (
-              <li key={question.label}>
+              <li key={questionIndex}>
                 <p className="wiw-question-label">
                   <span
                     className="wiw-question-number"
                     data-answered={answers[questionIndex] !== null}
-                    aria-hidden="true"
                   >
                     {answers[questionIndex] === null ? questionIndex + 1 : <CheckGlyph />}
                   </span>
                   {question.label}
                 </p>
-                <div className="wiw-options" role="group" aria-label={question.label}>
+                <div className="wiw-options">
                   {question.options.map((option, optionIndex) => (
-                    <button
-                      type="button"
+                    <span
                       className="wiw-option"
-                      key={option}
-                      aria-pressed={answers[questionIndex] === optionIndex}
-                      onClick={() => onAnswer(questionIndex, optionIndex)}
+                      key={optionIndex}
+                      data-picked={answers[questionIndex] === optionIndex}
                     >
                       {option}
-                    </button>
+                    </span>
                   ))}
                 </div>
               </li>
             ))}
           </ol>
           <div className="wiw-card-foot">
-            <button type="submit" className="wiw-button" disabled={count === 0}>
+            <span className="wiw-button" data-ready={count > 0}>
               {sendLabel}
-            </button>
+            </span>
           </div>
-        </form>
+        </div>
       )}
     </section>
   );
 }
 
 function WorkspacePanel({ state, scene }) {
+  const { t } = useT();
+  const statusLabels = {
+    waiting: t('wiw.status.waiting', 'Needs you'),
+    working: t('wiw.status.working', 'Working'),
+    done: t('wiw.status.done', 'Done'),
+  };
+  const stepWords = { done: t('wiw.step.done', 'done'), now: t('wiw.step.now', 'now') };
   const titleId = useId();
   const roadmapId = useId();
   const status = workspaceStatus(state);
@@ -308,7 +288,7 @@ function WorkspacePanel({ state, scene }) {
     <aside className="wiw-workspace" aria-labelledby={titleId}>
       <div className="wiw-workspace-head">
         <h3 className="wiw-workspace-title" id={titleId}>
-          Workspace
+          {t('wiw.workspace', 'Workspace')}
         </h3>
         <LineIcon name="close" />
       </div>
@@ -323,14 +303,17 @@ function WorkspacePanel({ state, scene }) {
         >
           <span className="wiw-status" data-state={status}>
             <span className="wiw-status-dot" aria-hidden="true" />
-            {STATUS_LABELS[status]}
+            {statusLabels[status]}
           </span>
           <p className="wiw-stepline" data-arrived={beat >= 2}>
-            Step {Math.min(current + 1, STEP_COUNT)} of {STEP_COUNT}
+            {t('wiw.stepline', 'Step {step} of {total}', {
+              step: Math.min(current + 1, STEP_COUNT),
+              total: STEP_COUNT,
+            })}
           </p>
           <div className="wiw-progress" data-arrived={beat >= 2} aria-hidden="true">
             {scene.steps.map((step, index) => (
-              <span key={step} data-state={stepStateAt(index)} />
+              <span key={index} data-state={stepStateAt(index)} />
             ))}
           </div>
         </div>
@@ -340,11 +323,11 @@ function WorkspacePanel({ state, scene }) {
           aria-hidden={beat < 2 || undefined}
         >
           <p className="wiw-label wiw-roadmap-label" id={roadmapId}>
-            Roadmap
+            {t('wiw.roadmap', 'Roadmap')}
           </p>
           <ol className="wiw-roadmap" aria-labelledby={roadmapId}>
             {scene.steps.map((step, index) => (
-              <li key={step} data-state={stepStateAt(index)}>
+              <li key={index} data-state={stepStateAt(index)}>
                 <span className="wiw-marker" aria-hidden="true">
                   {stepStateAt(index) === 'done' && <CheckGlyph />}
                   {stepStateAt(index) === 'now' && <i />}
@@ -352,7 +335,7 @@ function WorkspacePanel({ state, scene }) {
                 <span>
                   {step}
                   {stepStateAt(index) !== 'pending' && (
-                    <span className="oi-sr-only">, {stepStateAt(index)}</span>
+                    <span className="oi-sr-only">, {stepWords[stepStateAt(index)]}</span>
                   )}
                 </span>
               </li>
@@ -367,8 +350,14 @@ function WorkspacePanel({ state, scene }) {
   );
 }
 
-function Results({ scene, state, headingRef }) {
+function Results({ scene, state }) {
+  const { t } = useT();
   const titleId = useId();
+  // The owner's picks, in the words the chips showed.
+  const picks = scene.questions
+    .map((question, index) => question.options[state.answers[index]])
+    .filter(Boolean)
+    .join(' · ');
   const { columns } = scene.pack;
   // Items rise one after another across columns, which is also the roadmap's order.
   const firstRise = columns.map(
@@ -380,21 +369,17 @@ function Results({ scene, state, headingRef }) {
 
   return (
     <div className="wiw-results" role="group" aria-labelledby={titleId}>
-      <h3
-        className="wiw-pack-title wiw-rise"
-        id={titleId}
-        ref={headingRef}
-        tabIndex={-1}
-        style={{ '--i': RISE_OFFSET }}
-      >
+      <h3 className="wiw-pack-title wiw-rise" id={titleId} style={{ '--i': RISE_OFFSET }}>
         {scene.pack.title}
       </h3>
       <p className="wiw-fitted wiw-rise" style={{ '--i': RISE_OFFSET + 1 }}>
-        {state.assumptions ? ASSUMPTIONS_LINE : scene.fittedTo(state.answers)}
+        {state.assumptions
+          ? t('wiw.assumptions', 'Made with general assumptions. Answer 3 questions to fit it to you.')
+          : t('wiw.fitted', 'fitted to: {picks}', { picks })}
       </p>
       <div className="wiw-pack">
         {columns.map((column, columnIndex) => (
-          <section className="wiw-pack-column" key={column.title} aria-label={column.title}>
+          <section className="wiw-pack-column" key={columnIndex} aria-label={column.title}>
             <h4
               className="wiw-label wiw-pack-label wiw-rise"
               style={{ '--i': firstRise[columnIndex] }}
@@ -405,48 +390,92 @@ function Results({ scene, state, headingRef }) {
               {column.items.map((item, itemIndex) => (
                 <li
                   className="wiw-file wiw-rise"
-                  key={item}
+                  key={itemIndex}
                   style={{ '--i': firstRise[columnIndex] + itemIndex }}
                 >
-                  <LineIcon name={fileKind(item)} />
-                  <span>{item}</span>
+                  <LineIcon name={item.kind} />
+                  <span>{item.name}</span>
                 </li>
               ))}
             </ul>
           </section>
         ))}
       </div>
-      <p className="wiw-advice">Drafts to review, not legal or financial advice.</p>
+      <p className="wiw-advice">
+        {t('wiw.advice', 'Drafts to review, not legal or financial advice.')}
+      </p>
       <DemoCallout name="results" node={state.node} callouts={scene.callouts} />
     </div>
   );
 }
 
-export default function WatchItWork({ downloadDescriptionId = 'instant-download-release' }) {
-  const [state, dispatch] = useReducer(reducer, SCENES[0].id, initialState);
+function PauseGlyph({ paused }) {
+  return (
+    <svg viewBox="0 0 16 16" className="wiw-pause-glyph" aria-hidden="true" focusable="false">
+      {paused ? (
+        <path d="M5.5 3.8v8.4L12.2 8z" fill="currentColor" />
+      ) : (
+        <path d="M5.5 4v8M10.5 4v8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      )}
+    </svg>
+  );
+}
+
+export default function WatchItWork() {
+  const { t } = useT();
+  // Under reduced motion the film does not roll: it rests on the first example's finished
+  // pack, and the pause button can start it.
+  const [paused, setPaused] = useState(prefersReducedMotion);
+  const [state, dispatch] = useReducer(reducer, paused, (still) =>
+    still ? finishedState(SCENES[0]) : initialState(SCENES[0].id)
+  );
   const { node, playback } = state;
   const sceneIndex = Math.max(
     0,
     SCENES.findIndex((item) => item.id === state.sceneId)
   );
-  const scene = SCENES[sceneIndex];
+  // The film's own logic runs on SCENES (ids, counts); what shows is in the visitor's language.
+  const scene = localScene(SCENES[sceneIndex], t);
 
-  // The demo plays itself, in a loop, while it is on screen. The first thing a visitor
-  // does inside it ends that: from then on it is theirs to drive.
-  const [auto, setAuto] = useState(() => !prefersReducedMotion());
+  // The film rolls while it is on screen and not paused, and rests where it stands otherwise.
   const [inView, setInView] = useState(false);
-  const [autoPicked, setAutoPicked] = useState(null);
+  const [picked, setPicked] = useState(null);
   const sectionRef = useRef(null);
-  const takeOver = () => setAuto(false);
-
-  const pills = useRef([]);
   const startedAt = useRef(0);
-  const stepHeading = useRef(null);
-  const questionHeading = useRef(null);
-  const resultsHeading = useRef(null);
+  const running = inView && !paused;
+  const tabs = useRef([]);
+
+  // A tab jumps the film to that example. Playing, it starts there and rolls on; paused, it
+  // shows that example's finished pack. Either way the film keeps its own pace.
+  function showScene(index) {
+    const target = SCENES[index];
+    setPicked(null);
+    if (paused) dispatch({ type: 'SHOW', state: finishedState(target) });
+    else dispatch({ type: 'RESET', sceneId: target.id });
+  }
+
+  function handleTabKey(event) {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const focused = tabs.current.findIndex((button) => button?.contains(event.target));
+    const from = focused === -1 ? sceneIndex : focused;
+    const next =
+      event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? SCENES.length - 1
+          : (from + (event.key === 'ArrowRight' ? 1 : -1) + SCENES.length) % SCENES.length;
+    showScene(next);
+    tabs.current[next]?.focus();
+  }
 
   const beat = introBeat(state);
-  const typed = typedCount(state, scene.request.length);
+  // Typed by character, not UTF-16 unit, so no script splits a letter in half. A language
+  // switch mid-type just changes the text: the count follows the new request's length.
+  const requestChars = Array.from(scene.request);
+  const requestLength = useRef(requestChars.length);
+  requestLength.current = requestChars.length;
+  const typed = typedCount(state, requestChars.length);
   const questionShown = state.choice === 'ask' && node !== 'gate';
   const resultsShown = node === 'results' || node === 'complete';
 
@@ -460,22 +489,21 @@ export default function WatchItWork({ downloadDescriptionId = 'instant-download-
       // The tick that ends a node is this interval's last: a later one would carry the old
       // clock into the next node.
       if (elapsed >= NODE_MS[node]) window.clearInterval(timer);
-      dispatch({ type: 'TICK', node, elapsed, requestLength: scene.request.length });
+      dispatch({ type: 'TICK', node, elapsed, requestLength: requestLength.current });
     }, TICK_MS);
     return () => window.clearInterval(timer);
     // One clock per playing stretch: start it when a node starts or resumes, not on each tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playback, node]);
 
+  // On phones the tabs slide sideways: keep the playing one in view, moving only the row.
   useEffect(() => {
-    if (questionShown && !auto) questionHeading.current?.focus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [questionShown]);
-
-  useEffect(() => {
-    if (resultsShown && !auto) resultsHeading.current?.focus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resultsShown]);
+    const button = tabs.current[sceneIndex];
+    const row = button?.parentElement;
+    if (!row || row.scrollWidth <= row.clientWidth) return;
+    const left = button.offsetLeft - (row.clientWidth - button.offsetWidth) / 2;
+    row.scrollTo?.({ left: Math.max(0, left), behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+  }, [sceneIndex]);
 
   useEffect(() => {
     const element = sectionRef.current;
@@ -487,11 +515,10 @@ export default function WatchItWork({ downloadDescriptionId = 'instant-download-
     return () => observer.disconnect();
   }, []);
 
-  // The director: one small step per beat, each chosen from where the demo stands now.
+  // The director: one small step per beat, each chosen from where the film stands now.
   const answered = answeredCount(state);
   useEffect(() => {
-    if (!auto) return undefined;
-    if (!inView) {
+    if (!running) {
       if (playback === 'playing') {
         dispatch({ type: 'PAUSE', elapsed: Date.now() - startedAt.current });
       }
@@ -505,23 +532,21 @@ export default function WatchItWork({ downloadDescriptionId = 'instant-download-
       delay = 700;
       act = () => dispatch({ type: 'PLAY_INTRO', reducedMotion: false });
     } else if (node === 'gate' && playback === 'awaiting') {
-      delay = autoPicked ? 900 : 1100;
-      act = autoPicked
+      delay = picked ? 900 : 1100;
+      act = picked
         ? () => dispatch({ type: 'START', choice: 'ask', reducedMotion: false })
-        : () => setAutoPicked('ask');
+        : () => setPicked('ask');
     } else if (node === 'answer' && answered < scene.questions.length) {
       delay = 850;
       const question = state.answers.findIndex((answer) => answer === null);
-      // Not always the first chip, so the three questions do not look filled in by rote.
-      const option = (question + 1) % scene.questions[question].options.length;
-      act = () => dispatch({ type: 'ANSWER', question, option });
+      act = () => dispatch({ type: 'ANSWER', question, option: filmOption(scene, question) });
     } else if (node === 'answer') {
       delay = 900;
       act = () => dispatch({ type: 'SEND', reducedMotion: false });
     } else if (node === 'complete') {
       delay = 5200;
       act = () => {
-        setAutoPicked(null);
+        setPicked(null);
         dispatch({ type: 'RESET', sceneId: SCENES[(sceneIndex + 1) % SCENES.length].id });
       };
     }
@@ -529,94 +554,52 @@ export default function WatchItWork({ downloadDescriptionId = 'instant-download-
     const timer = window.setTimeout(act, delay);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auto, inView, node, playback, answered, autoPicked, sceneIndex]);
-
-  function handlePillKey(event) {
-    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-    event.preventDefault();
-    const focused = pills.current.findIndex((button) => button?.contains(event.target));
-    const from = focused === -1 ? sceneIndex : focused;
-    const next =
-      event.key === 'Home'
-        ? 0
-        : event.key === 'End'
-          ? SCENES.length - 1
-          : (from + (event.key === 'ArrowRight' ? 1 : -1) + SCENES.length) % SCENES.length;
-    takeOver();
-    dispatch({ type: 'RESET', sceneId: SCENES[next].id });
-    pills.current[next]?.focus();
-  }
-
-  // Start and Send unmount the button that was pressed; park focus on the card's heading,
-  // which stays, so it never falls back to the top of the page.
-  function handleStart(choice) {
-    takeOver();
-    stepHeading.current?.focus();
-    dispatch({ type: 'START', choice, reducedMotion: prefersReducedMotion() });
-  }
-
-  function handleSend() {
-    takeOver();
-    questionHeading.current?.focus();
-    dispatch({ type: 'SEND', reducedMotion: prefersReducedMotion() });
-  }
-
-  function handleControl() {
-    takeOver();
-    const reducedMotion = prefersReducedMotion();
-    if (playback === 'idle') dispatch({ type: 'PLAY_INTRO', reducedMotion });
-    else if (playback === 'playing') {
-      dispatch({ type: 'PAUSE', elapsed: Date.now() - startedAt.current });
-    } else if (playback === 'paused') dispatch({ type: 'RESUME', reducedMotion });
-    else if (playback === 'awaiting') dispatch({ type: 'SKIP', reducedMotion });
-    else dispatch({ type: 'REPLAY' });
-  }
+  }, [running, node, playback, answered, picked, sceneIndex]);
 
   return (
     <section
       ref={sectionRef}
       id="watch"
       className="wiw oi-section"
-      data-auto={auto}
       aria-labelledby="watch-heading"
       data-playback={playback}
       data-node={node}
+      data-paused={paused}
     >
       <div className="oi-container">
         <div className="wiw-head">
           <h2 className="oi-h2 wiw-heading" id="watch-heading">
-            Watch it work
+            {t('wiw.heading', 'Watch it work')}
           </h2>
-          <p className="oi-line wiw-line">Example demo · sped up</p>
-          <More>
-            <p>
-              Scripted example. Real runs take minutes and give you drafts to review, not legal or
-              financial advice. "Proceed" makes the same pack with general assumptions.
-            </p>
-          </More>
+          <p className="oi-line wiw-line">{t('wiw.line', 'Example demo · sped up')}</p>
         </div>
+        <p className="oi-sr-only">
+          {t(
+            'wiw.description',
+            'A sped-up example that plays by itself: you ask for something, Orqanix makes a five-step plan, asks three questions, works through the steps and lists the first drafts it made.'
+          )}
+        </p>
 
-        <div
-          className="wiw-pills"
-          role="group"
-          aria-label="Choose an example"
-          onKeyDown={handlePillKey}
-        >
+        {/* The four examples as tabs: the playing one lights up and fills as its scene runs.
+            They follow the film by themselves; a click only jumps ahead. */}
+        <div className="wiw-pills" role="group" aria-label={t('wiw.examples', 'Examples')} onKeyDown={handleTabKey}>
           {SCENES.map((item, index) => (
             <button
               type="button"
               className="wiw-pill"
               key={item.id}
               ref={(element) => {
-                pills.current[index] = element;
+                tabs.current[index] = element;
               }}
               aria-pressed={index === sceneIndex}
-              onClick={() => {
-                takeOver();
-                dispatch({ type: 'RESET', sceneId: item.id });
-              }}
+              onClick={() => showScene(index)}
+              style={
+                index === sceneIndex
+                  ? { '--wiw-progress': sceneProgress(state).toFixed(3) }
+                  : undefined
+              }
             >
-              {item.label}
+              <span className="wiw-pill-label">{t(sceneKey(item.id, 'label'), item.label)}</span>
             </button>
           ))}
         </div>
@@ -625,10 +608,10 @@ export default function WatchItWork({ downloadDescriptionId = 'instant-download-
             below the demo stays where it is. The app window stays put; "goes black" is the
             chat and the Workspace fading out of it before the pack rises on its canvas. */}
         <div className="wiw-body">
-          <div className="wiw-app">
+          <div className="wiw-app" dir="ltr" aria-hidden="true" inert>
             <AppSidebar chatTitle={scene.chatTitle} />
             <div className="wiw-titlebar">
-              <span className="wiw-dots" aria-hidden="true">
+              <span className="wiw-dots">
                 <i />
                 <i />
                 <i />
@@ -637,7 +620,7 @@ export default function WatchItWork({ downloadDescriptionId = 'instant-download-
                 {scene.chatTitle}
                 <ChevronGlyph />
               </p>
-              <span className="wiw-brand" aria-hidden="true">
+              <span className="wiw-brand">
                 <OrqanixMark />
                 Orqanix
                 <LineIcon name="panel" />
@@ -646,23 +629,15 @@ export default function WatchItWork({ downloadDescriptionId = 'instant-download-
 
             <div className="wiw-stage">
               {node !== 'complete' && (
-                <div
-                  className="wiw-window"
-                  data-fading={node === 'results'}
-                  inert={node === 'results'}
-                  aria-hidden={node === 'results' || undefined}
-                >
+                <div className="wiw-window" data-fading={node === 'results'}>
                   <div className="wiw-chat">
                     <p className="wiw-user" data-typing={beat === 0}>
-                      <span className="oi-sr-only">You: </span>
                       {beat === 0 ? (
                         <>
-                          {scene.request.slice(0, typed)}
-                          <span className="wiw-caret" aria-hidden="true" />
+                          {requestChars.slice(0, typed).join('')}
+                          <span className="wiw-caret" />
                           {/* The untyped rest holds the bubble at its final size while it fills. */}
-                          <span className="wiw-untyped" aria-hidden="true">
-                            {scene.request.slice(typed)}
-                          </span>
+                          <span className="wiw-untyped">{requestChars.slice(typed).join('')}</span>
                         </>
                       ) : (
                         scene.request
@@ -670,7 +645,6 @@ export default function WatchItWork({ downloadDescriptionId = 'instant-download-
                     </p>
                     {beat >= 2 && (
                       <p className={node === 'intro' ? 'wiw-reply wiw-rise' : 'wiw-reply'}>
-                        <span className="oi-sr-only">Orqanix: </span>
                         {scene.planReply}
                       </p>
                     )}
@@ -685,9 +659,7 @@ export default function WatchItWork({ downloadDescriptionId = 'instant-download-
                         open={node === 'gate'}
                         started={state.choice !== null}
                         rise={node === 'gate' && playback === 'awaiting'}
-                        headingRef={stepHeading}
-                        onStart={handleStart}
-                        autoPicked={autoPicked}
+                        picked={picked}
                       >
                         <DemoCallout name="gate" node={node} callouts={scene.callouts} />
                       </StepCard>
@@ -698,12 +670,6 @@ export default function WatchItWork({ downloadDescriptionId = 'instant-download-
                         answers={state.answers}
                         open={node === 'answer'}
                         sent={node !== 'question' && node !== 'answer' && answeredCount(state) > 0}
-                        headingRef={questionHeading}
-                        onAnswer={(question, option) => {
-                          takeOver();
-                          dispatch({ type: 'ANSWER', question, option });
-                        }}
-                        onSend={handleSend}
                       />
                     )}
                     <Composer />
@@ -713,23 +679,24 @@ export default function WatchItWork({ downloadDescriptionId = 'instant-download-
                 </div>
               )}
 
-              {resultsShown && <Results scene={scene} state={state} headingRef={resultsHeading} />}
+              {resultsShown && <Results scene={scene} state={state} />}
             </div>
           </div>
 
           <DemoCalloutCaption node={node} callouts={scene.callouts} />
 
+          {/* The one control: autoplaying motion has to be stoppable. An icon, not a prompt. */}
           <div className="wiw-controls">
-            <button type="button" className="wiw-control" onClick={handleControl}>
-              {CONTROL_LABELS[playback]}
+            <button
+              type="button"
+              className="wiw-pause"
+              aria-label={paused ? t('wiw.play', 'Play demo') : t('wiw.pause', 'Pause demo')}
+              onClick={() => setPaused((value) => !value)}
+            >
+              <PauseGlyph paused={paused} />
             </button>
-            {node === 'complete' && <DesktopDownloadButton descriptionId={downloadDescriptionId} />}
           </div>
         </div>
-
-        <p className="oi-sr-only" role="status">
-          {playback === 'paused' ? 'Demo paused.' : ANNOUNCEMENTS[node]}
-        </p>
       </div>
     </section>
   );

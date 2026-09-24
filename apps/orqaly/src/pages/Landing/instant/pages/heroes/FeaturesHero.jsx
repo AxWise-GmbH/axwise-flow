@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Seen } from '../../SpeedStrip';
 import HeroFrame from './HeroFrame';
+import { useT } from '../../i18n/useT';
 import './FeaturesHero.css';
 
 /*
@@ -84,11 +85,12 @@ function Tile({ item, index }) {
  * icons, so the wall cannot drift away from what it links to.
  */
 export default function FeaturesHero({ id, tag, title, line, items }) {
+  const { t } = useT('pg');
   const wall = (
-    <Seen as="nav" className="ohf-wall" aria-label="Jump to a feature">
+    <Seen as="nav" className="ohf-wall" aria-label={t('pg.featureshero.nav', 'Jump to a feature')}>
       <OrbGhost />
       <div className="ohf-head">
-        <p className="oi-tag ohf-head-label">Jump to</p>
+        <p className="oi-tag ohf-head-label">{t('pg.featureshero.jump', 'Jump to')}</p>
         <span className="ohf-head-rule" aria-hidden="true" />
         <p className="oi-tag ohf-head-count" aria-hidden="true">
           01 &ndash; {twoDigits(items.length)}

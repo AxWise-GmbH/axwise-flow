@@ -8,8 +8,8 @@ const CALLOUTS_BY_NODE = {
 
 /**
  * One pop-up label, rendered inside the element it points at so it follows that element
- * at every width. Always in the DOM so it can fade both ways. Decorative: the role="status"
- * line in WatchItWork carries the same story for assistive tech.
+ * at every width. Always in the DOM so it can fade both ways. Decorative: WatchItWork tells
+ * the same story in words for assistive tech.
  */
 export default function DemoCallout({ name, node, callouts }) {
   const visible = CALLOUTS_BY_NODE[node]?.includes(name) ?? false;

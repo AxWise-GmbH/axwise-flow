@@ -1,0 +1,420 @@
+{
+  "meta": {
+    "slug": "api-terms",
+    "title": "API Koşulları",
+    "summary": "Orqanix API’sini kendi ürünlerine veya sistemlerine entegre eden işletmeler için ek kurallar.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "İlk sürüm."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1 and 11).",
+        "Roles: we say we are the customer's processor for personal data they send, and act for ourselves (controller) for our own web searches and OpenRegister lookups. A lawyer must confirm this split (FACTS open point 11).",
+        "Access keys: the code uses one shared machine key, not one key per customer. The text only says 'the key we give you'. Per-customer keys are needed before a second customer gets access, or the confidentiality and 'you are responsible for use of the key' clauses do not work.",
+        "Google Gemini: until the paid Gemini tier and Google's data processing terms are in place (geminiPaidTier), Google may use API content under its free-tier terms, which conflicts with our processor role and must not be offered to EEA/UK/CH customers (FACTS open point 3).",
+        "Data Act export: there is no export code. A manual process that produces the customer's data in a machine-readable format within the 30-day transition is needed before the first EU customer.",
+        "Retention period for API records (decisions, outcomes, scope records) is unknown; the text says 'while you use the API and then as the DPA sets out' (FACTS open point 5).",
+        "US liability cap is 'what you paid in the 12 months before the claim', which is zero while the API is free. Owner and lawyer should decide whether to add a fixed minimum amount.",
+        "Data Act Art. 31 (lighter rules for trial versions and custom services) may apply while the API is free and early; lawyer to decide. The government-access promise (Data Act Art. 32) is a commitment the owner must be able to keep.",
+        "Notice of changes to these terms is 'in advance' without a fixed period; owner to set one if wanted.",
+        "Mailboxes: hello@, privacy@ and security@ need MX records before anyone can reach us (FACTS open point 2).",
+        "Fact check 2026-09-21: added Google Search grounding (FACTS §7/§12), the Gemini paid-tier processor sentence under needs geminiPaidTier, and the under-18 flow-down required by the Gemini API terms (us.md row 12). 'The key stops working' changed to 'we end your access', because one shared key cannot be switched off for one customer.",
+        "US liability cap now reads 'the greater of US$100 and the amounts paid in 12 months' so the cap is not zero while the API is free (us.md row 27). Owner and lawyer to confirm the amount; the US warranty disclaimer is shown as a highlighted note for conspicuousness, lawyer to confirm this is enough (capitals are the usual form).",
+        "Data Act switching: added the 30-day data-retrieval period after the transition (Data Act Art. 25(2)). Still missing: the pre-contract information on switching and the register of data formats (Data Act Art. 26); owner to publish before the first EU customer.",
+        "Research tools not in FACTS: the API code also contains other research services (for example a Eurostat trade-data service). If any of them receive task data in production, they must be added to the Sub-processors page and here; owner to confirm.",
+        "Contracting party for the API (the API runs in a separate Google Cloud project) must be the same entity as for the rest of Orqanix, or these terms need their own party block (FACTS open point 11)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Bu koşullar hakkında"
+    },
+    {
+      "type": "p",
+      "text": "Bu API Koşulları, bir işletme Orqanix API’sini kullandığında uygulanır. Bu koşullar, [Hizmet Koşullarımıza](/instant/legal/terms) ve [Kabul Edilebilir Kullanım Politikamıza](/instant/legal/acceptable-use) ek niteliğindedir. Kişisel veriler için [Veri İşleme Eki](/instant/legal/dpa) (“VİE”) de uygulanır ve bu koşulların bir parçasını oluşturur. Bu koşullar ile Hizmet Koşulları API konusunda çeliştiğinde bu koşullar geçerli olur. İkimizin de imzaladığı ayrı bir yazılı sözleşme ise her ikisine de üstün gelir."
+    },
+    {
+      "type": "p",
+      "text": "“Siz”, API’yi kullanan işletme anlamına gelir. Bu koşulları kabul eden kişi, o işletmeyi bağlamaya yetkili olduğunu teyit eder. “Biz”, Orqanix anlamına gelir."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix, bu koşulların tarafı olan {company.legalName}, {company.address} tarafından işletilmektedir.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "who-may-use",
+      "text": "API’yi kimler kullanabilir"
+    },
+    {
+      "type": "p",
+      "text": "API yalnızca işletmelere yöneliktir. API’yi tüketici olarak, yani ticari, mesleki veya iş faaliyetiniz dışındaki amaçlarla kullanmayın. Sizin adınıza API’yi kullanan herkes 18 yaşında veya daha büyük olmalıdır."
+    },
+    {
+      "type": "p",
+      "text": "API erken aşamadayken erişim talep üzerine verilir. {company.email} adresine “API access” konu başlığıyla yazın ve bize işletmenizden ve ne geliştirmek istediğinizden bahsedin. Kimin erişim alacağına biz karar veririz; talebi reddedebilir veya koşullar belirleyebiliriz."
+    },
+    {
+      "type": "p",
+      "text": "API erken aşamadayken ücretsizdir. Herhangi bir ücretli plan başlamadan önce fiyatı ve ödeme koşullarını sizinle yazılı olarak kararlaştırırız. Bu anlaşma olmadan hiçbir ücret talep etmeyiz."
+    },
+    {
+      "type": "h2",
+      "id": "what-it-does",
+      "text": "API ne yapar"
+    },
+    {
+      "type": "p",
+      "text": "API, kendi ürününüz için bir akıl yürütme katmanıdır. Ona bir görevi, elinizdeki ajanlar, araçlar ve bütçeyle birlikte gönderirsiniz. API; işi kimin yapması gerektiği (bir ajan, bir ekip veya bir kişi), değerlendirdiği her etken için bir puan, bağlam, güvenlik sınırları, yedek seçenekler ve daha büyük işler için bir ekip planı ile yanıt verir."
+    },
+    {
+      "type": "p",
+      "text": "API yalnızca karar verir; işi kendisi yapmaz. Her yanıta göre harekete geçilip geçilmeyeceğini ve nasıl geçileceğini sisteminiz seçer ve sisteminizin ardından yaptıklarından siz sorumlusunuz."
+    },
+    {
+      "type": "p",
+      "text": "Uzun işlerde sonucu daha sonra alabilir veya imzalı bir webhook aracılığıyla teslim alabilirsiniz. Erişimi olan müşteriler API’nin teknik dokümantasyonunu alır."
+    },
+    {
+      "type": "p",
+      "text": "Yanıtlar yapay zekâ ile üretilir. Hatalı, eksik veya güncelliğini yitirmiş olabilirler. Onlara güvenmeden önce, özellikle bir hatanın birine zarar verebileceği durumlarda, kontrol edin. [Yapay Zekâmız Nasıl Çalışır](/instant/legal/ai) sayfası daha fazlasını açıklar."
+    },
+    {
+      "type": "h2",
+      "id": "keys",
+      "text": "Erişim anahtarları"
+    },
+    {
+      "type": "p",
+      "text": "API’ye size verdiğimiz gizli bir anahtarla erişirsiniz. Onu bir parola gibi değerlendirin:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Onu gizli tutun ve yalnızca kendi sunucularınızda saklayın. Asla bir uygulamaya, bir web sayfasına veya başkalarının görebileceği bir koda koymayın.",
+        "Onu yalnızca entegrasyonunuz için ihtiyaç duyan kişi ve sistemlerle paylaşın.",
+        "Sızdırıldığını veya izniniz olmadan kullanıldığını düşünüyorsanız derhâl {company.securityEmail} adresinden bize bildirin."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Size verdiğimiz anahtarın, ele geçirilmiş olabileceğini bize bildirene kadar her türlü kullanımından siz sorumlusunuz. Örneğin kötüye kullanım veya bir güvenlik riski görürsek, bir anahtarı her zaman değiştirebilir, sınırlayabilir veya geri alabiliriz. Mümkün olduğunda size bildiririz."
+    },
+    {
+      "type": "h2",
+      "id": "your-users",
+      "text": "Ürününüz ve kullanıcılarınız"
+    },
+    {
+      "type": "p",
+      "text": "API’yi kendi ürününüze entegre ettiğinizde o ürün sizin olmaya devam eder. Üründen ve onu kullanan kişilere (“son kullanıcılarınıza”) nasıl davrandığından siz sorumlusunuz. Şunları yapmalısınız:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Bağlamdan açıkça anlaşılmadığı sürece, son kullanıcılarınıza bir yapay zekâ ile muhatap olduklarını bildirin (EU AI Act Art. 50(1); bazı ABD eyalet kanunları).",
+        "API’yi 18 yaşından küçüklere yönelik veya onlar tarafından kullanılması muhtemel hiçbir üründe kullanmayın.",
+        "Son kullanıcılarınıza kendi gizlilik bildiriminizi sunun. Bu bildirim, verilerini bize gönderdiğiniz de dahil olmak üzere ürününüzün verilerini nasıl kullandığını açıklamalıdır. [Gizlilik Politikamız](/instant/legal/privacy) ürününüzü kapsamaz.",
+        "Herhangi birinin kişisel verilerini bize göndermeden önce bir hukuki dayanağa ve gerekli her türlü rızaya sahip olun.",
+        "Son kullanıcılarınızın en az [Kabul Edilebilir Kullanım Politikamız](/instant/legal/acceptable-use) kadar katı kurallara uymasını sağlayın ve bunları ihlal eden herkesi durdurun.",
+        "Yazılı olarak aksini kararlaştırmadıkça ürününüzü Orqanix tarafından yapılmış veya onaylanmış olarak değil, kendi ürününüz olarak sunun."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "AB Yapay Zekâ Yasası kapsamında, API ile kurduğunuz yapay zekâ sisteminin sağlayıcısı veya uygulayıcısı sizsiniz ve o rolün yükümlülüklerini taşırsınız. Biz sisteminizin bir parçasını tedarik ederiz; onun sağlayıcısı değiliz."
+    },
+    {
+      "type": "h2",
+      "id": "high-risk",
+      "text": "Yüksek riskli kullanımlar"
+    },
+    {
+      "type": "p",
+      "text": "Bazı kararlar kişiler üzerinde hukuki veya benzer ölçüde ciddi etkiler doğurur; örneğin işe alım ve çalışma hayatı, eğitim, kredi, sigorta, konut, sağlık hizmetleri, kamu hizmetlerine erişim, kolluk, göç ve yargıyla ilgili kararlar. Kendi hukuki incelemenizi yapmadan ve kanunun gerektirdiği güvenceleri uygulamaya koymadan, API yanıtlarını bu kararları vermek veya desteklemek için kullanmayın. Bu güvenceler arasında, bir karar etkisini göstermeden önce gerçek bir insan incelemesi yer alır."
+    },
+    {
+      "type": "p",
+      "text": "Bu yükümlülükler, size uygulanan kanunlar kapsamında size aittir. Bunlar arasında 2 Aralık 2027’den itibaren uygulanacak olan AB Yapay Zekâ Yasası’nın yüksek riskli yapay zekâ sistemlerine ilişkin kuralları (AI Act Annex III) ve GDPR’ın otomatik kararlara ilişkin kuralları (GDPR Art. 22) yer alır."
+    },
+    {
+      "type": "p",
+      "text": "Bunlara otomatik kararlara ilişkin ABD eyalet kanunları da dahildir. Örneğin Colorado’nun, önemli sonuçlar doğuran kararlarda kullanılan yapay zekâya ilişkin kanunu 1 Ocak 2027’de yürürlüğe girer.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "your-data",
+      "text": "Verileriniz"
+    },
+    {
+      "type": "p",
+      "text": "Verileriniz, API’ye gönderdiğiniz şeyler (görevler, ajanlarınızın ve araçlarınızın açıklamaları, bütçeler ve bağlam) ve API’nin size verdiği yanıtlardır. Kararları, bunların sonuçlarını ve her görevin kapsamına ilişkin kayıtları API’nin kendi veritabanında saklarız; bu veritabanı AB’de (Hollanda) Google Cloud üzerinde çalışır. Bunları API’yi kullandığınız süre boyunca ve sonrasında VİE’de belirtildiği şekilde saklarız."
+    },
+    {
+      "type": "p",
+      "text": "Bir görevi yanıtlamak için onu kullandığımız yapay zekâ modeli Google Gemini’ye göndeririz. Gemini, Google Search ile web’de arama da yapabilir. Google görevi AB dışında işleyebilir. [Alt İşleyenler](/instant/legal/subprocessors) sayfası, API’yi işletmemize yardımcı olan herkesi listeler."
+    },
+    {
+      "type": "p",
+      "text": "Google’ın ücretli Gemini API’sini kullanırız. Burada Google, veri işleme koşulları kapsamında bizim veri işleyenimiz olarak hareket eder ve görevlerinizi ürünlerini geliştirmek için kullanmaz.",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "for-you",
+      "text": "Sizin adınıza hareket ettiğimizde"
+    },
+    {
+      "type": "p",
+      "text": "Bize gönderdiğiniz kişisel veriler bakımından veri işleyeniniz oluruz. Bu, bu verileri VİE kapsamında yalnızca sizin talimatlarınız doğrultusunda ve yalnızca API’yi sizin için işletmek amacıyla işlediğimiz anlamına gelir."
+    },
+    {
+      "type": "h3",
+      "id": "for-ourselves",
+      "text": "Kendi adımıza hareket ettiğimizde"
+    },
+    {
+      "type": "p",
+      "text": "API’nin yaptığı işlerin bir kısmı sizin değil, bizim işimizdir. Bir görev için web’de arama yapmak üzere kendi arama hizmetimiz, görevinizden oluşturulan sorguları arama motorlarına (Google, Bing, Brave ve DuckDuckGo) gönderir. Bir şirketi sorgulamak için API, sonuçları yönetici adlarını içerebilen şirket sicili hizmeti OpenRegister’a başvurur. Bu aramaların ve sorgulamaların nasıl işleyeceğine biz karar veririz. Bunlar için kendi adımıza (bir “veri sorumlusu” olarak) hareket ederiz ve VİE değil, [Gizlilik Politikamız](/instant/legal/privacy) uygulanır."
+    },
+    {
+      "type": "p",
+      "text": "Bir görevin bazı kısımları arama sorgularına dahil olabileceğinden, görev gerektirmedikçe görev metnine kişisel veri koymayın."
+    },
+    {
+      "type": "h3",
+      "id": "what-we-dont-do",
+      "text": "Yapmadıklarımız"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Kendi yapay zekâ modellerimizi verilerinizle eğitmeyiz.",
+        "Verilerinizi satmayız ve reklam için kullanmayız."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "what-not-to-send",
+      "text": "Nelerin gönderilmemesi gerektiği"
+    },
+    {
+      "type": "p",
+      "text": "Yazılı olarak kabul etmediğimiz sürece bize özel nitelikli kişisel verileri (sağlık, din, cinsel yönelim veya biyometrik veriler gibi) ya da ceza mahkûmiyetlerine ilişkin verileri göndermeyin."
+    },
+    {
+      "type": "p",
+      "text": "Bize HIPAA kapsamındaki korunan sağlık bilgilerini göndermeyin. İş ortağı sözleşmeleri (business associate agreements) imzalamayız.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "rights",
+      "text": "Kim neye sahip"
+    },
+    {
+      "type": "p",
+      "text": "Bize gönderdiğiniz şeyler üzerindeki tüm haklar sizde kalır. Aramızda, API’nin size verdiği yanıtlar, üzerlerinde herhangi bir hak bulunduğu ölçüde size aittir. Girdilerinizi API’yi sizin için işletmek amacıyla kullanmamız için gereken hakları bize verirsiniz. API, yazılımımız, talimatlarımız ve yöntemlerimiz üzerindeki tüm haklar bizde kalır. Bize fikir veya geri bildirim gönderirseniz, bunları serbestçe kullanabiliriz."
+    },
+    {
+      "type": "h2",
+      "id": "limits",
+      "text": "Sınırlar ve kısıtlamalar"
+    },
+    {
+      "type": "p",
+      "text": "Taleplerinizin sayısı, boyutu ve toplam hacmi için sınırlar belirleyebilir ve bunları değiştirebiliriz. Bu sınırları aşan talepleri yavaşlatabilir veya reddedebiliriz. Örneğin birden fazla anahtar veya hesap kullanarak bir sınırı aşmaya çalışmayın."
+    },
+    {
+      "type": "p",
+      "text": "Şunları yapmamalısınız:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "kanunun izin verdiği durumlar dışında API’yi kopyalamak, parçalarına ayırmak veya tersine mühendislik uygulamak;",
+        "API’yi rakip bir akıl yürütme hizmeti geliştirmek için kullanmak;",
+        "iznimiz olmadan API’nin güvenliğini test etmek (bir sorunun nasıl bildirileceğini [Güvenlik ve Güvenlik Açığı Bildirimi](/instant/legal/security) sayfamız açıklar);",
+        "kötü amaçlı yazılım veya API’yi aşırı yüklemeye ya da ona zarar vermeye yönelik trafik göndermek."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "no-service-levels",
+      "text": "Erişilebilirlik ve değişiklikler"
+    },
+    {
+      "type": "p",
+      "text": "API için bir hizmet düzeyi sözleşmesi yoktur. Herhangi bir erişilebilirlik, çalışma süresi veya yanıt hızı düzeyi taahhüt etmeyiz. API; bakım, değişiklikler veya kontrolümüz dışındaki nedenlerle kesintiye uğrayabilir. Ürününüzü, API yavaş olduğunda veya kullanılamadığında da güvenli şekilde çalışmaya devam edecek biçimde, örneğin kendi yedek çözümünüzle, tasarlayın."
+    },
+    {
+      "type": "p",
+      "text": "API, biz geliştirdikçe değişecektir. Çalışan bir entegrasyonu bozacak değişiklikleri size önceden bildirmeyi amaçlarız. Bunu her zaman yapamayabiliriz; örneğin bir güvenlik sorununu hızla gidermemiz gerektiğinde."
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "Gizlilik"
+    },
+    {
+      "type": "p",
+      "text": "Taraflardan her biri diğerinin gizli bilgilerini görebilir: gizli olarak işaretlenmiş veya makul olarak gizli olduğu anlaşılması gereken, kamuya açık olmayan bilgiler. Sizin açınızdan buna girdileriniz dahildir. Bizim açımızdan buna API’nin dokümantasyonu ve anahtarları dahildir."
+    },
+    {
+      "type": "p",
+      "text": "Bunları alan taraf, bu bilgileri yalnızca bu koşullar için kullanır, makul özenle korur ve yalnızca ihtiyacı olan ve gizlilikle bağlı kişilerle paylaşır. Bu yükümlülük; kamuya açık olan, alan tarafça zaten bilinen, onun tarafından bağımsız olarak geliştirilen veya başka birinden hukuka uygun şekilde alınan bilgileri kapsamaz. Kanun açıklamayı gerektiriyorsa, alan taraf gerekeni açıklayabilir ve izin verilen durumlarda önce diğer tarafa bildirir."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Askıya alma ve sona erme"
+    },
+    {
+      "type": "p",
+      "text": "API’yi kullanmayı istediğiniz zaman bırakabilirsiniz. API ücretsiz olduğu sürece, taraflardan her biri bu koşulları istediği zaman e-postayla sona erdirebilir."
+    },
+    {
+      "type": "p",
+      "text": "Bu koşulları veya Kabul Edilebilir Kullanım Politikasını ihlal ederseniz, kullanımınız API’yi, diğer müşterileri veya başka birini riske atarsa ya da kanun gerektirirse erişiminizi derhâl askıya alabilir veya sona erdirebiliriz. Mümkün olduğunda önce size bildirir ve sorunu gidermeniz için size fırsat veririz."
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullar sona erdiğinde API’yi kullanma hakkınız sona erer ve erişiminizi sonlandırırız. Ardından verilerinizi VİE’de belirtildiği şekilde ele alırız. Bu koşulların gizlilik, sorumluluk ve uygulanacak hukuk gibi doğası gereği devam etmesi gereken kısımları uygulanmaya devam eder."
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "Sağlayıcı değiştirme",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "AB Veri Yasası, bulut ve diğer veri işleme hizmetlerinin kurumsal müşterilerinin, bir sağlayıcıya bağımlı kalmadan başka bir sağlayıcıya veya kendi sistemlerine geçmesine olanak tanır (Data Act Art. 23-31). API için:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Bize yazılı olarak bildirerek bir geçiş başlatabilir veya API’yi sona erdirip verilerinizi alabilirsiniz. Bildirim süresi en fazla iki aydır ve daha kısa bir süre seçebilirsiniz.",
+        "Verilerinizi, yani girdilerinizi ve sizin için sakladığımız kararları, sonuçları ve kapsam kayıtlarını, yaygın, makinece okunabilir bir formatta size veririz.",
+        "Geçiş süreci en fazla 30 gün sürer. Bu teknik olarak mümkün değilse, Veri Yasası’nın izin verdiği sınırlar içinde nedenini ve ne kadar süreye ihtiyacımız olduğunu size bildiririz.",
+        "Geçiş süreci boyunca API’yi sizin için kararlaştırıldığı şekilde çalıştırmaya devam eder ve size iyi niyetle yardımcı oluruz.",
+        "Geçiş süreci sona erdikten sonra verilerinizi geri almak için en az 30 gün daha süreniz olur.",
+        "Geçiş tamamlandığında verilerinizi VİE’de belirtildiği şekilde sileriz.",
+        "12 Ocak 2027’ye kadar yalnızca bir geçişin doğrudan maliyetlerini talep edebiliriz. 12 Ocak 2027’den itibaren geçiş için hiçbir ücret almayız. API ücretsiz olduğu sürece hiçbir ücret almayız."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "Konum ve kamu makamlarının erişimi",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "API ve veritabanı AB’de (Hollanda) Google Cloud üzerinde çalışır. Google Gemini görevleri AB dışında işleyebilir; arama motorları ve OpenRegister ise sorguları kendi seçtikleri yerlerde işler. [Alt İşleyenler](/instant/legal/subprocessors) sayfası her sağlayıcıyı ve nerede çalıştığını listeler (Data Act Art. 28).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "AB dışındaki bir hükûmet bizden kişisel olmayan verilerinizi talep ederse, bunları yalnızca AB veya üye devlet hukukunun izin verdiği durumlarda teslim ederiz. Kanun yasaklamadıkça önce size bildiririz (Data Act Art. 32).",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Garantiler ve sorumluluk",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "API “olduğu gibi” ve “mevcut olduğu şekilde” sunulur. Kanunun izin verdiği ölçüde; satılabilirlik, belirli bir amaca uygunluk, mülkiyet ve hak ihlali olmaması garantileri dahil olmak üzere, açık veya zımni hiçbir türde garanti vermeyiz. Yanıtların doğru, eksiksiz veya kullanımınıza uygun olduğunu garanti etmeyiz.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Kanunun izin verdiği ölçüde, taraflardan hiçbiri dolaylı, arızi, özel, sonuç olarak doğan veya cezai tazminatlardan ya da kâr, gelir, veri veya itibar kayıplarından sorumlu değildir. Bu koşullar kapsamındaki toplam sorumluluğumuz, 100 ABD doları ile talebe yol açan olaydan önceki 12 ay içinde API için bize ödediğiniz tutarlardan hangisi daha yüksekse onunla sınırlıdır. Bu sınırlar, kanunun sınırlandırılmasına izin vermediği sorumluluğa uygulanmaz.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Sorumluluk",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Kasten veya ağır ihmalle verdiğimiz zararlardan, hayata, vücuda veya sağlığa verilen zararlardan ve emredici ürün sorumluluğu mevzuatı kapsamında tam olarak sorumluyuz.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Hafif ihmal durumunda yalnızca esaslı bir yükümlülüğü ihlal ettiğimizde sorumluyuz: yani bu koşulların gereği gibi ifasını mümkün kılan ve sizin düzenli olarak güvenebileceğiniz bir yükümlülük. O durumda bile yalnızca bu tür bir sözleşme için tipik ve öngörülebilir olan zarardan sorumluyuz. Bunun dışında hafif ihmalden doğan sorumluluğumuz hariç tutulmuştur.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Ürününüzden, bize gönderdiğiniz verilerden veya bu koşulları ihlal etmenizden doğan, son kullanıcılarınız dahil üçüncü kişilerin taleplerine ve bunlarla ilgilenmenin makul masraflarına karşı bizi tazmin edersiniz. Böyle bir talebi size gecikmeden bildirir ve sürecin yürütülmesine katılmanıza izin veririz."
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "Uygulanacak hukuk ve uyuşmazlıklar"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullar, kanunlar ihtilafı kuralları hariç olmak üzere {company.law} hukukuna tabidir. Kanun başka bir mahkemeyi gerektirmedikçe uyuşmazlıkları {company.law} mahkemeleri çözer.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Taraflardan herhangi biri mahkemeye başvurmadan önce, meseleyi iyi niyetle çözmeye çalışırız. {company.email} adresine yazın ve sorunu açıklayın."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Bu koşullar tahkim şartı içermez. Talep uygun olduğu takdirde taraflardan her biri küçük talepler mahkemesine (small-claims court) başvurabilir."
+    },
+    {
+      "type": "p",
+      "text": "ABD veya AB yaptırım listesinde bulunmadığınızı ya da ABD veya AB ambargosu altındaki bir ülkede yerleşik olmadığınızı ve bildiğiniz kadarıyla aynı durumun son kullanıcılarınız için de geçerli olduğunu teyit edersiniz. API’yi ABD veya AB yaptırımlarını ya da ihracat kurallarını ihlal edecek şekilde kullanmamalısınız."
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Genel"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Bu koşulları güncelleyebiliriz. Aleyhinize olan değişiklikleri size önceden bildiririz. Bir değişiklik yürürlüğe girdikten sonra API’yi kullanmaya devam ederseniz yeni koşullar uygulanır. Kabul etmiyorsanız API’yi kullanmayı bırakın.",
+        "Yazılı onayımız olmadan bu koşulları devredemezsiniz. Biz bu koşulları API’yi devralan bir şirkete devredebiliriz.",
+        "Bu koşulların bir kısmı geçersizse, geri kalanı uygulanmaya devam eder.",
+        "Bize yapılacak bildirimler {company.email} adresine gönderilir. Size yapılacak bildirimler bize verdiğiniz e-posta adresine gönderilir."
+      ]
+    }
+  ]
+}

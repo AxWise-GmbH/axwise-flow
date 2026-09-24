@@ -1,0 +1,207 @@
+{
+  "meta": {
+    "slug": "security",
+    "title": "Keamanan & Pengungkapan Kerentanan",
+    "summary": "Halaman ini menjelaskan cara kami melindungi Orqanix, cara Anda menjaga keamanan data Anda, dan cara melaporkan masalah keamanan.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Versi pertama."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "security@orqanix.com probably receives no mail today: orqanix.com has no MX record (open point #2). Reports cannot reach us until this is fixed.",
+        "CRA Art. 14 reporting has applied since 11 Sep 2026: we need an internal runbook (ENISA Single Reporting Platform; 24 h / 72 h / 14 days / 1 month) and to know which national CSIRT is ours, which depends on the company (open point #1).",
+        "Supported versions: the page says only the newest Desktop App version gets security fixes. The owner must confirm this policy, and set a CRA support period (with its end date shown at download) before 11 Dec 2027.",
+        "Desktop defaults disclosed here as they are: Auto-approve on, shell and file tools on, provider keys stored in a plain-text file, chat history not additionally encrypted, app not notarized (open points #8 and #14). Update this page if any of them change.",
+        "'We aim to acknowledge within 5 working days' is a target the owner must be able to meet.",
+        "Safe-harbour promise: lawyer to confirm the wording for the company's home country (no promise can bind third parties or authorities).",
+        "Incident notice to users: the page promises to tell affected users. A breach runbook (GDPR 72 h, US state breach laws) is needed as an internal document.",
+        "Safe harbour now says we do not report researchers to the authorities 'unless the law requires us to' (for example a GDPR breach report). Lawyer to confirm.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026): failing to provide security updates can make software defective, and consumer liability cannot be excluded. Decide the update and support policy before then (see supported versions).",
+        "Dir. 2019/770 Art. 8(2): EU consumers are owed security updates for the period they can reasonably expect. 'Newest version only, by manual download' must be squared with this in the Desktop App Terms.",
+        "The page says the shell and file tools can reach anything the macOS account can (no sandbox found in the Desktop App code). Update if a sandbox is added.",
+        "US: if health data is processed (health marketing, open point #16), the FTC Health Breach Notification Rule (16 CFR 318) adds notice duties to the FTC. Not written here; covered in the Health Data policy if needed.",
+        "CRA Art. 13(17) single point of contact (from 11 Dec 2027): security@ serves it once the mailbox works."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "overview",
+      "text": "Ikhtisar"
+    },
+    {
+      "type": "p",
+      "text": "Halaman ini mencakup situs web, aplikasi web, Aplikasi Desktop, Aplikasi Seluler, Bot Asisten, API, dan pekerjaan Korporat kami."
+    },
+    {
+      "type": "p",
+      "text": "Tidak ada sistem yang sepenuhnya aman, dan kami tidak menjamin bahwa {company.name} bebas dari kerentanan. Di bawah ini kami menjelaskan apa yang benar-benar kami lakukan saat ini, termasuk batasan yang perlu Anda ketahui sebelum Anda mengandalkannya."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-protect",
+      "text": "Cara kami melindungi Orqanix"
+    },
+    {
+      "type": "h3",
+      "id": "cloud",
+      "text": "Layanan cloud"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Hosting: layanan cloud dan basis data kami berjalan di Google Cloud di UE, di Belanda (region europe-west4). Perusahaan yang kami gunakan tercantum di halaman [Subpemroses](/instant/legal/subprocessors).",
+        "Enkripsi: data dienkripsi saat transit (HTTPS), dan penyedia cloud kami mengenkripsinya saat disimpan.",
+        "Proses masuk: Clerk, penyedia khusus layanan masuk, menangani akun dan menggunakan perlindungan bot di halaman pendaftaran. Kami tidak menyimpan kata sandi Anda.",
+        "Kunci dan rahasia: kunci layanan sistem kami disimpan di penyimpanan rahasia Google Cloud. Kunci aplikasi untuk otomatisasi hanya disimpan dalam bentuk hash, sehingga kunci itu sendiri tidak dapat dibaca kembali dari basis data kami.",
+        "Permintaan model: saat Aplikasi Desktop mengirimkan percakapan ke model AI melalui layanan kami, layanan kami meneruskannya tanpa menyimpannya. Kami tidak menulis isi prompt atau pesan Anda ke log server kami.",
+        "Catatan: sebagian catatan tentang apa yang dilakukan agen (pesan, file, persetujuan, dan peristiwa) disimpan sebagai log tetap. Sistem kami tidak mengizinkan catatan tersebut diubah setelahnya. Hal ini membantu Anda melihat dengan tepat apa yang terjadi.",
+        "Cadangan: basis data dicadangkan setiap hari, dan perlindungan terhadap penghapusan diaktifkan."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "desktop",
+      "text": "Aplikasi Desktop"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Token masuk {company.name} Anda disimpan di macOS Keychain. Keluar dari akun akan mencabutnya.",
+        "Aplikasi menyimpan datanya di folder profil yang hanya dapat dibaca oleh akun pengguna macOS Anda.",
+        "Aplikasi tidak mengirimkan statistik penggunaan dan tidak memiliki pelapor kerusakan (crash reporter).",
+        "Agen menyimpan file yang mereka buat ke folder proyek yang Anda pilih. Anda juga memilih seberapa banyak yang boleh mereka lakukan tanpa meminta izin (lihat [Peran Anda](#your-part))."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Batasan yang perlu Anda ketahui:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Secara bawaan, aplikasi menyetujui tindakan agen secara otomatis, dan alat shell serta pengeditan file aktif. Jadi agen dapat membaca dan mengubah file serta menjalankan perintah di Mac Anda tanpa meminta izin terlebih dahulu. Alat-alat ini tidak terbatas pada folder proyek Anda: alat-alat ini dapat menjangkau apa pun yang dapat dijangkau oleh akun macOS Anda.",
+        "Kunci untuk penyedia AI yang Anda hubungkan sendiri (seperti OpenAI atau Anthropic) dan rahasia untuk ekstensi disimpan dalam file pengaturan teks biasa di folder aplikasi, bukan di Keychain.",
+        "Riwayat obrolan disimpan dalam file basis data lokal yang tidak dienkripsi oleh aplikasi itu sendiri. Riwayat tersebut dilindungi oleh izin file akun macOS Anda dan, jika Anda mengaktifkannya, enkripsi disk FileVault.",
+        "Aplikasi belum dinotarisasi oleh Apple. Saat pertama kali Anda membukanya, macOS meminta Anda mengonfirmasi dengan “Open Anyway”.",
+        "Aplikasi tidak memperbarui dirinya sendiri. Perbaikan keamanan tersedia sebagai versi baru yang Anda unduh (lihat [Pembaruan keamanan](#updates))."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "your-part",
+      "text": "Peran Anda"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Unduh Aplikasi Desktop hanya melalui tautan di orqanix.com.",
+        "Selalu perbarui macOS, dan aktifkan enkripsi disk FileVault serta kunci layar.",
+        "Pilih mode persetujuan yang sesuai dengan pekerjaan Anda. Aplikasi dapat meminta izin sebelum setiap tindakan, meminta izin hanya untuk tindakan sensitif, atau hanya mengobrol. Gunakan mode yang lebih ketat saat Anda bekerja dengan file penting.",
+        "Arahkan agen ke folder proyek yang hanya berisi apa yang mereka perlukan, dan simpan cadangan file yang penting bagi Anda. Ingatlah bahwa alat shell dan file dapat menjangkau lebih dari folder tersebut.",
+        "Lindungi kunci yang Anda tambahkan untuk penyedia AI lain. Siapa pun, atau program apa pun, yang memiliki akses ke akun macOS Anda dapat membacanya. Jika Anda menduga suatu kunci telah bocor, cabut kunci tersebut di penyedia.",
+        "Pasang versi terbaru aplikasi saat kami merilisnya.",
+        "Keluar dari akun di Mac yang digunakan orang lain, dan jaga keamanan akun yang Anda gunakan untuk masuk.",
+        "Periksa apa yang dilakukan agen. Perlakukan konten yang mereka ambil dari web atau dari file sebagai tidak tepercaya: konten tersebut dapat berisi instruksi yang dimaksudkan untuk menyesatkan agen."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "report",
+      "text": "Melaporkan kerentanan"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda menemukan masalah keamanan di {company.name}, silakan beri tahu kami di {company.securityEmail}. Harap sertakan:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Produk, halaman, atau versi mana yang terdampak.",
+        "Apa masalahnya dan apa yang dapat dilakukan penyerang dengannya.",
+        "Langkah-langkah untuk mereproduksinya, dengan tangkapan layar atau bukti konsep (proof of concept) singkat jika Anda memilikinya.",
+        "Bagaimana kami dapat menghubungi Anda, dan apakah Anda ingin disebutkan namanya saat kami memperbaikinya."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Kami berupaya mengonfirmasi penerimaan laporan Anda dalam 5 hari kerja, terus memberi Anda informasi selama kami menyelidikinya, dan memberi tahu Anda saat masalah tersebut telah diperbaiki."
+    },
+    {
+      "type": "p",
+      "text": "Kontak keamanan kami juga dipublikasikan dalam format standar yang dapat dibaca mesin di [orqanix.com/.well-known/security.txt](https://orqanix.com/.well-known/security.txt)."
+    },
+    {
+      "type": "h3",
+      "id": "rules",
+      "text": "Aturan riset"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Lakukan pengujian hanya dengan akun dan data milik Anda sendiri. Jika Anda menjangkau data milik orang lain, segera berhenti, jangan menyimpannya, dan beri tahu kami.",
+        "Jangan mengganggu layanan kami atau pengguna lain: tidak ada uji denial-of-service, tidak ada spam, dan tidak ada pemindaian otomatis berskala besar.",
+        "Jangan gunakan rekayasa sosial, phishing, atau serangan fisik terhadap orang-orang kami atau penyedia kami.",
+        "Jangan menguji sistem penyedia kami, seperti Google atau Clerk. Laporkan masalah pada layanan mereka kepada mereka.",
+        "Jangan mengungkapkan masalah kepada publik sampai masalah tersebut diperbaiki, atau sampai kami menyepakati tanggal dengan Anda."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "safe-harbour",
+      "text": "Perlindungan hukum (safe harbour)"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda bertindak dengan iktikad baik dan mematuhi aturan ini, kami akan memperlakukan riset Anda sebagai riset yang diizinkan. Kami tidak akan mengambil tindakan hukum terhadap Anda karenanya, dan kami tidak akan melaporkan Anda kepada pihak berwenang kecuali diwajibkan oleh hukum. Jika pihak lain mengambil tindakan terhadap Anda atas riset yang mematuhi aturan ini, kami akan menegaskan bahwa kami telah mengizinkannya. Kami tidak menjalankan program bug bounty berbayar."
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Pembaruan keamanan"
+    },
+    {
+      "type": "p",
+      "text": "Kami memperbaiki masalah keamanan di versi terbaru Aplikasi Desktop. Kami tidak menambal versi lama, jadi harap selalu gunakan versi terbaru. Aplikasi tidak memperbarui dirinya sendiri: saat kami merilis perbaikan, unduh versi baru dari orqanix.com dan pasang di atas versi lama."
+    },
+    {
+      "type": "p",
+      "text": "Perbaikan pada situs web, aplikasi web, API, dan layanan cloud kami lainnya sampai kepada Anda tanpa tindakan apa pun dari pihak Anda."
+    },
+    {
+      "type": "h2",
+      "id": "incidents",
+      "text": "Insiden keamanan"
+    },
+    {
+      "type": "p",
+      "text": "Jika insiden keamanan memengaruhi data pribadi Anda, kami memberi tahu pihak berwenang dan orang-orang yang terdampak sebagaimana diwajibkan oleh hukum. Saat memberi tahu Anda, kami menyampaikan apa yang terjadi, data apa yang terlibat, apa yang kami lakukan untuk mengatasinya, dan apa yang dapat Anda lakukan."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Jika diwajibkan oleh GDPR, kami melaporkan pelanggaran data pribadi kepada otoritas perlindungan data dalam waktu 72 jam, dan kami memberi tahu orang-orang yang terdampak apabila risiko bagi mereka tinggi (GDPR Art. 33 dan 34)."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Berdasarkan EU Cyber Resilience Act, kami melaporkan kerentanan yang dieksploitasi secara aktif dan insiden keamanan serius yang memengaruhi aplikasi kami kepada pihak berwenang dalam tenggat waktu yang ditetapkan oleh hukum. Kami juga memberi tahu pengguna yang terdampak tentang masalah tersebut dan langkah apa pun yang perlu mereka ambil (Regulation (EU) 2024/2847, Art. 14)."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Jika undang-undang pemberitahuan pelanggaran data negara bagian AS berlaku, kami memberi tahu orang-orang yang terdampak dan, jika diwajibkan, otoritas negara bagian dalam jangka waktu yang ditetapkan oleh undang-undang tersebut."
+    }
+  ]
+}

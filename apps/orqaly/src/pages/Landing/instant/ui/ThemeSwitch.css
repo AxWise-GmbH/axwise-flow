@@ -1,0 +1,143 @@
+/*
+ * The light/dark switch in the footer: a sun on the dark page, a moon on the light one.
+ * Sun to moon: the rays turn and draw in one after another, the disc swells, and a round
+ * bite slides in from the top right to cut the crescent. Moon to sun runs it backwards.
+ * Transforms and opacity only; the bite moves by translate, which Safari animates inside a
+ * mask (animating cx/r there is unreliable).
+ */
+
+.oi-theme-switch {
+  --oi-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--oi-ink);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The visible disc: 40px inside the 44px touch target, ringed like the footer's mail pill. */
+.oi-theme-switch::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 50%;
+  transition:
+    border-color var(--oi-fade) ease,
+    background-color var(--oi-fade) ease,
+    scale 160ms var(--oi-ease);
+}
+
+.oi-theme-switch:hover::before {
+  border-color: var(--oi-accent);
+  background-color: rgba(var(--oi-accent-rgb), 0.14);
+}
+
+.oi-theme-switch:active::before {
+  scale: 0.92;
+}
+
+.oi-theme-switch:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 2px;
+}
+
+.oi-theme-glyph {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  overflow: visible;
+  transition:
+    rotate 420ms var(--oi-spring),
+    scale 160ms var(--oi-ease);
+}
+
+.oi-theme-switch:active .oi-theme-glyph {
+  scale: 0.9;
+}
+
+/* Sun --------------------------------------------------------------------- */
+
+.oi-theme-core {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 520ms var(--oi-spring);
+}
+
+.oi-theme-bite {
+  transform: translate(6px, -6px);
+  transition: transform 420ms var(--oi-ease);
+}
+
+.oi-theme-rays {
+  transform-origin: 12px 12px;
+  transition: transform 560ms var(--oi-spring);
+}
+
+.oi-theme-rays line {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    transform 420ms var(--oi-spring),
+    opacity 260ms ease;
+  /* Back to the sun: the disc shrinks first, then the rays spring out one by one. */
+  transition-delay: calc(140ms + var(--i, 0) * 22ms);
+}
+
+/* A little life under the pointer: the sun turns, the moon tips. */
+.oi-theme-switch[data-mode='dark']:hover .oi-theme-rays {
+  transform: rotate(22.5deg);
+}
+
+.oi-theme-switch[data-mode='light']:hover .oi-theme-glyph {
+  rotate: -14deg;
+}
+
+/* Moon -------------------------------------------------------------------- */
+
+.oi-theme-switch[data-mode='light'] .oi-theme-core {
+  transform: scale(1.8);
+  transition-delay: 80ms;
+}
+
+.oi-theme-switch[data-mode='light'] .oi-theme-bite {
+  transform: translate(0, 0);
+  transition-delay: 140ms;
+}
+
+.oi-theme-switch[data-mode='light'] .oi-theme-rays {
+  transform: rotate(-45deg);
+}
+
+.oi-theme-switch[data-mode='light'] .oi-theme-rays line {
+  transform: scale(0);
+  opacity: 0;
+  /* To the moon: the rays draw in first. */
+  transition-delay: calc(var(--i, 0) * 22ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oi-theme-switch::before,
+  .oi-theme-glyph,
+  .oi-theme-core,
+  .oi-theme-bite,
+  .oi-theme-rays,
+  .oi-theme-rays line {
+    transition: none;
+  }
+
+  .oi-theme-switch[data-mode='dark']:hover .oi-theme-rays,
+  .oi-theme-switch[data-mode='light']:hover .oi-theme-glyph {
+    transform: none;
+    rotate: none;
+  }
+}

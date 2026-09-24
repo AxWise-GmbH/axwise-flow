@@ -1,0 +1,256 @@
+{
+  "meta": {
+    "slug": "subprocessors",
+    "title": "Sub-responsabili del trattamento",
+    "summary": "Questa pagina elenca le società che trattano dati personali per nostro conto, gli altri luoghi in cui possono finire i Suoi dati e dove si trovano i nostri server.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Prima versione."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Email provider for hello@, privacy@ and security@ is not listed: orqanix.com has no mail provider (no MX record) yet. Add it as a sub-processor once chosen.",
+        "Region of the Cloud Storage bucket that serves the Desktop App download is unknown, so the page names no location for it. Confirm and add.",
+        "Google Cloud transfer basis: confirm that Google's Cloud data processing terms (with SCCs) cover any support access from outside the EU.",
+        "Google Gemini: processing location is not pinned in our code. The paid-tier data terms and Google's DPA are shown only once geminiPaidTier is set (open point #3).",
+        "Cloudflare (via Clerk and Turnstile): confirm its location and whether Clerk's DPA covers it. The page now says only that it is used through Clerk.",
+        "Search engines and OpenRegister are described as independent recipients, not processors. Lawyer to confirm the role split (open point #11). Confirm OpenRegister's location.",
+        "Data Act Art. 28 statement: lawyer to confirm the wording on the jurisdiction of Google and Clerk and our measures against foreign government access. We have no written request-handling process yet; create one so the promises here are true in practice.",
+        "Notice to DPA customers of new sub-processors: the notice period and how objections work must match the Data Processing Addendum.",
+        "Clerk runs a development instance today (open point #4). Move to production before relying on Clerk's DPA.",
+        "EU transfers, Gemini: while geminiPaidTier is empty, the EU version names no transfer safeguard for data sent to Google Gemini (GDPR Art. 13(1)(f), Chapter V). This is an EU launch blocker, not a wording issue (open point #3).",
+        "EU transfers, search engines and OpenRegister: queries leave our EU servers for engines that may be in the US. Lawyer to confirm the transfer basis for these independent recipients.",
+        "Mobile App: the phone notifies you when a job is done, so a push service (and possibly a relay) will receive data. Which ones is unknown; add them here before the Mobile App handles personal data.",
+        "Clerk development instance may send usage events to Clerk's telemetry host (uncertain). Confirm; it goes away with the move to production.",
+        "The intro promises that a provider is added to this page before it starts handling personal data. The owner must follow this for every new provider (and for the email provider, open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "what-this-page-is",
+      "text": "Informazioni su questa pagina"
+    },
+    {
+      "type": "p",
+      "text": "Un sub-responsabile del trattamento è una società che paghiamo per trattare dati personali per nostro conto, secondo le nostre istruzioni. Questa pagina elenca i nostri sub-responsabili del trattamento, gli altri luoghi in cui possono finire i Suoi dati quando utilizza {company.name} e dove si trovano i nostri server. Riguarda il nostro sito web e tutti i nostri prodotti. Aggiungiamo un fornitore a questa pagina prima che inizi a trattare dati personali per nostro conto."
+    },
+    {
+      "type": "p",
+      "text": "La nostra [Informativa sulla privacy](/instant/legal/privacy) spiega come utilizziamo i dati personali. Quando i clienti business dell'API, dei nostri servizi per le aziende o del Bot assistente ci forniscono dati personali da trattare, si applica il nostro [Accordo sul trattamento dei dati](/instant/legal/dpa)."
+    },
+    {
+      "type": "h2",
+      "id": "sub-processors",
+      "text": "I nostri sub-responsabili del trattamento"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Società",
+        "Finalità",
+        "Dati",
+        "Ubicazione",
+        "Base per il trasferimento"
+      ],
+      "rows": [
+        [
+          "Google Cloud",
+          "Hosting del sito web, dell'app web, del servizio con cui comunica l'App desktop, dell'API, del nostro database, dei file archiviati e dei log dei server",
+          "ID dell'account, contenuti dello spazio di lavoro (chat, obiettivi, file, report e automazioni), domande di ricerca dall'App desktop, compiti e decisioni dell'API, indirizzi IP e log delle richieste",
+          "UE (Paesi Bassi)",
+          "I dati sono ospitati nell'UE. Si applicano i termini di Google Cloud sul trattamento dei dati."
+        ],
+        [
+          "Google (API Gemini, compreso il grounding con Google Search)",
+          "Il modello di AI predefinito per l'App desktop, l'assistente cloud e l'API",
+          "I Suoi prompt, la conversazione fino a quel momento, l'output degli strumenti come i contenuti dei file e l'output dei comandi, e la Sua voce se utilizza la dettatura",
+          "Non stabilita da noi. Google può trattarli al di fuori dell'UE.",
+          "Termini dell'API Gemini di Google. [Come funziona la nostra AI](/instant/legal/ai#data-models-see) spiega come Google può utilizzare questi dati."
+        ],
+        [
+          "Clerk, Inc.",
+          "Accesso e account",
+          "Indirizzo e-mail, nome, immagine del profilo (se accede con Google), registrazioni di accesso e di sessione, indirizzo IP e dati del dispositivo",
+          "Stati Uniti",
+          "EU-US Data Privacy Framework, con le clausole contrattuali tipo come soluzione di riserva (termini di Clerk sul trattamento dei dati)"
+        ],
+        [
+          "Cloudflare (utilizzato da Clerk, e Turnstile al momento della registrazione)",
+          "Protezione anti-bot nelle pagine di accesso e di registrazione",
+          "Indirizzo IP, segnali del dispositivo e del browser",
+          "Non stabilita da noi. La rete di Cloudflare può trattarli al di fuori dell'UE.",
+          "Utilizzato tramite Clerk, nell'ambito del servizio di Clerk"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Anche il download dell'App desktop viene fornito da Google Cloud Storage. Quando la scarica, Google vede il Suo indirizzo IP."
+    },
+    {
+      "type": "h2",
+      "id": "other-recipients",
+      "text": "Altri destinatari"
+    },
+    {
+      "type": "p",
+      "text": "Queste società non sono nostri sub-responsabili del trattamento. Ricevono dati quando utilizza determinate funzionalità e decidono come utilizzarli in base ai propri termini."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Destinatario",
+        "Quando",
+        "Dati",
+        "Ubicazione",
+        "Il loro ruolo"
+      ],
+      "rows": [
+        [
+          "Motori di ricerca pubblici: Google, Bing, Brave e DuckDuckGo",
+          "Quando l'assistente cloud, la ricerca cloud o l'API effettuano ricerche sul web. Le query passano attraverso il nostro servizio di ricerca.",
+          "Query di ricerca formulate a partire dalla Sua richiesta. Non inviamo i dati del Suo account.",
+          "I server di ciascun motore di ricerca, che possono trovarsi negli Stati Uniti o altrove",
+          "Indipendenti. Si applicano i loro termini e le loro informative sulla privacy."
+        ],
+        [
+          "OpenRegister",
+          "Quando l'API o la ricerca cloud cercano un'impresa nei registri pubblici delle imprese",
+          "Nomi delle imprese. I risultati possono includere i nomi degli amministratori.",
+          "Stabilita da OpenRegister",
+          "Indipendente. Si applicano i suoi termini."
+        ],
+        [
+          "Google (Accedi con Google)",
+          "Solo se sceglie di accedere con il Suo account Google",
+          "Il Suo profilo Google: nome, indirizzo e-mail e immagine del profilo",
+          "I server di Google, che possono trovarsi negli Stati Uniti",
+          "Scelta Sua. Si applicano i termini di Google."
+        ],
+        [
+          "Fornitori di AI che collega nell'App desktop, come OpenAI o Anthropic",
+          "Solo se imposta nell'App desktop un Suo fornitore",
+          "La conversazione e l'output degli strumenti, come con il modello predefinito",
+          "Stabilita da quel fornitore",
+          "Li sceglie Lei e ha un Suo accordo con loro. Si applicano i loro termini, non i nostri."
+        ],
+        [
+          "App, strumenti e account che collega, come le estensioni nell'App desktop o le app di messaggistica e gli account e-mail che collega al Bot assistente",
+          "Solo se li collega",
+          "Ciò che un agente o un bot invia loro o legge da essi mentre svolge il Suo compito",
+          "Stabilita da quel servizio",
+          "Li sceglie Lei e ha un Suo accordo con loro. Si applicano i loro termini."
+        ],
+        [
+          "Hostinger",
+          "Servizio dei nomi di dominio (DNS) per orqanix.com",
+          "Interrogazioni tecniche del nostro nome di dominio. Nessun dato dell'account.",
+          "Stabilita da Hostinger",
+          "Servizio tecnico"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Se utilizza un modello di AI locale sul Suo Mac, la Sua conversazione va a quel modello anziché a un fornitore di AI. Le domande che gli agenti inviano alla ricerca cloud di {company.name} continuano ad andare al nostro cloud e ai fornitori sopra indicati."
+    },
+    {
+      "type": "p",
+      "text": "Non abbiamo un fornitore di servizi di pagamento, un servizio di analisi o una rete pubblicitaria. Non vendiamo dati personali."
+    },
+    {
+      "type": "h2",
+      "id": "servers",
+      "text": "Dove si trovano i nostri server"
+    },
+    {
+      "type": "p",
+      "text": "Ospitiamo i nostri servizi cloud e i nostri database su Google Cloud nell'UE, nei Paesi Bassi (regione europe-west4). Ciò comprende il sito web, l'app web, il servizio con cui comunica l'App desktop, l'API e il suo database, nonché i file e i report che i Suoi agenti archiviano nel cloud. Ogni progetto per le aziende è ospitato in una regione UE di Google Cloud concordata con il cliente."
+    },
+    {
+      "type": "p",
+      "text": "Alcuni fornitori, come Clerk e Google Gemini, possono trattare dati negli Stati Uniti o altrove. I dati sono crittografati in transito (HTTPS), e il nostro fornitore cloud li crittografa a riposo."
+    },
+    {
+      "type": "h3",
+      "id": "transfers",
+      "text": "Trasferimenti al di fuori dell'UE",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Quando i dati personali lasciano il SEE, il Regno Unito o la Svizzera, la legge richiede una garanzia. Per Clerk, la garanzia è l'EU-US Data Privacy Framework, con le clausole contrattuali tipo dell'UE come soluzione di riserva (GDPR, artt. 45 e 46). Con Google Cloud, i Suoi dati sono ospitati nell'UE."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Per Google Gemini, utilizziamo il servizio a pagamento di Google. Ai dati che inviamo si applicano i termini di Google per i servizi a pagamento e i suoi termini sul trattamento dei dati."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Per ottenere una copia delle garanzie applicabili ai Suoi dati, scriva a {company.privacyEmail}."
+    },
+    {
+      "type": "h3",
+      "id": "government-access",
+      "text": "Richieste di governi stranieri",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Il diritto dell'UE chiede ai fornitori di servizi cloud di indicare dove si trova la loro infrastruttura e come gestiscono le richieste di governi al di fuori dell'UE (Data Act dell'UE, art. 28). Ciò si applica a tutti i dati, non solo ai dati personali."
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "La nostra infrastruttura: i nostri servizi cloud e i nostri database sono eseguiti su Google Cloud nei Paesi Bassi, nel rispetto del diritto dell'UE. L'accesso è gestito da Clerk negli Stati Uniti.",
+        "Google e Clerk sono società statunitensi o fanno parte di gruppi statunitensi, quindi anche il diritto statunitense può applicarsi a loro.",
+        "Se un governo o un tribunale al di fuori dell'UE ci chiede i Suoi dati, verifichiamo se la richiesta è legittima e se il diritto dell'UE o nazionale ci consente di darvi seguito.",
+        "Ove possibile, ci opponiamo alle richieste illegittime o eccessivamente ampie. Consegniamo solo il minimo che la richiesta legittimamente richiede.",
+        "Informiamo il cliente interessato prima di rispondere, a meno che la legge non lo vieti."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "service-providers",
+      "text": "Leggi statali USA sulla privacy",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Ai sensi delle leggi statali USA sulla privacy, Google Cloud, Clerk e Cloudflare operano per nostro conto come fornitori di servizi (service provider) o responsabili del trattamento (processor). I termini di Google stabiliscono come Google può utilizzare i dati che inviamo all'API Gemini, come spiegato in [Come funziona la nostra AI](/instant/legal/ai#data-models-see). Non vendiamo dati personali né li condividiamo per pubblicità mirata."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Modifiche a questo elenco"
+    },
+    {
+      "type": "p",
+      "text": "Quando aggiungiamo o sostituiamo un sub-responsabile del trattamento, aggiorniamo questa pagina e la data in alto."
+    },
+    {
+      "type": "p",
+      "text": "I clienti business coperti dal nostro [Accordo sul trattamento dei dati](/instant/legal/dpa) ricevono un preavviso prima che un nuovo sub-responsabile del trattamento inizi a trattare i loro dati. Possono opporsi, come previsto dall'accordo."
+    }
+  ]
+}

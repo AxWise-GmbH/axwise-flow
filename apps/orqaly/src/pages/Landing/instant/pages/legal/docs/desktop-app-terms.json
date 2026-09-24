@@ -1,0 +1,325 @@
+{
+  "meta": {
+    "slug": "desktop-app-terms",
+    "title": "Desktop App Terms",
+    "summary": "These terms cover installing and using the Orqanix app on your Mac, including the real actions its AI agents can take.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "First version."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Support period: no automatic updates in code and no stated support period. The text says fixes come in newer versions and that there is no fixed support period for old versions. Owner to decide a support period (EU Cyber Resilience Act: support-period end date shown at purchase from 11 Dec 2027; CRA vulnerability reporting applies since 11 Sep 2026).",
+        "EU update duty (Dir. 2019/770 Art. 8): the EU text promises to say on orqanix.com when an update is available and what it fixes. Owner must set up that notice (download page or News) before publishing; lawyer to confirm a manual download without auto-update meets Art. 8.",
+        "EU change notice (Dir. 2019/770 Art. 19): the EU text promises notice by email before a change that harms use. Needs working email (no MX record, FACTS open point #2) and the account email from Clerk.",
+        "Defaults disclosed as they are in code: Auto-approve (agents act without asking), shell and file editing on, voice dictation on, provider keys in a plain-text file. If the owner changes any default (FACTS open point #8), update the agent-action and data sections. A DPIA is advisable for these defaults (critique #19).",
+        "Voice dictation: whether it works end to end is uncertain; the text only says that if you use it, your voice is sent to the model provider.",
+        "App not notarized: the text tells users macOS may block the first open. Update if the app is signed and notarized (FACTS open point #14).",
+        "Governing law and contracting company: follow the Terms of Service; no company name is printed here (FACTS open point #1).",
+        "Download location: the file is served from Google Cloud Storage via the link on orqanix.com; bucket region unknown (FACTS open point #7). Not stated here. The stale local download link should be fixed.",
+        "Research tool: records are immutable in the cloud database; deletion wording defers to the Privacy Policy (FACTS open point #5). The text says research may search the web and look up company registers (search engines and OpenRegister per FACTS §7/§10); the Privacy Policy and Sub-processors page list them (cross-check 2026-09-21).",
+        "AI Act Art. 50(2): outputs, including text files the agents make, are not machine-marked and nothing here claims marking. Owner to confirm the Desktop App's first EU market date; if after 2 Aug 2026, marking applies now (FACTS open point #10).",
+        "Gemini paid tier (FACTS open point #3): serving EEA/UK/CH users needs Google's paid Gemini tier; this document does not state Google's data terms.",
+        "Age 18+: sign-in asks no age; needs a self-declaration and an acceptance record at sign-up, including the Desktop App's first-run sign-in (FACTS open point #9). California AB 1043 age signals also cover Mac apps from 1 Jan 2027.",
+        "Consumer licence limits: the text keeps rights the law gives to study software and make it interoperable (EU Software Directive 2009/24 Art. 5(3), 6). Lawyer to confirm the \"no competing product\" limit is fair for EU consumers.",
+        "Lawyer review of the liability wording in both regions, including the EU Product Liability Directive (EU) 2024/2853 (applies to products placed on the market after 9 Dec 2026; missing security updates can make software defective)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "About these terms"
+    },
+    {
+      "type": "p",
+      "text": "These terms add to our [Terms of Service](/instant/legal/terms) for the Orqanix app for Mac (the \"Desktop App\"). With the Terms of Service, our [Acceptable Use Policy](/instant/legal/acceptable-use) and our [Privacy Policy](/instant/legal/privacy), they form one agreement. If these terms and the Terms of Service disagree about the Desktop App, these terms apply."
+    },
+    {
+      "type": "p",
+      "text": "The Desktop App is free while our products are early. Before any paid plan starts, we will publish the price and the rules for paying and cancelling."
+    },
+    {
+      "type": "p",
+      "text": "Before then, we will also publish the rules for withdrawing from a purchase, as EU law requires.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "Your licence"
+    },
+    {
+      "type": "p",
+      "text": "While you follow these terms, we give you a personal, non-exclusive, non-transferable licence to download, install and use the Desktop App on Macs you own or control. We may end it as described in [Suspension and ending](/instant/legal/terms#ending) in the Terms of Service."
+    },
+    {
+      "type": "p",
+      "text": "You may not:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "sell, rent, lend or sublicense the Desktop App;",
+        "remove or change our notices or the licence notices of others;",
+        "get around the sign-in or any limit we set in the app;",
+        "use the Desktop App to build a competing product, or copy our product instructions to do so."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "These limits do not cover the app's open-source parts, such as Goose (Apache 2.0), which stay under their own licences (see [Open-Source Notices](/instant/legal/open-source)). Nor do they take away anything the law lets you do with software you use lawfully, such as studying how it works or making it work with other programs."
+    },
+    {
+      "type": "h2",
+      "id": "system-needs",
+      "text": "What you need"
+    },
+    {
+      "type": "list",
+      "items": [
+        "A Mac with Apple silicon (M1 or newer). The app does not run on Intel Macs or other systems.",
+        "An internet connection and an Orqanix account to sign in with. The default model needs no key from an AI provider.",
+        "You must be 18 or older."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Download the Desktop App only from the link on orqanix.com. We are not responsible for copies from anywhere else."
+    },
+    {
+      "type": "h2",
+      "id": "first-open",
+      "text": "First launch"
+    },
+    {
+      "type": "p",
+      "text": "Apple has not notarized the Desktop App (notarization is Apple's automated check of apps offered outside its App Store), so macOS may block it the first time you open it. To allow it, choose Open Anyway in System Settings > Privacy & Security. Do this only for a copy from orqanix.com."
+    },
+    {
+      "type": "h2",
+      "id": "agentic-actions",
+      "text": "Agent actions"
+    },
+    {
+      "type": "p",
+      "text": "The Desktop App runs AI agents on your Mac. An agent is software that uses an AI model to choose steps and carry them out. When you give the app a task, its agents can take real actions on your Mac, for example:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "read, make, change, move and delete files;",
+        "run commands in the Mac's terminal (the shell), which can install software, change settings or reach the internet;",
+        "use the tools, extensions and connected services you switch on, which may act in your accounts elsewhere;",
+        "run saved tasks (recipes) on a schedule, but only while the Desktop App is open."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Shell and file tools are switched on when you first install the app."
+    },
+    {
+      "type": "h3",
+      "id": "approval-modes",
+      "text": "When agents ask first"
+    },
+    {
+      "type": "p",
+      "text": "By default, agents act without asking you first. This default mode is called \"Automatically approve tool calls\". You can change it in the app's settings to:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "ask before every action;",
+        "ask only before actions the app treats as sensitive;",
+        "chat only, with no actions."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "When the app asks, you can answer Allow Once, Always Allow or Deny. After Always Allow, the agent will not ask again for that kind of action."
+    },
+    {
+      "type": "h2",
+      "id": "authorization",
+      "text": "Your responsibility"
+    },
+    {
+      "type": "p",
+      "text": "You decide what the agents may do: the task, the approval mode, and the folders, tools and accounts they may use. You authorize the actions they take within those limits, and you are responsible for them as if you had taken them yourself."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Only point agents at files, systems and accounts you are allowed to use and to let software use for you.",
+        "Follow the terms of any service an agent acts in, and our [Acceptable Use Policy](/instant/legal/acceptable-use).",
+        "Do not use agents to reach the systems or data of others without their permission.",
+        "If you work for a business, make sure it allows you to use the Desktop App on its files and systems."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "human-review",
+      "text": "Human review"
+    },
+    {
+      "type": "p",
+      "text": "AI makes mistakes. An agent can misread a task, pick the wrong file, run a harmful command or report success when it failed. Results can be wrong, incomplete or out of date, and they are not legal, medical, financial or other professional advice. See [How Our AI Works](/instant/legal/ai)."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Back up anything important before you let agents work on it. We cannot restore files an agent deleted or changed.",
+        "Use an [approval mode](#approval-modes) that asks first for work that touches important files, money, other people or live systems.",
+        "Check what the agents made before you rely on it, send it or publish it."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "consequences",
+      "text": "Liability"
+    },
+    {
+      "type": "p",
+      "text": "Agent actions on your Mac or in your connected accounts can have real effects that are hard or impossible to undo, such as lost data, changed settings, sent messages or charges from other providers."
+    },
+    {
+      "type": "p",
+      "text": "As far as the law allows, we are not responsible for loss or damage that results from actions you allowed an agent to take, your choice of approval mode or missing backups. The Desktop App is provided \"as is\" and \"as available\", without warranties of any kind, as set out in [Disclaimers](/instant/legal/terms#warranty) and [Liability](/instant/legal/terms#liability) in the Terms of Service. Nothing in these terms limits liability that the law does not allow us to limit.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Under the law of your country, we are liable if the Desktop App does not conform to our contract, and for damage we cause. We are not responsible for damage that results only from actions you allowed an agent to take, your choice of approval mode or missing backups, unless we caused it by breaking our duties. Nothing in these terms limits your statutory rights as a consumer, or liability for intent, gross negligence, injury to life, body or health, or under product liability law. [Liability](/instant/legal/terms#liability) in the Terms of Service sets out the rest.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "your-data",
+      "text": "Where your data goes"
+    },
+    {
+      "type": "p",
+      "text": "This is a summary. The [Privacy Policy](/instant/legal/privacy) has the full detail."
+    },
+    {
+      "type": "h3",
+      "id": "on-your-mac",
+      "text": "On your Mac"
+    },
+    {
+      "type": "list",
+      "items": [
+        "The app keeps its data in a folder in your Mac's Library that only your macOS user account can read.",
+        "Your chat history is kept in a local database file, with no encryption beyond the protection your Mac gives it.",
+        "Keys for AI providers you connect and secrets for extensions you add are stored in a plain-text file in the app's folder, not in the macOS Keychain. Anyone or anything that can read your files can read them.",
+        "Your Orqanix sign-in is stored in the macOS Keychain. Signing out cancels it.",
+        "Files the agents make go into the project folder you choose.",
+        "The app keeps logs on your Mac and cleans up old ones by itself. It sends us no usage statistics and has no crash reporter."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "sent-to-the-cloud",
+      "text": "Sent from your Mac"
+    },
+    {
+      "type": "p",
+      "text": "With the default model, each step of a task sends the whole conversation so far to the AI model: what you wrote, file contents the agents read, command output and our product instructions. It goes through our servers in the EU (Google Cloud, Netherlands) to Google Gemini. Our servers pass it on and do not store it. Google may process it outside the EU under its [Gemini API terms](https://ai.google.dev/gemini-api/terms)."
+    },
+    {
+      "type": "p",
+      "text": "Voice dictation is switched on by default. If you use it, your voice is sent to the model provider."
+    },
+    {
+      "type": "p",
+      "text": "When an agent uses our research tool, it sends a question to your Orqanix cloud workspace, plus excerpts of up to five of your cloud documents if the agent picks them. The question, the excerpts and the result with its sources are stored there as a fixed record. The research may search the web and look up public company registers. The [Privacy Policy](/instant/legal/privacy) explains how to ask for a copy or deletion."
+    },
+    {
+      "type": "h2",
+      "id": "third-party-services",
+      "text": "Other AI providers and tools"
+    },
+    {
+      "type": "p",
+      "text": "You can connect other AI providers, such as OpenAI, Anthropic or models that run on your Mac, and add tools and extensions made by others. When you do:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "that provider receives your conversation and tool results directly, under its own terms and privacy policy;",
+        "your agreement with that provider, including any fees it charges, is between you and it;",
+        "we do not control, check or answer for other providers, tools or extensions, or for what they do with your data."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Updates and changes"
+    },
+    {
+      "type": "p",
+      "text": "The Desktop App does not update itself. Each new version is a new download from orqanix.com that you install over the old one. Security fixes come in newer versions, so use the latest one. We set no fixed period during which older versions keep getting fixes."
+    },
+    {
+      "type": "p",
+      "text": "We may change or remove features in new versions. The rules for changes are in [Changes to the Services and these terms](/instant/legal/terms#changes).",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "If you use the Desktop App as a consumer (outside your trade or business), you have the rights EU law gives consumers for digital content. They apply even though the app is free, because you give us personal data to use it (Dir. (EU) 2019/770). The app must work as described in these terms and on our website. For as long as the law requires, we will make available the updates, including security updates, needed to keep it that way, and say on orqanix.com when one is available and what it fixes. If you do not install an update we told you about within a reasonable time, we are not responsible for a fault it would have fixed, unless our installation instructions were at fault.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Beyond what is needed to keep it working, we will change the Desktop App only for a valid reason, such as new laws, security or improvements, and at no cost to you. If a change harms your access to or use of the app more than a little, we will email you in good time before it happens. You may then end this agreement free of charge within 30 days of our notice or of the change, whichever is later, unless we let you keep the unchanged version at no extra cost.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Sanctions and export"
+    },
+    {
+      "type": "p",
+      "text": "You may not download or use the Desktop App where US or EU sanctions or export rules forbid it, or if you are named on a US or EU sanctions list. See [Sanctions and export](/instant/legal/terms#sanctions) in the Terms of Service."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Ending use"
+    },
+    {
+      "type": "p",
+      "text": "You can stop using the Desktop App at any time. First sign out, which cancels your Orqanix sign-in. Then delete the app from your Applications folder. To remove your local chat history, settings, logs and stored keys, also delete its folder in your Mac's Library (under Application Support). Files the agents made in your project folders stay until you delete them."
+    },
+    {
+      "type": "p",
+      "text": "Deleting the app does not delete your Orqanix account or your cloud workspace. To close your account or ask us to delete your data, see the [Terms of Service](/instant/legal/terms) and [Privacy Policy](/instant/legal/privacy)."
+    },
+    {
+      "type": "p",
+      "text": "If your licence ends, you must stop using the Desktop App and delete it. [Suspension and ending](/instant/legal/terms#ending) in the Terms of Service says what happens to your account."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Contact"
+    },
+    {
+      "type": "p",
+      "text": "Questions about these terms: {company.email}. Security problems: {company.securityEmail}. Privacy requests: {company.privacyEmail}."
+    }
+  ]
+}

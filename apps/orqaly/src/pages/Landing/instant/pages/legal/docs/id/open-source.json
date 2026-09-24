@@ -1,0 +1,129 @@
+{
+  "meta": {
+    "slug": "open-source",
+    "title": "Pemberitahuan Sumber Terbuka",
+    "summary": "Halaman ini mencantumkan perangkat lunak sumber terbuka dalam Aplikasi Desktop Orqanix dan di situs web kami, lisensinya, serta cara memperoleh teks lisensinya.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Versi pertama."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Checked in the app build: the app bundles the Goose Apache 2.0 licence and a NOTICE file, the engineering runtime's MIT licence and third-party notices, and the Electron, Chromium and Node.js licence files. The licences of the other npm and Rust packages are NOT collected into the app. Owner: add a generated third-party licence file (or SBOM) to the build, then update the \"For the smaller packages\" sentence.",
+        "Apache 2.0 section 4 (Goose): the bundled NOTICE file describes the Orqanix changes. Lawyer to confirm this meets the \"prominent notice in changed files\" duty for the modified source. The in-app NOTICE file says \"Built on Goose\", a phrase the website avoids; owner to decide whether to reword it.",
+        "The engineering runtime is not named on this page (the in-app notice names it). Owner to decide whether to name it.",
+        "Licence names for Electron (MIT) and Node.js (MIT with other bundled parts) match the bundled files; Chromium (BSD-style and others) is general knowledge. Confirm with a licence scan or SBOM of the shipped app.",
+        "Whether any bundled component is under a licence that gives a right to source code (for example LGPL parts of Chromium). The page offers source on request by email; the owner must be able to fulfil it.",
+        "Mailbox hello@orqanix.com may not receive mail yet (no MX record, FACTS open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-this-page",
+      "text": "Tentang halaman ini"
+    },
+    {
+      "type": "p",
+      "text": "Sebagian produk kami merupakan perangkat lunak sumber terbuka: perangkat lunak yang penciptanya mengizinkan siapa pun untuk menggunakan, mengubah, dan membagikannya berdasarkan lisensi yang dipublikasikan. Halaman ini mencantumkan bagian-bagian sumber terbuka yang utama dan cara memperoleh teks lisensinya."
+    },
+    {
+      "type": "p",
+      "text": "Setiap bagian tetap tunduk pada lisensinya sendiri. Tidak ada ketentuan dalam [Ketentuan Layanan](/instant/legal/terms) atau [Ketentuan Aplikasi Desktop](/instant/legal/desktop-app-terms) kami yang membatasi hak yang diberikan lisensi tersebut kepada Anda. Apabila suatu lisensi menyatakan bahwa penciptanya tidak memberikan jaminan, hal itu berlaku untuk karya mereka. Janji kami sendiri mengenai produk kami tercantum dalam ketentuan kami."
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "Aplikasi Desktop"
+    },
+    {
+      "type": "p",
+      "text": "Aplikasi Orqanix untuk Mac mencakup perangkat lunak sumber terbuka seperti:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Perangkat lunak",
+        "Fungsinya di dalam aplikasi",
+        "Lisensi"
+      ],
+      "rows": [
+        [
+          "Goose",
+          "Kerangka kerja agen yang menjalankan agen-agen aplikasi",
+          "Apache License 2.0"
+        ],
+        [
+          "Runtime rekayasa opsional yang dibundel dengan aplikasi",
+          "Menjalankan alat rekayasa aplikasi",
+          "MIT License"
+        ],
+        [
+          "Electron",
+          "Jendela dan cangkang desktop aplikasi",
+          "MIT License"
+        ],
+        [
+          "Chromium (termasuk dalam Electron)",
+          "Menampilkan layar-layar aplikasi",
+          "Lisensi bergaya BSD dan lisensi lainnya"
+        ],
+        [
+          "Node.js",
+          "Menjalankan sebagian aplikasi",
+          "MIT License, dengan beberapa bagian yang dibundel berada di bawah lisensi lain"
+        ],
+        [
+          "Banyak paket npm dan Rust yang lebih kecil",
+          "Komponen dasar yang digunakan di seluruh aplikasi",
+          "Berbagai lisensi sumber terbuka, seperti MIT, Apache 2.0, dan BSD"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Aplikasi ini menyertakan teks lisensi dan pemberitahuan untuk Goose, runtime rekayasa, Electron, Chromium, dan Node.js. Untuk melihatnya, klik aplikasi sambil menekan tombol Control di Finder, pilih Show Package Contents, lalu buka Contents, kemudian Resources. File-file tersebut adalah teks yang berlaku; tabel ini hanya merupakan ringkasan. Untuk paket-paket yang lebih kecil, hubungi kami sebagaimana dijelaskan dalam [Teks lisensi dan kode sumber](#get-the-texts)."
+    },
+    {
+      "type": "h2",
+      "id": "website",
+      "text": "Situs web kami"
+    },
+    {
+      "type": "p",
+      "text": "Situs web kami menggunakan jenis huruf Geist, Geist Mono, dan Inter, yang semuanya dilisensikan berdasarkan [SIL Open Font License 1.1](https://openfontlicense.org)."
+    },
+    {
+      "type": "h2",
+      "id": "names",
+      "text": "Nama dan merek dagang"
+    },
+    {
+      "type": "p",
+      "text": "Nama proyek sumber terbuka adalah milik pemiliknya masing-masing. Penggunaan perangkat lunak mereka oleh kami tidak berarti bahwa proyek tersebut atau pemiliknya mendukung Orqanix, dan lisensi tersebut tidak memberikan hak kepada siapa pun atas nama atau logo mereka."
+    },
+    {
+      "type": "h2",
+      "id": "get-the-texts",
+      "text": "Teks lisensi dan kode sumber"
+    },
+    {
+      "type": "p",
+      "text": "Untuk meminta salinan teks lisensi, atau kode sumber apabila suatu lisensi memberi Anda hak atasnya, kirimkan email ke {company.email} dengan subjek \"Open source\". Beri tahu kami versi Aplikasi Desktop yang Anda miliki."
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda merasa kami melewatkan suatu pemberitahuan atau menggunakan perangkat lunak sumber terbuka dengan cara yang tidak diizinkan oleh lisensinya, beri tahu kami melalui alamat yang sama dan kami akan menindaklanjutinya."
+    }
+  ]
+}

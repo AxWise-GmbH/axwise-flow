@@ -1,0 +1,531 @@
+{
+  "meta": {
+    "slug": "dpa",
+    "title": "Adendum Pemrosesan Data",
+    "summary": "Cara kami menangani data pribadi sebagai pemroses Anda ketika bisnis Anda menggunakan API, layanan Korporat, atau Bot Asisten.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Versi pertama."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the party block (legalName, address) and the SCC governing-law sentence (law) stay hidden until company.js is filled (FACTS open point 1).",
+        "SCC structure depends on the entity (critique point 13): with an EU processor serving EU controllers no SCCs are needed between the parties; non-EU customers need Module Four; a non-EU entity needs Modules Two and Three and an EU representative (euRepresentative). The text covers all cases; lawyer to confirm, and to confirm the Clause 17/18 fallback.",
+        "Google Gemini: the processor promises only hold once the paid Gemini tier and Google's data processing terms apply (geminiPaidTier). Until then Google may use content under its free-tier terms, which conflicts with this DPA and with the US service-provider promises (FACTS open point 3; us.md). Do not offer this DPA to customers before that.",
+        "Google Cloud: accept Google's Cloud data processing terms for both projects (site and API) and record it.",
+        "Roles split (processor for customer data; controller for account data, logs, web searches and OpenRegister lookups) needs lawyer confirmation (FACTS open point 11; critique point 14).",
+        "Deletion at the end: the workspace database refuses deletion of some records (immutable tables) and there is no deletion, export or retention code. The text promises deletion or anonymisation, or an explanation where a record must be kept. A working process is needed before the first customer (FACTS open point 5).",
+        "Backups: the workspace database keeps 7 daily backups plus point-in-time recovery (about 7 days); the API database's backup settings were not checked, so the annex states backups only for the cloud workspace.",
+        "Sub-processor changes: the notice period is 'before the change takes effect', with no fixed number. Owner to set one (commonly 30 days) and a way to notify customers (needs working email).",
+        "Breach notice: 'without undue delay' only; an internal breach runbook is needed (critique point 19).",
+        "Assistant Bot: no code exists; the DPA only names it in scope and makes no feature or data claims (FACTS open point 13).",
+        "Security annex lists only measures FACTS supports; encryption is stated only as 'in transit (HTTPS) and at rest by our cloud provider'. Download-bucket region is unknown and not mentioned.",
+        "Mailboxes: privacy@ and security@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: 'Where' row and the transfers section now say the cloud workspace, the API and Enterprise hosting store data in the EU, instead of all customer data, because where the Assistant Bot keeps messages and tokens is unknown (FACTS §6). Secret Manager checked in both deploy scripts. Added a 'Frequency' row for SCC Annex I.",
+        "Legal review 2026-09-21: added the EU representative block (needs euRepresentative; required if the entity is outside the EU, GDPR Art. 27); instructions now cover transfers and we tell you 'at once' about unlawful instructions (GDPR Art. 28(3)(a) and last sentence); connected messaging and email accounts named as the customer's own providers, not our sub-processors (lawyer to confirm).",
+        "SCC Clause 9(a) Option 2 needs a fixed advance-notice period for sub-processor changes; the DPA only says 'before the change takes effect'. Owner to set a number of days before the DPA is used with non-EEA transfers.",
+        "SCC Clause 17/18 fallback: if company.law is not an EU member state and the customer is outside the EU, no governing law is named. Lawyer to pick a fallback member state.",
+        "Scope: business use of the Desktop App and the cloud workspace (outside the Assistant Bot) is not covered by this DPA. Owner to decide whether business users of those products can rely on it (the Terms of Service already point business users here)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Tentang adendum ini"
+    },
+    {
+      "type": "p",
+      "text": "Adendum Pemrosesan Data ini (“DPA”) menetapkan aturan untuk data pribadi yang kami tangani bagi pelanggan bisnis. DPA ini merupakan bagian dari [Ketentuan API](/instant/legal/api-terms), [Ketentuan Korporat](/instant/legal/enterprise-terms) dan, saat Anda menggunakan Bot Asisten untuk bisnis Anda, [Ketentuan Bot Asisten](/instant/legal/assistant-bot-terms). Mana pun di antara ketentuan tersebut yang berlaku bagi Anda kami sebut sebagai “perjanjian utama”."
+    },
+    {
+      "type": "p",
+      "text": "DPA ini berlaku secara otomatis saat Anda menerima perjanjian utama. Tanda tangan tidak diperlukan. Jika Anda memerlukan salinan bertanda tangan untuk arsip Anda, kirimkan surel ke {company.privacyEmail}."
+    },
+    {
+      "type": "p",
+      "text": "Jika DPA ini dan perjanjian utama berbeda mengenai data pribadi, DPA ini yang berlaku. Apabila Klausul Kontraktual Standar berlaku (lihat [Transfer internasional](#transfers)), klausul tersebut berlaku di atas keduanya."
+    },
+    {
+      "type": "h2",
+      "id": "parties",
+      "text": "Para pihak"
+    },
+    {
+      "type": "p",
+      "text": "DPA ini dibuat antara Anda, pelanggan bisnis (“Anda”), dan Orqanix (“kami”)."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix dijalankan oleh {company.legalName}, {company.address}, yang merupakan pihak dalam DPA ini.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Perwakilan kami di UE adalah {company.euRepresentative}.",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Kontak pelindungan data kami adalah {company.privacyEmail}. Beri tahu kami siapa kontak Anda, agar kami dapat menghubungi Anda mengenai DPA ini."
+    },
+    {
+      "type": "h2",
+      "id": "words",
+      "text": "Istilah yang kami gunakan"
+    },
+    {
+      "type": "list",
+      "items": [
+        "“Data pribadi” berarti setiap informasi tentang orang yang teridentifikasi atau dapat diidentifikasi.",
+        "“Pemrosesan” berarti apa pun yang dilakukan terhadap data pribadi, seperti menyimpan, membaca, mengirim, atau menghapusnya.",
+        "“Pengendali” menentukan mengapa dan bagaimana data pribadi diproses. “Pemroses” memproses data tersebut untuk pengendali dan berdasarkan instruksinya. “Subpemroses” adalah pemroses yang kami gunakan.",
+        "“Data pribadi pelanggan” berarti data pribadi yang kami proses untuk Anda berdasarkan perjanjian utama.",
+        "“Hukum pelindungan data” berarti setiap hukum privasi yang berlaku atas pemrosesan, seperti General Data Protection Regulation (GDPR) UE, UK GDPR, Undang-Undang Federal Swiss tentang Perlindungan Data (FADP), dan undang-undang privasi negara bagian AS."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "roles",
+      "text": "Peran kami"
+    },
+    {
+      "type": "p",
+      "text": "Anda adalah pengendali data pribadi pelanggan, atau pemroses yang bertindak untuk pelanggan Anda sendiri. Kami adalah pemroses atau subpemroses Anda. Kami menangani sebagian data untuk tujuan kami sendiri, dan untuk data tersebut kami adalah pengendali:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Data",
+        "Peran kami",
+        "Yang berlaku"
+      ],
+      "rows": [
+        [
+          "Data pribadi dalam apa yang Anda atau pengguna Anda kirimkan ke API, dalam pekerjaan Korporat, atau dalam ruang kerja dan akun terhubung dari Bot Asisten bisnis",
+          "Pemroses untuk Anda",
+          "DPA ini"
+        ],
+        [
+          "Data akun dan data masuk staf Anda, narahubung Anda, serta catatan kami tentang kontrak dan faktur",
+          "Pengendali",
+          "[Kebijakan Privasi](/instant/legal/privacy) kami"
+        ],
+        [
+          "Log layanan dan keamanan (alamat IP, peramban, waktu, alamat yang diminta)",
+          "Pengendali",
+          "Kebijakan Privasi kami"
+        ],
+        [
+          "Kueri penelusuran yang dikirim oleh layanan penelusuran kami sendiri ke mesin pencari web untuk menjawab suatu tugas",
+          "Pengendali",
+          "Kebijakan Privasi kami"
+        ],
+        [
+          "Pencarian daftar perusahaan melalui OpenRegister, yang hasilnya dapat mencakup nama direktur",
+          "Pengendali",
+          "Kebijakan Privasi kami"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Kami menentukan cara kerja penelusuran dan pencarian daftar perusahaan kami, sehingga untuk kegiatan tersebut kami bertindak untuk diri kami sendiri (GDPR Pasal 4(7)). Kueri penelusuran disusun dari tugas Anda, jadi jangan cantumkan data pribadi dalam teks tugas kecuali tugas tersebut membutuhkannya."
+    },
+    {
+      "type": "h2",
+      "id": "details",
+      "text": "Rincian pemrosesan"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Butir",
+        "Rincian"
+      ],
+      "rows": [
+        [
+          "Pokok permasalahan",
+          "Penyediaan layanan dalam perjanjian utama: API, pekerjaan Korporat, atau Bot Asisten yang digunakan untuk bisnis Anda."
+        ],
+        [
+          "Jangka waktu",
+          "Selama perjanjian utama berlaku, dan setelah itu hingga kami menghapus atau mengembalikan data pribadi pelanggan sebagaimana ditetapkan dalam DPA ini."
+        ],
+        [
+          "Sifat",
+          "Menerima, menyimpan, mengatur, membaca, menganalisis dengan model AI, menghasilkan jawaban dan file, mengirimkan kepada Anda dan sistem Anda, serta menghapus."
+        ],
+        [
+          "Tujuan",
+          "Hanya untuk menyediakan layanan kepada Anda, menjaga keamanannya, dan memenuhi kewajiban hukum kami."
+        ],
+        [
+          "Jenis data pribadi",
+          "Apa pun yang Anda pilih untuk dikirimkan kepada kami atau dihubungkan. Biasanya nama, detail kontak, jabatan, hubungan bisnis, serta isi tugas, pesan, dokumen, dan file."
+        ],
+        [
+          "Orang yang bersangkutan",
+          "Staf Anda, pelanggan dan pengguna akhir Anda, pemasok dan kontak bisnis Anda, serta siapa pun yang disebutkan dalam data yang Anda kirimkan atau hubungkan, termasuk kontak dalam akun surel dan perpesanan yang Anda hubungkan ke Bot Asisten bisnis."
+        ],
+        [
+          "Kategori khusus",
+          "Tidak ada, kecuali kami telah menyepakati lain secara tertulis. Tanpa kesepakatan tersebut, jangan kirimkan kepada kami data kesehatan, data biometrik, atau data kategori khusus lainnya, maupun data tentang putusan pidana."
+        ],
+        [
+          "Frekuensi",
+          "Berkelanjutan, setiap kali Anda atau pengguna Anda menggunakan layanan."
+        ],
+        [
+          "Lokasi",
+          "Ruang kerja cloud kami dan API menyimpan data di Google Cloud di UE (Belanda). Pekerjaan Korporat dihosting di region Google Cloud UE yang disebutkan dalam pesanan. Subpemroses dapat memproses data di tempat lain, sebagaimana ditunjukkan pada halaman [Subpemroses](/instant/legal/subprocessors)."
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "our-duties",
+      "text": "Apa yang kami janjikan"
+    },
+    {
+      "type": "p",
+      "text": "Janji-janji ini menguraikan kewajiban pemroses dengan bahasa yang sederhana (GDPR Pasal 28(3); UK GDPR Pasal 28(3); FADP Pasal 9)."
+    },
+    {
+      "type": "h3",
+      "id": "instructions",
+      "text": "Instruksi Anda"
+    },
+    {
+      "type": "p",
+      "text": "Kami memproses data pribadi pelanggan hanya berdasarkan instruksi Anda yang terdokumentasi, termasuk instruksi tentang pengirimannya ke negara lain. Instruksi Anda adalah perjanjian utama, DPA ini, dan cara Anda menyiapkan serta menggunakan layanan. Anda dapat memberikan instruksi tertulis lebih lanjut jika sesuai dengan layanan. Kami hanya boleh memproses data tanpa instruksi Anda apabila hukum mewajibkannya. Dalam hal itu, kami memberi tahu Anda terlebih dahulu, kecuali jika hukum tersebut melarangnya. Jika kami menilai suatu instruksi melanggar hukum pelindungan data, kami segera memberi tahu Anda."
+    },
+    {
+      "type": "h3",
+      "id": "confidentiality",
+      "text": "Kerahasiaan"
+    },
+    {
+      "type": "p",
+      "text": "Hanya orang yang membutuhkan data pribadi pelanggan untuk pekerjaannya yang dapat mengaksesnya, dan masing-masing dari mereka terikat kewajiban untuk menjaga kerahasiaannya."
+    },
+    {
+      "type": "h3",
+      "id": "security",
+      "text": "Keamanan"
+    },
+    {
+      "type": "p",
+      "text": "Kami mengambil langkah-langkah teknis dan organisasional yang sesuai dengan risikonya, untuk melindungi data pribadi pelanggan dari kehilangan, perubahan, pengungkapan, atau akses yang tidak disengaja atau melanggar hukum (GDPR Pasal 32). [Lampiran keamanan](#security-measures) di akhir DPA ini menjelaskan langkah-langkah tersebut. Kami dapat mengubahnya dari waktu ke waktu, tetapi kami tidak akan menurunkan tingkat perlindungan secara keseluruhan."
+    },
+    {
+      "type": "h3",
+      "id": "sub-processors",
+      "text": "Subpemroses"
+    },
+    {
+      "type": "p",
+      "text": "Anda mengizinkan kami menggunakan subpemroses. Halaman [Subpemroses](/instant/legal/subprocessors) mencantumkan subpemroses yang kami gunakan saat ini, apa yang mereka lakukan, dan di mana. Untuk pekerjaan Korporat, pesanan dapat menyebutkan subpemroses tambahan."
+    },
+    {
+      "type": "p",
+      "text": "Sebelum kami menambahkan atau mengganti subpemroses, kami memperbarui halaman tersebut dan memberi tahu Anda, agar Anda dapat mengajukan keberatan sebelum perubahan berlaku. Jika Anda mengajukan keberatan karena alasan pelindungan data yang wajar, kami mencari solusi bersama Anda. Jika kami tidak menemukan solusi, Anda dapat mengakhiri bagian layanan yang bersangkutan."
+    },
+    {
+      "type": "p",
+      "text": "Kami mengikat setiap subpemroses secara tertulis pada kewajiban pelindungan data yang setidaknya sama protektifnya dengan DPA ini. Kami tetap bertanggung jawab kepada Anda atas pekerjaan mereka."
+    },
+    {
+      "type": "p",
+      "text": "Aplikasi perpesanan, akun surel, dan layanan lain yang Anda hubungkan adalah penyedia Anda sendiri, yang Anda pilih. Mereka bukan subpemroses kami, dan ketentuan mereka sendiri berlaku atas apa yang mereka lakukan terhadap data tersebut."
+    },
+    {
+      "type": "p",
+      "text": "Kami menggunakan Google Gemini sebagai model AI kami, sehingga isi tugas dan percakapan dikirim ke Google. Google dapat memprosesnya di luar UE."
+    },
+    {
+      "type": "p",
+      "text": "Kami menggunakan Gemini API berbayar dari Google. Dalam hal ini, Google bertindak sebagai pemroses kami berdasarkan ketentuan pemrosesan datanya dan tidak menggunakan konten tersebut untuk meningkatkan produknya.",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "rights-requests",
+      "text": "Hak orang-orang"
+    },
+    {
+      "type": "p",
+      "text": "Orang-orang dapat meminta untuk melihat, memperbaiki, menghapus, atau memindahkan data mereka, atau menolak penggunaannya. Jika kami menerima permintaan semacam itu terkait data pribadi pelanggan, kami meneruskannya kepada Anda dan tidak menjawabnya sendiri kecuali Anda meminta kami melakukannya. Kami membantu Anda menjawab permintaan, sejauh sifat layanan memungkinkan (GDPR Pasal 12-23)."
+    },
+    {
+      "type": "h3",
+      "id": "breaches",
+      "text": "Pelanggaran data"
+    },
+    {
+      "type": "p",
+      "text": "Jika kami mengetahui adanya pelanggaran keamanan yang memengaruhi data pribadi pelanggan, kami memberi tahu Anda tanpa penundaan yang tidak semestinya. Kami memberikan kepada Anda apa yang kami ketahui, dan informasi tambahan seiring kami mengetahuinya (GDPR Pasal 33(2) dan (3)):"
+    },
+    {
+      "type": "list",
+      "items": [
+        "apa yang terjadi;",
+        "jenis data dan orang yang terdampak, serta perkiraan jumlahnya;",
+        "kemungkinan dampaknya;",
+        "apa yang telah kami lakukan dan rencanakan untuk mengatasinya;",
+        "siapa yang dapat Anda hubungi."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Pemberitahuan kepada Anda bukan merupakan pengakuan kesalahan."
+    },
+    {
+      "type": "h3",
+      "id": "other-help",
+      "text": "Bantuan lainnya"
+    },
+    {
+      "type": "p",
+      "text": "Sejauh sifat layanan dan informasi yang kami miliki memungkinkan, kami membantu Anda dalam memenuhi kewajiban keamanan Anda, dalam penilaian dampak pelindungan data, dan dalam konsultasi dengan otoritas pelindungan data Anda (GDPR Pasal 32-36)."
+    },
+    {
+      "type": "h3",
+      "id": "end",
+      "text": "Pengembalian dan penghapusan"
+    },
+    {
+      "type": "p",
+      "text": "Saat perjanjian utama berakhir, kami menghapus data pribadi pelanggan. Jika Anda meminta kami sebelum itu, kami mengembalikannya kepada Anda terlebih dahulu. Kami menyimpan salinan hanya apabila hukum mewajibkannya, hanya selama yang diwajibkan, dan dilindungi sebagaimana ditetapkan dalam DPA ini. Salinan dalam cadangan kami hilang seiring berakhirnya masa berlaku cadangan tersebut."
+    },
+    {
+      "type": "p",
+      "text": "Beberapa catatan tentang apa yang dilakukan agen disimpan sebagai log tetap yang tidak dapat diubah. Apabila catatan tersebut memuat data pribadi pelanggan, kami menghapus atau menganonimkannya atau, apabila kami wajib menyimpannya, memberi tahu Anda alasannya."
+    },
+    {
+      "type": "h3",
+      "id": "audits",
+      "text": "Audit"
+    },
+    {
+      "type": "p",
+      "text": "Kami memberikan kepada Anda informasi yang secara wajar Anda butuhkan untuk menunjukkan bahwa kami memenuhi kewajiban ini. Jika itu tidak cukup, Anda, atau auditor independen yang terikat kewajiban kerahasiaan, dapat mengaudit kami. Anda memberi kami pemberitahuan dalam jangka waktu yang wajar, dan audit tidak boleh mengganggu layanan kami atau membahayakan data pelanggan lain. Anda menanggung sendiri biaya audit Anda. Otoritas pelindungan data selalu dapat mengaudit kami sejauh diizinkan oleh hukum."
+    },
+    {
+      "type": "h2",
+      "id": "your-duties",
+      "text": "Apa yang Anda janjikan"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Anda memiliki dasar hukum untuk pemrosesan, dan Anda memberikan kepada orang-orang informasi privasi yang diwajibkan oleh hukum, termasuk bahwa Anda menggunakan layanan kami.",
+        "Instruksi Anda mematuhi hukum pelindungan data.",
+        "Anda hanya mengirimkan kepada kami data pribadi yang dibutuhkan oleh layanan, dan tidak ada data kategori khusus kecuali kami telah menyetujuinya secara tertulis.",
+        "Anda menyiapkan layanan secara aman di pihak Anda, termasuk menjaga keamanan kunci akses dan data masuk serta memilih pengaturan persetujuan yang sesuai untuk agen."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "transfers",
+      "text": "Transfer internasional"
+    },
+    {
+      "type": "p",
+      "text": "Ruang kerja cloud kami, API, dan hosting Korporat menyimpan data pribadi pelanggan di UE. Beberapa subpemroses dapat memprosesnya di negara lain, sebagaimana ditunjukkan pada halaman [Subpemroses](/instant/legal/subprocessors)."
+    },
+    {
+      "type": "p",
+      "text": "Kami mentransfer data pribadi ke luar EEA, Inggris, atau Swiss hanya apabila hukum pelindungan data mengizinkannya. Misalnya, kami mentransfernya ke negara yang dinilai UE memberikan perlindungan data yang memadai, ke perusahaan AS yang tersertifikasi berdasarkan EU-US Data Privacy Framework, atau berdasarkan Klausul Kontraktual Standar."
+    },
+    {
+      "type": "h3",
+      "id": "sccs",
+      "text": "Klausul Kontraktual Standar"
+    },
+    {
+      "type": "p",
+      "text": "Apabila suatu transfer antara Anda dan kami memerlukannya, Klausul Kontraktual Standar yang disetujui oleh Komisi Eropa (Keputusan (UE) 2021/914, “SCC”) merupakan bagian dari DPA ini. Bagian SCC mana (“modul”) yang berlaku bergantung pada tempat kedudukan masing-masing pihak:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Modul Dua (pengendali ke pemroses) apabila Anda adalah pengendali dan mengirimkan data kepada kami di luar EEA.",
+        "Modul Tiga (pemroses ke pemroses) apabila Anda adalah pemroses untuk pelanggan Anda sendiri dan mengirimkan data kepada kami di luar EEA.",
+        "Modul Empat (pemroses ke pengendali) apabila kami berada di EEA dan mengembalikan data kepada Anda di luar EEA."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Untuk SCC, kami menetapkan pilihan berikut:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Klausul 7: klausul penggabungan (docking clause) opsional berlaku.",
+        "Klausul 9: Opsi 2 (otorisasi umum untuk subpemroses) berlaku, dengan pemberitahuan sebagaimana ditetapkan dalam [Subpemroses](#sub-processors).",
+        "Klausul 11: rumusan opsional tidak berlaku.",
+        "Klausul 13: otoritas pengawas adalah otoritas yang berwenang atas Anda sebagai pengekspor data.",
+        "Lampiran: [Peran kami](#roles) dan [Rincian pemrosesan](#details) mengisi Lampiran I, [lampiran keamanan](#security-measures) mengisi Lampiran II, dan halaman Subpemroses mengisi Lampiran III."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Berdasarkan Klausul 17 dan 18, SCC tunduk pada hukum negara anggota UE tempat kedudukan Anda, dan sengketa diajukan ke pengadilan negara tersebut. Jika Anda tidak berkedudukan di UE, SCC tunduk pada hukum dan pengadilan {company.law}, apabila itu merupakan negara anggota UE.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "uk-switzerland",
+      "text": "Inggris dan Swiss"
+    },
+    {
+      "type": "p",
+      "text": "Untuk transfer dari Inggris, International Data Transfer Addendum atas SCC yang diterbitkan oleh UK Information Commissioner (“UK Addendum”) berlaku, diisi dengan rincian dalam DPA ini."
+    },
+    {
+      "type": "p",
+      "text": "Untuk transfer dari Swiss, SCC berlaku dengan perubahan berikut: Komisioner Federal Swiss untuk Perlindungan Data dan Informasi adalah otoritas pengawas untuk transfer berdasarkan FADP; rujukan ke GDPR juga berarti FADP; dan “negara anggota” mencakup Swiss, sehingga orang-orang di sana dapat mengajukan klaim di tempat tinggal mereka."
+    },
+    {
+      "type": "h3",
+      "id": "onward",
+      "text": "Transfer oleh subpemroses"
+    },
+    {
+      "type": "p",
+      "text": "Apabila subpemroses mentransfer data pribadi pelanggan ke luar EEA, Inggris, atau Swiss, kami memastikan bahwa transfer tersebut dilandasi dasar yang sah, seperti Data Privacy Framework atau SCC dalam kontrak kami dengan subpemroses tersebut."
+    },
+    {
+      "type": "h2",
+      "id": "us-state-law",
+      "text": "Undang-undang privasi negara bagian AS",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Apabila Anda adalah “business” berdasarkan California Consumer Privacy Act, atau pengendali berdasarkan undang-undang privasi negara bagian AS lainnya, kami adalah “service provider”, “contractor”, atau “processor” Anda untuk data pribadi pelanggan. Kami:",
+      "only": "us"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "tidak menjual atau membagikan (“sell” atau “share”) data pribadi pelanggan, sebagaimana istilah tersebut didefinisikan dalam undang-undang tersebut;",
+        "memprosesnya hanya untuk tujuan bisnis yang ditetapkan dalam perjanjian utama dan DPA ini, dan tidak untuk tujuan komersial lainnya;",
+        "tidak menyimpan, menggunakan, atau mengungkapkannya di luar hubungan bisnis langsung kami dengan Anda;",
+        "tidak menggabungkannya dengan data pribadi yang kami terima dari pihak lain atau kami kumpulkan sendiri, kecuali sejauh diizinkan oleh undang-undang tersebut;",
+        "mematuhi undang-undang tersebut dan memberikan tingkat perlindungan privasi yang sama sebagaimana diwajibkan olehnya;",
+        "memberi tahu Anda jika kami memutuskan bahwa kami tidak dapat lagi memenuhi kewajiban ini."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Anda dapat mengambil langkah-langkah yang wajar dan tepat untuk memastikan bahwa kami menggunakan data pribadi pelanggan sesuai dengan undang-undang tersebut, serta untuk menghentikan dan memperbaiki setiap penggunaan yang tidak diizinkan. Kami memahami pembatasan ini dan akan mematuhinya.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Tanggung jawab hukum"
+    },
+    {
+      "type": "p",
+      "text": "Tanggung jawab masing-masing pihak berdasarkan DPA ini mengikuti batasan dalam perjanjian utama, sejauh diizinkan oleh hukum pelindungan data. Batasan tersebut tidak mengurangi hak yang dimiliki orang-orang secara langsung berdasarkan hukum pelindungan data."
+    },
+    {
+      "type": "h2",
+      "id": "term",
+      "text": "Jangka waktu dan pembaruan"
+    },
+    {
+      "type": "p",
+      "text": "DPA ini berlaku selama kami memproses data pribadi pelanggan untuk Anda, bahkan setelah perjanjian utama berakhir."
+    },
+    {
+      "type": "p",
+      "text": "Kami dapat memperbarui DPA ini untuk mencerminkan perubahan hukum, subpemroses kami, atau layanan kami. Tanpa persetujuan Anda, kami tidak akan mengubahnya dengan cara yang menurunkan perlindungan data pribadi pelanggan, kecuali jika hukum mewajibkan perubahan tersebut."
+    },
+    {
+      "type": "h2",
+      "id": "security-measures",
+      "text": "Lampiran: langkah-langkah keamanan"
+    },
+    {
+      "type": "p",
+      "text": "Berikut adalah langkah-langkah teknis dan organisasional utama yang kami terapkan saat ini. Halaman [Keamanan & Pengungkapan Kerentanan](/instant/legal/security) menjelaskan cara melaporkan masalah keamanan ke {company.securityEmail}."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Bidang",
+        "Apa yang kami lakukan"
+      ],
+      "rows": [
+        [
+          "Hosting",
+          "Layanan cloud dan basis data kami berjalan di Google Cloud di UE (Belanda). Pekerjaan Korporat dihosting di region Google Cloud UE yang disebutkan dalam pesanan."
+        ],
+        [
+          "Enkripsi",
+          "Data dienkripsi saat transit (HTTPS) dan saat disimpan oleh penyedia cloud kami."
+        ],
+        [
+          "Akses ke akun",
+          "Orang-orang masuk ke ruang kerja Orqanix melalui penyedia layanan masuk kami, Clerk, dengan pemeriksaan bot saat pendaftaran. API hanya dapat diakses dengan kunci akses rahasia yang kami terbitkan."
+        ],
+        [
+          "Kunci dan rahasia yang disimpan",
+          "Kunci aplikasi untuk otomatisasi hanya disimpan dalam bentuk hash, bukan dalam bentuk yang dapat dibaca. Rahasia yang digunakan layanan kami disimpan di Google Cloud Secret Manager, bukan di dalam kode kami."
+        ],
+        [
+          "File yang disimpan",
+          "File yang dihasilkan oleh ruang kerja cloud disimpan dalam bucket Google Cloud Storage privat di UE."
+        ],
+        [
+          "Akses staf",
+          "Hanya orang yang membutuhkan akses untuk pekerjaannya yang memilikinya, dan mereka terikat kewajiban kerahasiaan."
+        ],
+        [
+          "Catatan tindakan agen",
+          "Apa yang dilakukan agen, apa yang disetujui, dan file yang dibuat agen dicatat dalam log yang tidak dapat diubah sesudahnya. Pelanggan Korporat menetapkan persetujuan (Allow Once, Always Allow, Deny) dan akses berbasis peran."
+        ],
+        [
+          "Log",
+          "Log permintaan memuat alamat IP, peramban, waktu, alamat yang diminta, dan hasilnya. Kami tidak mencatat isi prompt atau pesan."
+        ],
+        [
+          "Cadangan",
+          "Basis data ruang kerja cloud memiliki pencadangan otomatis harian, pemulihan ke titik waktu tertentu (point-in-time recovery), dan perlindungan terhadap penghapusan yang tidak disengaja."
+        ],
+        [
+          "Model",
+          "Kami tidak melatih model AI kami sendiri dengan data pelanggan."
+        ],
+        [
+          "Insiden",
+          "Kami memberi tahu pelanggan yang terdampak tentang pelanggaran data pribadi tanpa penundaan yang tidak semestinya, sebagaimana ditetapkan dalam [Pelanggaran data](#breaches)."
+        ]
+      ]
+    }
+  ]
+}

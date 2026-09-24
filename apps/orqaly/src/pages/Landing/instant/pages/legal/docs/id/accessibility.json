@@ -1,0 +1,117 @@
+{
+  "meta": {
+    "slug": "accessibility",
+    "title": "Pernyataan Aksesibilitas",
+    "summary": "Pernyataan ini menjelaskan seberapa aksesibel situs web Orqanix, di mana masih terdapat kekurangan, dan cara melaporkan hambatan.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Versi pertama."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The statement rests on a code review of the landing pages on 21 Sep 2026 (reduced-motion handling in the animated sections, focus-visible styles, aria labels, decorative SVGs hidden, Escape closes menus, lang=\"en\"). No full WCAG 2.1 AA audit or screen-reader test has been done; do one and update the known gaps.",
+        "Known gaps found in code: many labels inside illustrations are 9-11 px; the dim grey token (#6b6b6b on black) is about 3.9:1, below the 4.5:1 WCAG needs for small text. Fix or keep listed.",
+        "EAA / BFSG: whether Orqanix is a microenterprise (fewer than 10 staff and at most EUR 2m turnover) decides whether the EAA applies to its consumer services. Owner to confirm headcount and turnover. Once a paid consumer checkout exists, the EAA Annex V information may be required.",
+        "EU enforcement contact: the page names no authority because it depends on the company's country (Germany: the market surveillance authority for the BFSG). Add it once the company is chosen.",
+        "Feedback goes to hello@orqanix.com, which probably receives no mail today (no MX record, open point #2).",
+        "The page targets WCAG 2.1 AA. EN 301 549 (the EAA benchmark) now points to WCAG 2.1; if the owner wants to aim for WCAG 2.2, change the target line.",
+        "US: no ADA-specific text is needed; a working feedback channel (hello@, open point #2) is the main risk reducer for demand letters."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "our-aim",
+      "text": "Tujuan kami"
+    },
+    {
+      "type": "p",
+      "text": "Kami ingin semua orang dapat menggunakan situs web {company.name}, termasuk orang yang menggunakan papan ketik, pembaca layar, pembesaran tampilan, atau teknologi bantu lainnya. Target kami adalah tingkat AA dari Web Content Accessibility Guidelines (WCAG) 2.1, standar internasional yang umum digunakan."
+    },
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "Cakupan"
+    },
+    {
+      "type": "p",
+      "text": "Pernyataan ini mencakup situs web di orqanix.com: beranda, halaman produk dan solusi, halaman Berita, dan Pusat Hukum. Pernyataan ini tidak mencakup aplikasi web, Aplikasi Desktop, atau halaman masuk yang disediakan oleh Clerk, penyedia layanan masuk kami."
+    },
+    {
+      "type": "h2",
+      "id": "status",
+      "text": "Status saat ini"
+    },
+    {
+      "type": "p",
+      "text": "Situs web ini memenuhi sebagian WCAG 2.1 tingkat AA. Situs web ini belum menjalani audit menyeluruh, dan kami tidak mengklaim kesesuaian penuh. Kekurangan yang kami ketahui tercantum di bagian [Kekurangan yang diketahui](#known-gaps)."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-did",
+      "text": "Apa yang telah kami lakukan"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Papan ketik: Anda dapat menjangkau tautan, tombol, dan menu dengan papan ketik, dan tombol Escape menutup menu yang terbuka.",
+        "Fokus yang terlihat: tautan dan tombol menampilkan gaya fokus yang terlihat saat Anda berpindah ke sana dengan papan ketik.",
+        "Gerakan yang dikurangi: jika perangkat Anda diatur untuk mengurangi gerakan, adegan animasi berhenti bergerak dan konten ditampilkan tanpa animasi.",
+        "Kontras: teks isi dan judul berwarna hampir putih di atas latar belakang hitam.",
+        "Alternatif teks: menu, kontrol, dan adegan yang memiliki makna diberi label teks untuk pembaca layar. Grafik yang murni dekoratif disembunyikan dari pembaca layar.",
+        "Struktur: halaman menggunakan judul, area konten utama, menu utama berlabel, dan menu footer berlabel, serta bahasa halaman diatur ke bahasa Inggris.",
+        "Layar kecil: tata letak menyesuaikan dengan ponsel dan jendela yang sempit."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "known-gaps",
+      "text": "Kekurangan yang diketahui"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Beberapa ilustrasi memuat teks kecil, seperti label di dalam adegan produk yang dianimasikan. Teks ini dapat sulit dibaca, bahkan saat diperbesar.",
+        "Beberapa label sekunder menggunakan warna abu-abu redup dengan kontras yang lebih rendah daripada yang disyaratkan WCAG untuk teks kecil.",
+        "Adegan animasi dapat sulit diikuti oleh sebagian orang. Adegan tersebut berhenti bergerak jika perangkat Anda diatur untuk mengurangi gerakan."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Kami berniat memperbaiki kekurangan ini. Jika salah satunya menghalangi Anda memperoleh informasi yang Anda butuhkan, [beri tahu kami](#feedback) dan kami akan berusaha memberikannya kepada Anda dengan cara lain."
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "Masukan"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda menemui hambatan di situs web kami, beri tahu kami melalui {company.email}. Sebutkan di halaman mana hambatan itu terjadi, apa yang Anda coba lakukan, dan, jika Anda mau, peramban serta teknologi bantu yang Anda gunakan. Kami berupaya membalas dengan cepat dan memperbaiki apa yang dapat kami perbaiki."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Jika Anda tinggal di UE dan jawaban kami tidak menyelesaikan masalah, Anda dapat menghubungi otoritas di negara Anda yang mengawasi aksesibilitas."
+    },
+    {
+      "type": "h2",
+      "id": "about-this-statement",
+      "text": "Tentang pernyataan ini"
+    },
+    {
+      "type": "p",
+      "text": "Kami menyusun pernyataan ini pada 21 September 2026, berdasarkan tinjauan kami sendiri atas situs web ini. Kami akan memperbaruinya saat kami memperbaiki suatu kekurangan atau menyelesaikan audit."
+    }
+  ]
+}

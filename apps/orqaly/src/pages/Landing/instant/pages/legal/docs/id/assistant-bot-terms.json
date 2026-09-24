@@ -1,0 +1,317 @@
+{
+  "meta": {
+    "slug": "assistant-bot-terms",
+    "title": "Ketentuan Bot Asisten",
+    "summary": "Aturan tambahan untuk Bot Asisten Orqanix, yang dapat bertindak atas nama Anda di file Anda serta di aplikasi perpesanan dan akun email yang Anda hubungkan.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Versi pertama."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "No Assistant Bot code exists yet. These terms state rules for use only and make no claim about channels, storage location or retention. Check every section against the product once it exists (FACTS.md §6, open point 13). The product page presents the bot as available ('Try For Free'); that misleading-claims risk cannot be cured by these terms.",
+        "AI disclosure to other people (EU AI Act Art. 50(1), applies since 2 Aug 2026; Utah and Maine chatbot rules; Colorado HB 26-1263 from 2027-01-01): the terms require that the bot identifies itself as an AI. Under Art. 50(1) this is our duty as provider, not only the user's. The product must actually do this (greeting, signature or footer on messages and email it sends) before launch.",
+        "Stopping a bot and removing its access: the terms only say you can change a bot's role (product page) and remove its access in the connected service's own settings. Confirm an in-product stop and disconnect control before launch, then state it.",
+        "Where the bot's map, messages and connection tokens are stored, and for how long, is unknown. The Privacy Policy and the Sub-processors list must cover this before launch, including GDPR Art. 14 information for people whose contacts the bot gathers.",
+        "Which messaging channels the bot will use, and each channel's own rules on AI assistants (some restrict general AI assistants in some countries). Channel-specific terms may be needed; brand names are banned in documents today. If a channel is text messages or voice, US TCPA consent, opt-out and call-recording rules need their own section.",
+        "Whether bots can be shared with other people in a Workspace (the 'Sharing a bot' section is written as a conditional rule).",
+        "Role split for business users: we act as processor under the DPA for contacts and client data they connect, but as an independent controller for our own web searches and register lookups (FACTS.md §7). Lawyer to confirm, including for consumers who use the bot for personal matters.",
+        "US health information: the US version bars HIPAA-protected health information and says we do not sign business associate agreements, matching the API Terms, Enterprise Terms and Acceptable Use Policy (cross-check 2026-09-21). Owner to decide whether a business associate agreement will ever be offered (us.md rows 8-9).",
+        "DSA Art. 14(1): the Terms of Service states that a person reviews each report and no automated moderation is used. Owner to confirm this holds for bots.",
+        "EU changes: this document points to the Terms of Service rules (30-day email notice, free termination, no silent acceptance). Those need email that works and a record of which version each user accepted (FACTS.md open points 2 and 9).",
+        "EU Data Act switching (Arts. 23-31, applies since 12 Sept 2025): bot data in the Workspace is part of a cloud service; the Terms of Service or Privacy Policy should cover export and switching. Lawyer to confirm.",
+        "Company name, address and governing law are empty; the Terms of Service carries them.",
+        "Mailboxes: orqanix.com has no MX record, so hello@ may not receive reports today (FACTS.md open point 2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "Tentang ketentuan ini"
+    },
+    {
+      "type": "p",
+      "text": "Ketentuan ini melengkapi [Ketentuan Layanan](/instant/legal/terms) kami. Ketentuan ini berlaku apabila Anda menggunakan Bot Asisten, termasuk setiap asisten yang Anda buat dengannya (\"bot\"). Bot adalah asisten AI dengan suatu peran, seperti penjualan, keuangan, dukungan pelanggan, urusan kantor, atau peran yang Anda tulis sendiri. Bot dapat bekerja untuk Anda di aplikasi perpesanan dan akun email yang Anda hubungkan, serta di Ruang Kerja Orqanix Anda."
+    },
+    {
+      "type": "p",
+      "text": "[Kebijakan Penggunaan Wajar](/instant/legal/acceptable-use), [Kebijakan Privasi](/instant/legal/privacy), dan [Cara Kerja AI Kami](/instant/legal/ai) juga berlaku. Jika ketentuan ini dan Ketentuan Layanan bertentangan mengenai suatu hal tentang bot, ketentuan ini yang berlaku."
+    },
+    {
+      "type": "h2",
+      "id": "access-and-use",
+      "text": "Akses dan penggunaan"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Anda harus berusia 18 tahun atau lebih dan memiliki akun Orqanix.",
+        "Anda boleh membuat bot sebanyak yang Anda perlukan dan mengubah peran bot kapan saja. Bot mengikuti peran baru mulai tugas berikutnya.",
+        "Bot dapat menggunakan apa yang dapat dilakukan aplikasi Orqanix: obrolan, riset, resep, jadwal, alat yang terhubung, dan file. File bot disimpan di Ruang Kerja Orqanix Anda.",
+        "Bot gratis selama produk masih dalam tahap awal. Sebelum paket berbayar apa pun dimulai, kami akan memublikasikan harga serta aturan pembayaran dan pembatalan."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Sebelum paket berbayar apa pun dimulai, kami juga akan memublikasikan aturan tentang penarikan diri dari pembelian.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "agentic-actions",
+      "text": "Tindakan agentik"
+    },
+    {
+      "type": "p",
+      "text": "Bot melakukan lebih dari sekadar menjawab. Bergantung pada apa yang Anda hubungkan dan izinkan, bot dapat mengambil tindakan atas nama Anda (\"tindakan agentik\"). Misalnya, bot dapat:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "membaca, memilah, dan mengarsipkan dokumen, seperti faktur, kontrak, foto, dan catatan;",
+        "mengumpulkan kontak dari akun email dan ponsel yang Anda hubungkan ke dalam satu daftar dan menggabungkan duplikat;",
+        "mengumpulkan angka dan detail dari email, file, dan alat Anda;",
+        "menjawab pesan serta menyusun draf balasan, ringkasan, dan laporan, dengan cara yang Anda izinkan;",
+        "menjalankan resep dan pekerjaan terjadwal yang berulang setiap hari atau setiap minggu."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "authorization",
+      "text": "Otorisasi Anda"
+    },
+    {
+      "type": "p",
+      "text": "Ketika Anda memberi bot suatu peran, menghubungkan akun, atau memintanya melakukan tugas, Anda memberinya wewenang untuk bertindak atas nama Anda dalam lingkup tersebut. Terhadap orang dan layanan yang berurusan dengannya, tindakan bot dalam batas akses yang Anda berikan dianggap sebagai tindakan Anda."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Hubungkan hanya akun, perangkat, dan data yang boleh Anda gunakan, dan berikan kepada bot hanya akses yang dibutuhkannya.",
+        "Tetapkan peran dan instruksi dengan jelas. Anda bertanggung jawab atas apa yang Anda minta dilakukan oleh bot.",
+        "Jaga keamanan akun Orqanix dan akun yang terhubung. Beri tahu kami di {company.email} jika Anda menduga orang lain menggunakannya.",
+        "Anda dapat berhenti menggunakan bot kapan saja dan mencabut aksesnya ke akun yang terhubung, misalnya melalui pengaturan akun tersebut. Tindakan yang sudah dilakukan mungkin tidak dapat dibatalkan."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "human-review",
+      "text": "Tinjauan manusia"
+    },
+    {
+      "type": "p",
+      "text": "Bot bisa keliru, tidak lengkap, atau usang. Bot dapat salah memahami situasi, memilih file atau kontak yang salah, atau menulis sesuatu yang tidak benar."
+    },
+    {
+      "type": "p",
+      "text": "Anda dapat melihat apa yang dilakukan setiap bot. Periksa pekerjaan bot sebelum Anda mengandalkannya, dan tinjau draf sebelum dikirim. Berhati-hatilah secara khusus dengan apa pun yang sulit dibatalkan atau yang memengaruhi orang lain, misalnya:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "pesan kepada klien, pemasok, atau kelompok besar;",
+        "apa pun yang melibatkan uang, faktur, kontrak, atau tenggat waktu hukum;",
+        "menghapus, memindahkan, atau membagikan file;",
+        "informasi pribadi atau sensitif tentang orang lain."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Apabila Orqanix memungkinkan Anda memilih apakah bot bertanya kepada Anda sebelum bertindak, pilihan itu ada di tangan Anda. Jika Anda membiarkan bot bertindak tanpa bertanya, Anda menerima bahwa bot bertindak tanpa tinjauan Anda. Keluaran bot bukan merupakan nasihat hukum, medis, perpajakan, atau keuangan."
+    },
+    {
+      "type": "h3",
+      "id": "liability",
+      "text": "Tanggung jawab"
+    },
+    {
+      "type": "p",
+      "text": "Anda bertanggung jawab atas tindakan yang Anda izinkan untuk dilakukan bot dan atas akibatnya. Hal ini mencakup pesan yang dikirimnya dan perubahan yang dibuatnya pada file dan akun terhubung Anda. Kami tidak bertanggung jawab atas kerugian yang disebabkan oleh tindakan yang Anda izinkan atau instruksi yang Anda berikan, kecuali apabila [Ketentuan Layanan](/instant/legal/terms) kami atau hukum menentukan lain.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Sejauh diizinkan oleh hukum, penyangkalan dan batasan tanggung jawab dalam Ketentuan Layanan berlaku untuk bot dan tindakannya. Bot disediakan \"sebagaimana adanya\". Kami tidak menjamin bahwa bot akan bertindak dengan benar, lengkap, atau tepat waktu.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Jika pihak lain mengajukan klaim terhadap kami karena tindakan bot yang didasarkan pada instruksi Anda, Anda akan menanggung kerugian wajar kami akibat klaim tersebut. Hal ini berlaku sejauh diizinkan oleh hukum dan apabila klaim tersebut timbul dari pelanggaran Anda terhadap ketentuan ini atau hukum.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Anda bertanggung jawab atas instruksi yang Anda berikan, pengaturan yang Anda pilih, dan akses yang Anda berikan. Kami tetap bertanggung jawab apabila bot menimbulkan kerugian karena layanan kami bermasalah. Tanggung jawab kami dalam hal itu mengikuti [Ketentuan Layanan](/instant/legal/terms#liability) dan hukum.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Tidak ada dalam ketentuan ini yang membatasi tanggung jawab kami apabila hukum tidak mengizinkannya, misalnya atas kesengajaan, kelalaian berat, cedera terhadap nyawa, tubuh, atau kesehatan, atau berdasarkan hukum tanggung jawab produk. Jika Anda adalah konsumen, Anda tetap memiliki hak yang diberikan oleh hukum negara tempat tinggal Anda.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda menggunakan bot untuk bisnis Anda dan pihak lain mengajukan klaim terhadap kami karena tindakan bot yang didasarkan pada instruksi Anda, Anda akan menanggung kerugian wajar kami akibat klaim tersebut, sejauh klaim itu timbul dari pelanggaran Anda terhadap ketentuan ini atau hukum. Hal ini tidak berlaku bagi konsumen.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "connected-services",
+      "text": "Layanan yang terhubung"
+    },
+    {
+      "type": "p",
+      "text": "Bot bekerja melalui aplikasi perpesanan, akun email, dan alat yang Anda hubungkan, serta dengan file yang Anda berikan kepadanya. Layanan ini dijalankan oleh perusahaan lain."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Ketentuan dan kebijakan mereka sendiri berlaku atas penggunaan Anda terhadap layanan tersebut, termasuk aturan mereka tentang pesan otomatis, bot, dan AI. Anda bertanggung jawab untuk mematuhinya.",
+        "Dengan menghubungkan suatu layanan, Anda mengizinkan kami mengaksesnya atas nama Anda sejauh diperlukan untuk menjalankan bot Anda. Anda dapat mencabut akses tersebut kapan saja.",
+        "Sebagian layanan membatasi, melarang, atau mengenakan biaya untuk asisten AI di beberapa negara. Jika suatu layanan memblokir, membatasi, atau menangguhkan bot atau akun Anda, kami mungkin tidak dapat memulihkannya.",
+        "Kami tidak mengendalikan layanan ini dan tidak bertanggung jawab atas cara kerjanya atau cara layanan itu menangani data Anda."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "people-the-bot-talks-to",
+      "text": "Orang yang diajak bicara oleh bot"
+    },
+    {
+      "type": "p",
+      "text": "Bot dapat menulis kepada orang selain Anda, seperti klien, pemasok, atau rekan kerja. Dalam hal itu, aturan berikut berlaku:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Bot harus menjelaskan bahwa ia adalah AI, bukan manusia. Jangan menghapus atau menyembunyikan hal itu, dan jangan menyuruh bot berpura-pura menjadi manusia.",
+        "Jika seseorang bertanya apakah mereka sedang berbicara dengan AI, bot harus menjawab ya.",
+        "Pesan yang dikirim bot atas nama Anda dikirim atas nama Anda, dan Anda adalah pengirimnya.",
+        "Anda harus berhak menghubungi setiap orang, misalnya karena mereka adalah klien Anda atau telah setuju untuk menerima kabar dari Anda. Patuhi hukum tentang email, pesan teks, dan pemasaran yang berlaku bagi Anda dan bagi mereka.",
+        "Jangan menggunakan bot untuk pesan massal yang tidak diminta, spam, pelecehan, atau penipuan.",
+        "Bot dibuat untuk pekerjaan dan tugas sehari-hari. Jangan mengaturnya sebagai teman pendamping, pasangan romantis atau emosional, atau untuk memberikan terapi, diagnosis, atau nasihat profesional lain yang diatur."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Ketika bot mengumpulkan kontak atau membaca pesan, bot menangani data pribadi tentang orang lain. Anda bertanggung jawab untuk memiliki alasan yang sah atas hal ini dan, apabila diwajibkan oleh hukum, untuk memberi tahu orang-orang tersebut. Jika Anda menggunakan bot untuk bisnis Anda, lihat [Pengguna bisnis](#business-users)."
+    },
+    {
+      "type": "p",
+      "text": "Jangan menggunakan bot untuk menangani informasi kesehatan yang dilindungi oleh HIPAA, undang-undang privasi kesehatan AS. Kami tidak menandatangani perjanjian rekanan bisnis (business associate agreement).",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "business-map",
+      "text": "Peta bisnis Anda"
+    },
+    {
+      "type": "p",
+      "text": "Untuk melakukan pekerjaannya, bot membangun dan menyimpan peta bisnis Anda: tim, klien, pemasok, dan file Anda, serta keterkaitan di antara semuanya. Bot menambahkan isi peta seiring ia bekerja."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Peta tersebut merupakan bagian dari konten Anda. Kami menggunakannya untuk menjalankan bot Anda dan menyediakan layanan kami kepada Anda, sebagaimana dijelaskan dalam [Kebijakan Privasi](/instant/legal/privacy) kami. [Cara Kerja AI Kami](/instant/legal/ai#data-models-see) menjelaskan apa yang dilihat oleh model AI.",
+        "Kami tidak melatih model AI kami sendiri dengannya, dan kami tidak menjualnya.",
+        "Peta tersebut dapat memuat detail tentang orang lain. Aturan dalam [Orang yang diajak bicara oleh bot](#people-the-bot-talks-to) juga berlaku untuknya.",
+        "Untuk mendapatkan salinan peta atau data bot lainnya, atau untuk meminta data tersebut dikoreksi atau dihapus, tulis ke {company.privacyEmail}. Sebagian catatan tentang apa yang dilakukan agen disimpan sebagai log tetap. Ketika Anda meminta kami menghapus data, kami menghapus atau menganonimkannya atau, apabila kami wajib menyimpan catatan, memberi tahu Anda alasannya."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "sharing-a-bot",
+      "text": "Berbagi bot"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda membagikan bot atau Ruang Kerja Anda, orang yang menerima bagian tersebut dapat melihat apa yang diketahui dan dilakukan bot, serta memberinya tugas. Bagikan hanya kepada orang yang semestinya memiliki akses tersebut."
+    },
+    {
+      "type": "h2",
+      "id": "content-removal",
+      "text": "Penghapusan konten"
+    },
+    {
+      "type": "p",
+      "text": "Kami dapat menghapus atau memblokir konten, menghentikan tindakan bot, menjeda bot, atau memutus sambungan suatu layanan jika kami secara wajar meyakini bahwa hal itu melanggar ketentuan ini, [Kebijakan Penggunaan Wajar](/instant/legal/acceptable-use), atau hukum, atau membahayakan orang, sistem, atau layanan yang terhubung. Apabila memungkinkan, kami memberi tahu Anda apa yang kami lakukan dan alasannya."
+    },
+    {
+      "type": "p",
+      "text": "Untuk melaporkan konten ilegal atau penyalahgunaan oleh bot, kirim email ke {company.email} dengan subjek \"Report\". [Laporkan pelanggaran](/instant/legal/acceptable-use#report) menjelaskan apa saja yang perlu dicantumkan. Kami meninjau setiap laporan, mengambil keputusan, dan memberi tahu pelapor serta pengguna yang terdampak tentang alasan kami."
+    },
+    {
+      "type": "p",
+      "text": "Jika kami membatasi konten, bot, atau akun Anda, kami memberi Anda pernyataan tentang alasan kami (EU Digital Services Act Art. 17). Anda dapat meminta kami meninjau keputusan tersebut dengan menulis ke {company.email}, dan Anda juga dapat menempuh jalur pengadilan. Satu-satunya titik kontak kami untuk otoritas dan pengguna adalah {company.email}, dalam bahasa Inggris.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "business-users",
+      "text": "Pengguna bisnis"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda menggunakan bot untuk bisnis Anda, bot sering kali akan menangani data pribadi tentang staf, klien, dan pemasok Anda. Untuk data tersebut, Anda yang menentukan mengapa dan bagaimana data itu digunakan, dan kami memprosesnya untuk Anda berdasarkan instruksi Anda."
+    },
+    {
+      "type": "p",
+      "text": "[Adendum Pemrosesan Data](/instant/legal/dpa) (DPA) kami merupakan bagian dari perjanjian Anda dengan kami apabila kami memproses data pribadi untuk bisnis Anda. DPA mencakup keamanan, [subpemroses](/instant/legal/subprocessors) kami, dan cara kami membantu menangani permintaan orang. Apabila kami menggunakan data untuk tujuan kami sendiri, sebagaimana dijelaskan dalam [Kebijakan Privasi](/instant/legal/privacy), kami sendiri yang bertanggung jawab atas penggunaan tersebut."
+    },
+    {
+      "type": "p",
+      "text": "Dalam istilah pelindungan data, hal ini menjadikan Anda sebagai pengendali dan kami sebagai prosesor Anda untuk data tersebut (GDPR Art. 28). Anda bertanggung jawab untuk memiliki dasar hukum, memberi tahu orang yang bersangkutan (GDPR Art. 13 dan 14), dan menangani permintaan mereka. Kami membantu sebagaimana dijelaskan dalam DPA.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Apabila undang-undang privasi negara bagian AS berlaku, kami bertindak sebagai penyedia layanan (service provider) atau prosesor Anda untuk data tersebut dan menggunakannya hanya untuk menyediakan layanan kepada Anda.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Perubahan"
+    },
+    {
+      "type": "p",
+      "text": "Kami menyempurnakan bot dari waktu ke waktu dan dapat menambahkan, mengubah, atau menghapus fitur, sambungan, atau peran. Tanggal di bagian atas halaman ini menunjukkan versi terkini ketentuan ini."
+    },
+    {
+      "type": "p",
+      "text": "Jika suatu perubahan pada ketentuan ini penting bagi Anda, kami memberi tahu Anda sebelum perubahan itu berlaku. Jika Anda tetap menggunakan bot setelah tanggal tersebut, ketentuan baru yang berlaku. Jika Anda tidak setuju, berhentilah menggunakan bot dan cabut aksesnya ke akun Anda.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda adalah konsumen, aturan dalam [Hak Anda saat kami melakukan perubahan](/instant/legal/terms#changes-eu) berlaku untuk bot dan untuk ketentuan ini. Singkatnya: kami mengubah bot hanya dengan alasan yang sah dan tanpa biaya tambahan, kami memberi tahu Anda terlebih dahulu tentang perubahan yang memengaruhi Anda, dan Anda dapat mengakhiri kontrak tanpa biaya jika Anda tidak setuju.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda menggunakan bot untuk bisnis Anda, kami memberi tahu Anda sebelum perubahan pada ketentuan ini yang penting bagi Anda mulai berlaku. Jika Anda tetap menggunakan bot setelah tanggal tersebut, ketentuan baru yang berlaku.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Kontak"
+    },
+    {
+      "type": "p",
+      "text": "Pertanyaan tentang ketentuan ini: {company.email}. Permintaan terkait data: {company.privacyEmail}. Masalah keamanan: {company.securityEmail}."
+    }
+  ]
+}

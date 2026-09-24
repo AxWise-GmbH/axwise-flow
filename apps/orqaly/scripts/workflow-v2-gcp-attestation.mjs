@@ -202,6 +202,16 @@ function normalizedBuildDefinition(build) {
   };
 }
 
+export function expectedBuildDefinition(config, expectedSubstitutions) {
+  // Defaults are part of the exact committed build configuration, not values
+  // trusted from the remote build. Explicit attested inputs still take priority.
+  return normalizedBuildDefinition(substitute(config, {
+    ...config.substitutions,
+    PROJECT_ID,
+    ...expectedSubstitutions,
+  }));
+}
+
 export function buildRecord({
   buildId,
   image,
@@ -241,9 +251,7 @@ export function buildRecord({
   ]);
   assertDocumentContainsImage(descriptor, image);
   const configText = headFile(repository, configPath);
-  const expectedDefinition = normalizedBuildDefinition(
-    substitute(yaml.load(configText), { PROJECT_ID, ...expectedSubstitutions })
-  );
+  const expectedDefinition = expectedBuildDefinition(yaml.load(configText), expectedSubstitutions);
   const observedDefinition = normalizedBuildDefinition(build);
   if (stableJson(expectedDefinition) !== stableJson(observedDefinition)) {
     throw new Error(`Cloud Build ${buildId} executed a definition different from exact HEAD config`);

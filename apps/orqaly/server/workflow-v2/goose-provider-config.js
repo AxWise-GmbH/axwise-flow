@@ -6,6 +6,7 @@ import { createEngineeringReviewService } from './engineering-review-service.js'
 import { createDesktopDecisionService } from './desktop-decision-service.js';
 import { createDesktopInformationService } from './desktop-information-service.js';
 import { createDesktopSearchService } from './desktop-search-service.js';
+import { validateClerkKeyEnvironment } from './clerk-config.js';
 
 function denied(status = 403) {
   return Object.assign(new Error('DESKTOP_ACCESS_DENIED'), { status });
@@ -46,6 +47,7 @@ export function createGooseProviderFromEnvironment({
     throw new Error('ORQALY_GOOSE_OAUTH_CLIENT_ID is required');
   if (!environment.CLERK_SECRET_KEY || !environment.CLERK_PUBLISHABLE_KEY)
     throw new Error('Goose requires the existing Clerk instance configuration');
+  validateClerkKeyEnvironment(environment);
   const legacyFlag = environment.ORQALY_GOOSE_LEGACY_WORKFLOW_ROUTES;
   if (legacyFlag !== undefined && legacyFlag !== '' && legacyFlag !== 'true' && legacyFlag !== 'false')
     throw new Error('ORQALY_GOOSE_LEGACY_WORKFLOW_ROUTES must be true or false');

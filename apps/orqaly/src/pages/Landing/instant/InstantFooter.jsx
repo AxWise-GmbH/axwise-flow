@@ -1,20 +1,42 @@
 import { Link as RouterLink } from 'react-router-dom';
 import { OrqanixMark } from './ui/Glyphs';
 import More from './ui/More';
+import ThemeSwitch from './ui/ThemeSwitch';
 import { INSTANT_HOME, instantPagePath } from './pages/instantPages';
 import { SOLUTIONS_MENU, solutionPath } from './pages/solutions/solutionsMenu';
+import { NAV_PRODUCTS, productPath } from './pages/products/productsMenu';
 import { COMPANY } from './pages/info/company';
+import { PUBLIC_LEGAL_LINKS } from './pages/publicLegalLinks';
+import LanguagePicker from './LanguagePicker';
+import { useT } from './i18n/useT';
+import DirArrow from './ui/DirArrow';
 
-const page = (slug, label) => ({ label, to: instantPagePath(slug) });
+const page = (slug, label) => ({ label, key: `pages.${slug}.label`, to: instantPagePath(slug) });
 
 // The column shows this many solutions; the rest wait under "More", so it stays one column.
 const SOLUTIONS_SHOWN = 5;
-const SOLUTIONS = SOLUTIONS_MENU.map(({ slug, label }) => ({ label, to: solutionPath(slug) }));
+const SOLUTIONS = SOLUTIONS_MENU.map(({ slug, label }) => ({
+  label,
+  key: `solutions.${slug}.label`,
+  to: solutionPath(slug),
+}));
 
+const legalLink = ({ slug, label, to }) => ({ label, key: `legal.${slug}`, to });
+
+// Column titles in the translators' list: footer.col.<id>.
 const COLUMNS = [
   {
+    // The listed products (no Coming soon pill here), then the two pages about the app.
     title: 'Product',
-    links: [page('how-it-works', 'How it works'), page('features', 'Features')],
+    links: [
+      ...NAV_PRODUCTS.map(({ slug, label }) => ({
+        label,
+        key: `products.${slug}.label`,
+        to: productPath(slug),
+      })),
+      page('how-it-works', 'How it works'),
+      page('features', 'Features'),
+    ],
   },
   {
     title: 'Solutions',
@@ -24,21 +46,22 @@ const COLUMNS = [
   },
   {
     title: 'Company',
-    links: [page('about', 'About'), page('contact', 'Contact')],
+    links: [page('about', 'About'), page('news', 'News'), page('contact', 'Contact')],
   },
   {
     title: 'Legal',
-    links: [page('privacy', 'Privacy'), page('terms', 'Terms')],
+    links: PUBLIC_LEGAL_LINKS.map(legalLink),
   },
 ];
 
 function LinkList({ links, labelledBy }) {
+  const { t } = useT();
   return (
     <ul aria-labelledby={labelledBy}>
-      {links.map(({ label, to }) => (
+      {links.map(({ label, key, to }) => (
         <li key={to}>
           <RouterLink to={to} className="oi-footer-link">
-            {label}
+            {t(key, label)}
           </RouterLink>
         </li>
       ))}
@@ -46,34 +69,42 @@ function LinkList({ links, labelledBy }) {
   );
 }
 
+const columnTitle = (t, title) =>
+  ({
+    Product: t('footer.col.product', 'Product'),
+    Solutions: t('footer.col.solutions', 'Solutions'),
+    Company: t('footer.col.company', 'Company'),
+    Legal: t('footer.col.legal', 'Legal'),
+  })[title];
+
 export default function InstantFooter() {
+  const { t } = useT();
   return (
     <footer className="oi-footer oi-above">
       <div className="oi-container">
         <div className="oi-footer-panel">
           <div className="oi-footer-brand">
-            <RouterLink to={INSTANT_HOME} className="oi-brand">
-              <OrqanixMark className="oi-brand-mark" />
-              {COMPANY.name}
-            </RouterLink>
+            {/* The logo with the language button and the light/dark switch beside it. */}
+            <div className="oi-footer-brand-row">
+              <RouterLink to={INSTANT_HOME} className="oi-brand">
+                <OrqanixMark className="oi-brand-mark" />
+                {COMPANY.name}
+              </RouterLink>
+              <LanguagePicker />
+              <ThemeSwitch />
+            </div>
             <p className="oi-footer-line">
-              Instant Intelligence.
-              <br />
-              On your Apple computers.
+              <span dir="auto">{t('footer.tagline', 'Instant Intelligence.')}</span>
             </p>
-            <a className="oi-footer-mail" href={`mailto:${COMPANY.email}`}>
-              {COMPANY.email}
-              <span aria-hidden="true">→</span>
-            </a>
           </div>
-          <nav aria-label="Footer" className="oi-footer-cols">
+          <nav aria-label={t('footer.nav', 'Footer')} className="oi-footer-cols">
             {COLUMNS.map(({ title, long, links, more }) => (
               <div
                 key={title}
                 className={long ? 'oi-footer-col oi-footer-col-long' : 'oi-footer-col'}
               >
                 <p id={`oi-footer-${title}`} className="oi-footer-topic">
-                  {title}
+                  {columnTitle(t, title)}
                 </p>
                 <LinkList links={links} labelledBy={`oi-footer-${title}`} />
                 {more && (
@@ -84,12 +115,19 @@ export default function InstantFooter() {
               </div>
             ))}
           </nav>
+          {/* The mail sits in the panel's bottom-left corner (owner, 2026-09-22). */}
+          <a className="oi-footer-mail" href={`mailto:${COMPANY.email}`}>
+            {COMPANY.email}
+            <DirArrow />
+          </a>
         </div>
         <div className="oi-footer-base">
           <p className="oi-small">
             © {new Date().getFullYear()} {COMPANY.name}
           </p>
-          <p className="oi-small">Made by a group of AI product engineers and consultants</p>
+          <p className="oi-small">
+            {t('footer.credit', 'Made by a group of AI product engineers and consultants')}
+          </p>
         </div>
       </div>
       <span className="oi-wordmark" aria-hidden="true">

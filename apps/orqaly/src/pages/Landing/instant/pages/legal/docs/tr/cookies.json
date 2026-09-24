@@ -1,0 +1,260 @@
+{
+  "meta": {
+    "slug": "cookies",
+    "title": "Çerezler ve Depolama",
+    "summary": "Bu sayfada Orqanix web sitesinin ve web uygulamasının kullandığı çerezler ve tarayıcı depolaması, her birinin neden gerekli olduğu, ne kadar süre kaldığı ve nasıl temizleneceği listelenmektedir.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "İlk sürüm."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Describes the state AFTER this build: marketing/legal pages with self-hosted fonts, no Clerk code and no cookies. Publish only once that build is live (critique #31).",
+        "Clerk: __clerk_db_jwt exists only while sign-in runs on Clerk's development instance; remove the row after the move to the live instance (FACTS §14.4).",
+        "__session lifetime is written as 'short-lived, renewed' (about 1 minute per Clerk, not confirmed in our project).",
+        "Cloudflare __cf_bm (30 min) and _cfuvid (session, rate limiting) lifetimes and purposes are quoted 'according to Cloudflare' from Cloudflare's docs; not measured on our sign-in pages. Clerk's sign-in domain name not printed.",
+        "Clerk development instances may send usage events to Clerk's telemetry host (uncertain); not mentioned. Confirm it is off after the Clerk move.",
+        "Cloudflare Turnstile: whether it stores anything in the browser is not listed; confirm and add a row if it does.",
+        "Lawyer: confirm the no-banner reasoning (ePrivacy Art. 5(3), § 25(2) no. 2 TDDDG, UK PECR) for the menu-layout keys and the router sessionStorage key.",
+        "Fact check: the Desktop App (Electron) does use its own built-in local storage on the Mac (theme, navigation, pinned chats, recent typed messages kept up to 30 days); the old \"does not use browser cookies\" line was replaced with a no-tracking statement. Whether the Desktop sign-in flow sets cookies inside the app was not checked.",
+        "Sign in with Google: Google's cookies on Google's pages are mentioned generically, not listed.",
+        "Fonts: the \"no files from other companies\" statement depends on self-hosted fonts shipping in this build (eu.md row 10, LG München I risk)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "in-short",
+      "text": "Kısaca"
+    },
+    {
+      "type": "note",
+      "text": "Pazarlama ve hukuki sayfalarımız hiçbir çerez yerleştirmez. Bu sayfaların saklayabileceği tek şey sizin tercihlerinizdir: dil, açık veya koyu görünüm ve hukuki sayfalarımızın ABD veya AB sürümü; her biri yalnızca siz tıkladıktan sonra saklanır. Çerezler yalnızca oturum açma sayfalarında ve web uygulamasında kullanılır, çünkü oturum açma onlar olmadan çalışamaz. Reklam, analiz veya izleme çerezi kullanmıyoruz."
+    },
+    {
+      "type": "h2",
+      "id": "what-this-covers",
+      "text": "Çerezler ve depolama"
+    },
+    {
+      "type": "p",
+      "text": "Çerez, bir web sitesinin tarayıcınıza kaydettiği küçük bir metin dosyasıdır. Tarayıcınız sonraki ziyaretlerinizde bunu siteye geri gönderir. Yerel depolama ve oturum depolaması, tarayıcınızda bir web sitesinin küçük bilgi parçalarını saklayabildiği benzer alanlardır. Yerel depolama bu bilgileri temizlenene kadar saklar; oturum depolaması ise sekmeyi kapatana kadar saklar. Bu sayfa, orqanix.com'da ve Orqanix web uygulamasında bu üçünün tamamını kapsar."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-store",
+      "text": "Neleri saklıyoruz"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Ad",
+        "Nerede",
+        "Yerleştiren",
+        "Neden",
+        "Ne kadar süre"
+      ],
+      "rows": [
+        [
+          "orqanix_legal_region",
+          "Hukuki sayfalarımızda yerel depolama. Yalnızca bölge anahtarına veya bölge önerisine tıkladığınızda yazılır.",
+          "Orqanix",
+          "Hukuki sayfalarımızın ABD sürümünü mü yoksa AB sürümünü mü seçtiğinizi hatırlar.",
+          "Siz temizleyene kadar"
+        ],
+        [
+          "orqanix_lang",
+          "Pazarlama sayfalarımızda yerel depolama. Yalnızca alt bilgide bir dil seçtiğinizde yazılır.",
+          "Orqanix",
+          "Sayfalarımız için seçtiğiniz dili hatırlar.",
+          "Siz temizleyene kadar"
+        ],
+        [
+          "orqanix_theme",
+          "Pazarlama sayfalarımızda yerel depolama. Yalnızca alt bilgideki açık/koyu anahtarına bastığınızda yazılır.",
+          "Orqanix",
+          "Açık veya koyu görünümü seçtiğinizi hatırlar.",
+          "Siz temizleyene kadar"
+        ],
+        [
+          "__client_uat (ve son ekli bir kopyası)",
+          "orqanix.com ve alt alan adlarında, oturum açma sayfalarında ve web uygulamasında çerez",
+          "Oturum açma sağlayıcımız Clerk",
+          "Oturum açıp açmadığınızı ve ne zamandan beri açık olduğunu kaydeder.",
+          "Yaklaşık 1 yıl"
+        ],
+        [
+          "__clerk_db_jwt (ve son ekli bir kopyası)",
+          "orqanix.com'da, oturum açma sayfalarında ve web uygulamasında çerez",
+          "Clerk",
+          "Mevcut Clerk kurulumumuzda tarayıcınızı oturum açma oturumunuza bağlar.",
+          "Yaklaşık 1 yıl"
+        ],
+        [
+          "__session (ve son ekli bir kopyası)",
+          "Oturum açtıktan sonra orqanix.com'da çerez",
+          "Clerk",
+          "Sunucularımıza kim olduğunuzu kanıtlayan kısa ömürlü bir oturum açma belirteci tutar.",
+          "Kısa ömürlüdür; oturumunuz açık kaldığı sürece yenilenir"
+        ],
+        [
+          "__cf_bm",
+          "Clerk'in alan adında, oturum açma sayfalarında çerez",
+          "Clerk adına Cloudflare",
+          "Oturum açmayı kötüye kullanıma karşı korumak için insanları botlardan ayırt eder.",
+          "Cloudflare'e göre yaklaşık 30 dakika"
+        ],
+        [
+          "_cfuvid",
+          "Clerk'in alan adında, oturum açma sayfalarında çerez",
+          "Clerk adına Cloudflare",
+          "Oturum açmayı kötüye kullanıma karşı korumak için isteklere makul sınırlar uygulanmasına yardımcı olur.",
+          "Cloudflare'e göre tarayıcınızı kapatana kadar"
+        ],
+        [
+          "__clerk_environment",
+          "orqanix.com'da, oturum açma sayfalarında ve web uygulamasında yerel depolama",
+          "Clerk",
+          "Oturum açmanın daha hızlı yüklenmesi için Clerk ayarlarının bir kopyasını tutar.",
+          "Siz temizleyene kadar"
+        ],
+        [
+          "Menü düzeni",
+          "Web uygulamasında yerel depolama, her hesap için bir kayıt",
+          "Orqanix",
+          "Menünün hangi bölümlerini gizlediğinizi, yeniden sıraladığınızı veya sabitlediğinizi hatırlar.",
+          "Siz temizleyene kadar"
+        ],
+        [
+          "Menü daraltıldı",
+          "Web uygulamasında yerel depolama, her hesap için bir kayıt",
+          "Orqanix",
+          "Yan menüyü daraltıp daraltmadığınızı hatırlar.",
+          "Siz temizleyene kadar"
+        ],
+        [
+          "remix-router-transitions",
+          "Web uygulamasında oturum depolaması, yalnızca kullanılıyorsa",
+          "Web uygulamasının sayfa yönlendirme kütüphanesi",
+          "Geri ve ileri gitmenin çalışması için sayfa geçişlerinin durumunu hatırlar.",
+          "Sekmeyi kapatana kadar"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Kaydolduğunuzda Cloudflare Turnstile da bot değil bir insan olduğunuzu doğrulamak için tarayıcınızda kısa bir kontrol çalıştırır. Bu kontrol oturum açma sürecinin bir parçasıdır ve Clerk adına çalışır."
+    },
+    {
+      "type": "h2",
+      "id": "where-it-applies",
+      "text": "Her birinin geçerli olduğu yerler"
+    },
+    {
+      "type": "h3",
+      "id": "marketing-pages",
+      "text": "Pazarlama ve hukuki sayfalar"
+    },
+    {
+      "type": "p",
+      "text": "Ana sayfa, ürün sayfaları ve bu hukuki sayfalar hiçbir oturum açma kodu yüklemez, çerez yerleştirmez ve başka şirketlere çağrı yapmaz. Yazı tipleri kendi sunucumuzdan gelir. Bu sayfaların saklayabileceği tek öğeler dil, görünüm ve bölge tercihlerinizdir; her biri yalnızca siz tıkladıktan sonra saklanır. Barındırma sağlayıcımız Google Cloud, [Gizlilik Politikamızda](/instant/legal/privacy#website) açıklandığı gibi her ziyaretin olağan sunucu kayıtlarını (IP adresi, tarayıcı, saat ve sayfa) tutar. Bu kayıtlar sunucuda kalır; bunlar için tarayıcınızda hiçbir şey saklanmaz. İndir'e tıklarsanız Masaüstü Uygulaması Google Cloud Storage'dan gelir; dolayısıyla Google IP adresinizi görür."
+    },
+    {
+      "type": "h3",
+      "id": "sign-in-pages",
+      "text": "Oturum açma sayfaları ve web uygulaması"
+    },
+    {
+      "type": "p",
+      "text": "Oturum açma ve kaydolma sayfaları ile web uygulaması, oturum açma işlemimizi yürüten Clerk'i yükler. Clerk ve Clerk adına çalışan Cloudflare, [Neleri saklıyoruz](#what-we-store) bölümünde listelenen oturum açma çerezlerini ve depolama öğelerini yerleştirir. Web uygulamasında, menü düzeninizi bıraktığınız gibi görünmesi için ayrıca saklarız. Google ile oturum aç'ı seçerseniz Google'ın kendi sayfaları açılır ve orada Google'ın çerezleri ve koşulları geçerli olur."
+    },
+    {
+      "type": "h2",
+      "id": "no-banner",
+      "text": "Çerez bildirimi yok",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "AB ve Birleşik Krallık hukuku, bir web sitesinin cihazınızda önceden izin istemeden bilgi saklamasına veya okumasına yalnızca bu, açıkça talep ettiğiniz bir hizmeti sunmak için kesinlikle gerekli olduğunda izin verir (e-Gizlilik Direktifi Md. 5(3); Almanya'da § 25(2) no. 2 TDDDG; Birleşik Krallık'ta Privacy and Electronic Communications Regulations). Sakladığımız her şey bu ölçütü karşılar. Dil, görünüm ve bölge tercihleriniz, siz bunlar için tıkladığınız için saklanır. Oturum açma, çerezlerine ve bot korumasına ihtiyaç duyar. Web uygulaması, belirlediğiniz menü düzenini hatırlar. Reklam, analiz veya izleme için hiçbir şey kullanmıyoruz; bu nedenle onayınızı istememizi gerektiren bir şey ve dolayısıyla bir bildirim yoktur."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Kesinlikle gerekli olmayan bir depolama kullanmak istersek, önce onayınızı isteyecek ve bu sayfayı güncelleyeceğiz."
+    },
+    {
+      "type": "h2",
+      "id": "no-banner",
+      "text": "Çerez bildirimi yok",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Sakladığımız her şey, sizin talep ettiğiniz bir şey için gereklidir: bölge tercihiniz, oturum açma, oturum açmayı botlara karşı koruma ve menü düzeninizi hatırlama. Reklam, analiz veya izleme çerezi kullanmıyoruz ve başka hiçbir şirketin sitemizde sizi izlemesine izin vermiyoruz. Bu nedenle devre dışı bırakmanız (opt out) gereken bir şey ve dolayısıyla bir bildirim yoktur. Tarayıcınız bir Global Privacy Control sinyali gönderirse bunu, kişisel bilgilerinizin satışını ve paylaşımını devre dışı bırakma talebi olarak kabul ederiz. Bunların hiçbirini yapmadığımız için hiçbir şey değişmez."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Depolamayı başka bir amaçla kullanmak istersek, önce bu sayfayı güncelleyecek ve size yasanın gerektirdiği seçenekleri sunacağız."
+    },
+    {
+      "type": "h2",
+      "id": "not-used",
+      "text": "Kullanmadıklarımız"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Reklam çerezi veya reklam ağı yok.",
+        "Analiz veya izleme aracı yok, izleme pikseli de yok.",
+        "Pazarlama ve hukuki sayfalarımızda başka şirketlerden yüklenen yazı tipi veya başka dosya yok.",
+        "Sizi başka web sitelerinde takip eden bir depolama yok."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "clear-it",
+      "text": "Temizleme ve engelleme"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Çerezleri ve site verilerini tarayıcınızın ayarlarında, genellikle Gizlilik veya Site verileri altında görebilir, silebilir ve engelleyebilirsiniz. orqanix.com ve Clerk'in oturum açma alan adı için site verilerini silmek, tablodaki her şeyi kaldırır.",
+        "Bölge tercihinizi değiştirmek için herhangi bir hukuki sayfadaki ABD / AB anahtarını kullanın. Tercihi kaldırmak için tarayıcınızda orqanix.com'a ait site verilerini temizleyin.",
+        "Oturumu kapatmak, oturum açma oturumunuzu sona erdirir.",
+        "Oturum açma çerezlerini veya Cloudflare'in kontrolünü engellerseniz web sitemizi okumaya devam edebilirsiniz, ancak oturum açma ve web uygulaması çalışmaz."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "Masaüstü Uygulaması"
+    },
+    {
+      "type": "p",
+      "text": "Masaüstü Uygulaması bir web sitesi değildir. Reklam, analiz veya izleme için hiçbir çerez ya da depolama kullanmaz. Verilerini Mac'inizde tutar: sohbet geçmişiniz, ayarlarınız, kayıtlarınız, Orqanix oturum açma bilgileriniz (macOS Anahtar Zinciri'nde) ve uygulamanın kendi yerleşik depolamasındaki temanız, menü düzeniniz, sabitlenmiş sohbetleriniz ve son yazdığınız mesajların listesi gibi küçük öğeler. [Gizlilik Politikamız](/instant/legal/privacy#desktop-app), nelerin Mac'inizde kaldığını ve nelerin Mac'inizden çıktığını açıklar."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Değişiklikler"
+    },
+    {
+      "type": "p",
+      "text": "Sakladıklarımız değiştiğinde bu sayfayı ve en üstteki tarihi güncelleriz. Sorularınız için: {company.privacyEmail}."
+    }
+  ]
+}

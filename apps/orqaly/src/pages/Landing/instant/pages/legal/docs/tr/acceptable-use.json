@@ -1,0 +1,321 @@
+{
+  "meta": {
+    "slug": "acceptable-use",
+    "title": "Kabul Edilebilir Kullanım Politikası",
+    "summary": "Bu politika, Orqanix ürünleriyle veya bunların ajanlarıyla neleri yapamayacağınızı ve kurallara aykırı içerik ya da faaliyetleri nasıl bildirebileceğinizi belirler.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "İlk sürüm."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Reports go to hello@orqanix.com with the subject \"Report\", but orqanix.com has no MX record, so reports probably cannot arrive today (FACTS open point 2). Must be fixed before publishing (DSA Art. 16).",
+        "The policy promises: confirmation of receipt, review by a person, a statement of reasons to the affected user, and a second review by a different person \"where we can\". Owner to confirm this process can be run (and a template for statements of reasons exists).",
+        "Health data: the AUP bans protected patient health information without a signed agreement but does not ban all health data, so the US Consumer Health Data Privacy Policy and its visible footer link stay needed (FACTS open point 16).",
+        "AI Act Art. 5 new points on non-consensual intimate imagery and CSAM: banned here for all users at once; the providers safeguard date of 2 Dec 2026 (verify.md row 4) is our own duty, not stated in the text.",
+        "Google flow-down links to Google's Generative AI Prohibited Use Policy and the Gemini API terms; lawyer to confirm the competing-models wording matches the current Gemini API terms.",
+        "CSAM reporting to authorities \"as the law requires\" (US: NCMEC under 18 U.S.C. 2258A if applicable); owner to set up the process.",
+        "Agent AI disclosure (AI Act Art. 50(1)) is put on the user here; Desktop/Bot agents that send email or messages may need a built-in label from us as provider (eu.md row 13). Owner decision.",
+        "AI Act Art. 26 deployer duties for Annex III uses apply from 2 Dec 2027 (verify.md row 2); the EU text says \"as they apply to you\" instead of a date. Housing and non-life insurance in the list are not Annex III, so the EU sentence now says \"most of these\".",
+        "AI Act Art. 50(2) output marking is our duty as provider, not the user's; the AUP does not claim any marking (none exists, FACTS §12). Owner to settle the Desktop first EU market date (FACTS open point 10).",
+        "DSA Art. 23 (\"stop handling clearly unfounded reports after a warning\") is an online-platform rule we adopt voluntarily; fine to keep, but the process needs a record of warnings."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "Bu politikanın kapsamı"
+    },
+    {
+      "type": "p",
+      "text": "Bu politika, tüm Orqanix ürünlerinin kullanımına ilişkin kuralları belirler: Masaüstü Uygulaması, Mobil Uygulama, Asistan Botu, API, Kurumsal hizmetlerimiz ve web sitemiz (birlikte \"Hizmetler\"). Hem kişiler hem de işletmeler için geçerlidir ve [Hizmet Koşullarımızın](/instant/legal/terms) bir parçasıdır."
+    },
+    {
+      "type": "p",
+      "text": "Neler istediğinizi, çıktılarla ne yaptığınızı ve ajanlarınızın ne yaptığını kapsar. Başkalarına, örneğin API aracılığıyla erişim verirseniz, onların da bu politikaya uyduğundan emin olun."
+    },
+    {
+      "type": "note",
+      "text": "Kısacası: Orqanix'i hukuku çiğnemek, insanlara zarar vermek, sistemlere saldırmak veya herhangi birini kiminle ya da neyle muhatap olduğu konusunda aldatmak için kullanmayın."
+    },
+    {
+      "type": "h2",
+      "id": "illegal-harm",
+      "text": "Yasa dışı ve zararlı kullanım"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetleri şunlar için kullanmayın:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "herhangi bir yasayı çiğnemek veya başka birinin çiğnemesine yardım etmek;",
+        "herhangi birini tehdit etmek, taciz etmek, zorbalık yapmak veya ısrarlı takip etmek ya da insanlara kim oldukları nedeniyle şiddeti veya nefreti teşvik etmek;",
+        "terörizmi, şiddet içeren aşırıcılığı veya kitlesel zarara yol açabilecek silahların yapımını planlamak ya da desteklemek;",
+        "dolandırıcılık, sahtekârlık veya kimlik hırsızlığı yapmak ya da para için insanları aldatmak;",
+        "hukuki bir dayanak olmaksızın insanlar hakkında veri toplamak, onları izlemek veya profillemek ya da özel bilgilerini rızaları olmadan ifşa etmek;",
+        "örneğin konut, iş, kredi veya hizmetler konusunda insanlara karşı hukuka aykırı ayrımcılık yapmak;",
+        "kendine zarar vermeyi, intiharı veya yeme bozukluklarını teşvik etmek."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "banned-ai",
+      "text": "Yasaklanmış yapay zekâ uygulamaları"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetleri, AB hukukunun yapay zekâ sistemleri için yasakladığı uygulamalar için kullanmayın. Bu listeyi dünya genelinde uyguluyoruz. (EU AI Act, Art. 5)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "insanları farkında olmadıkları teknikler veya aldatma yoluyla, kararlarını çarpıtacak ve kendilerine önemli zarar vermesi muhtemel bir şekilde manipüle etmek;",
+        "insanların yaşları, engellilikleri veya sosyal ya da ekonomik durumları nedeniyle zayıflıklarını istismar etmek;",
+        "sosyal puanlama: insanları sosyal davranışlarına veya kişisel özelliklerine göre, haksız ya da ilgisiz muameleye yol açacak şekilde derecelendirmek;",
+        "birinin suç işleyip işlemeyeceğini yalnızca profillemeye veya kişilik özelliklerine dayanarak tahmin etmek;",
+        "internetten veya kamera kayıtlarından belirli bir hedef olmaksızın yüz görüntüleri toplayarak yüz tanıma veritabanları oluşturmak ya da genişletmek;",
+        "tıbbi veya güvenlik nedenleri dışında, iş yerinde veya eğitimde insanların duygularını tanımak;",
+        "insanları ırklarını, siyasi görüşlerini, sendika üyeliklerini, dinlerini veya inançlarını, cinsel yaşamlarını ya da cinsel yönelimlerini çıkarsamak amacıyla biyometrik verilerine göre sınıflandırmak;",
+        "kolluk faaliyetleri için kamuya açık alanlarda insanları biyometrik verileriyle gerçek zamanlı ve uzaktan tanımlamak."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Hizmetleri hiçbir zaman çocuk cinsel istismarı materyali oluşturmak, paylaşmak veya aramak ya da gerçek bir kişinin rızası olmadan onun mahrem veya cinsel görüntülerini, sahte olanlar da dahil olmak üzere, oluşturmak veya paylaşmak için kullanmayın."
+    },
+    {
+      "type": "h2",
+      "id": "children",
+      "text": "Çocuklar"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix yetişkinler (18 yaş ve üzeri) içindir. Çocukların hesabınızı kullanmasına izin vermeyin. Hizmetleri, API dahil, 18 yaşından küçüklere yönelik veya onlar tarafından kullanılması muhtemel hiçbir şeyde kullanmayın."
+    },
+    {
+      "type": "p",
+      "text": "Hizmetleri hiçbir zaman çocukları cinselleştirmek, cinsel istismar amacıyla kandırmak, istismar etmek veya tehlikeye atmak için kullanmayın. Çocuk cinsel istismarı materyalini hukukun gerektirdiği şekilde yetkililere bildirir ve ilgili hesapları kapatırız."
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "Güvenlik ve kötüye kullanım"
+    },
+    {
+      "type": "p",
+      "text": "Ne siz ne de ajanlarınız Hizmetleri şunlar için kullanamaz:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "kötü amaçlı yazılım, fidye yazılımı veya başka zararlı kod oluşturmak, yaymak ya da çalıştırmak;",
+        "sahibinin izni olmadan bilgisayarlara, ağlara veya hesaplara izinsiz girmek, bunları yoklamak ya da işleyişlerini bozmak;",
+        "kullanmanıza izin verilmeyen bilgisayarlarda, hesaplarda veya sistemlerde ajan çalıştırmak ya da ajanlara sahip olmalarına izin verilmeyen erişimler vermek;",
+        "bizim veya bağladığınız hizmetlerin güvenlik önlemlerini, oturum açma işlemlerini, sınırlarını veya emniyet tedbirlerini atlatmak;",
+        "Hizmetlere veya başkalarının Hizmetleri kullanmasına aşırı yük bindirmek, saldırmak ya da müdahale etmek;",
+        "yazılı onayımız olmadan hesabınıza veya Hizmetlere erişimi paylaşmak, satmak ya da yeniden satmak;",
+        "hukukun veya bir açık kaynak lisansının izin verdiği durumlar dışında kodumuzu veya istemlerimizi ya da kullandığımız modelleri elde etmek."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[Güvenlik ve Güvenlik Açığı Bildirimi](/instant/legal/security) politikamıza uymanız koşuluyla kendi sistemlerimiz üzerindeki güvenlik araştırmalarını memnuniyetle karşılarız."
+    },
+    {
+      "type": "h2",
+      "id": "honesty",
+      "text": "Yapay zekâ konusunda dürüstlük"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Birini yanıltabilecek durumlarda, bir yapay zekânın insan olduğunu veya yapay zekâ çıktısının bir kişi tarafından yazıldığını ya da yapıldığını iddia etmeyin.",
+        "Bir ajan veya bot sizin adınıza başka kişilere mesaj, e-posta gönderir ya da onlarla konuşursa, en geç ilk mesajında bir yapay zekâ olduğunu açıkça belirtmelidir.",
+        "Hizmetleri gerçek bir kişinin veya kuruluşun kimliğine bürünmek ya da sahte yorumlar, kayıtlar veya kimlikler oluşturmak için kullanmayın.",
+        "Gerçek kişilerin, yerlerin veya olayların yapay zekâ ile üretilmiş gerçekçi görüntülerini, seslerini veya videolarını (deepfake) yayımlarsanız, bunların yapay zekâ tarafından oluşturulduğunu ya da değiştirildiğini açıkça belirtin.",
+        "Hizmetleri dezenformasyon kampanyaları yürütmek veya seçimlere müdahale etmek için kullanmayın."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Kamuoyunu kamu yararını ilgilendiren konularda bilgilendirmek amacıyla yapay zekâ ile üretilmiş metin yayımlarsanız, bir kişi metni incelemedikçe ve metnin editoryal sorumluluğunu üstlenmedikçe, metnin yapay zekâ tarafından üretildiğini belirtin. (EU AI Act, Art. 50(4))",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "sensitive-uses",
+      "text": "Desteklemediğimiz kullanımlar"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix iş için tasarlanmıştır. Onu şunlar için kullanmayın:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "bir yapay zekâ ile arkadaşlık, dostluk, romantik ilişki veya herhangi bir duygusal ilişki;",
+        "terapi, psikolojik danışmanlık veya ruh sağlığı tedavisi. Bir kriz yaşıyorsanız, yerel acil servislerle veya bir kriz hattıyla iletişime geçin;",
+        "nitelikli bir uzman inceleyip sorumluluğunu üstlenmedikçe, başkalarına mesleki tıbbi, hukuki, vergi veya mali tavsiye vermek;",
+        "hastalara teşhis koymak, onları tedavi etmek veya onlarla ilgili kararlar almak."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Sizinle yazılı olarak anlaşmadıkça, Hizmetlere sağlık verilerinin gizliliğine ilişkin mevzuatla korunan hasta sağlık bilgileri vermeyin."
+    },
+    {
+      "type": "p",
+      "text": "ABD sağlık verisi gizliliği yasası olan HIPAA kapsamında bu, bir iş ortağı sözleşmesi (business associate agreement) gerektirir ve biz bu tür sözleşmeler imzalamıyoruz. [Tüketici Sağlık Verisi Gizlilik Politikamız](/instant/legal/health-data), diğer sağlık verilerini nasıl ele aldığımızı açıklar.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "high-risk",
+      "text": "Yüksek riskli kararlar"
+    },
+    {
+      "type": "p",
+      "text": "Bazı kullanımlar insanların hayatlarını ciddi şekilde etkileyebilir. Hizmetleri bu konularda yardımcı olmak için ancak size uygulanan tüm yasalara uyarsanız, her kararın sorumluluğunu nitelikli bir kişide tutarsanız ve hukukun gerektirdiği durumlarda etkilenen kişileri bilgilendirirseniz kullanabilirsiniz. Bu kullanımlar şunları içerir:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "çalışanları işe almak, terfi ettirmek, yönetmek veya işten çıkarmak;",
+        "öğrencileri kabul etmek, notlandırmak veya izlemek ya da sınavlarda kopya çekmeyi tespit etmek;",
+        "kredi, sigorta, konut veya kamu yardımlarına ya da temel hizmetlere erişim konusunda karar vermek;",
+        "kişilerin biyometrik olarak tanımlanması veya sınıflandırılması;",
+        "enerji, su veya trafik gibi kritik altyapıların yönetimi;",
+        "kolluk, göç, sığınma, sınır kontrolü, mahkemeler veya seçimler."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "AB'de bunların çoğu, yapay zekâyı bu amaçlarla kullanan herkese ek yükümlülükler getiren AI Act kapsamında \"yüksek riskli\" kullanımlardır. Bu yükümlülükleri size uygulandığı ölçüde yerine getirmekten siz sorumlusunuz. (EU AI Act, Art. 26 and Annex III)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Çıktıyı, bir kişi üzerinde hukuki veya benzer ölçüde ciddi etkileri olan bir kararın tek dayanağı olarak kullanmayın.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "spam-rights",
+      "text": "İstenmeyen mesajlar, haklar ve veri kazıma"
+    },
+    {
+      "type": "list",
+      "items": [
+        "İstenmeyen mesaj (spam) göndermeyin: toplu veya istenmeyen mesajlar ya da istenmeyen mesajlara veya pazarlamaya ilişkin yasaları ihlal eden mesajlar. Ajanlar veya botlar sizin adınıza mesaj gönderdiğinde, gönderen siz olursunuz.",
+        "Yalnızca kullanma hakkına sahip olduğunuz mesajlaşma uygulamalarını, e-posta hesaplarını ve kişi listelerini bağlayın ve başkalarının verilerini yalnızca hukukun izin verdiği durumlarda işleyin.",
+        "Telif haklarını, ticari markaları, ticari sırları veya diğer hakları ihlal etmeyin ve Hizmetleri ödeme duvarlarını veya kopya korumasını atlatmak için kullanmayın.",
+        "Ajanların web sitelerinden, bu sitelerin koşullarına, erişim kurallarına veya robots.txt talimatlarına aykırı şekilde ya da sitelere zarar verecek bir hızda veri toplamasına izin vermeyin."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "google",
+      "text": "Google'ın kuralları"
+    },
+    {
+      "type": "p",
+      "text": "Varsayılan yapay zekâ modelimiz Google Gemini'dir. Onu Orqanix üzerinden kullandığınızda Google'ın [Üretken Yapay Zekâ Yasaklı Kullanım Politikasına](https://policies.google.com/terms/generative-ai/use-policy) da uymanız gerekir. [Google'ın Gemini API koşullarının](https://ai.google.dev/gemini-api/terms) yasakladığı durumlarda Hizmetleri Google'ınkilerle rekabet eden yapay zekâ modelleri geliştirmek için kullanmamalısınız. Masaüstü Uygulamasında başka bir model sağlayıcısı bağlarsanız, o kullanım için o sağlayıcının kuralları geçerli olur. [Yapay Zekâmız Nasıl Çalışır](/instant/legal/ai) hangi modelleri kullandığımızı açıklar."
+    },
+    {
+      "type": "h2",
+      "id": "report",
+      "text": "İhlal bildirme"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetlerde yasa dışı olduğunu veya bu politikayı ihlal ettiğini düşündüğünüz bir içerik ya da faaliyet görürseniz, \"Report\" konu başlığıyla {company.email} adresine yazın. Hesabı olan veya olmayan herkes bildirimde bulunabilir. (EU Digital Services Act, Art. 16)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetlerde yasa dışı olduğunu veya bu politikayı ihlal ettiğini düşündüğünüz bir içerik ya da faaliyet görürseniz, \"Report\" konu başlığıyla {company.email} adresine yazın. Hesabı olan veya olmayan herkes bildirimde bulunabilir.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Birinin hayatı veya güvenliği yakın tehlike altındaysa, önce polisle veya acil servislerle iletişime geçin."
+    },
+    {
+      "type": "h3",
+      "id": "what-to-include",
+      "text": "Neleri eklemelisiniz"
+    },
+    {
+      "type": "list",
+      "items": [
+        "içeriğin nerede olduğu, olabildiğince kesin bir şekilde: bir bağlantı, bir bot veya hesap adı, bir mesaj, bir tarih ve saat;",
+        "içeriğin neden yasa dışı olduğunu veya bu politikayı ihlal ettiğini düşündüğünüz ve yasa dışı içerik için hangi yasayı ihlal ettiği;",
+        "size yanıt verebilmemiz için adınız ve e-posta adresiniz. Bildiriminiz çocuk cinsel istismarı materyaliyle ilgiliyse bunları belirtmeyebilirsiniz;",
+        "bildiriminizin doğru ve eksiksiz olduğuna iyi niyetle inandığınıza dair bir beyan."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "how-we-decide",
+      "text": "Nasıl karar veriyoruz"
+    },
+    {
+      "type": "p",
+      "text": "Bildiriminizi aldığımızı teyit ederiz. Bildirimi bir kişi inceler ve zamanında, özenli ve nesnel bir şekilde karar verir. Bu kişi içeriği, bağlamı ve ifade özgürlüğü de dahil olmak üzere ilgili herkesin haklarını değerlendirir. Ardından size ne karar verdiğimizi ve nedenini bildiririz."
+    },
+    {
+      "type": "p",
+      "text": "Bir içerik veya hesap hakkında işlem yaparsak, etkilenen kullanıcıya bir gerekçe beyanı sunarız: ne yaptığımız, bunun dayandığı olgular, herhangi bir otomatik araç kullanılıp kullanılmadığı, dayandığımız kural veya yasa ve karara nasıl itiraz edilebileceği. Hukuk gerektirmedikçe, bildirimi kimin yaptığını kullanıcıya söylemeyiz. (EU Digital Services Act, Art. 17)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Bir içerik veya hesap hakkında işlem yaparsak, hukuk yasaklamadıkça veya bunu söylemek zarara yol açmayacaksa, etkilenen kullanıcıya ne yaptığımızı ve nedenini bildiririz. Hukuk gerektirmedikçe, bildirimi kimin yaptığını kullanıcıya söylemeyiz.",
+      "only": "us"
+    },
+    {
+      "type": "h3",
+      "id": "disagree",
+      "text": "Katılmıyorsanız"
+    },
+    {
+      "type": "p",
+      "text": "Hem bildirimde bulunan kişi hem de etkilenen kullanıcı kararımıza itiraz edebilir. Mesajımızı yanıtlayın veya {company.email} adresine yazarak nedenini açıklayın. Mümkün olduğunda, ilk kararı vermemiş bir kişi kararı inceler ve sonucu size bildiririz."
+    },
+    {
+      "type": "p",
+      "text": "Ayrıca mahkemeye başvurabilir veya yaşadığınız AB ülkesindeki Dijital Hizmetler Koordinatörüne şikâyette bulunabilirsiniz.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Açıkça temelsiz bildirimleri sıklıkla gönderen birinin bildirimlerini, kendisini uyardıktan sonra işleme almayı durdurabiliriz."
+    },
+    {
+      "type": "h2",
+      "id": "enforcement",
+      "text": "Yaptırımların uygulanması"
+    },
+    {
+      "type": "p",
+      "text": "Bu politikayı ihlal ederseniz, ihlalin ne kadar ciddi olduğuna bağlı olarak sizi uyarabilir, içeriği kaldırabilir veya devre dışı bırakabilir, bir ajanı veya botu durdurabilir, özellikleri kısıtlayabilir ya da hesabınızı askıya alabilir veya kapatabiliriz. Çocuk cinsel istismarı materyali gibi en ciddi durumlarda derhal ve uyarıda bulunmadan harekete geçer, hukukun gerektirdiği veya izin verdiği durumlarda yetkilileri bilgilendiririz."
+    },
+    {
+      "type": "p",
+      "text": "Olanla orantılı şekilde hareket eder ve kararımızı [Nasıl karar veriyoruz](#how-we-decide) bölümünde açıklandığı şekilde gerekçelendiririz. [Hizmet Koşullarımız](/instant/legal/terms#ending), askıya alma ve hesap kapatmayı daha ayrıntılı açıklar."
+    }
+  ]
+}

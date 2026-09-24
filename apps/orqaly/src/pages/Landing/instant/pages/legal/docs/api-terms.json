@@ -1,0 +1,420 @@
+{
+  "meta": {
+    "slug": "api-terms",
+    "title": "API Terms",
+    "summary": "The extra rules for businesses that build the Orqanix API into their own products or systems.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "First version."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1 and 11).",
+        "Roles: we say we are the customer's processor for personal data they send, and act for ourselves (controller) for our own web searches and OpenRegister lookups. A lawyer must confirm this split (FACTS open point 11).",
+        "Access keys: the code uses one shared machine key, not one key per customer. The text only says 'the key we give you'. Per-customer keys are needed before a second customer gets access, or the confidentiality and 'you are responsible for use of the key' clauses do not work.",
+        "Google Gemini: until the paid Gemini tier and Google's data processing terms are in place (geminiPaidTier), Google may use API content under its free-tier terms, which conflicts with our processor role and must not be offered to EEA/UK/CH customers (FACTS open point 3).",
+        "Data Act export: there is no export code. A manual process that produces the customer's data in a machine-readable format within the 30-day transition is needed before the first EU customer.",
+        "Retention period for API records (decisions, outcomes, scope records) is unknown; the text says 'while you use the API and then as the DPA sets out' (FACTS open point 5).",
+        "US liability cap is 'what you paid in the 12 months before the claim', which is zero while the API is free. Owner and lawyer should decide whether to add a fixed minimum amount.",
+        "Data Act Art. 31 (lighter rules for trial versions and custom services) may apply while the API is free and early; lawyer to decide. The government-access promise (Data Act Art. 32) is a commitment the owner must be able to keep.",
+        "Notice of changes to these terms is 'in advance' without a fixed period; owner to set one if wanted.",
+        "Mailboxes: hello@, privacy@ and security@ need MX records before anyone can reach us (FACTS open point 2).",
+        "Fact check 2026-09-21: added Google Search grounding (FACTS §7/§12), the Gemini paid-tier processor sentence under needs geminiPaidTier, and the under-18 flow-down required by the Gemini API terms (us.md row 12). 'The key stops working' changed to 'we end your access', because one shared key cannot be switched off for one customer.",
+        "US liability cap now reads 'the greater of US$100 and the amounts paid in 12 months' so the cap is not zero while the API is free (us.md row 27). Owner and lawyer to confirm the amount; the US warranty disclaimer is shown as a highlighted note for conspicuousness, lawyer to confirm this is enough (capitals are the usual form).",
+        "Data Act switching: added the 30-day data-retrieval period after the transition (Data Act Art. 25(2)). Still missing: the pre-contract information on switching and the register of data formats (Data Act Art. 26); owner to publish before the first EU customer.",
+        "Research tools not in FACTS: the API code also contains other research services (for example a Eurostat trade-data service). If any of them receive task data in production, they must be added to the Sub-processors page and here; owner to confirm.",
+        "Contracting party for the API (the API runs in a separate Google Cloud project) must be the same entity as for the rest of Orqanix, or these terms need their own party block (FACTS open point 11)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "About these terms"
+    },
+    {
+      "type": "p",
+      "text": "These API Terms apply when a business uses the Orqanix API. They add to our [Terms of Service](/instant/legal/terms) and [Acceptable Use Policy](/instant/legal/acceptable-use). For personal data, the [Data Processing Addendum](/instant/legal/dpa) (the “DPA”) also applies and forms part of these terms. Where these terms and the Terms of Service disagree about the API, these terms win. A separate written agreement signed by both of us wins over both."
+    },
+    {
+      "type": "p",
+      "text": "“You” means the business that uses the API. The person who accepts these terms confirms that they may bind that business. “We” and “us” mean Orqanix."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix is run by {company.legalName}, {company.address}, which is the party to these terms.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "who-may-use",
+      "text": "Who may use the API"
+    },
+    {
+      "type": "p",
+      "text": "The API is for businesses only. Don't use it as a consumer, meaning for purposes outside your trade, business or profession. Everyone who uses it for you must be 18 or older."
+    },
+    {
+      "type": "p",
+      "text": "While the API is early, access is by request. Write to {company.email} with the subject “API access”, and tell us about your business and what you want to build. We decide who gets access, and we may say no or set conditions."
+    },
+    {
+      "type": "p",
+      "text": "The API is free while it is early. Before any paid plan starts, we will agree the price and payment terms with you in writing. We charge nothing without that agreement."
+    },
+    {
+      "type": "h2",
+      "id": "what-it-does",
+      "text": "What the API does"
+    },
+    {
+      "type": "p",
+      "text": "The API is a reasoning layer for your own product. You send it a task, along with the agents, tools and budget you have. It answers with who should do the work (an agent, a team or a person), a score for each factor it weighed, context, guardrails, fallbacks and, for bigger jobs, a team plan."
+    },
+    {
+      "type": "p",
+      "text": "The API only decides; it does not do the work. Your system chooses whether and how to act on each answer, and you are responsible for what your system then does."
+    },
+    {
+      "type": "p",
+      "text": "For long jobs, you can fetch the result later or receive it by a signed webhook. Customers with access get the API's technical documentation."
+    },
+    {
+      "type": "p",
+      "text": "Answers are made with AI. They can be wrong, incomplete or out of date. Check them before you rely on them, above all where a mistake could harm someone. [How Our AI Works](/instant/legal/ai) explains more."
+    },
+    {
+      "type": "h2",
+      "id": "keys",
+      "text": "Access keys"
+    },
+    {
+      "type": "p",
+      "text": "You reach the API with a secret key we give you. Treat it like a password:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Keep it secret, and store it only on your own servers. Never put it in an app, a web page or code that others can see.",
+        "Share it only with the people and systems that need it for your integration.",
+        "Tell us at once at {company.securityEmail} if you think it has leaked or been used without your permission."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "You are responsible for all use of the key we give you until you tell us it may be compromised. We may change, limit or withdraw a key at any time, for example if we see misuse or a security risk. Where we can, we tell you."
+    },
+    {
+      "type": "h2",
+      "id": "your-users",
+      "text": "Your product and users"
+    },
+    {
+      "type": "p",
+      "text": "When you build the API into your own product, that product stays yours. You are responsible for it and for how it treats the people who use it (your “end users”). You must:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Tell your end users when they are dealing with AI, unless that is obvious from the context (EU AI Act Art. 50(1); some US state laws).",
+        "Keep the API out of any product that is aimed at, or likely to be used by, people under 18.",
+        "Give your end users your own privacy notice. It must explain how your product uses their data, including that you send it to us. Our [Privacy Policy](/instant/legal/privacy) does not cover your product.",
+        "Have a legal basis, and any consent you need, before you send us anyone's personal data.",
+        "Make your end users follow rules at least as strict as our [Acceptable Use Policy](/instant/legal/acceptable-use), and stop anyone who breaks them.",
+        "Present your product as your own, not as made or endorsed by Orqanix, unless we agree otherwise in writing."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Under the EU AI Act, you are the provider or the deployer of the AI system you build with the API, and you carry the duties of that role. We supply one part of your system; we are not its provider."
+    },
+    {
+      "type": "h2",
+      "id": "high-risk",
+      "text": "High-risk uses"
+    },
+    {
+      "type": "p",
+      "text": "Some decisions have legal or similarly serious effects on people, such as decisions about hiring and work, education, credit, insurance, housing, healthcare, access to public services, law enforcement, migration and justice. Don't use API answers to make or support them until you have done your own legal review and put in place the safeguards the law requires. Those safeguards include real human review before a decision takes effect."
+    },
+    {
+      "type": "p",
+      "text": "These duties are yours under the laws that apply to you. They include the EU AI Act's rules for high-risk AI systems, which apply from 2 December 2027 (AI Act Annex III), and the GDPR's rules on automated decisions (GDPR Art. 22)."
+    },
+    {
+      "type": "p",
+      "text": "They also include US state laws on automated decisions. For example, Colorado's law on AI used in consequential decisions takes effect on 1 January 2027.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "your-data",
+      "text": "Your data"
+    },
+    {
+      "type": "p",
+      "text": "Your data is what you send to the API (tasks, descriptions of your agents and tools, budgets and context) and the answers it gives you. We store the decisions, their outcomes and records of each task's scope in the API's own database, which runs on Google Cloud in the EU (the Netherlands). We keep them while you use the API, and after that as the DPA sets out."
+    },
+    {
+      "type": "p",
+      "text": "To answer a task, we send it to Google Gemini, the AI model we use. Gemini may also search the web with Google Search. Google may process the task outside the EU. The [Sub-processors](/instant/legal/subprocessors) page lists everyone who helps us run the API."
+    },
+    {
+      "type": "p",
+      "text": "We use Google's paid Gemini API. There, Google acts as our processor under its data processing terms and does not use your tasks to improve its products.",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "for-you",
+      "text": "When we act for you"
+    },
+    {
+      "type": "p",
+      "text": "For personal data you send us, we are your processor. That means we handle it only on your instructions and only to run the API for you, under the DPA."
+    },
+    {
+      "type": "h3",
+      "id": "for-ourselves",
+      "text": "When we act for ourselves"
+    },
+    {
+      "type": "p",
+      "text": "Some of the API's work is our own, not yours. To search the web for a task, our own search service sends queries built from your task to search engines (Google, Bing, Brave and DuckDuckGo). To look up a company, the API asks the company-register service OpenRegister, whose results can include the names of directors. We decide how these searches and lookups work. For them, we act for ourselves (as a “controller”), and our [Privacy Policy](/instant/legal/privacy) applies, not the DPA."
+    },
+    {
+      "type": "p",
+      "text": "Because parts of a task can end up in search queries, keep personal data out of task text unless the task needs it."
+    },
+    {
+      "type": "h3",
+      "id": "what-we-dont-do",
+      "text": "What we don't do"
+    },
+    {
+      "type": "list",
+      "items": [
+        "We do not train our own AI models on your data.",
+        "We do not sell your data, and we don't use it for advertising."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "what-not-to-send",
+      "text": "What not to send"
+    },
+    {
+      "type": "p",
+      "text": "Don't send us special categories of personal data (such as health, religion, sexual orientation or biometric data) or data about criminal convictions, unless we have agreed to it in writing."
+    },
+    {
+      "type": "p",
+      "text": "Don't send us protected health information covered by HIPAA. We do not sign business associate agreements.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "rights",
+      "text": "Who owns what"
+    },
+    {
+      "type": "p",
+      "text": "You keep all rights to what you send us. As between us, the answers the API gives you are yours, to the extent any rights exist in them. You give us the rights we need to use your inputs to run the API for you. We keep all rights to the API, our software, our instructions and our methods. If you send us ideas or feedback, we may use them freely."
+    },
+    {
+      "type": "h2",
+      "id": "limits",
+      "text": "Limits and restrictions"
+    },
+    {
+      "type": "p",
+      "text": "We may set and change limits on the number, size and total volume of your requests. We may slow down or refuse requests above those limits. Don't try to get around a limit, for example by using several keys or accounts."
+    },
+    {
+      "type": "p",
+      "text": "You must not:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "copy, take apart or reverse engineer the API, except where the law allows it;",
+        "use the API to build a competing reasoning service;",
+        "test the API's security without our permission (our [Security & Vulnerability Disclosure](/instant/legal/security) page says how to report a problem);",
+        "send malware, or traffic meant to overload or harm the API."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "no-service-levels",
+      "text": "Availability and changes"
+    },
+    {
+      "type": "p",
+      "text": "There is no service level agreement for the API. We do not promise any level of availability, uptime or answer speed. The API may be interrupted for maintenance, for changes or for reasons outside our control. Build your product to keep working safely when the API is slow or unavailable, for example with your own fallback."
+    },
+    {
+      "type": "p",
+      "text": "The API will change as we build it. We aim to tell you in advance about changes that would break a working integration. We cannot always do so, for example when we must fix a security problem quickly."
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "Confidentiality"
+    },
+    {
+      "type": "p",
+      "text": "Each of us may see the other's confidential information: non-public information that is marked as confidential or should reasonably be understood to be. For you, this includes your inputs. For us, it includes the API's documentation and keys."
+    },
+    {
+      "type": "p",
+      "text": "The party that receives it uses it only for these terms, protects it with reasonable care, and shares it only with people who need it and are bound to keep it confidential. This duty does not cover information that is public, already known to the receiver, developed on its own or lawfully received from someone else. If the law requires disclosure, the receiver may disclose what is required and, where allowed, tells the other party first."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Suspension and ending"
+    },
+    {
+      "type": "p",
+      "text": "You may stop using the API at any time. While the API is free, either of us may end these terms at any time by email."
+    },
+    {
+      "type": "p",
+      "text": "We may suspend or end your access at once if you break these terms or the Acceptable Use Policy, if your use puts the API, other customers or anyone else at risk, or if the law requires it. Where we can, we tell you first and give you a chance to fix the problem."
+    },
+    {
+      "type": "p",
+      "text": "When these terms end, your right to use the API ends and we end your access. We then deal with your data as the DPA sets out. Parts of these terms that by their nature should last, such as confidentiality, liability and the law that applies, keep applying."
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "Switching providers",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "The EU Data Act lets business customers of cloud and other data processing services switch to another provider, or to their own systems, without being locked in (Data Act Art. 23-31). For the API:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "You can start a switch, or end the API and take your data, by telling us in writing. The notice period is two months at most, and you can choose a shorter one.",
+        "We give you your data, meaning your inputs and the decisions, outcomes and scope records we store for you, in a common machine-readable format.",
+        "The transition lasts up to 30 days. If that is not technically possible, we tell you why and how long we need, within the limits the Data Act allows.",
+        "During the transition, we keep the API running for you as agreed and help you in good faith.",
+        "After the transition ends, you have at least 30 more days to retrieve your data.",
+        "Once the switch is complete, we delete your data as the DPA sets out.",
+        "Until 12 January 2027, we may charge only our direct costs of a switch. From 12 January 2027, we charge nothing for switching. While the API is free, we charge nothing at all."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "Location and government access",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "The API and its database run on Google Cloud in the EU (the Netherlands). Google Gemini may process tasks outside the EU, and the search engines and OpenRegister process queries where they choose. The [Sub-processors](/instant/legal/subprocessors) page lists each provider and where it works (Data Act Art. 28).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "If a government outside the EU asks us for your non-personal data, we hand it over only where EU or member-state law allows it. We tell you first, unless the law forbids that (Data Act Art. 32).",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Warranties and liability",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "The API is provided “as is” and “as available”. To the extent the law allows, we give no warranties of any kind, express or implied, including warranties of merchantability, fitness for a particular purpose, title and non-infringement. We do not guarantee that answers are accurate, complete or suitable for your use.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "To the extent the law allows, neither of us is liable for indirect, incidental, special, consequential or punitive damages, or for lost profits, revenue, data or goodwill. Our total liability under these terms is limited to the greater of US$100 and the amounts you paid us for the API in the 12 months before the event that caused the claim. These limits do not apply to liability that the law does not allow to be limited.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Liability",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "We are fully liable for harm we cause on purpose or through gross negligence, for injury to life, body or health, and under mandatory product liability law.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "For slight negligence, we are liable only when we breach an essential duty: a duty that makes proper performance of these terms possible and that you may regularly rely on. Even then, we are liable only for damage that is typical and foreseeable for this kind of contract. Otherwise, our liability for slight negligence is excluded.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "You will cover us against claims by others, including your end users, that arise from your product, from the data you send us or from your breach of these terms, and against the reasonable costs of dealing with them. We tell you about any such claim promptly and let you take part in handling it."
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "Law and disputes"
+    },
+    {
+      "type": "p",
+      "text": "These terms follow the law of {company.law}, without its rules on conflicts of law. The courts of {company.law} decide disputes, unless the law requires another court.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Before either of us goes to court, we try to settle the matter in good faith. Write to {company.email} and describe the problem."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "These terms have no arbitration clause. Either of us may bring a claim in a small-claims court if the claim qualifies."
+    },
+    {
+      "type": "p",
+      "text": "You confirm that you are not on a US or EU sanctions list or located in a country under a US or EU embargo, and that, as far as you know, the same is true of your end users. You must not use the API in breach of US or EU sanctions or export rules."
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "General"
+    },
+    {
+      "type": "list",
+      "items": [
+        "We may update these terms. We tell you in advance about changes that are not in your favour. If you keep using the API after a change takes effect, the new terms apply. If you don't agree, stop using it.",
+        "You may not transfer these terms without our written consent. We may transfer them to a company that takes over the API.",
+        "If one part of these terms is invalid, the rest still applies.",
+        "Notices to us go to {company.email}. Notices to you go to the email address you gave us."
+      ]
+    }
+  ]
+}

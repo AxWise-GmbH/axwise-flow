@@ -1,0 +1,725 @@
+{
+  "meta": {
+    "slug": "terms",
+    "title": "Conditions d’utilisation",
+    "summary": "Les présentes conditions constituent le contrat principal pour tous les produits Orqanix et couvrent votre compte, votre contenu, les agents, la responsabilité et les litiges.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Première version."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company: legal name, address, register, VAT number and governing law are empty, so \"Who we are\", the governing-law sentences (US and EU), the business-user venue (EU) and the postal notice address stay hidden. Owner to fill company.js.",
+        "EU representative (DSA Art. 13; also GDPR Art. 27) needed only if the company is outside the EU; the sentence is hidden until {company.euRepresentative} is set.",
+        "Mailboxes: hello@, privacy@ and security@ orqanix.com have no MX record, so the DSA contact point, reports and account requests probably receive nothing today (FACTS open point 2). Must be fixed before publishing.",
+        "US liability cap \"the greater of 12 months of fees or 100 US dollars\" is a drafting choice (US market norm), not an owner decision. Owner and lawyer to confirm the amount.",
+        "EU liability clause uses the essential-obligation (cardinal duty) model from German law; lawyer to adapt once the governing law is chosen. Product Liability Directive 2024/2853 carve-out included.",
+        "EU withdrawal: text says the free service can be ended at any time at no cost, which goes further than the 14-day right. Lawyer to confirm whether withdrawal information is still required for free contracts where the consumer provides personal data (CRD Art. 3(1a)).",
+        "EU update duty (Dir. 2019/770 Art. 8): terms say updates come as a new Desktop download because auto-update is off. Owner needs a way to tell users about required updates (FACTS open point 8/critique 18).",
+        "DSA moderation text states that a person reviews each report and that we do not proactively scan or recommend content. Owner to confirm this matches practice. If public sharing or a marketplace ever ships, online-platform duties (Art. 20 complaints system etc.) apply.",
+        "Account closure and data copy are by email to privacy@ (no self-service deletion or export, records partly immutable). Terms say \"ask us\"; matches FACTS §3.",
+        "Age 18+ and \"region at sign-up\" need a self-declaration and an acceptance record at sign-up (FACTS open point 9).",
+        "Consumer arbitration board statement (EU) follows the German VSBG pattern and now uses the same wording as the Legal Notice (\"do not take part, and are not willing to\"; no claim about being \"not obliged\", which depends on headcount). Keep, change or remove once the company country is known.",
+        "Indemnity applies to business users only (both regions); consumers excluded.",
+        "EU changes clause: 30 days notice by email, explicit agreement where the law requires it, no consent by silence (German BGH 2021 line on deemed consent). Needs a notice process, the account email and an acceptance record (FACTS open points 2, 9). Drafting choice; lawyer to confirm.",
+        "EU Data Act switching (Art. 23, 25): an EU-only paragraph promises a free copy in a machine-readable format and help with moving, on request to privacy@. No export code exists (FACTS §3, open point 5), so this is a manual process the owner must be able to run. Full Art. 25 terms (2-month notice, 30-day transition, data-format list) and the Art. 28 jurisdiction and government-access statement belong in the API and Enterprise terms or the Security / Sub-processors page; lawyer to confirm whether the free cloud workspace counts as a data processing service.",
+        "EU conformity (Dir. 2019/770 Art. 8(5)): the \"AI can be wrong\" paragraph in \"Legal guarantee\" is written as a description, not a deviation. If a lawyer treats it as a deviation from objective conformity, sign-up needs a separate, express acceptance tick.",
+        "E-commerce information (Dir. 2000/31 Art. 10): Terms say the language (English) and how you accept, but not whether we store the contract text for the user. Past versions are not shown on the page (meta.history is not rendered), so the old sentence \"earlier versions are listed with it\" was removed. Owner to decide whether to show the version archive or email a copy at sign-up.",
+        "Removed \"notices by email count as received on the day they are sent\" (deemed-receipt fictions are unfair against EU consumers). Business-user deemed receipt can go into the API/Enterprise terms if wanted.",
+        "Severability now says the invalid part is replaced by the rule the law provides (no \"closest valid rule\" salvage, which EU unfair-terms law rejects for consumers). Assignment now lets the user end the contract after a transfer. Lawyer to confirm both once the governing law is chosen."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "who-we-are",
+      "text": "Qui nous sommes"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix est une famille de produits d’IA : l’Application de bureau, l’Application mobile, le Bot assistant, l’API et nos services Entreprise. Avec ce site web et votre compte Orqanix, nous les appelons les « Services »."
+    },
+    {
+      "type": "p",
+      "text": "Les présentes Conditions d’utilisation constituent un contrat entre vous et la société qui exploite Orqanix (« Orqanix » ou « nous »)."
+    },
+    {
+      "type": "p",
+      "text": "Cette société est {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Elle est immatriculée au {company.register}. Son numéro de TVA est {company.vatId}.",
+      "only": "eu",
+      "needs": [
+        "register",
+        "vatId"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Vous pouvez nous joindre à {company.email}. Notre [Politique de confidentialité](/instant/legal/privacy) explique comment nous traitons les données personnelles. Elle ne fait pas partie du présent contrat, mais nous vous invitons à la lire."
+    },
+    {
+      "type": "h2",
+      "id": "accepting",
+      "text": "Acceptation des présentes conditions"
+    },
+    {
+      "type": "p",
+      "text": "Vous acceptez les présentes conditions lorsque vous créez un compte, ou lorsque vous téléchargez ou utilisez l’un des Services. Si vous ne les acceptez pas, n’utilisez pas les Services."
+    },
+    {
+      "type": "p",
+      "text": "Si vous les acceptez pour le compte d’une société ou d’une autre organisation, vous confirmez que vous êtes habilité à l’engager. « Vous » désigne alors cette organisation, et vous-même, en tant que personne utilisant les Services, devez également respecter les présentes conditions."
+    },
+    {
+      "type": "p",
+      "text": "Dans les présentes conditions, un « consommateur » est une personne qui utilise les Services principalement à des fins qui n’entrent pas dans le cadre de son activité commerciale, industrielle, artisanale ou libérale. Un « utilisateur professionnel » est toute autre personne. Certaines règles ci-dessous diffèrent pour les consommateurs, car la loi leur accorde une protection plus étendue.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Certaines règles ci-dessous dépendent de la question de savoir si vous utilisez les Services pour vous-même ou pour une entreprise. Un « utilisateur professionnel » est toute personne qui utilise les Services dans le cadre d’une activité commerciale, d’une entreprise ou d’une profession, ou pour le compte d’une organisation.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "eligibility",
+      "text": "Qui peut utiliser Orqanix"
+    },
+    {
+      "type": "p",
+      "text": "Vous devez avoir 18 ans ou plus pour utiliser les Services, où que vous viviez. Les Services ne sont pas destinés aux enfants, et vous ne devez pas les utiliser pour créer quoi que ce soit destiné à des personnes de moins de 18 ans."
+    },
+    {
+      "type": "p",
+      "text": "Vous ne pouvez pas non plus utiliser les Services si la loi l’interdit, y compris en vertu des règles figurant sous [Sanctions et exportations](#sanctions), ou si nous avons fermé un précédent compte vous appartenant en raison d’une violation grave des présentes conditions."
+    },
+    {
+      "type": "p",
+      "text": "L’API et les services Entreprise sont réservés aux utilisateurs professionnels."
+    },
+    {
+      "type": "h2",
+      "id": "your-account",
+      "text": "Votre compte"
+    },
+    {
+      "type": "p",
+      "text": "La plupart des Services nécessitent un compte Orqanix. Un prestataire de connexion gère la connexion pour nous, et vous pouvez également vous connecter avec Google. Fournissez-nous des informations exactes et tenez-les à jour."
+    },
+    {
+      "type": "p",
+      "text": "Protégez vos identifiants de connexion et ne partagez pas votre compte. Vous êtes responsable de ce qui se passe sous votre compte, sauf si cela résulte de notre faute. Si vous pensez qu’une autre personne a utilisé votre compte, informez-nous-en immédiatement à {company.email}."
+    },
+    {
+      "type": "p",
+      "text": "Pour fermer votre compte ou obtenir une copie de vos données, écrivez à {company.privacyEmail}. Notre [Politique de confidentialité](/instant/legal/privacy) explique ce que nous conservons et pourquoi."
+    },
+    {
+      "type": "h2",
+      "id": "products",
+      "text": "Nos produits"
+    },
+    {
+      "type": "p",
+      "text": "Les présentes conditions s’appliquent à tous les Services. Chaque produit dispose également de ses propres conditions, qui ajoutent des règles propres à ce produit :"
+    },
+    {
+      "type": "list",
+      "items": [
+        "[Conditions de l’Application de bureau](/instant/legal/desktop-app-terms) : l’application macOS, dans laquelle des agents d’IA font des recherches, planifient et créent de vrais fichiers sur votre Mac.",
+        "[Conditions de l’Application mobile](/instant/legal/mobile-app-terms) : l’application pour téléphone qui sert de télécommande pour l’Application de bureau.",
+        "[Conditions du Bot assistant](/instant/legal/assistant-bot-terms) : l’assistant professionnel que vous joignez depuis les applications de messagerie et les comptes e-mail que vous connectez.",
+        "[Conditions de l’API](/instant/legal/api-terms) : la couche de raisonnement destinée à d’autres produits (réservée aux utilisateurs professionnels).",
+        "[Conditions Entreprise](/instant/legal/enterprise-terms) : des services dans le cadre desquels nos agents et nos experts conçoivent des solutions pour vous (réservés aux utilisateurs professionnels)."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Lorsque vous utilisez un produit, ses conditions et les présentes conditions s’appliquent toutes deux. En cas de contradiction, les conditions du produit prévalent pour ce produit. Un accord écrit que vous signez avec nous, comme une commande Entreprise, prévaut sur les deux pour ce qu’il couvre."
+    },
+    {
+      "type": "p",
+      "text": "Lorsque des utilisateurs professionnels de l’API, de nos services Entreprise ou du Bot assistant nous confient des données personnelles à traiter pour leur compte, notre [Avenant sur le traitement des données](/instant/legal/dpa) s’applique également."
+    },
+    {
+      "type": "h2",
+      "id": "price",
+      "text": "Prix"
+    },
+    {
+      "type": "p",
+      "text": "Les Services sont gratuits pendant cette phase de lancement. Nous ne vous facturerons rien, sauf si vous souscrivez une offre payante."
+    },
+    {
+      "type": "p",
+      "text": "Avant le lancement de toute offre payante, nous publierons son prix ainsi que les règles de paiement et de résiliation. Vous pourrez alors décider si vous la souhaitez.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Avant le lancement de toute offre payante, nous publierons son prix, taxes comprises, ainsi que les règles de paiement, de résiliation et de rétractation. Nous vous expliquerons alors votre droit de rétractation en tant que consommateur. Vous pourrez alors décider si vous la souhaitez.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Les Services étant gratuits, vous pouvez mettre fin au présent contrat à tout moment, sans frais et sans avoir à donner de motif. Cela va au-delà du droit de rétractation de 14 jours que le droit de l’UE accorde aux consommateurs.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "your-content",
+      "text": "Votre contenu"
+    },
+    {
+      "type": "p",
+      "text": "Les « Entrées » désignent ce que vous fournissez aux Services : requêtes, messages, fichiers, voix, instructions et tout ce que les agents lisent avec votre autorisation. Les « Résultats » désignent ce que les Services vous renvoient : réponses, rapports, fichiers et autres résultats. Ensemble, ils constituent « votre contenu »."
+    },
+    {
+      "type": "p",
+      "text": "Entre vous et nous, votre contenu vous appartient. Nous n’en revendiquons pas la propriété. Si nous détenons des droits sur vos Résultats, nous vous les cédons."
+    },
+    {
+      "type": "p",
+      "text": "Pour faire fonctionner les Services, nous avons besoin de votre autorisation pour utiliser votre contenu. Vous nous concédez une licence mondiale, non exclusive et gratuite pour l’héberger, le stocker, le copier, le traiter, le transmettre et l’afficher. Nous n’utilisons cette licence que pour vous fournir, sécuriser et assister les Services, pour veiller à ce qu’ils restent conformes à la loi et pour faire respecter les présentes conditions. Elle prend fin lorsque votre contenu est supprimé de nos systèmes, à l’exception des copies que nous devons conserver en vertu de la loi ou comme l’explique notre [Politique de confidentialité](/instant/legal/privacy)."
+    },
+    {
+      "type": "p",
+      "text": "Nous n’entraînons pas nos propres modèles d’IA sur votre contenu. Nous ne vendons pas vos données personnelles et n’affichons aucune publicité."
+    },
+    {
+      "type": "p",
+      "text": "Vous êtes responsable de vos Entrées. Vous confirmez disposer des droits et autorisations nécessaires pour nous les fournir, y compris de la part des personnes dont elles contiennent des données personnelles, et que leur utilisation avec les Services n’enfreint ni la loi ni les présentes conditions."
+    },
+    {
+      "type": "p",
+      "text": "Les modèles d’IA peuvent fournir des résultats similaires à différentes personnes. Les résultats que d’autres reçoivent ne constituent pas votre contenu, même s’ils ressemblent aux vôtres."
+    },
+    {
+      "type": "h2",
+      "id": "ai-limits",
+      "text": "L’IA peut se tromper"
+    },
+    {
+      "type": "p",
+      "text": "Les Services utilisent l’intelligence artificielle. Les résultats de l’IA peuvent être erronés, incomplets, obsolètes ou choquants, même lorsqu’ils semblent sûrs. Ils peuvent aussi varier à chaque demande."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Vérifiez les résultats avant de vous y fier ou de les partager, en particulier pour tout ce qui est important.",
+        "Les résultats ne constituent pas un conseil juridique, médical, financier, fiscal ou autre conseil professionnel, et ne remplacent pas une personne qualifiée.",
+        "N’utilisez pas les résultats comme seul fondement de décisions qui affectent les droits, la santé, l’argent ou l’emploi de personnes."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "La page [Comment fonctionne notre IA](/instant/legal/ai) explique quels modèles nous utilisons et comment."
+    },
+    {
+      "type": "h2",
+      "id": "agents",
+      "text": "Agents"
+    },
+    {
+      "type": "p",
+      "text": "Certains Services utilisent des agents d’IA. Un agent ne se contente pas de répondre : il agit. Selon le produit et vos paramètres, les agents peuvent lire et modifier des fichiers, exécuter des commandes sur votre ordinateur, faire des recherches sur le web et utiliser les outils que vous connectez, ce qui peut inclure l’envoi de messages ou d’e-mails en votre nom."
+    },
+    {
+      "type": "p",
+      "text": "Les agents agissent sur vos instructions et dans la limite des autorisations que vous leur accordez. Par défaut, l’Application de bureau approuve automatiquement les actions des agents. Vous pouvez modifier ce réglage pour qu’elle vous demande d’abord, qu’elle ne vous demande que pour les actions sensibles, ou qu’elle se limite à la conversation. Les [Conditions de l’Application de bureau](/instant/legal/desktop-app-terms) expliquent ces paramètres."
+    },
+    {
+      "type": "p",
+      "text": "Vous êtes responsable des actions que vous autorisez, que vous les approuviez une à une ou à l’avance. En particulier :"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Ne laissez les agents utiliser que des ordinateurs, comptes, fichiers et systèmes que vous êtes autorisé à utiliser.",
+        "Vérifiez ce qu’un agent s’apprête à faire lorsque cela compte, et surveillez son travail lorsque vous le laissez agir seul.",
+        "Conservez des sauvegardes de tout ce qui est important. Les agents peuvent modifier ou supprimer des fichiers par erreur.",
+        "Un agent qui envoie des messages à d’autres personnes le fait en votre nom. Vous êtes responsable de ces messages, et d’informer les personnes qu’ils proviennent d’une IA lorsque notre [Politique d’utilisation acceptable](/instant/legal/acceptable-use) ou la loi l’exige."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Cela ne supprime pas notre responsabilité lorsque les Services eux-mêmes sont défectueux. Voir [Responsabilité](#liability)."
+    },
+    {
+      "type": "h2",
+      "id": "third-party",
+      "text": "Services connectés"
+    },
+    {
+      "type": "p",
+      "text": "Notre modèle d’IA par défaut est Google Gemini. Lorsque votre contenu lui est transmis, les conditions de Google applicables à ce service régissent également la manière dont Google le traite. La page [Comment fonctionne notre IA](/instant/legal/ai) et notre [Politique de confidentialité](/instant/legal/privacy) expliquent ce qui est transmis. Vous devez également respecter les règles de Google, que notre [Politique d’utilisation acceptable](/instant/legal/acceptable-use) énumère."
+    },
+    {
+      "type": "p",
+      "text": "Dans certains produits, vous pouvez connecter vous-même d’autres services, comme des modèles d’IA d’OpenAI, d’Anthropic ou d’autres fournisseurs, des applications de messagerie, des comptes e-mail ou d’autres outils. Dans ce cas :"
+    },
+    {
+      "type": "list",
+      "items": [
+        "votre relation avec ce service vous lie à son fournisseur, et ses conditions et ses prix s’appliquent ;",
+        "ce service reçoit le contenu dont il a besoin pour accomplir sa tâche, comme votre conversation ;",
+        "vous êtes responsable de vos clés et de vos comptes auprès de ce service ainsi que de tous les frais qu’il facture ;",
+        "nous ne le contrôlons pas et ne sommes pas responsables de ce qu’il fait, sauf lorsque la loi nous en rend responsables."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "acceptable-use",
+      "text": "Utilisation acceptable"
+    },
+    {
+      "type": "p",
+      "text": "Vous devez respecter notre [Politique d’utilisation acceptable](/instant/legal/acceptable-use), qui fait partie des présentes conditions. En bref : rien d’illégal, rien qui nuise à autrui, aucune attaque contre nous ou contre des tiers, aucune tromperie, et aucune utilisation que la politique n’autorise que dans le cadre d’un accord spécifique."
+    },
+    {
+      "type": "p",
+      "text": "Vous ne pouvez pas non plus copier, vendre ou revendre les Services sans notre accord écrit, contourner nos limites ou nos mesures de sécurité, ni utiliser les Services d’une manière qui mette en danger leur sécurité ou d’autres utilisateurs."
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "Vos suggestions"
+    },
+    {
+      "type": "p",
+      "text": "Nous accueillons volontiers les idées et suggestions. Si vous nous faites part de vos commentaires, nous pouvons les utiliser librement pour améliorer les Services, sans vous rémunérer et sans aucune obligation envers vous. Nous ne publierons pas votre nom avec eux sans votre autorisation."
+    },
+    {
+      "type": "h2",
+      "id": "our-rights",
+      "text": "Nos droits"
+    },
+    {
+      "type": "p",
+      "text": "Les Services, y compris nos logiciels, nos designs, nos noms et nos logos, nous appartiennent ou appartiennent à nos concédants de licence et sont protégés par la loi. Les présentes conditions vous donnent le droit d’utiliser les Services tel qu’elles le décrivent, aussi longtemps que vous êtes autorisé à les utiliser. Elles ne vous confèrent aucun autre droit."
+    },
+    {
+      "type": "p",
+      "text": "Certaines parties des Services sont des logiciels open source. Ces parties sont régies par leurs propres licences, qui prévalent sur les présentes conditions pour ces parties. Voir les [Mentions open source](/instant/legal/open-source)."
+    },
+    {
+      "type": "p",
+      "text": "Vous ne pouvez pas désassembler, décompiler ni faire de l’ingénierie inverse sur les Services, sauf lorsque la loi ou une licence open source le permet."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Suspension et résiliation"
+    },
+    {
+      "type": "p",
+      "text": "Vous pouvez cesser d’utiliser les Services à tout moment et nous demander de fermer votre compte, comme expliqué sous [Votre compte](#your-account)."
+    },
+    {
+      "type": "p",
+      "text": "Nous pouvons suspendre ou limiter votre accès, supprimer du contenu ou fermer votre compte si :"
+    },
+    {
+      "type": "list",
+      "items": [
+        "vous enfreignez gravement ou de manière répétée les présentes conditions ou la [Politique d’utilisation acceptable](/instant/legal/acceptable-use) ;",
+        "la loi ou une autorité l’exige ;",
+        "votre utilisation expose d’autres personnes, les Services ou nous-mêmes à un risque de préjudice ou de responsabilité juridique ; ou",
+        "votre compte n’a pas été utilisé depuis longtemps et nous vous en avons prévenu à l’avance."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Dans la mesure du possible, nous vous avertirons d’abord et vous donnerons la possibilité de remédier au problème. Nous agissons de manière proportionnée à ce qui s’est passé. Lorsque nous agissons, nous vous indiquons ce que nous avons fait et pourquoi, sauf si la loi l’interdit ou si cette information causerait un préjudice."
+    },
+    {
+      "type": "p",
+      "text": "Nous pouvons également cesser de proposer un Service, ou l’ensemble des Services. Dans ce cas, nous vous en informerons avec un préavis raisonnable et vous laisserons le temps de demander une copie de vos données, sauf si nous devons arrêter plus tôt pour des raisons juridiques ou de sécurité."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Pour transférer vos données vers un autre fournisseur ou vers vos propres systèmes, écrivez à {company.privacyEmail}. Nous vous remettons gratuitement une copie de votre contenu et de vos données dans un format structuré, couramment utilisé et lisible par machine, et nous vous aidons dans ce transfert. Vous pouvez mettre fin au contrat à tout moment. (Règlement sur les données de l’UE, art. 23 et 25)"
+    },
+    {
+      "type": "p",
+      "text": "Si vous contestez une décision concernant votre compte, répondez à notre message ou écrivez à {company.email}. Une personne la réexaminera."
+    },
+    {
+      "type": "p",
+      "text": "Les dispositions des présentes conditions qui, par leur nature, doivent perdurer, comme celles relatives au contenu, à la responsabilité, à l’indemnisation et aux litiges, continuent de s’appliquer après la fin du contrat."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Modifications des Services et des présentes conditions"
+    },
+    {
+      "type": "p",
+      "text": "Les Services en sont à leurs débuts et vont évoluer. Nous ajoutons, améliorons et supprimons des fonctionnalités, et nous changeons les modèles d’IA que nous utilisons."
+    },
+    {
+      "type": "p",
+      "text": "Nous pouvons modifier les présentes conditions, par exemple lorsque les Services, la loi ou notre activité évoluent. La date figurant en haut de la page indique la date d’entrée en vigueur de la version actuelle. Les modifications ne s’appliquent pas à l’utilisation passée ni aux litiges déjà existants."
+    },
+    {
+      "type": "p",
+      "text": "Pour les modifications qui vous concernent de manière importante, nous vous informerons à l’avance, par e-mail ou dans les Services. Si vous continuez à utiliser les Services après l’entrée en vigueur d’une modification, les nouvelles conditions s’appliquent. Si vous ne les acceptez pas, cessez d’utiliser les Services et fermez votre compte.",
+      "only": "us"
+    },
+    {
+      "type": "h3",
+      "id": "changes-eu",
+      "text": "Vos droits en cas de modification",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Nous ne modifions les Services d’une manière qui vous affecte que pour un motif valable : pour nous adapter à de nouvelles technologies ou à des changements chez les fournisseurs de modèles dont nous dépendons, pour en assurer la sécurité, pour respecter des obligations légales, ou pour les améliorer ou les réorganiser. Toute modification se fait sans coût supplémentaire pour vous. (Directive (UE) 2019/770, art. 19)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Si une modification porte atteinte, de manière plus que mineure, à votre accès aux Services ou à leur utilisation, nous vous en informons clairement et à l’avance sur un support durable, comme un e-mail. Vous pouvez alors résilier le contrat sans frais dans un délai de 30 jours à compter de l’information ou de la modification, la date la plus tardive étant retenue.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Pour les modifications des présentes conditions qui vous concernent, nous vous informons par e-mail au moins 30 jours avant leur entrée en vigueur et vous expliquons ce qui change. Lorsque la loi exige votre accord, nous vous le demandons. Nous ne considérons pas votre silence comme un accord. Si vous n’êtes pas d’accord, vous pouvez fermer votre compte sans frais avant l’entrée en vigueur de la modification. Nous ne nous servons jamais de modifications pour vous retirer des droits que la loi vous accorde.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Nous fournissons les mises à jour, y compris les mises à jour de sécurité, que la loi exige pour que les Services continuent de fonctionner comme décrit, aussi longtemps que la loi l’exige. Pour l’Application de bureau, les nouvelles versions sont proposées sous forme de nouveau téléchargement, comme l’expliquent les [Conditions de l’Application de bureau](/instant/legal/desktop-app-terms). Si nous vous avons informé d’une mise à jour et des conséquences de son absence d’installation, nous ne sommes pas responsables des problèmes que son installation aurait résolus.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "warranty",
+      "text": "Exclusions de garantie",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Les Services en sont à un stade précoce et sont fournis gratuitement. Ils peuvent changer, dysfonctionner ou s’arrêter, et les résultats peuvent être erronés.",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "DANS LA MESURE PERMISE PAR LA LOI, LES SERVICES ET TOUS LES RÉSULTATS SONT FOURNIS « EN L’ÉTAT » ET « SELON DISPONIBILITÉ ». NOUS N’OFFRONS AUCUNE GARANTIE DE QUELQUE NATURE QUE CE SOIT, EXPRESSE, IMPLICITE OU LÉGALE, Y COMPRIS LES GARANTIES DE QUALITÉ MARCHANDE, D’ADÉQUATION À UN USAGE PARTICULIER, DE TITRE, D’ABSENCE DE CONTREFAÇON ET D’EXACTITUDE. NOUS NE GARANTISSONS PAS QUE LES SERVICES SERONT ININTERROMPUS, SÉCURISÉS OU EXEMPTS D’ERREURS, QUE DU CONTENU NE SERA PAS PERDU, NI QU’UN RÉSULTAT OU UNE ACTION D’AGENT SERA CORRECT OU SÛR.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Certains territoires n’autorisent pas l’exclusion de certaines garanties. Dans ces territoires, les exclusions ci-dessus ne s’appliquent que dans la mesure permise par la loi.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "warranty",
+      "text": "Garantie légale",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Si vous êtes un consommateur, le droit de l’UE vous accorde une garantie légale pour les contenus numériques et les services numériques. Les Services doivent correspondre à ce que décrivent les présentes conditions et les conditions des produits, et nous sommes responsables s’ils n’y correspondent pas. Rien dans les présentes conditions ne limite cette garantie. (Directive (UE) 2019/770)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Les Services en sont à un stade précoce, et les fonctionnalités peuvent évoluer comme décrit sous [Modifications des Services et des présentes conditions](#changes). Avant votre inscription, nous vous informons que les résultats de l’IA peuvent être erronés (voir [L’IA peut se tromper](#ai-limits)). Des résultats erronés de ce type font partie du fonctionnement actuel des services d’IA. Les défauts des Services eux-mêmes restent sous notre responsabilité.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Si vous êtes un utilisateur professionnel, nous fournissons les Services en l’état, sans autre garantie que celles que la loi impose et ne nous permet pas d’exclure.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Responsabilité",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "DANS LA MESURE PERMISE PAR LA LOI : (A) NOUS NE SOMMES PAS RESPONSABLES DES DOMMAGES INDIRECTS, ACCESSOIRES, SPÉCIAUX, CONSÉCUTIFS, EXEMPLAIRES OU PUNITIFS, NI DE LA PERTE DE BÉNÉFICES, DE CHIFFRE D’AFFAIRES, DE DONNÉES OU DE CLIENTÈLE, MÊME SI NOUS AVIONS ÉTÉ INFORMÉS DE LEUR POSSIBILITÉ ; ET (B) NOTRE RESPONSABILITÉ TOTALE POUR L’ENSEMBLE DES RÉCLAMATIONS RELATIVES AUX SERVICES OU AUX PRÉSENTES CONDITIONS EST LIMITÉE AU PLUS ÉLEVÉ DES DEUX MONTANTS SUIVANTS : LE MONTANT QUE VOUS NOUS AVEZ PAYÉ POUR LES SERVICES AU COURS DES 12 MOIS PRÉCÉDANT L’ÉVÉNEMENT À L’ORIGINE DE LA RÉCLAMATION, OU 100 DOLLARS AMÉRICAINS.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Cela s’applique quel que soit le fondement juridique, qu’il s’agisse d’un contrat, d’une garantie, d’une responsabilité délictuelle (y compris la négligence) ou de tout autre fondement. Cela ne limite pas la responsabilité que la loi ne nous permet pas de limiter, comme la responsabilité en cas de fraude, ou en cas de décès ou de dommage corporel causé par notre négligence. Certains territoires n’autorisent pas ces limitations. Dans ces territoires, elles ne s’appliquent que dans la mesure permise par la loi.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Vous êtes responsable des actions que vous autorisez les agents à effectuer et de la manière dont vous utilisez les résultats, comme expliqué sous [Agents](#agents).",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Responsabilité",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Notre responsabilité est illimitée :",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "items": [
+        "pour les dommages que nous causons intentionnellement ou par négligence grave ;",
+        "en cas d’atteinte à la vie, à l’intégrité physique ou à la santé ;",
+        "en vertu du droit de la responsabilité du fait des produits, et en vertu de toute garantie que nous avons donnée ;",
+        "dans tout autre cas où la loi ne permet pas de limiter la responsabilité."
+      ],
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Pour le reste, en cas de négligence légère, nous ne sommes responsables que si nous manquons à une obligation essentielle, c’est-à-dire une obligation qui rend l’exécution du contrat possible et sur le respect de laquelle vous pouvez normalement compter. Notre responsabilité est alors limitée aux dommages typiques pour ce type de contrat et prévisibles au moment où vous l’avez accepté.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Nous ne sommes pas responsables des dommages que vous auriez pu éviter en prenant vous-même des mesures raisonnables, comme conserver des sauvegardes, vérifier les résultats ou examiner les actions avant de les approuver (voir [Agents](#agents)). Cela ne s’applique pas lorsque la loi vous protège contre une telle règle.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Ces règles protègent également notre personnel et les personnes qui travaillent pour nous.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "indemnity",
+      "text": "Indemnisation"
+    },
+    {
+      "type": "p",
+      "text": "Si vous êtes un utilisateur professionnel, vous nous défendrez et nous indemniserez contre les réclamations de tiers découlant de votre contenu, de votre utilisation des Services en violation des présentes conditions ou de la loi, ou des actions que vous avez autorisé les agents à effectuer. « Indemniser » signifie que vous prenez en charge nos frais, pertes et honoraires d’avocat raisonnables. Nous vous informerons rapidement d’une telle réclamation, vous laisserons diriger la défense et vous aiderons raisonnablement, à vos frais. Vous ne pouvez pas conclure de transaction sur une réclamation d’une manière qui reconnaisse une faute de notre part ou nous engage sans notre consentement."
+    },
+    {
+      "type": "p",
+      "text": "Si vous êtes un consommateur, la présente section ne s’applique pas à vous. Vous restez responsable, conformément à la loi, des dommages que vous causez.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Si vous utilisez les Services uniquement pour vous-même, et non pour une entreprise, la présente section ne s’applique pas à vous. Vous restez responsable, conformément à la loi, des dommages que vous causez.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Sanctions et exportations"
+    },
+    {
+      "type": "p",
+      "text": "Nous respectons les règles en matière de sanctions et d’exportations des États-Unis et de l’Union européenne, et vous devez également les respecter. Vous ne pouvez pas utiliser les Services si :"
+    },
+    {
+      "type": "list",
+      "items": [
+        "vous vous trouvez ou résidez habituellement dans un pays ou une région soumis à des sanctions globales des États-Unis ou de l’UE ;",
+        "vous figurez sur une liste de sanctions des États-Unis ou de l’UE, ou êtes détenu ou contrôlé par une personne qui y figure ; ou",
+        "votre utilisation enfreindrait les sanctions ou les règles d’exportation des États-Unis ou de l’UE, par exemple en fournissant les Services à une telle personne ou à une fin interdite."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Nous pouvons bloquer l’accès, fermer des comptes ou refuser de fournir le service afin de respecter ces règles."
+    },
+    {
+      "type": "h2",
+      "id": "disputes",
+      "text": "Litiges et droit applicable",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Si vous rencontrez un problème avec les Services, veuillez d’abord écrire à {company.email}. La plupart des problèmes peuvent être résolus rapidement de cette manière, et nous nous efforcerons de bonne foi de le faire.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Les présentes conditions, ainsi que tout litige les concernant ou concernant les Services, sont régis par le droit de {company.law}, sans égard à ses règles de conflit de lois.",
+      "only": "us",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Les litiges sont portés devant les tribunaux, et non soumis à l’arbitrage. Vous ne renoncez pas au droit de participer à une action de groupe ou collective lorsque la loi le permet. Les réclamations sont portées devant les tribunaux compétents en vertu du droit applicable, y compris les tribunaux de votre lieu de résidence si le droit local vous en donne le droit.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Chacun de nous peut, à la place, introduire une réclamation individuelle devant un tribunal des petits litiges (small claims court), si la réclamation y est recevable, au lieu de votre résidence ou de notre établissement.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Rien dans les présentes conditions ne vous prive des droits que vous tirez du droit de la protection des consommateurs du lieu où vous résidez, si ce droit ne permet pas de les supprimer.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "disputes",
+      "text": "Litiges et droit applicable",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Si vous rencontrez un problème avec les Services, veuillez d’abord écrire à {company.email}. La plupart des problèmes peuvent être résolus rapidement de cette manière, et nous nous efforcerons de bonne foi de le faire.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Les présentes conditions sont régies par le droit de {company.law}. La Convention des Nations unies sur les contrats de vente internationale de marchandises ne s’applique pas.",
+      "only": "eu",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Si vous êtes un consommateur, vous conservez la protection des dispositions impératives du droit du pays où vous résidez, quel que soit le droit choisi par les présentes conditions. Vous pouvez introduire une action contre nous devant les tribunaux de votre lieu de résidence. Nous ne pouvons introduire une action contre vous que devant les tribunaux de votre lieu de résidence.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Si vous êtes un utilisateur professionnel, les tribunaux de notre siège social sont compétents, dans la mesure permise par la loi. Nous pouvons également introduire une action devant les tribunaux de votre siège.",
+      "only": "eu",
+      "needs": [
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Il n’y a pas d’arbitrage, et rien dans les présentes conditions ne limite votre droit de participer à une action représentative ou collective lorsque la loi le permet.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Nous ne participons pas, et ne sommes pas disposés à participer, à des procédures de règlement des litiges devant un organe de médiation de la consommation.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "dsa",
+      "text": "Points de contact et modération",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Le règlement européen sur les services numériques (DSA) nous impose de vous indiquer comment nous joindre et comment nous traitons les contenus.",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "contact-points",
+      "text": "Points de contact",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Notre point de contact unique pour les utilisateurs et pour les autorités des États membres de l’UE, la Commission européenne et le Comité européen des services numériques est {company.email}. Vous pouvez nous écrire en anglais, et vous pouvez toujours joindre une personne, et pas seulement un système automatisé. (DSA, art. 11 et 12)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Notre représentant légal dans l’UE est {company.euRepresentative}. Vous pouvez le contacter pour toute question relevant du DSA. (DSA, art. 13)",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "moderation",
+      "text": "Ce que nous hébergeons et comment nous modérons",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Lorsque vous utilisez notre espace de travail cloud, la recherche cloud de l’Application de bureau, le Bot assistant ou l’API, nous stockons des contenus à votre demande, comme vos conversations, vos questions de recherche, vos objectifs, vos fichiers et vos rapports. Nous ne les publions pas et ne les partageons pas avec d’autres utilisateurs. Nous ne les surveillons pas de manière générale, et nous ne classons ni ne recommandons de contenus.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Nos règles relatives aux contenus figurent dans les présentes conditions et dans la [Politique d’utilisation acceptable](/instant/legal/acceptable-use). Nous agissons lorsque nous avons connaissance d’un contenu illicite ou d’une violation de ces règles, principalement grâce aux signalements.",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Toute personne peut signaler un contenu qu’elle estime illicite ou contraire à nos règles, comme expliqué sous [Signaler une violation](/instant/legal/acceptable-use#report).",
+        "Une personne examine chaque signalement et statue. Nous agissons en temps utile, avec diligence et objectivité, et respectons les droits de toutes les personnes concernées, y compris la liberté d’expression.",
+        "Les mesures peuvent consister à supprimer un contenu ou à en rendre l’accès impossible, à restreindre des fonctionnalités, et à suspendre ou fermer un compte. Nous choisissons la mesure la moins sévère qui soit efficace.",
+        "Nous fournissons à l’utilisateur concerné un exposé des motifs : ce que nous avons fait, les faits, le recours éventuel à des moyens automatisés, la règle ou la loi sur laquelle nous nous sommes fondés, et la manière de contester la décision. (DSA, art. 17)",
+        "Si nous avons connaissance d’une infraction pénale menaçant la vie ou la sécurité d’une personne, nous en informons les autorités. (DSA, art. 18)"
+      ],
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Si vous contestez une décision, répondez à notre message ou écrivez à {company.email}, et une personne la réexaminera. Vous pouvez également saisir la justice, ou déposer une plainte auprès du coordinateur pour les services numériques du pays où vous résidez.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "notices",
+      "text": "Notifications"
+    },
+    {
+      "type": "p",
+      "text": "Nous envoyons les notifications à l’adresse e-mail associée à votre compte, ou les affichons dans les Services. Tenez votre adresse e-mail à jour. Vous pouvez nous adresser des notifications à {company.email}."
+    },
+    {
+      "type": "p",
+      "text": "Les notifications juridiques formelles peuvent également être envoyées par courrier postal à {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Dispositions générales"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Les présentes conditions, les conditions des produits et les politiques auxquelles elles renvoient constituent l’intégralité de l’accord entre vous et nous concernant les Services. Un accord écrit distinct que vous signez avec nous prévaut pour ce qu’il couvre.",
+        "Si un tribunal juge une partie des présentes conditions invalide, le reste continue de s’appliquer. La partie invalide est remplacée par la règle prévue par la loi.",
+        "Si nous n’exerçons pas immédiatement un droit, nous n’y renonçons pas pour autant.",
+        "Vous ne pouvez pas céder vos droits ou obligations au titre des présentes conditions sans notre consentement écrit. Nous pouvons céder le contrat à une société qui reprend les Services, si vos droits ne sont pas réduits. Nous vous en informerons à l’avance, et vous pourrez alors mettre fin au contrat à tout moment.",
+        "Nous ne sommes pas responsables des retards ou des manquements causés par des événements échappant à notre contrôle raisonnable, comme des pannes chez les fournisseurs dont nous dépendons, des catastrophes naturelles ou des actes des pouvoirs publics. Cela ne réduit pas vos droits en tant que consommateur.",
+        "Personne d’autre que vous et nous ne tire de droits des présentes conditions.",
+        "Les présentes conditions sont rédigées en anglais. Si nous en fournissons une traduction, la version anglaise prévaut en cas de divergence, sauf disposition légale contraire."
+      ]
+    }
+  ]
+}

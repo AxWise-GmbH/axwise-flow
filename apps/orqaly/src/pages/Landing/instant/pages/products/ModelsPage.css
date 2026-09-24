@@ -1,0 +1,386 @@
+/*
+ * Personalised Models page (class prefix ppm-): the quietest page on the site. One calm
+ * centred column: the pill, the name, the lead, one action, then the model forming in a
+ * large graphite card. Below: what it will do, how it will work, a calm invitation and two
+ * questions (the home FAQ's rows, from sections.css).
+ */
+
+.ppm-hero {
+  position: relative;
+  padding-block: clamp(108px, 13vh, 150px) clamp(40px, 6vh, 72px);
+  overflow: clip;
+  text-align: center;
+}
+
+/* One still pool of light behind the card. Still, so it costs one paint. */
+.ppm-hero::before {
+  content: '';
+  position: absolute;
+  top: 64%;
+  left: 50%;
+  width: min(130vw, 1600px);
+  aspect-ratio: 1.7;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-glow-rgb), calc(0.26 * var(--oi-halo-k))),
+    rgba(var(--oi-deep-rgb), calc(0.1 * var(--oi-halo-k))) 52%,
+    transparent
+  );
+  translate: -50% -50%;
+  pointer-events: none;
+}
+
+.ppm-hero .oi-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ppm-soon {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 8px 15px 8px 13px;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: var(--oi-radius-pill);
+  background: var(--oi-app-fill);
+  color: var(--oi-app-soft);
+  font: 500 0.72rem / 1 var(--oi-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* A slow beat of light: something is on its way. */
+.ppm-soon::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--oi-ink);
+  box-shadow: 0 0 10px rgba(var(--oi-fg-rgb), calc(0.7 * var(--oi-halo-k)));
+  animation: ppm-beat 2.4s ease-in-out infinite;
+}
+
+.ppm-title {
+  margin: 30px 0 0;
+  background: linear-gradient(180deg, var(--oi-ink) 40%, var(--oi-accent-soft));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: clamp(2.5rem, 10.4vw, 7.4rem);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  text-wrap: balance;
+}
+
+.ppm-lede {
+  max-width: 50ch;
+  margin: 28px 0 0;
+  color: var(--oi-muted);
+  font-size: clamp(1.06rem, 1.6vw, 1.28rem);
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+}
+
+.ppm-lede span {
+  display: block;
+  text-wrap: balance;
+}
+
+.ppm-cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  margin-top: 36px;
+  padding: 0 26px;
+  border-radius: var(--oi-radius-pill);
+  background: var(--oi-ink);
+  color: var(--oi-page);
+  font-family: var(--oi-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    box-shadow 400ms ease,
+    transform 400ms var(--oi-ease);
+}
+
+.ppm-cta:hover {
+  box-shadow: 0 0 36px rgba(var(--oi-accent-rgb), calc(0.55 * var(--oi-halo-k)));
+  transform: translate3d(0, -1px, 0);
+}
+
+.ppm-cta:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 4px;
+}
+
+/* The model forming: the shared card graphite, big and centred. */
+.ppm-stage {
+  position: relative;
+  width: min(100%, 1120px);
+  aspect-ratio: 16 / 10;
+  margin-top: clamp(48px, 6.5vh, 72px);
+  overflow: hidden;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: 24px;
+  background: var(--oi-app-surface), var(--oi-page);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16),
+    0 60px 120px -40px rgba(var(--oi-shadow-rgb), calc(0.95 * var(--oi-shadow-k)));
+}
+
+/* Where the light catches the top edge. */
+.ppm-stage::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 18%;
+  left: 18%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(var(--oi-fg-rgb), 0.6), transparent);
+  pointer-events: none;
+}
+
+/* The hero arrives in order: pill, name, line, action, then the card. */
+.ppm-hero .oi-container > * {
+  animation: ppm-rise 1100ms var(--oi-ease) 120ms backwards;
+}
+
+.ppm-hero .ppm-title {
+  animation-delay: 240ms;
+}
+
+.ppm-hero .ppm-lede {
+  animation-delay: 360ms;
+}
+
+.ppm-hero .ppm-cta {
+  animation-delay: 480ms;
+}
+
+.ppm-hero .ppm-stage {
+  animation: ppm-stage-in 1600ms var(--oi-ease) 560ms backwards;
+}
+
+/* The sections below: centred heads, a calm paragraph right under each h2 ---------------- */
+
+.ppm-will,
+.ppm-how,
+.ppm-first {
+  text-align: center;
+}
+
+.ppm-will {
+  padding-top: clamp(72px, 10vh, 112px);
+}
+
+.ppm-how {
+  padding-top: 0;
+}
+
+.ppm-line {
+  max-width: 62ch;
+  margin: 24px auto 0;
+  color: var(--oi-muted);
+  font-size: clamp(1.02rem, 1.3vw, 1.14rem);
+  line-height: 1.7;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+
+/* Graphite cards: a mark on top, then the title (level across the row) and one line. */
+.ppm-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 1120px;
+  margin: 56px auto 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.ppm-card {
+  display: flex;
+  flex-direction: column;
+  padding: 30px 28px 34px;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: var(--oi-radius-card);
+  background: var(--oi-app-surface);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
+}
+
+.ppm-card h3 {
+  margin: 52px 0 0;
+  color: var(--oi-ink);
+  font-size: 1.3rem;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+}
+
+.ppm-card p {
+  max-width: 34ch;
+  margin: 12px 0 0;
+  color: var(--oi-muted);
+  font-size: 1rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+/* The small glyph: words, data, and a print of your own (the scene's figure, in little). */
+.ppm-points .ppm-card::before {
+  content: '';
+  width: 26px;
+  height: 26px;
+  background: var(--oi-app-text);
+  -webkit-mask: var(--ppm-g) center / contain no-repeat;
+  mask: var(--ppm-g) center / contain no-repeat;
+}
+
+.ppm-points .ppm-card:nth-child(1)::before {
+  --ppm-g: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 5h16v11h-8l-4.5 3.5V16H4zM8 9h8m-8 3h5'/%3E%3C/svg%3E");
+}
+
+.ppm-points .ppm-card:nth-child(2)::before {
+  --ppm-g: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='6' rx='7' ry='2.5'/%3E%3Cpath d='M5 6v12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5'/%3E%3C/svg%3E");
+}
+
+.ppm-points .ppm-card:nth-child(3)::before {
+  --ppm-g: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M12 11v4m-3-5.5c.6-.9 1.7-1.5 3-1.5 2 0 3.5 1.6 3.5 3.5V14m-9-3c0-3 2.5-5.5 5.5-5.5S17.5 8 17.5 11v2m-14-1.5C3.5 6.8 7.3 3 12 3s8.5 3.8 8.5 8.5M9 13v2.5c0 2 1 3.8 2.5 5M6 12.5v2.5c0 2.2.7 4.2 2 5.7m10-4.2c0 .9-.1 1.7-.3 2.5'/%3E%3C/svg%3E");
+}
+
+/* How it will work: each step's number, with a rule that runs on towards the next step. */
+.ppm-steps span {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: var(--oi-app-soft);
+  font: 500 0.74rem / 1 var(--oi-mono);
+  letter-spacing: 0.16em;
+}
+
+.ppm-steps span::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--oi-hairline-strong), transparent);
+}
+
+/* Want to be first: the close, in its own still pool of light. */
+.ppm-first {
+  overflow: clip;
+}
+
+.ppm-first::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(110vw, 1100px);
+  aspect-ratio: 2.2;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-glow-rgb), calc(0.14 * var(--oi-halo-k))),
+    transparent
+  );
+  translate: -50% -50%;
+  pointer-events: none;
+}
+
+.ppm-first .oi-container {
+  position: relative;
+  z-index: 1;
+}
+
+.ppm-first .ppm-cta {
+  margin-top: 40px;
+}
+
+/* Questions: the home FAQ's rows, heading on the left, as on the home page. */
+.ppm-faq .oi-container {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  column-gap: var(--oi-s4);
+  align-items: start;
+}
+
+@keyframes ppm-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0);
+  }
+}
+
+@keyframes ppm-stage-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 48px, 0) scale(0.96);
+  }
+}
+
+@keyframes ppm-beat {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Narrower: one centred column again, the rows as wide as the cards above. */
+@media (max-width: 900px) {
+  .ppm-faq .oi-container {
+    grid-template-columns: minmax(0, 1fr);
+    text-align: center;
+  }
+
+  .ppm-faq .ois-faq {
+    width: 100%;
+    max-width: 560px;
+    margin: 44px auto 0;
+    text-align: left;
+  }
+}
+
+@media (max-width: 820px) {
+  .ppm-cards {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 560px;
+    margin-top: 44px;
+  }
+
+  .ppm-card h3 {
+    margin-top: 36px;
+  }
+
+  /* Stacked cards arrive one by one as they are reached, so the wave delay goes. */
+  .ppm-card[data-reveal] {
+    --d: 0ms !important;
+  }
+}
+
+/* Phones: the card reaches a little into the gutters, so the picture stays big. */
+@media (max-width: 560px) {
+  .ppm-stage {
+    width: calc(100% + 24px);
+    border-radius: 18px;
+  }
+
+  .ppm-card {
+    padding: 26px 22px 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ppm-hero .oi-container > *,
+  .ppm-soon::before {
+    animation: none;
+  }
+}

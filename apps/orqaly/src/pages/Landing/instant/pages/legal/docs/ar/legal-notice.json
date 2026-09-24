@@ -1,0 +1,202 @@
+{
+  "meta": {
+    "slug": "legal-notice",
+    "title": "الإشعار القانوني",
+    "summary": "توضّح هذه الصفحة الجهة التي تدير Orqanix وكيفية التواصل معنا (Impressum).",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "الإصدار الأول."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The whole page stays hidden until legalName and address are filled (legal.links.js). If the company is German, § 5 DDG requires an Impressum on the live site now; that makes choosing the company a blocker (open point #1).",
+        "Fill representative, phone (or another fast contact channel besides email), register, vatId and newsResponsible. § 5 DDG needs a second fast contact channel besides email; without phone the page shows email only.",
+        "The legal form (e.g. GmbH, UG) must be part of legalName.",
+        "euRepresentative only applies if the company sits outside the EU; leave empty otherwise.",
+        "Consumer dispute resolution (§ 36 VSBG): the page now says only that we do not take part and are not willing to (no claim about being \"not obliged\", which depends on headcount). Owner to confirm this choice; the block appears automatically once legalName is filled. Remove it if the company is not German.",
+        "No link to the EU ODR platform: it closed on 20 Jul 2025.",
+        "If the company holds a licence that needs a supervisory authority, or states share capital, add those lines.",
+        "Mail to hello@orqanix.com probably does not arrive today (no MX record, open point #2); § 5 DDG requires a working email address.",
+        "The headings use German terms and the provider line cites § 5 DDG, which assumes a German company. The VAT line no longer cites § 27a UStG. Adjust if the company is elsewhere.",
+        "DSA Art. 11(3): the contact point must also accept an official language of the Member State where the company is established (German, if German). \"We communicate in English\" alone may not be enough; lawyer to confirm and add the language.",
+        "Added the DSA illegal-content reporting route (subject \"Report\") per the owner decision; it must match the Terms of Service and Acceptable Use Policy.",
+        "Removed \"product pages are not binding\" wording: for EU consumers, public statements about a product count toward what it must do (Dir. 2019/770 Art. 8(1)(b)), so disclaiming them is risky."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "provider",
+      "text": "مقدّم الخدمة (Anbieter)"
+    },
+    {
+      "type": "p",
+      "text": "يُقدَّم هذا الموقع الإلكتروني ومنتجات {company.name} من قِبل {company.legalName}، {company.address} (معلومات بموجب § 5 DDG).",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "represented-by",
+      "text": "الممثل القانوني (Vertreten durch)",
+      "needs": [
+        "representative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "{company.representative}",
+      "needs": [
+        "representative"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "التواصل (Kontakt)"
+    },
+    {
+      "type": "p",
+      "text": "البريد الإلكتروني: {company.email}"
+    },
+    {
+      "type": "p",
+      "text": "الهاتف: {company.phone}",
+      "needs": [
+        "phone"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "للأسئلة المتعلقة بالخصوصية، يُرجى الكتابة إلى {company.privacyEmail}. وللإبلاغ عن مشكلة أمنية، يُرجى الكتابة إلى {company.securityEmail}."
+    },
+    {
+      "type": "h2",
+      "id": "register",
+      "text": "السجل التجاري (Registereintrag)",
+      "needs": [
+        "register"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "مسجّلة لدى {company.register}.",
+      "needs": [
+        "register"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "vat",
+      "text": "رقم التعريف الضريبي لضريبة القيمة المضافة (Umsatzsteuer-Identifikationsnummer)",
+      "needs": [
+        "vatId"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "رقم التعريف الضريبي لضريبة القيمة المضافة: {company.vatId}",
+      "needs": [
+        "vatId"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "content-responsible",
+      "text": "المسؤول عن المحتوى (Verantwortlich für den Inhalt)",
+      "needs": [
+        "newsResponsible"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "المسؤول عن المحتوى الصحفي لهذا الموقع الإلكتروني، بما في ذلك صفحة الأخبار: {company.newsResponsible}، {company.address} (§ 18 (2) MStV).",
+      "needs": [
+        "newsResponsible",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "eu-representative",
+      "text": "الممثل في الاتحاد الأوروبي",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "ممثلنا في الاتحاد الأوروبي: {company.euRepresentative} (المادة 27 من اللائحة العامة لحماية البيانات GDPR، والمادة 13 من قانون الخدمات الرقمية DSA).",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "authorities",
+      "text": "جهة الاتصال للسلطات والمستخدمين (DSA)"
+    },
+    {
+      "type": "p",
+      "text": "نقطة الاتصال الموحّدة لدينا للسلطات والمستخدمين بموجب قانون الخدمات الرقمية للاتحاد الأوروبي (DSA) هي {company.email}. نتواصل باللغة الإنجليزية."
+    },
+    {
+      "type": "p",
+      "text": "للإبلاغ عن محتوى غير قانوني، يُرجى الكتابة إلى {company.email} مع جعل الموضوع \"Report\". نتخذ قرارًا بشأن كل بلاغ، ونُبلغ الشخص الذي قدّمه والمستخدم المعنيّ بأسباب قرارنا."
+    },
+    {
+      "type": "h2",
+      "id": "consumer-disputes",
+      "text": "تسوية منازعات المستهلكين (Verbraucherstreitbeilegung)",
+      "needs": [
+        "legalName"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "لا تشارك {company.legalName}، وليست مستعدة للمشاركة، في إجراءات تسوية المنازعات أمام هيئة تحكيم للمستهلكين (§ 36 VSBG).",
+      "needs": [
+        "legalName"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "our-content",
+      "text": "محتوانا"
+    },
+    {
+      "type": "p",
+      "text": "نُعِدّ هذا الموقع الإلكتروني بعناية، لكننا لا نستطيع أن نَعِد بأن كل ما فيه كامل وصحيح ومحدَّث في جميع الأوقات. أما قواعد استخدام منتجاتنا فتجدها في [شروط الخدمة](/instant/legal/terms) الخاصة بنا."
+    },
+    {
+      "type": "h2",
+      "id": "links",
+      "text": "روابط إلى مواقع إلكترونية أخرى"
+    },
+    {
+      "type": "p",
+      "text": "يتضمن موقعنا روابط إلى مواقع إلكترونية يديرها آخرون. لا سيطرة لنا عليها، ولسنا مسؤولين عن محتواها. وإذا علمنا أن صفحة مرتبطة تخالف القانون، فإننا نزيل الرابط."
+    },
+    {
+      "type": "h2",
+      "id": "privacy",
+      "text": "الخصوصية"
+    },
+    {
+      "type": "p",
+      "text": "نشرح كيفية تعاملنا مع البيانات الشخصية في [سياسة الخصوصية](/instant/legal/privacy) الخاصة بنا."
+    }
+  ]
+}

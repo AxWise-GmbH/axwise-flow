@@ -1,0 +1,469 @@
+{
+  "meta": {
+    "slug": "enterprise-terms",
+    "title": "Termini per le aziende",
+    "summary": "I termini per le aziende che incaricano Orqanix di sviluppare, gestire o offrire consulenza sull’AI con i nostri agenti e i nostri esperti.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Prima versione."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1).",
+        "Order / statement-of-work template does not exist yet. Every order must set scope, deliverables, timeline, price, acceptance criteria and testing period, hosting region, notice periods for monthly services and any third-party components (FACTS open point 12).",
+        "Third-party software: the automation tool used in builds is not named here because its commercial licence is still open (FACTS open point 12). No order may include it until that licence is settled.",
+        "Hosting region: the text says an EU Google Cloud region agreed per project and named in the order; the unapplied infrastructure template defaults to a different EU region than the site. Confirm per order.",
+        "Ownership: the text transfers rights in deliverables once paid, with an exclusive licence where rights cannot be transferred (for example under German copyright law). Lawyer to confirm under the chosen governing law.",
+        "AI Act roles: the customer is the deployer; it may become the provider if it puts a system into service under its own name. For high-risk uses the order must split duties. Lawyer to confirm (critique point 7).",
+        "Data Act: managed agent operations and hosting are likely data processing services; custom-built services may fall under the lighter rules of Data Act Art. 31. Lawyer to decide per offer; export must be done by hand (no export code).",
+        "Liability cap (fees paid or payable under the order in the 12 months before the event) and the EU liability wording are drafts for lawyer review.",
+        "US: HIPAA stance is 'no protected health information, no business associate agreements'. Owner to confirm, given the healthcare marketing (us.md must-have 7).",
+        "Late-payment interest is left to the law; payment periods are set per invoice or order.",
+        "Mailboxes: hello@ and privacy@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: every service, pricing model, process step, approval setting and hosting statement matches FACTS §8 and the Enterprise page. Role-based access and the agent record are page claims (FACTS §8); each order must confirm they are part of that build.",
+        "Legal review 2026-09-21: fixed an orphan sentence on third-party licences; AI literacy duty reworded to the softened AI Act Art. 4 (effort, not result; verify.md row 5); added the 30-day data-retrieval period (Data Act Art. 25(2)); US courts clause now states no arbitration and a small-claims option (owner decision); US warranty disclaimer shown as a highlighted note for conspicuousness (lawyer to confirm).",
+        "Data Act Art. 26 pre-contract information (switching procedure, data formats) must go into each order for managed services; no template exists yet.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026) covers software; the EU liability clause keeps mandatory product liability, lawyer to confirm the wording for deliverables that are software (verify.md, missed requirement 1).",
+        "FTC Health Breach Notification Rule and US state breach laws: the terms say no HIPAA data, but Enterprise marketing names healthcare; owner to decide whether healthcare builds are offered at all (verify.md, missed requirements 2-3)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Informazioni su questi termini"
+    },
+    {
+      "type": "p",
+      "text": "I presenti Termini per le aziende si applicano quando la Sua azienda incarica Orqanix di sviluppare, gestire o offrire consulenza sull’AI. Riguardano attività come audit di preparazione all’AI, progetti pilota, unità aziendali automatizzate, nuovi ruoli basati sull’AI, connettori personalizzati, gestione operativa degli agenti e formazione del team."
+    },
+    {
+      "type": "p",
+      "text": "Si aggiungono ai nostri [Termini di servizio](/instant/legal/terms) e alla nostra [Politica di uso consentito](/instant/legal/acceptable-use). Quando trattiamo dati personali per Suo conto, si applica anche l’[Accordo sul trattamento dei dati](/instant/legal/dpa) (il “DPA”), che costituisce parte integrante dei presenti termini. Quando il lavoro comprende l’API di Orqanix, ad esempio un’API di ragionamento white-label, a quella parte si applicano anche i [Termini API](/instant/legal/api-terms)."
+    },
+    {
+      "type": "p",
+      "text": "“Lei” indica l’azienda che ci incarica. La persona che accetta i presenti termini o firma un ordine conferma di avere il potere di vincolare tale azienda. “Noi” e “ci” indicano Orqanix."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix è gestita da {company.legalName}, {company.address}, che è la parte contraente dei presenti termini e di ogni ordine.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "I servizi per le aziende sono riservati esclusivamente alle imprese. Tutte le persone che collaborano con noi per Suo conto devono avere almeno 18 anni."
+    },
+    {
+      "type": "h2",
+      "id": "orders",
+      "text": "Ordini"
+    },
+    {
+      "type": "p",
+      "text": "Prima dell’inizio dei lavori concordiamo ogni incarico in un ordine scritto o in una descrizione dei lavori (statement of work) (un “ordine”). Ogni ordine descrive:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "l’ambito: che cosa faremo e che cosa non è incluso;",
+        "i risultati da consegnare: che cosa riceverà;",
+        "le tempistiche e le eventuali milestone;",
+        "il prezzo e le modalità di addebito: un prezzo fisso per progetto, un canone mensile, un compenso per risultato o una combinazione di questi;",
+        "i criteri di accettazione e il tempo a Sua disposizione per il collaudo;",
+        "dove è ospitato il lavoro, inclusa la regione di Google Cloud nell’UE;",
+        "gli eventuali software o servizi di terzi su cui si basa il lavoro e i relativi termini."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Un ordine vincola entrambe le parti non appena entrambe lo hanno firmato o confermato per iscritto. È sufficiente un’email. Più ordini possono essere in corso contemporaneamente e ciascuno è autonomo."
+    },
+    {
+      "type": "p",
+      "text": "Il nostro lavoro di norma va dall’analisi iniziale e da un piano scritto (il “blueprint”), passando per lo sviluppo con i Suoi dati e il lancio, fino alla gestione e al miglioramento. L’ordine indica quali fasi comprende."
+    },
+    {
+      "type": "p",
+      "text": "In caso di contrasto tra documenti, prevalgono nel seguente ordine: l’ordine relativo al lavoro, poi il DPA per i dati personali, poi i presenti termini, poi i Termini di servizio."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-work",
+      "text": "Come lavoriamo"
+    },
+    {
+      "type": "p",
+      "text": "Svolgiamo il lavoro con i nostri agenti AI, con i nostri specialisti (ingegneri e consulenti) o con entrambi, secondo quanto previsto dall’ordine. Possiamo avvalerci di subappaltatori. Restiamo responsabili del loro lavoro e li vincoliamo agli stessi obblighi di riservatezza e di protezione dei dati che gravano su di noi."
+    },
+    {
+      "type": "p",
+      "text": "Gli agenti che sviluppiamo e gestiamo per Lei operano entro regole da Lei stabilite: approvazioni per ogni azione (Consenti una volta, Consenti sempre o Nega), accessi basati sui ruoli e un registro di ciò che ogni agente ha fatto. Concordiamo con Lei queste impostazioni nell’ordine o prima del lancio."
+    },
+    {
+      "type": "h2",
+      "id": "cooperation",
+      "text": "La Sua collaborazione"
+    },
+    {
+      "type": "p",
+      "text": "Lei si impegna a:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "fornirci per tempo l’accesso a persone, sistemi, dati e decisioni necessari per il lavoro;",
+        "assicurarsi di avere il diritto di fornirci tali dati e accessi, compresi i dati personali e le licenze per i Suoi sistemi e strumenti;",
+        "indicare una persona di riferimento in grado di prendere decisioni;",
+        "esaminare tempestivamente piani e risultati;",
+        "conservare backup propri dei sistemi e dei dati su cui lavoriamo;",
+        "informarci delle norme che incidono sul lavoro, come quelle del Suo settore."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Se Lei è in ritardo, o se qualcosa che ci ha fornito è errato, e ciò ci causa un ritardo, le tempistiche slittano dello stesso periodo. L’eventuale impegno aggiuntivo che ne deriva è gestito come una [modifica](#changes)."
+    },
+    {
+      "type": "h2",
+      "id": "acceptance",
+      "text": "Accettazione"
+    },
+    {
+      "type": "p",
+      "text": "Se un ordine prevede criteri di accettazione, La informiamo quando un risultato è pronto. Lei lo collauda rispetto a tali criteri entro il periodo previsto dall’ordine. Se li soddisfa, Lei lo accetta. In caso contrario, ci comunica per iscritto che cosa non è conforme, e noi lo correggiamo e glielo presentiamo di nuovo."
+    },
+    {
+      "type": "p",
+      "text": "Un risultato si considera accettato quando Lei lo conferma, quando il periodo di collaudo termina senza un rifiuto scritto e motivato, oppure quando Lei inizia a utilizzarlo nella Sua attività effettiva per scopi diversi dal collaudo. Piccoli difetti che non ne impediscono l’uso non ostano all’accettazione. Li correggiamo nell’ambito dei [nostri impegni](#warranties)."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Modifiche"
+    },
+    {
+      "type": "p",
+      "text": "Ciascuna parte può chiedere di modificare l’ambito. Le comunichiamo in che modo la modifica incide sulle tempistiche e sul prezzo. Una modifica si applica non appena entrambe le parti l’hanno concordata per iscritto. Fino ad allora, continuiamo a lavorare in base all’ordine così com’è."
+    },
+    {
+      "type": "h2",
+      "id": "fees",
+      "text": "Compensi e pagamento"
+    },
+    {
+      "type": "p",
+      "text": "Lei paga i compensi stabiliti nell’ordine. Per un compenso per risultato, l’ordine definisce che cosa si considera un risultato e come viene misurato."
+    },
+    {
+      "type": "p",
+      "text": "Fatturiamo secondo quanto previsto dall’ordine. Lei paga entro il termine indicato nell’ordine o in fattura. I compensi non includono l’IVA né altre imposte, che Lei paga ove applicabili. Addebitiamo spese solo se l’ordine lo consente."
+    },
+    {
+      "type": "p",
+      "text": "Se contesta una parte di una fattura, ce lo comunichi in buona fede e paghi il resto. Se un importo resta non pagato dopo un sollecito, possiamo sospendere il lavoro fino al pagamento. Sui pagamenti tardivi maturano interessi nella misura consentita dalla legge."
+    },
+    {
+      "type": "h2",
+      "id": "ownership",
+      "text": "Chi possiede che cosa"
+    },
+    {
+      "type": "h3",
+      "id": "your-material",
+      "text": "Il Suo materiale"
+    },
+    {
+      "type": "p",
+      "text": "Lei conserva tutti i diritti su dati, contenuti, sistemi e altro materiale che ci fornisce. Ci consente di utilizzarlo solo per svolgere il lavoro."
+    },
+    {
+      "type": "h3",
+      "id": "deliverables",
+      "text": "Risultati"
+    },
+    {
+      "type": "p",
+      "text": "Una volta pagato integralmente un risultato, Lei diventa titolare di ciò che abbiamo realizzato specificamente per Lei in base all’ordine, come configurazioni di agenti, flussi di lavoro, connettori, documenti e codice. Le trasferiamo i diritti che deteniamo su di esso. Se la legge non consente il trasferimento di un diritto, Le concediamo una licenza esclusiva, mondiale e perpetua, che Lei può trasferire a terzi. Fino al pagamento, Lei può utilizzare un risultato per esaminarlo e collaudarlo."
+    },
+    {
+      "type": "h3",
+      "id": "our-material",
+      "text": "Il nostro materiale"
+    },
+    {
+      "type": "p",
+      "text": "Conserviamo tutti i diritti sui nostri strumenti, piattaforma, software, agenti, modelli, istruzioni, metodi e know-how, nonché su tutto ciò che abbiamo realizzato prima dell’ordine o al di fuori di esso. Se il nostro materiale fa parte di un risultato, Lei ottiene, una volta effettuato il pagamento, una licenza non esclusiva, mondiale e perpetua per utilizzarlo, copiarlo e modificarlo come parte di tale risultato per la Sua attività. Non può vendere né concedere in licenza il nostro materiale separatamente."
+    },
+    {
+      "type": "h3",
+      "id": "other-parts",
+      "text": "Servizi, componenti di terzi e output dell’AI"
+    },
+    {
+      "type": "p",
+      "text": "Quando gestiamo qualcosa per Lei, come la gestione operativa degli agenti o un’API di ragionamento ospitata, si tratta di un servizio e non di un risultato. Il Suo accesso dura quanto l’ordine."
+    },
+    {
+      "type": "p",
+      "text": "I componenti di terzi e open source di un risultato restano soggetti alle rispettive licenze. Le indichiamo quali sono inclusi in un risultato."
+    },
+    {
+      "type": "p",
+      "text": "Parti di un risultato possono essere generate dall’AI. In alcuni paesi, il materiale generato dall’AI senza un sufficiente contributo creativo umano non è protetto dal diritto d’autore. Le trasferiamo tutti i diritti esistenti, ma non garantiamo che ne esistano."
+    },
+    {
+      "type": "p",
+      "text": "Ciascuna parte può continuare a utilizzare le competenze e l’esperienza generali acquisite con il lavoro, senza utilizzare le informazioni riservate dell’altra."
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "Riservatezza"
+    },
+    {
+      "type": "p",
+      "text": "Ciascuna parte avrà accesso alle informazioni riservate dell’altra: informazioni non pubbliche contrassegnate come riservate o che dovrebbero ragionevolmente essere intese come tali."
+    },
+    {
+      "type": "p",
+      "text": "La parte che le riceve le utilizza solo per il lavoro, le protegge con ragionevole diligenza e le condivide solo con persone che ne hanno bisogno e sono tenute a mantenerle riservate. Tale obbligo non riguarda le informazioni che sono pubbliche, già note al destinatario, sviluppate autonomamente o ricevute lecitamente da terzi. Se la legge impone la divulgazione, il destinatario può divulgare quanto richiesto e, ove consentito, ne informa prima l’altra parte. La citiamo come cliente solo con il Suo permesso."
+    },
+    {
+      "type": "h2",
+      "id": "data-protection",
+      "text": "Dati e hosting"
+    },
+    {
+      "type": "p",
+      "text": "Quando trattiamo dati personali per Suo conto, siamo il Suo responsabile del trattamento: li trattiamo solo su Sue istruzioni e si applica il DPA. Per i nostri registri che La riguardano, come le Sue persone di riferimento e le fatture, agiamo per conto nostro e si applica la nostra [Informativa privacy](/instant/legal/privacy)."
+    },
+    {
+      "type": "p",
+      "text": "Ospitiamo il Suo lavoro in una regione di Google Cloud nell’UE concordata con Lei e indicata nell’ordine. Alcuni fornitori di cui ci avvaliamo, come Google Gemini per il modello di AI, possono trattare dati al di fuori dell’UE. La pagina [Sub-responsabili](/instant/legal/subprocessors) li elenca."
+    },
+    {
+      "type": "p",
+      "text": "Non addestriamo i nostri modelli di AI con i Suoi dati e non li vendiamo."
+    },
+    {
+      "type": "p",
+      "text": "Non ci fornisca informazioni sanitarie protette (protected health information) soggette a HIPAA. Non sottoscriviamo business associate agreement.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "ai-act",
+      "text": "Leggi sull’AI e il Suo ruolo"
+    },
+    {
+      "type": "p",
+      "text": "È Lei a decidere come vengono utilizzati nella Sua attività i sistemi che sviluppiamo. Ai sensi dell’AI Act dell’UE, Lei è il “deployer” di ciò che sviluppiamo per Lei: l’organizzazione che utilizza un sistema di AI sotto la propria autorità. Se mette in servizio un sistema con il proprio nome, può esserne anche il “fornitore”."
+    },
+    {
+      "type": "p",
+      "text": "Ci informi prima dell’inizio dei lavori se un sistema potrebbe essere utilizzato in un ambito ad alto rischio, come assunzioni e lavoro, istruzione, credito o accesso a servizi essenziali. L’ordine stabilisce allora chi fa che cosa. Per tali utilizzi, i Suoi obblighi di deployer si applicano dal 2 dicembre 2027 (AI Act, art. 26 e allegato III). Comprendono la sorveglianza umana, l’uso del sistema conformemente alle istruzioni, il monitoraggio del suo funzionamento e la conservazione dei suoi log."
+    },
+    {
+      "type": "p",
+      "text": "Ove la legge lo richieda, Lei si assicura che le persone che interagiscono con un sistema da Lei gestito sappiano di interagire con un’AI e adotta misure per sviluppare l’alfabetizzazione in materia di AI del personale che lo utilizza (AI Act, artt. 4 e 50). La nostra formazione per i team può essere d’aiuto, ma questi obblighi restano a Suo carico."
+    },
+    {
+      "type": "p",
+      "text": "Le leggi statali USA sull’AI nelle decisioni rilevanti (consequential decisions) si applicano a Lei in quanto impresa che prende tali decisioni. Ad esempio, la legge del Colorado entra in vigore il 1° gennaio 2027.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "results",
+      "text": "Risultati aziendali"
+    },
+    {
+      "type": "p",
+      "text": "Lavoriamo per raggiungere gli obiettivi stabiliti nell’ordine. Tuttavia, i risultati aziendali dipendono dai Suoi dati, dalle Sue persone, dai Suoi processi e dai Suoi mercati, che non controlliamo. Salvo che l’ordine lo preveda espressamente, non garantiamo risparmi, ricavi né alcun altro risultato aziendale. Un compenso per risultato è un modo per determinare il prezzo del lavoro, non una promessa che un risultato sarà raggiunto."
+    },
+    {
+      "type": "p",
+      "text": "L’output dell’AI può essere errato e gli agenti possono commettere errori. Mantenga una revisione umana per le decisioni importanti e scelga impostazioni di approvazione adeguate al rischio. [Come funziona la nostra AI](/instant/legal/ai) fornisce maggiori dettagli."
+    },
+    {
+      "type": "h2",
+      "id": "warranties",
+      "text": "I nostri impegni"
+    },
+    {
+      "type": "p",
+      "text": "Ci impegniamo a svolgere il lavoro con ragionevole competenza e diligenza, avvalendoci di persone adeguatamente qualificate. Ci impegniamo inoltre affinché ogni risultato, al momento dell’accettazione, sia conforme all’ordine in tutti gli aspetti essenziali."
+    },
+    {
+      "type": "p",
+      "text": "Se un risultato non è conforme a tale impegno, ce lo comunichi per iscritto. Lo correggeremo o rifaremo il lavoro. Se non siamo in grado di farlo entro un termine ragionevole, Lei può risolvere quella parte dell’ordine e ottenere il rimborso dei compensi pagati per essa."
+    },
+    {
+      "type": "note",
+      "text": "Questo è l’unico rimedio a Sua disposizione per un risultato non conforme al nostro impegno. Al di fuori degli impegni previsti dai presenti termini e dall’ordine, e nella misura consentita dalla legge, non forniamo altre garanzie, espresse o implicite, comprese le garanzie di commerciabilità, di idoneità a uno scopo particolare e di non violazione di diritti di terzi.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "I Suoi diritti di legge in caso di difetti restano validi, ma Lei deve prima darci una ragionevole possibilità di eliminare il difetto.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Responsabilità",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Nella misura consentita dalla legge, nessuna delle parti è responsabile per danni indiretti, incidentali, speciali, consequenziali o punitivi, né per perdita di profitti, ricavi, dati o avviamento.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "La responsabilità complessiva di ciascuna parte in base a un ordine è limitata ai compensi pagati e dovuti in base a tale ordine nei 12 mesi precedenti l’evento che ha dato origine alla pretesa.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Tali limiti non si applicano al Suo obbligo di pagare i compensi, alla violazione della riservatezza, alla frode né alla responsabilità che la legge non consente di limitare.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Responsabilità",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Rispondiamo integralmente dei danni causati con dolo o colpa grave, dei danni alla vita, all’integrità fisica o alla salute e ai sensi della normativa inderogabile sulla responsabilità per danno da prodotti.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "In caso di colpa lieve, rispondiamo solo se violiamo un obbligo essenziale: un obbligo che rende possibile la corretta esecuzione dell’ordine e sul cui adempimento Lei può regolarmente fare affidamento. Anche in tal caso, rispondiamo solo dei danni tipici e prevedibili per questo tipo di contratto e, complessivamente, per un importo non superiore ai compensi pagati e dovuti in base a tale ordine nei 12 mesi precedenti l’evento. Per il resto, la nostra responsabilità per colpa lieve è esclusa.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Lei ci terrà indenni dalle pretese di terzi derivanti dal materiale che ci ha fornito o dalla Sua violazione dei presenti termini, nonché dai costi ragionevoli per gestirle. La informiamo tempestivamente di qualsiasi pretesa di questo tipo e Le consentiamo di partecipare alla sua gestione."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Durata e cessazione"
+    },
+    {
+      "type": "p",
+      "text": "I presenti termini si applicano dal Suo primo ordine fino alla cessazione del Suo ultimo ordine. Ogni ordine ha la durata in esso indicata. I servizi mensili proseguono di mese in mese finché una delle parti non vi pone fine con il preavviso stabilito dall’ordine."
+    },
+    {
+      "type": "p",
+      "text": "Ciascuna parte può risolvere un ordine con effetto immediato, per iscritto, se l’altra lo viola gravemente e non pone rimedio alla violazione entro un termine ragionevole dalla comunicazione, oppure se l’altra diventa insolvente. Lei può inoltre recedere anticipatamente da un ordine se l’ordine lo consente."
+    },
+    {
+      "type": "p",
+      "text": "Alla cessazione di un ordine, Lei paga il lavoro svolto fino a quella data e, se vi ha posto fine anticipatamente, i costi che non possiamo annullare. Le consegniamo i Suoi dati e i risultati che ha pagato, interrompiamo i servizi che gestivamo per Lei e trattiamo i dati personali come previsto dal DPA. Le parti dei presenti termini che per loro natura devono sopravvivere, come quelle su titolarità, riservatezza, responsabilità e legge applicabile, continuano ad applicarsi."
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "Cambio di fornitore",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Quando gestiamo per Lei un servizio di trattamento dei dati, come la gestione operativa degli agenti o l’hosting, il Data Act dell’UE Le conferisce il diritto di passare a un altro fornitore o ai Suoi sistemi (Data Act, artt. 23-31). Per tali servizi:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Può avviare un passaggio, oppure porre fine al servizio e portare con sé i Suoi dati, comunicandocelo per iscritto. Il periodo di preavviso è al massimo di due mesi e Lei può sceglierne uno più breve.",
+        "Le consegniamo i Suoi dati, e gli asset digitali che abbiamo realizzato per Lei e a cui ha diritto, in un formato comune leggibile da dispositivo automatico.",
+        "La transizione dura fino a 30 giorni. Se ciò non è tecnicamente possibile, Le comunichiamo il motivo e il tempo di cui abbiamo bisogno, nei limiti consentiti dal Data Act.",
+        "Durante la transizione, manteniamo il servizio attivo come concordato e assistiamo in buona fede Lei e il Suo nuovo fornitore.",
+        "Al termine della transizione, dispone di almeno altri 30 giorni per recuperare i Suoi dati.",
+        "Una volta completato il passaggio, cancelliamo i Suoi dati come previsto dal DPA.",
+        "Fino al 12 gennaio 2027 possiamo addebitare solo i nostri costi diretti di un passaggio, e solo se l’ordine li elenca. Dal 12 gennaio 2027 non addebitiamo nulla per il passaggio."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Se un servizio è sviluppato su misura per Lei, alcune di queste regole possono applicarsi solo in parte (Data Act, art. 31). In tal caso, l’ordine indica quali, e La informiamo prima che lo firmi.",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "Ubicazione e accesso da parte delle autorità pubbliche",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Ospitiamo il Suo lavoro nella regione di Google Cloud nell’UE indicata nell’ordine. La pagina [Sub-responsabili](/instant/legal/subprocessors) elenca ciascun fornitore e dove opera (Data Act, art. 28).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Se un’autorità pubblica al di fuori dell’UE ci chiede i Suoi dati non personali, li consegniamo solo se il diritto dell’UE o di uno Stato membro lo consente. La informiamo prima, salvo che la legge lo vieti (Data Act, art. 32).",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "Legge applicabile e controversie"
+    },
+    {
+      "type": "p",
+      "text": "I presenti termini e ogni ordine sono regolati dalla legge di {company.law}, escluse le sue norme sui conflitti di legge. Le controversie sono decise dai tribunali di {company.law}, salvo che la legge imponga un altro foro.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Prima che una delle parti si rivolga al tribunale, le nostre persone di riferimento cercano di risolvere la questione in buona fede. Scriva a {company.email} descrivendo il problema."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "I presenti termini non contengono una clausola arbitrale. Ciascuna parte può proporre un’azione dinanzi a un tribunale per le controversie di modesta entità (small-claims court), se la pretesa ne ha i requisiti."
+    },
+    {
+      "type": "p",
+      "text": "Lei conferma di non figurare in un elenco di sanzioni degli Stati Uniti o dell’UE e di non trovarsi in un paese soggetto a embargo degli Stati Uniti o dell’UE. Nessuna delle parti utilizzerà il lavoro in violazione delle sanzioni o delle norme sull’esportazione degli Stati Uniti o dell’UE."
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Disposizioni generali"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Possiamo aggiornare i presenti termini. Un ordine già concordato resta soggetto ai termini in vigore al momento della sua conclusione, salvo diverso accordo tra le parti.",
+        "Nessuna delle parti può cedere i presenti termini o un ordine senza il consenso scritto dell’altra, salvo a una società che rilevi l’attività interessata.",
+        "Nessuna delle parti è responsabile per ritardi causati da eventi al di fuori del proprio ragionevole controllo.",
+        "Se una parte dei presenti termini è invalida, il resto continua ad applicarsi.",
+        "Le comunicazioni a noi vanno inviate a {company.email}. Le comunicazioni a Lei vanno inviate alla persona di riferimento indicata nell’ordine."
+      ]
+    }
+  ]
+}

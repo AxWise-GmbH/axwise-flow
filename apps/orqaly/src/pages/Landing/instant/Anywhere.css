@@ -138,7 +138,7 @@
   height: 46px;
   border: 1px solid var(--oi-hairline);
   border-radius: 14px;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.012));
+  background: linear-gradient(160deg, rgba(var(--oi-fg-rgb), 0.07), rgba(var(--oi-fg-rgb), 0.012));
 }
 
 /* The lit state is its own layer, so switching it on is an opacity change. */
@@ -150,14 +150,14 @@
   border-radius: inherit;
   background: radial-gradient(
     120% 120% at 50% 0,
-    rgba(var(--oi-accent-rgb), 0.3),
-    rgba(var(--oi-glow-rgb), 0.12) 60%,
+    rgba(var(--oi-accent-rgb), calc(0.3 * var(--oi-halo-k))),
+    rgba(var(--oi-glow-rgb), calc(0.12 * var(--oi-halo-k))) 60%,
     transparent
   );
   box-shadow:
     0 0 0 3px rgba(var(--oi-accent-rgb), 0.1),
-    0 0 26px rgba(var(--oi-glow-rgb), 0.95),
-    inset 0 0 14px rgba(var(--oi-accent-rgb), 0.25);
+    0 0 26px rgba(var(--oi-glow-rgb), calc(0.95 * var(--oi-halo-k))),
+    inset 0 0 14px rgba(var(--oi-accent-rgb), calc(0.25 * var(--oi-halo-k)));
   opacity: 0;
   transition: opacity 500ms ease;
   pointer-events: none;
@@ -234,9 +234,9 @@
   background: linear-gradient(
     90deg,
     var(--oi-accent),
-    rgba(255, 255, 255, 0.72) 30%,
-    rgba(255, 255, 255, 0.26) 72%,
-    rgba(255, 255, 255, 0.08)
+    rgba(var(--oi-fg-rgb), 0.72) 30%,
+    rgba(var(--oi-fg-rgb), 0.26) 72%,
+    rgba(var(--oi-fg-rgb), 0.08)
   );
   transform-origin: 0 50%;
   scale: 0 1;
@@ -257,7 +257,7 @@
   left: 0;
   width: 26%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, #ffffff);
+  background: linear-gradient(90deg, transparent, rgb(var(--oi-fg-rgb)));
   opacity: 0;
   translate: -100% 0;
 }
@@ -321,9 +321,9 @@
   position: absolute;
   inset: -22%;
   background:
-    radial-gradient(30% 30% at 67% 29%, rgba(var(--oi-deep-rgb), 0.7), transparent),
-    radial-gradient(30% 28% at 31% 71%, rgba(var(--oi-deep-rgb), 0.62), transparent),
-    radial-gradient(47% 33% at 50% 51%, rgba(var(--oi-glow-rgb), 0.62), transparent);
+    radial-gradient(30% 30% at 67% 29%, rgba(var(--oi-deep-rgb), calc(0.7 * var(--oi-halo-k))), transparent),
+    radial-gradient(30% 28% at 31% 71%, rgba(var(--oi-deep-rgb), calc(0.62 * var(--oi-halo-k))), transparent),
+    radial-gradient(47% 33% at 50% 51%, rgba(var(--oi-glow-rgb), calc(0.62 * var(--oi-halo-k))), transparent);
   opacity: 0;
   translate: calc(var(--px, 0) * -14px) calc(var(--py, 0) * -10px);
   transition:
@@ -346,15 +346,15 @@
 .oia-glow::before {
   inset: 27% 20%;
   background:
-    radial-gradient(44% 40% at 50% 52%, rgba(var(--oi-accent-rgb), 0.55), transparent),
-    radial-gradient(50% 50% at 50% 50%, rgba(var(--oi-glow-rgb), 0.75), transparent);
+    radial-gradient(44% 40% at 50% 52%, rgba(var(--oi-accent-rgb), calc(0.55 * var(--oi-halo-k))), transparent),
+    radial-gradient(50% 50% at 50% 50%, rgba(var(--oi-glow-rgb), calc(0.75 * var(--oi-halo-k))), transparent);
   animation: oia-breathe 7s ease-in-out infinite alternate;
 }
 
 /* A slanted sheen across the scene. */
 .oia-glow::after {
   inset: 36% 8%;
-  background: radial-gradient(50% 50% at 50% 50%, rgba(var(--oi-pale-rgb), 0.16), transparent);
+  background: radial-gradient(50% 50% at 50% 50%, rgba(var(--oi-pale-rgb), calc(0.16 * var(--oi-halo-k))), transparent);
   rotate: -28deg;
 }
 
@@ -362,7 +362,11 @@
 .oia-dots {
   position: absolute;
   inset: -6%;
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.26) 1px, transparent 1.7px);
+  background-image: radial-gradient(
+    circle,
+    rgba(var(--oi-fg-rgb), calc(0.26 * var(--oi-halo-k))) 1px,
+    transparent 1.7px
+  );
   background-size: calc(var(--u) * 4.6) calc(var(--u) * 4.6);
   -webkit-mask-image: radial-gradient(62% 56% at 50% 50%, black 16%, transparent 80%);
   mask-image: radial-gradient(62% 56% at 50% 50%, black 16%, transparent 80%);
@@ -400,7 +404,7 @@
 
 /* The line draws itself outwards, from the card to the device. */
 .oia-link-base {
-  stroke: rgba(255, 255, 255, 0.3);
+  stroke: rgba(var(--oi-fg-rgb), 0.3);
   stroke-width: var(--sw);
   stroke-dasharray: 100 100;
   stroke-dashoffset: 100;
@@ -457,7 +461,7 @@
 
 /* And now and then an answer leaves it. */
 .oia-packet-out {
-  stroke: rgba(255, 255, 255, 0.9);
+  stroke: rgba(var(--oi-fg-rgb), 0.9);
   stroke-dashoffset: 132;
   animation: oia-packet-out calc(11000ms + var(--n, 0) * 1700ms) cubic-bezier(0.5, 0, 0.4, 1)
     infinite;
@@ -465,7 +469,7 @@
 }
 
 .oia-link[data-active='true'] .oia-packet {
-  stroke: rgb(255, 255, 255);
+  stroke: rgb(var(--oi-fg-rgb));
   stroke-width: calc(var(--sw) * 3.4);
   stroke-dasharray: 7 119;
 }
@@ -489,10 +493,10 @@
 .oia-glass {
   position: relative;
   border: 1px solid var(--oi-app-edge);
-  background: var(--oi-app-surface), rgb(0, 0, 0);
+  background: var(--oi-app-surface), var(--oi-page);
   box-shadow:
-    0 1.8em 3.6em rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    0 1.8em 3.6em rgba(var(--oi-shadow-rgb), calc(0.55 * var(--oi-shadow-k))),
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
 }
 
 /* The rim light is its own layer, so switching it on is an opacity change. */
@@ -504,8 +508,8 @@
   border-radius: inherit;
   box-shadow:
     0 0 0 0.3em rgba(var(--oi-accent-rgb), 0.1),
-    0 0 3.2em rgba(var(--oi-glow-rgb), 0.95),
-    inset 0 0 1.6em rgba(var(--oi-accent-rgb), 0.2);
+    0 0 3.2em rgba(var(--oi-glow-rgb), calc(0.95 * var(--oi-halo-k))),
+    inset 0 0 1.6em rgba(var(--oi-accent-rgb), calc(0.2 * var(--oi-halo-k)));
   opacity: 0;
   transition: opacity 500ms ease;
   pointer-events: none;
@@ -530,11 +534,11 @@
   width: var(--w, 100%);
   height: 0.7em;
   border-radius: 99em;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(var(--oi-fg-rgb), 0.18);
 }
 
 .oia-g[data-tone='ink'] {
-  background: rgba(255, 255, 255, 0.62);
+  background: rgba(var(--oi-fg-rgb), 0.62);
 }
 
 .oia-g[data-tone='accent'] {
@@ -544,7 +548,7 @@
 .oia-g[data-tone='pill'] {
   height: 1.7em;
   border-radius: 0.55em;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--oi-fg-rgb), 0.1);
 }
 
 .oia-lights {
@@ -556,7 +560,7 @@
   width: 0.62em;
   height: 0.62em;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(var(--oi-fg-rgb), 0.22);
 }
 
 .oia-brand {
@@ -694,7 +698,7 @@
   overflow: hidden;
   border: 1px solid var(--oi-hairline);
   border-radius: 0.85em 0.85em 0.25em 0.25em;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(var(--oi-shadow-rgb), calc(0.45 * var(--oi-shadow-k)));
 }
 
 .oia-laptop-side {
@@ -703,7 +707,7 @@
   gap: 0.8em;
   padding: 1em 0.85em;
   border-right: 1px solid var(--oi-hairline);
-  background: rgba(255, 255, 255, 0.025);
+  background: rgba(var(--oi-fg-rgb), 0.025);
 }
 
 .oia-laptop-side .oia-brand {
@@ -773,8 +777,9 @@
   height: 1.1em;
   margin-left: -7%;
   border-radius: 0.2em 0.2em 1.1em 1.1em;
-  background: linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.07)), rgb(0, 0, 0);
-  box-shadow: 0 1.6em 2.6em rgba(0, 0, 0, 0.6);
+  background:
+    linear-gradient(rgba(var(--oi-fg-rgb), 0.3), rgba(var(--oi-fg-rgb), 0.07)), var(--oi-page);
+  box-shadow: 0 1.6em 2.6em rgba(var(--oi-shadow-rgb), calc(0.6 * var(--oi-shadow-k)));
 }
 
 .oia-laptop-base::before {
@@ -786,7 +791,7 @@
   height: 0.38em;
   margin-left: -2.5em;
   border-radius: 0 0 0.4em 0.4em;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(var(--oi-bg-rgb), 0.55);
 }
 
 /* Messenger by Choice: a short exchange, with the answer being typed. */
@@ -838,8 +843,8 @@
   border-radius: 1.5em 1.5em 0.45em 1.5em;
   background:
     linear-gradient(158deg, rgba(var(--oi-pale-rgb), 0.34), rgba(var(--oi-accent-rgb), 0.16)),
-    linear-gradient(rgba(var(--oi-deep-rgb), 0.7), rgba(var(--oi-deep-rgb), 0.7)), rgb(0, 0, 0);
-  box-shadow: 0 1.8em 3.6em rgba(0, 0, 0, 0.55);
+    linear-gradient(rgba(var(--oi-deep-rgb), 0.7), rgba(var(--oi-deep-rgb), 0.7)), var(--oi-page);
+  box-shadow: 0 1.8em 3.6em rgba(var(--oi-shadow-rgb), calc(0.55 * var(--oi-shadow-k)));
 }
 
 .oia-bubble-typing {
@@ -893,8 +898,8 @@
   border: 1px solid var(--oi-hairline-strong);
   border-radius: 0.9em;
   background:
-    linear-gradient(rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.1)),
-    linear-gradient(rgba(var(--oi-deep-rgb), 0.5), rgba(var(--oi-deep-rgb), 0.5)), rgb(0, 0, 0);
+    linear-gradient(rgba(var(--oi-fg-rgb), 0.24), rgba(var(--oi-fg-rgb), 0.1)),
+    linear-gradient(rgba(var(--oi-deep-rgb), 0.5), rgba(var(--oi-deep-rgb), 0.5)), var(--oi-page);
   animation: oia-peek 5.6s ease-in-out infinite alternate;
 }
 
@@ -917,8 +922,8 @@
   height: 11em;
   border-radius: 0 0 1.3em 1.3em;
   background:
-    linear-gradient(170deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02) 60%),
-    linear-gradient(rgba(var(--oi-deep-rgb), 0.5), rgba(var(--oi-deep-rgb), 0.26)), rgb(0, 0, 0);
+    linear-gradient(170deg, rgba(var(--oi-fg-rgb), 0.1), rgba(var(--oi-fg-rgb), 0.02) 60%),
+    linear-gradient(rgba(var(--oi-deep-rgb), 0.5), rgba(var(--oi-deep-rgb), 0.26)), var(--oi-page);
   clip-path: polygon(0 0, 50% 52%, 100% 0, 100% 100%, 0 100%);
 }
 
@@ -952,13 +957,13 @@
 
 .oia-mail-front path {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.12);
+  stroke: rgba(var(--oi-fg-rgb), 0.12);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 
 .oia-mail-front .oia-mail-fold {
-  stroke: rgba(255, 255, 255, 0.34);
+  stroke: rgba(var(--oi-fg-rgb), 0.34);
   stroke-width: 1.4;
   stroke-linejoin: round;
 }
@@ -1023,7 +1028,7 @@
   overflow: hidden;
   border: 1px solid var(--oi-hairline);
   border-radius: 2.15em;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(var(--oi-bg-rgb), 0.5);
 }
 
 .oia-phone-island {
@@ -1034,7 +1039,7 @@
   height: 1.15em;
   margin-left: -2em;
   border-radius: 99em;
-  background: rgb(0, 0, 0);
+  background: var(--oi-page);
   box-shadow: 0 0 0 1px var(--oi-hairline);
 }
 
@@ -1053,7 +1058,7 @@
   padding: 0.8em 0.85em;
   border: 1px solid var(--oi-hairline);
   border-radius: 1em 1em 1em 0.3em;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--oi-fg-rgb), 0.06);
 }
 
 .oia-phone-in {
@@ -1080,9 +1085,9 @@
   border: 1px solid var(--oi-hairline-strong);
   border-radius: 1.1em;
   background:
-    linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1)),
-    linear-gradient(rgba(var(--oi-deep-rgb), 0.6), rgba(var(--oi-deep-rgb), 0.6)), rgb(0, 0, 0);
-  box-shadow: 0 0.8em 1.6em rgba(0, 0, 0, 0.5);
+    linear-gradient(rgba(var(--oi-fg-rgb), 0.2), rgba(var(--oi-fg-rgb), 0.1)),
+    linear-gradient(rgba(var(--oi-deep-rgb), 0.6), rgba(var(--oi-deep-rgb), 0.6)), var(--oi-page);
+  box-shadow: 0 0.8em 1.6em rgba(var(--oi-shadow-rgb), calc(0.5 * var(--oi-shadow-k)));
   animation: oia-chip 11s var(--oi-ease) infinite;
 }
 
@@ -1147,10 +1152,10 @@
   border-color: rgba(var(--oi-pale-rgb), 0.4);
   border-radius: 1.9em;
   box-shadow:
-    0 3em 7em rgba(0, 0, 0, 0.62),
-    0 0 7em rgba(var(--oi-glow-rgb), 0.55),
+    0 3em 7em rgba(var(--oi-shadow-rgb), calc(0.62 * var(--oi-shadow-k))),
+    0 0 7em rgba(var(--oi-glow-rgb), calc(0.55 * var(--oi-halo-k))),
     0 0 0 0.45em rgba(var(--oi-accent-rgb), 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.12);
   animation: oia-bob 9s ease-in-out -3s infinite alternate;
 }
 
@@ -1251,7 +1256,7 @@
   padding: 0 0.7em 0 1.2em;
   border: 1px solid var(--oi-hairline-strong);
   border-radius: 1.3em;
-  background: rgba(0, 0, 0, 0.36);
+  background: rgba(var(--oi-shadow-rgb), calc(0.36 * var(--oi-shadow-k)));
 }
 
 .oia-caret {
@@ -1307,7 +1312,7 @@
     90deg,
     transparent,
     rgba(var(--oi-pale-rgb), 0.12) 45%,
-    rgba(255, 255, 255, 0.1) 55%,
+    rgba(var(--oi-fg-rgb), 0.1) 55%,
     transparent
   );
   opacity: 0;
@@ -1323,8 +1328,8 @@
   border: 1px solid rgba(var(--oi-pale-rgb), 0.95);
   border-radius: inherit;
   box-shadow:
-    0 0 4em rgba(var(--oi-accent-rgb), 0.5),
-    inset 0 0 2.4em rgba(var(--oi-accent-rgb), 0.22);
+    0 0 4em rgba(var(--oi-accent-rgb), calc(0.5 * var(--oi-halo-k))),
+    inset 0 0 2.4em rgba(var(--oi-accent-rgb), calc(0.22 * var(--oi-halo-k)));
   opacity: 0;
   animation: oia-flash 1900ms ease 600ms both;
   pointer-events: none;

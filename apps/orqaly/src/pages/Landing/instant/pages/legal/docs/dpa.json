@@ -1,0 +1,531 @@
+{
+  "meta": {
+    "slug": "dpa",
+    "title": "Data Processing Addendum",
+    "summary": "How we handle personal data as your processor when your business uses the API, Enterprise work or the Assistant Bot.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "First version."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the party block (legalName, address) and the SCC governing-law sentence (law) stay hidden until company.js is filled (FACTS open point 1).",
+        "SCC structure depends on the entity (critique point 13): with an EU processor serving EU controllers no SCCs are needed between the parties; non-EU customers need Module Four; a non-EU entity needs Modules Two and Three and an EU representative (euRepresentative). The text covers all cases; lawyer to confirm, and to confirm the Clause 17/18 fallback.",
+        "Google Gemini: the processor promises only hold once the paid Gemini tier and Google's data processing terms apply (geminiPaidTier). Until then Google may use content under its free-tier terms, which conflicts with this DPA and with the US service-provider promises (FACTS open point 3; us.md). Do not offer this DPA to customers before that.",
+        "Google Cloud: accept Google's Cloud data processing terms for both projects (site and API) and record it.",
+        "Roles split (processor for customer data; controller for account data, logs, web searches and OpenRegister lookups) needs lawyer confirmation (FACTS open point 11; critique point 14).",
+        "Deletion at the end: the workspace database refuses deletion of some records (immutable tables) and there is no deletion, export or retention code. The text promises deletion or anonymisation, or an explanation where a record must be kept. A working process is needed before the first customer (FACTS open point 5).",
+        "Backups: the workspace database keeps 7 daily backups plus point-in-time recovery (about 7 days); the API database's backup settings were not checked, so the annex states backups only for the cloud workspace.",
+        "Sub-processor changes: the notice period is 'before the change takes effect', with no fixed number. Owner to set one (commonly 30 days) and a way to notify customers (needs working email).",
+        "Breach notice: 'without undue delay' only; an internal breach runbook is needed (critique point 19).",
+        "Assistant Bot: no code exists; the DPA only names it in scope and makes no feature or data claims (FACTS open point 13).",
+        "Security annex lists only measures FACTS supports; encryption is stated only as 'in transit (HTTPS) and at rest by our cloud provider'. Download-bucket region is unknown and not mentioned.",
+        "Mailboxes: privacy@ and security@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: 'Where' row and the transfers section now say the cloud workspace, the API and Enterprise hosting store data in the EU, instead of all customer data, because where the Assistant Bot keeps messages and tokens is unknown (FACTS §6). Secret Manager checked in both deploy scripts. Added a 'Frequency' row for SCC Annex I.",
+        "Legal review 2026-09-21: added the EU representative block (needs euRepresentative; required if the entity is outside the EU, GDPR Art. 27); instructions now cover transfers and we tell you 'at once' about unlawful instructions (GDPR Art. 28(3)(a) and last sentence); connected messaging and email accounts named as the customer's own providers, not our sub-processors (lawyer to confirm).",
+        "SCC Clause 9(a) Option 2 needs a fixed advance-notice period for sub-processor changes; the DPA only says 'before the change takes effect'. Owner to set a number of days before the DPA is used with non-EEA transfers.",
+        "SCC Clause 17/18 fallback: if company.law is not an EU member state and the customer is outside the EU, no governing law is named. Lawyer to pick a fallback member state.",
+        "Scope: business use of the Desktop App and the cloud workspace (outside the Assistant Bot) is not covered by this DPA. Owner to decide whether business users of those products can rely on it (the Terms of Service already point business users here)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "About this addendum"
+    },
+    {
+      "type": "p",
+      "text": "This Data Processing Addendum (the “DPA”) sets the rules for personal data we handle for business customers. It forms part of the [API Terms](/instant/legal/api-terms), the [Enterprise Terms](/instant/legal/enterprise-terms) and, when you use the Assistant Bot for your business, the [Assistant Bot Terms](/instant/legal/assistant-bot-terms). We call whichever of these applies to you the “main agreement”."
+    },
+    {
+      "type": "p",
+      "text": "The DPA applies automatically when you accept the main agreement. No signature is needed. If you need a signed copy for your records, write to {company.privacyEmail}."
+    },
+    {
+      "type": "p",
+      "text": "If this DPA and the main agreement disagree about personal data, this DPA wins. Where the Standard Contractual Clauses apply (see [International transfers](#transfers)), they win over both."
+    },
+    {
+      "type": "h2",
+      "id": "parties",
+      "text": "The parties"
+    },
+    {
+      "type": "p",
+      "text": "This DPA is between you, the business customer (“you”), and Orqanix (“we” or “us”)."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix is run by {company.legalName}, {company.address}, which is the party to this DPA.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Our representative in the EU is {company.euRepresentative}.",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Our data protection contact is {company.privacyEmail}. Tell us who your contact is, so we can reach you about this DPA."
+    },
+    {
+      "type": "h2",
+      "id": "words",
+      "text": "Words we use"
+    },
+    {
+      "type": "list",
+      "items": [
+        "“Personal data” means any information about an identified or identifiable person.",
+        "“Processing” means anything done with personal data, such as storing, reading, sending or deleting it.",
+        "A “controller” decides why and how personal data is processed. A “processor” processes it for a controller and on its instructions. A “sub-processor” is a processor we use.",
+        "“Customer personal data” means personal data that we process for you under the main agreement.",
+        "“Data protection law” means every privacy law that applies to the processing, such as the EU General Data Protection Regulation (GDPR), the UK GDPR, the Swiss Federal Act on Data Protection (FADP) and US state privacy laws."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "roles",
+      "text": "Our roles"
+    },
+    {
+      "type": "p",
+      "text": "You are the controller of customer personal data, or a processor acting for your own customers. We are your processor or sub-processor. We handle some data for our own purposes, and for that data we are the controller:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Data",
+        "Our role",
+        "What applies"
+      ],
+      "rows": [
+        [
+          "Personal data in what you or your users send to the API, in Enterprise work, or in the workspace and connected accounts of a business Assistant Bot",
+          "Processor for you",
+          "This DPA"
+        ],
+        [
+          "Account and sign-in data of your staff, your contact people, and our records of contracts and invoices",
+          "Controller",
+          "Our [Privacy Policy](/instant/legal/privacy)"
+        ],
+        [
+          "Service and security logs (IP address, browser, time, address requested)",
+          "Controller",
+          "Our Privacy Policy"
+        ],
+        [
+          "Search queries our own search service sends to web search engines to answer a task",
+          "Controller",
+          "Our Privacy Policy"
+        ],
+        [
+          "Company-register lookups through OpenRegister, whose results can include the names of directors",
+          "Controller",
+          "Our Privacy Policy"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "We decide how our searches and register lookups work, so for them we act for ourselves (GDPR Art. 4(7)). Search queries are built from your task, so keep personal data out of task text unless the task needs it."
+    },
+    {
+      "type": "h2",
+      "id": "details",
+      "text": "Processing details"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Item",
+        "Details"
+      ],
+      "rows": [
+        [
+          "Subject matter",
+          "Providing the service in the main agreement: the API, Enterprise work, or the Assistant Bot used for your business."
+        ],
+        [
+          "Duration",
+          "As long as the main agreement lasts, and after that until we have deleted or returned customer personal data as this DPA sets out."
+        ],
+        [
+          "Nature",
+          "Receiving, storing, organising, reading, analysing with AI models, producing answers and files, sending to you and your systems, and deleting."
+        ],
+        [
+          "Purpose",
+          "Only to provide the service to you, keep it secure, and meet our legal duties."
+        ],
+        [
+          "Types of personal data",
+          "Whatever you choose to send us or connect. Usually names, contact details, job roles, business relationships, and the content of tasks, messages, documents and files."
+        ],
+        [
+          "People concerned",
+          "Your staff, your customers and end users, your suppliers and business contacts, and anyone else named in the data you send or connect, including contacts in the email and messaging accounts you connect to a business Assistant Bot."
+        ],
+        [
+          "Special categories",
+          "None, unless we have agreed otherwise in writing. Without that agreement, don't send us health, biometric or other special category data, or data about criminal convictions."
+        ],
+        [
+          "Frequency",
+          "Continuous, whenever you or your users use the service."
+        ],
+        [
+          "Where",
+          "Our cloud workspace and the API store data on Google Cloud in the EU (the Netherlands). Enterprise work is hosted in the EU Google Cloud region named in the order. Sub-processors may process data elsewhere, as the [Sub-processors](/instant/legal/subprocessors) page shows."
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "our-duties",
+      "text": "What we promise"
+    },
+    {
+      "type": "p",
+      "text": "These promises put the duties of a processor into plain words (GDPR Art. 28(3); UK GDPR Art. 28(3); FADP Art. 9)."
+    },
+    {
+      "type": "h3",
+      "id": "instructions",
+      "text": "Your instructions"
+    },
+    {
+      "type": "p",
+      "text": "We process customer personal data only on your documented instructions, including instructions about sending it to other countries. Your instructions are the main agreement, this DPA and the way you set up and use the service. You can give further written instructions if they fit the service. We may process data without your instruction only where the law requires it. We then tell you first, unless that law forbids it. If we think an instruction breaks data protection law, we tell you at once."
+    },
+    {
+      "type": "h3",
+      "id": "confidentiality",
+      "text": "Confidentiality"
+    },
+    {
+      "type": "p",
+      "text": "Only people who need customer personal data for their work can access it, and each of them is bound to keep it confidential."
+    },
+    {
+      "type": "h3",
+      "id": "security",
+      "text": "Security"
+    },
+    {
+      "type": "p",
+      "text": "We take technical and organisational measures that fit the risk, to protect customer personal data against accidental or unlawful loss, change, disclosure or access (GDPR Art. 32). The [security annex](#security-measures) at the end of this DPA describes them. We may change them over time, but we will not lower the overall level of protection."
+    },
+    {
+      "type": "h3",
+      "id": "sub-processors",
+      "text": "Sub-processors"
+    },
+    {
+      "type": "p",
+      "text": "You allow us to use sub-processors. The [Sub-processors](/instant/legal/subprocessors) page lists the ones we use today, what they do and where. For Enterprise work, the order may name more."
+    },
+    {
+      "type": "p",
+      "text": "Before we add or replace a sub-processor, we update that page and tell you, so that you can object before the change takes effect. If you object for reasonable data protection reasons, we look for a solution with you. If we find none, you may end the part of the service concerned."
+    },
+    {
+      "type": "p",
+      "text": "We bind every sub-processor in writing to data protection duties at least as protective as this DPA. We stay responsible to you for their work."
+    },
+    {
+      "type": "p",
+      "text": "The messaging apps, email accounts and other services you connect are your own providers, chosen by you. They are not our sub-processors, and their own terms apply to what they do with the data."
+    },
+    {
+      "type": "p",
+      "text": "We use Google Gemini as our AI model, so the content of tasks and conversations is sent to Google. Google may process it outside the EU."
+    },
+    {
+      "type": "p",
+      "text": "We use Google's paid Gemini API. There, Google acts as our processor under its data processing terms and does not use the content to improve its products.",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "rights-requests",
+      "text": "People's rights"
+    },
+    {
+      "type": "p",
+      "text": "People can ask to see, correct, delete or move their data, or object to its use. If we receive such a request about customer personal data, we pass it to you and don't answer it ourselves unless you ask us to. We help you answer requests, as far as the nature of the service allows (GDPR Art. 12-23)."
+    },
+    {
+      "type": "h3",
+      "id": "breaches",
+      "text": "Data breaches"
+    },
+    {
+      "type": "p",
+      "text": "If we become aware of a security breach that affects customer personal data, we tell you without undue delay. We give you what we know, and more as we learn it (GDPR Art. 33(2) and (3)):"
+    },
+    {
+      "type": "list",
+      "items": [
+        "what happened;",
+        "which kinds of data and people are affected, and roughly how many;",
+        "the likely effects;",
+        "what we have done and plan to do about it;",
+        "who you can talk to."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Telling you is not an admission of fault."
+    },
+    {
+      "type": "h3",
+      "id": "other-help",
+      "text": "Other help"
+    },
+    {
+      "type": "p",
+      "text": "As far as the nature of the service and the information we have allow, we help you with your security duties, with data protection impact assessments and with consulting your data protection authority (GDPR Art. 32-36)."
+    },
+    {
+      "type": "h3",
+      "id": "end",
+      "text": "Return and deletion"
+    },
+    {
+      "type": "p",
+      "text": "When the main agreement ends, we delete customer personal data. If you ask us before then, we give it back to you first. We keep a copy only where the law requires it, only for as long as it requires, and protected as this DPA sets out. Copies in our backups disappear as those backups expire."
+    },
+    {
+      "type": "p",
+      "text": "Some records of what agents did are kept as a fixed log that cannot be changed. Where such a record holds customer personal data, we delete or anonymise it or, where we must keep it, tell you why."
+    },
+    {
+      "type": "h3",
+      "id": "audits",
+      "text": "Audits"
+    },
+    {
+      "type": "p",
+      "text": "We give you the information you reasonably need to show that we meet these duties. If that is not enough, you, or an independent auditor bound to confidentiality, may audit us. You give us reasonable notice, and the audit must not disrupt our service or put other customers' data at risk. You bear your own audit costs. A data protection authority may always audit us as the law allows."
+    },
+    {
+      "type": "h2",
+      "id": "your-duties",
+      "text": "What you promise"
+    },
+    {
+      "type": "list",
+      "items": [
+        "You have a legal basis for the processing, and you give people the privacy information the law requires, including that you use us.",
+        "Your instructions comply with data protection law.",
+        "You send us only the personal data the service needs, and no special category data unless we have agreed to it in writing.",
+        "You set up the service securely on your side, including keeping access keys and sign-in details safe and choosing suitable approval settings for agents."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "transfers",
+      "text": "International transfers"
+    },
+    {
+      "type": "p",
+      "text": "Our cloud workspace, the API and Enterprise hosting store customer personal data in the EU. Some sub-processors may process it in other countries, as the [Sub-processors](/instant/legal/subprocessors) page shows."
+    },
+    {
+      "type": "p",
+      "text": "We transfer personal data out of the EEA, the UK or Switzerland only where data protection law allows it. For example, we transfer it to a country the EU has found to protect data adequately, to a US company certified under the EU-US Data Privacy Framework, or under Standard Contractual Clauses."
+    },
+    {
+      "type": "h3",
+      "id": "sccs",
+      "text": "Standard Contractual Clauses"
+    },
+    {
+      "type": "p",
+      "text": "Where a transfer between you and us needs them, the Standard Contractual Clauses approved by the European Commission (Decision (EU) 2021/914, the “SCCs”) form part of this DPA. Which part of the SCCs (a “module”) applies depends on where each of us is established:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Module Two (controller to processor) where you are the controller and send data to us outside the EEA.",
+        "Module Three (processor to processor) where you are a processor for your own customers and send data to us outside the EEA.",
+        "Module Four (processor to controller) where we are in the EEA and return data to you outside it."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "For the SCCs, we make these choices:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Clause 7: the optional docking clause applies.",
+        "Clause 9: Option 2 (general authorisation for sub-processors) applies, with notice as [Sub-processors](#sub-processors) sets out.",
+        "Clause 11: the optional wording does not apply.",
+        "Clause 13: the supervisory authority is the one responsible for you as data exporter.",
+        "Annexes: [Our roles](#roles) and [Processing details](#details) fill in Annex I, the [security annex](#security-measures) fills in Annex II, and the Sub-processors page fills in Annex III."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Under Clauses 17 and 18, the SCCs follow the law of, and disputes go to the courts of, the EU member state where you are established. If you are not established in the EU, they follow the law and courts of {company.law}, where that is an EU member state.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "uk-switzerland",
+      "text": "The UK and Switzerland"
+    },
+    {
+      "type": "p",
+      "text": "For transfers from the UK, the International Data Transfer Addendum to the SCCs issued by the UK Information Commissioner (the “UK Addendum”) applies, filled in with the details in this DPA."
+    },
+    {
+      "type": "p",
+      "text": "For transfers from Switzerland, the SCCs apply with these changes: the Swiss Federal Data Protection and Information Commissioner is the supervisory authority for transfers under the FADP; references to the GDPR also mean the FADP; and “member state” includes Switzerland, so that people there can bring claims where they live."
+    },
+    {
+      "type": "h3",
+      "id": "onward",
+      "text": "Transfers by sub-processors"
+    },
+    {
+      "type": "p",
+      "text": "Where a sub-processor transfers customer personal data out of the EEA, the UK or Switzerland, we make sure a valid basis covers it, such as the Data Privacy Framework or the SCCs in our contract with that sub-processor."
+    },
+    {
+      "type": "h2",
+      "id": "us-state-law",
+      "text": "US state privacy laws",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Where you are a “business” under the California Consumer Privacy Act, or a controller under another US state privacy law, we are your “service provider”, “contractor” or “processor” for customer personal data. We:",
+      "only": "us"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "do not sell or share customer personal data, as those words are defined in those laws;",
+        "process it only for the business purposes set out in the main agreement and this DPA, and not for any other commercial purpose;",
+        "do not keep, use or disclose it outside our direct business relationship with you;",
+        "do not combine it with personal data we receive from others or collect ourselves, except as those laws allow;",
+        "comply with those laws and give the same level of privacy protection they require;",
+        "tell you if we decide we can no longer meet these duties."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "You may take reasonable and appropriate steps to make sure we use customer personal data in line with those laws, and to stop and fix any use that is not allowed. We understand these restrictions and will follow them.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Liability"
+    },
+    {
+      "type": "p",
+      "text": "Each party's liability under this DPA follows the limits in the main agreement, as far as data protection law allows. Those limits do not reduce the rights that people have directly under data protection law."
+    },
+    {
+      "type": "h2",
+      "id": "term",
+      "text": "Duration and updates"
+    },
+    {
+      "type": "p",
+      "text": "This DPA lasts as long as we process customer personal data for you, even after the main agreement has ended."
+    },
+    {
+      "type": "p",
+      "text": "We may update this DPA to reflect changes in the law, our sub-processors or our services. Without your agreement, we will not change it in a way that lowers the protection of customer personal data, unless the law requires the change."
+    },
+    {
+      "type": "h2",
+      "id": "security-measures",
+      "text": "Annex: security measures"
+    },
+    {
+      "type": "p",
+      "text": "These are the main technical and organisational measures we take today. The [Security & Vulnerability Disclosure](/instant/legal/security) page explains how to report a security problem to {company.securityEmail}."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Area",
+        "What we do"
+      ],
+      "rows": [
+        [
+          "Hosting",
+          "Our cloud services and databases run on Google Cloud in the EU (the Netherlands). Enterprise work is hosted in the EU Google Cloud region named in the order."
+        ],
+        [
+          "Encryption",
+          "Data is encrypted in transit (HTTPS) and at rest by our cloud provider."
+        ],
+        [
+          "Access to accounts",
+          "People sign in to the Orqanix workspace through our sign-in provider, Clerk, with a bot check at sign-up. The API can only be reached with a secret access key that we issue."
+        ],
+        [
+          "Stored keys and secrets",
+          "Application keys for automations are stored only as hashes, not in readable form. The secrets our services use are kept in Google Cloud Secret Manager, not in our code."
+        ],
+        [
+          "Stored files",
+          "Files the cloud workspace produces are kept in a private Google Cloud Storage bucket in the EU."
+        ],
+        [
+          "Staff access",
+          "Only people who need access for their work have it, and they are bound to confidentiality."
+        ],
+        [
+          "Records of agent actions",
+          "What agents did, what was approved and the files they made are recorded in a log that cannot be changed afterwards. Enterprise customers set approvals (Allow Once, Always Allow, Deny) and role-based access."
+        ],
+        [
+          "Logs",
+          "Request logs hold IP address, browser, time, the address requested and the result. We do not log the content of prompts or messages."
+        ],
+        [
+          "Backups",
+          "The cloud workspace database has daily automated backups, point-in-time recovery and protection against accidental deletion."
+        ],
+        [
+          "Models",
+          "We do not train our own AI models on customer data."
+        ],
+        [
+          "Incidents",
+          "We tell affected customers about personal data breaches without undue delay, as [Data breaches](#breaches) sets out."
+        ]
+      ]
+    }
+  ]
+}

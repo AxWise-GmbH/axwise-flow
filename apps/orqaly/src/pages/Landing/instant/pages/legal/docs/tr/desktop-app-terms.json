@@ -1,0 +1,325 @@
+{
+  "meta": {
+    "slug": "desktop-app-terms",
+    "title": "Masaüstü Uygulaması Koşulları",
+    "summary": "Bu koşullar, Orqanix uygulamasının Mac'inize kurulmasını ve kullanılmasını, uygulamanın yapay zekâ ajanlarının gerçekleştirebileceği gerçek eylemler de dahil olmak üzere kapsar.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "İlk sürüm."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Support period: no automatic updates in code and no stated support period. The text says fixes come in newer versions and that there is no fixed support period for old versions. Owner to decide a support period (EU Cyber Resilience Act: support-period end date shown at purchase from 11 Dec 2027; CRA vulnerability reporting applies since 11 Sep 2026).",
+        "EU update duty (Dir. 2019/770 Art. 8): the EU text promises to say on orqanix.com when an update is available and what it fixes. Owner must set up that notice (download page or News) before publishing; lawyer to confirm a manual download without auto-update meets Art. 8.",
+        "EU change notice (Dir. 2019/770 Art. 19): the EU text promises notice by email before a change that harms use. Needs working email (no MX record, FACTS open point #2) and the account email from Clerk.",
+        "Defaults disclosed as they are in code: Auto-approve (agents act without asking), shell and file editing on, voice dictation on, provider keys in a plain-text file. If the owner changes any default (FACTS open point #8), update the agent-action and data sections. A DPIA is advisable for these defaults (critique #19).",
+        "Voice dictation: whether it works end to end is uncertain; the text only says that if you use it, your voice is sent to the model provider.",
+        "App not notarized: the text tells users macOS may block the first open. Update if the app is signed and notarized (FACTS open point #14).",
+        "Governing law and contracting company: follow the Terms of Service; no company name is printed here (FACTS open point #1).",
+        "Download location: the file is served from Google Cloud Storage via the link on orqanix.com; bucket region unknown (FACTS open point #7). Not stated here. The stale local download link should be fixed.",
+        "Research tool: records are immutable in the cloud database; deletion wording defers to the Privacy Policy (FACTS open point #5). The text says research may search the web and look up company registers (search engines and OpenRegister per FACTS §7/§10); the Privacy Policy and Sub-processors page list them (cross-check 2026-09-21).",
+        "AI Act Art. 50(2): outputs, including text files the agents make, are not machine-marked and nothing here claims marking. Owner to confirm the Desktop App's first EU market date; if after 2 Aug 2026, marking applies now (FACTS open point #10).",
+        "Gemini paid tier (FACTS open point #3): serving EEA/UK/CH users needs Google's paid Gemini tier; this document does not state Google's data terms.",
+        "Age 18+: sign-in asks no age; needs a self-declaration and an acceptance record at sign-up, including the Desktop App's first-run sign-in (FACTS open point #9). California AB 1043 age signals also cover Mac apps from 1 Jan 2027.",
+        "Consumer licence limits: the text keeps rights the law gives to study software and make it interoperable (EU Software Directive 2009/24 Art. 5(3), 6). Lawyer to confirm the \"no competing product\" limit is fair for EU consumers.",
+        "Lawyer review of the liability wording in both regions, including the EU Product Liability Directive (EU) 2024/2853 (applies to products placed on the market after 9 Dec 2026; missing security updates can make software defective)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "Bu koşullar hakkında"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullar, Mac için Orqanix uygulamasına (\"Masaüstü Uygulaması\") ilişkin olarak [Hizmet Koşullarımıza](/instant/legal/terms) ek niteliğindedir. Hizmet Koşulları, [Kabul Edilebilir Kullanım Politikamız](/instant/legal/acceptable-use) ve [Gizlilik Politikamız](/instant/legal/privacy) ile birlikte tek bir sözleşme oluştururlar. Masaüstü Uygulaması konusunda bu koşullar ile Hizmet Koşulları arasında bir çelişki olması halinde bu koşullar uygulanır."
+    },
+    {
+      "type": "p",
+      "text": "Ürünlerimiz erken aşamadayken Masaüstü Uygulaması ücretsizdir. Herhangi bir ücretli plan başlamadan önce fiyatı ve ödeme ile iptal kurallarını yayımlayacağız."
+    },
+    {
+      "type": "p",
+      "text": "Bundan önce, AB hukukunun gerektirdiği şekilde bir satın almadan cayma kurallarını da yayımlayacağız.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "Lisansınız"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullara uyduğunuz sürece, Masaüstü Uygulamasını sahip olduğunuz veya kontrol ettiğiniz Mac'lere indirmeniz, kurmanız ve kullanmanız için size kişisel, münhasır olmayan ve devredilemez bir lisans veriyoruz. Bu lisansı, Hizmet Koşullarındaki [Askıya alma ve sona erme](/instant/legal/terms#ending) bölümünde açıklandığı şekilde sona erdirebiliriz."
+    },
+    {
+      "type": "p",
+      "text": "Şunları yapamazsınız:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Masaüstü Uygulamasını satmak, kiralamak, ödünç vermek veya alt lisansını vermek;",
+        "bizim bildirimlerimizi veya başkalarının lisans bildirimlerini kaldırmak ya da değiştirmek;",
+        "oturum açma işlemini veya uygulamada belirlediğimiz herhangi bir sınırı atlatmak;",
+        "Masaüstü Uygulamasını rakip bir ürün geliştirmek için kullanmak veya bu amaçla ürün talimatlarımızı kopyalamak."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Bu sınırlamalar, Goose (Apache 2.0) gibi, kendi lisanslarına tabi olmaya devam eden uygulamanın açık kaynaklı bölümlerini kapsamaz (bkz. [Açık Kaynak Bildirimleri](/instant/legal/open-source)). Ayrıca bu sınırlamalar, yasal olarak kullandığınız bir yazılımla yapmanıza hukukun izin verdiği hiçbir şeyi, örneğin yazılımın nasıl çalıştığını incelemeyi veya onu diğer programlarla birlikte çalışır hale getirmeyi elinizden almaz."
+    },
+    {
+      "type": "h2",
+      "id": "system-needs",
+      "text": "Neye ihtiyacınız var"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Apple silicon işlemcili (M1 veya daha yeni) bir Mac. Uygulama Intel Mac'lerde veya diğer sistemlerde çalışmaz.",
+        "İnternet bağlantısı ve oturum açmak için bir Orqanix hesabı. Varsayılan model, herhangi bir yapay zekâ sağlayıcısından anahtar gerektirmez.",
+        "18 yaşında veya daha büyük olmalısınız."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Masaüstü Uygulamasını yalnızca orqanix.com üzerindeki bağlantıdan indirin. Başka herhangi bir yerden edinilen kopyalardan sorumlu değiliz."
+    },
+    {
+      "type": "h2",
+      "id": "first-open",
+      "text": "İlk açılış"
+    },
+    {
+      "type": "p",
+      "text": "Apple, Masaüstü Uygulamasını noter onayından geçirmemiştir (noter onayı, Apple'ın App Store dışında sunulan uygulamalar için yaptığı otomatik denetimdir); bu nedenle macOS, uygulamayı ilk açtığınızda engelleyebilir. İzin vermek için Sistem Ayarları > Gizlilik ve Güvenlik bölümünde Yine de Aç seçeneğini seçin. Bunu yalnızca orqanix.com'dan edinilmiş bir kopya için yapın."
+    },
+    {
+      "type": "h2",
+      "id": "agentic-actions",
+      "text": "Ajan eylemleri"
+    },
+    {
+      "type": "p",
+      "text": "Masaüstü Uygulaması, Mac'inizde yapay zekâ ajanları çalıştırır. Ajan, adımları seçmek ve bunları uygulamak için bir yapay zekâ modeli kullanan bir yazılımdır. Uygulamaya bir görev verdiğinizde ajanları Mac'inizde gerçek eylemler gerçekleştirebilir; örneğin:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "dosyaları okumak, oluşturmak, değiştirmek, taşımak ve silmek;",
+        "Mac'in terminalinde (kabukta) komutlar çalıştırmak; bu komutlar yazılım kurabilir, ayarları değiştirebilir veya internete erişebilir;",
+        "açtığınız araçları, uzantıları ve bağlı hizmetleri kullanmak; bunlar başka yerlerdeki hesaplarınızda işlem yapabilir;",
+        "kaydedilmiş görevleri (tarifleri) bir zamanlamaya göre çalıştırmak, ancak yalnızca Masaüstü Uygulaması açıkken."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Kabuk ve dosya araçları, uygulamayı ilk kurduğunuzda açık durumdadır."
+    },
+    {
+      "type": "h3",
+      "id": "approval-modes",
+      "text": "Ajanlar ne zaman önce sorar"
+    },
+    {
+      "type": "p",
+      "text": "Varsayılan olarak ajanlar, önce size sormadan harekete geçer. Bu varsayılan mod \"Araç çağrılarını otomatik olarak onayla\" olarak adlandırılır. Bunu uygulamanın ayarlarından şu seçeneklerden birine değiştirebilirsiniz:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "her eylemden önce sor;",
+        "yalnızca uygulamanın hassas kabul ettiği eylemlerden önce sor;",
+        "yalnızca sohbet, eylem yok."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Uygulama sorduğunda Bir Kez İzin Ver, Her Zaman İzin Ver veya Reddet yanıtını verebilirsiniz. Her Zaman İzin Ver seçeneğinden sonra ajan, o tür bir eylem için bir daha sormaz."
+    },
+    {
+      "type": "h2",
+      "id": "authorization",
+      "text": "Sorumluluğunuz"
+    },
+    {
+      "type": "p",
+      "text": "Ajanların neyi yapabileceğine siz karar verirsiniz: görev, onay modu ve kullanabilecekleri klasörler, araçlar ve hesaplar. Bu sınırlar dahilinde gerçekleştirdikleri eylemlere siz yetki verirsiniz ve bunlardan, onları bizzat kendiniz gerçekleştirmişsiniz gibi sorumlu olursunuz."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Ajanları yalnızca kullanmanıza ve sizin adınıza bir yazılımın kullanmasına izin vermenize yetkiniz olan dosyalara, sistemlere ve hesaplara yönlendirin.",
+        "Bir ajanın işlem yaptığı her hizmetin koşullarına ve [Kabul Edilebilir Kullanım Politikamıza](/instant/legal/acceptable-use) uyun.",
+        "Ajanları, başkalarının sistemlerine veya verilerine onların izni olmadan erişmek için kullanmayın.",
+        "Bir işletme için çalışıyorsanız, işletmenin Masaüstü Uygulamasını kendi dosyaları ve sistemleri üzerinde kullanmanıza izin verdiğinden emin olun."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "human-review",
+      "text": "İnsan incelemesi"
+    },
+    {
+      "type": "p",
+      "text": "Yapay zekâ hata yapar. Bir ajan bir görevi yanlış anlayabilir, yanlış dosyayı seçebilir, zararlı bir komut çalıştırabilir veya başarısız olduğu halde başarılı olduğunu bildirebilir. Sonuçlar yanlış, eksik veya güncelliğini yitirmiş olabilir ve hukuki, tıbbi, mali ya da başka bir mesleki tavsiye niteliği taşımaz. Bkz. [Yapay Zekâmız Nasıl Çalışır](/instant/legal/ai)."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Ajanların üzerinde çalışmasına izin vermeden önce önemli olan her şeyi yedekleyin. Bir ajanın sildiği veya değiştirdiği dosyaları geri getiremeyiz.",
+        "Önemli dosyalara, paraya, başka kişilere veya canlı sistemlere dokunan işler için önce soran bir [onay modu](#approval-modes) kullanın.",
+        "Ajanların ürettiklerine güvenmeden, bunları göndermeden veya yayımlamadan önce kontrol edin."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "consequences",
+      "text": "Sorumluluk"
+    },
+    {
+      "type": "p",
+      "text": "Ajanların Mac'inizde veya bağlı hesaplarınızda gerçekleştirdiği eylemler, veri kaybı, değişen ayarlar, gönderilen mesajlar veya başka sağlayıcıların tahsil ettiği ücretler gibi geri alınması zor ya da imkânsız gerçek sonuçlar doğurabilir."
+    },
+    {
+      "type": "p",
+      "text": "Hukukun izin verdiği ölçüde, bir ajanın gerçekleştirmesine izin verdiğiniz eylemlerden, onay modu seçiminizden veya yedek eksikliğinden kaynaklanan kayıp ya da zararlardan sorumlu değiliz. Masaüstü Uygulaması, Hizmet Koşullarındaki [Sorumluluk reddi beyanları](/instant/legal/terms#warranty) ve [Sorumluluk](/instant/legal/terms#liability) bölümlerinde belirtildiği üzere, hiçbir türde garanti verilmeksizin \"olduğu gibi\" ve \"mevcut olduğu şekilde\" sunulur. Bu koşullardaki hiçbir hüküm, hukukun sınırlamamıza izin vermediği sorumluluğu sınırlamaz.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Ülkenizin hukuku uyarınca, Masaüstü Uygulaması sözleşmemize uygun olmadığında ve neden olduğumuz zararlardan sorumluyuz. Görevlerimizi ihlal ederek neden olmadıkça, yalnızca bir ajanın gerçekleştirmesine izin verdiğiniz eylemlerden, onay modu seçiminizden veya yedek eksikliğinden kaynaklanan zararlardan sorumlu değiliz. Bu koşullardaki hiçbir hüküm, tüketici olarak sahip olduğunuz yasal hakları veya kast, ağır ihmal, yaşama, vücut bütünlüğüne ya da sağlığa verilen zarar nedeniyle ya da ürün sorumluluğu hukuku kapsamındaki sorumluluğu sınırlamaz. Geri kalan hususlar Hizmet Koşullarındaki [Sorumluluk](/instant/legal/terms#liability) bölümünde düzenlenmiştir.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "your-data",
+      "text": "Verileriniz nereye gider"
+    },
+    {
+      "type": "p",
+      "text": "Bu bir özettir. Ayrıntıların tamamı [Gizlilik Politikasında](/instant/legal/privacy) yer almaktadır."
+    },
+    {
+      "type": "h3",
+      "id": "on-your-mac",
+      "text": "Mac'inizde"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Uygulama, verilerini Mac'inizin Library (Kitaplık) klasöründe, yalnızca macOS kullanıcı hesabınızın okuyabildiği bir klasörde tutar.",
+        "Sohbet geçmişiniz, Mac'inizin sağladığı korumanın ötesinde herhangi bir şifreleme olmaksızın yerel bir veritabanı dosyasında tutulur.",
+        "Bağladığınız yapay zekâ sağlayıcılarına ait anahtarlar ve eklediğiniz uzantılara ait gizli bilgiler, macOS Anahtar Zinciri'nde değil, uygulamanın klasöründeki düz metin bir dosyada saklanır. Dosyalarınızı okuyabilen herkes veya her şey bunları da okuyabilir.",
+        "Orqanix oturum açma bilgileriniz macOS Anahtar Zinciri'nde saklanır. Oturumu kapatmak bunu iptal eder.",
+        "Ajanların oluşturduğu dosyalar, seçtiğiniz proje klasörüne kaydedilir.",
+        "Uygulama, Mac'inizde günlük kayıtları tutar ve eski kayıtları kendiliğinden temizler. Bize kullanım istatistiği göndermez ve bir çökme raporlayıcısı yoktur."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "sent-to-the-cloud",
+      "text": "Mac'inizden gönderilenler"
+    },
+    {
+      "type": "p",
+      "text": "Varsayılan modelde, bir görevin her adımı o ana kadarki konuşmanın tamamını yapay zekâ modeline gönderir: yazdıklarınız, ajanların okuduğu dosya içerikleri, komut çıktıları ve ürün talimatlarımız. Bu veriler AB'deki sunucularımız (Google Cloud, Hollanda) üzerinden Google Gemini'ye iletilir. Sunucularımız verileri iletir ve saklamaz. Google, bu verileri [Gemini API koşulları](https://ai.google.dev/gemini-api/terms) kapsamında AB dışında işleyebilir."
+    },
+    {
+      "type": "p",
+      "text": "Sesli dikte varsayılan olarak açıktır. Kullanırsanız sesiniz model sağlayıcısına gönderilir."
+    },
+    {
+      "type": "p",
+      "text": "Bir ajan araştırma aracımızı kullandığında, Orqanix bulut çalışma alanınıza bir soru ve ajan bunları seçerse bulut belgelerinizden en fazla beşine ait alıntılar gönderir. Soru, alıntılar ve kaynaklarıyla birlikte sonuç orada değiştirilemez bir kayıt olarak saklanır. Araştırma, web'de arama yapabilir ve kamuya açık şirket sicillerine bakabilir. [Gizlilik Politikası](/instant/legal/privacy), bir kopyasını veya silinmesini nasıl talep edebileceğinizi açıklar."
+    },
+    {
+      "type": "h2",
+      "id": "third-party-services",
+      "text": "Diğer yapay zekâ sağlayıcıları ve araçları"
+    },
+    {
+      "type": "p",
+      "text": "OpenAI, Anthropic veya Mac'inizde çalışan modeller gibi başka yapay zekâ sağlayıcılarını bağlayabilir ve başkaları tarafından yapılmış araçlar ve uzantılar ekleyebilirsiniz. Bunu yaptığınızda:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "o sağlayıcı, konuşmanızı ve araç sonuçlarını kendi koşulları ve gizlilik politikası kapsamında doğrudan alır;",
+        "o sağlayıcıyla olan sözleşmeniz, tahsil ettiği ücretler de dahil olmak üzere, siz ile o sağlayıcı arasındadır;",
+        "diğer sağlayıcıları, araçları veya uzantıları ya da bunların verilerinizle ne yaptığını kontrol etmez, denetlemez ve bunlardan sorumlu olmayız."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Güncellemeler ve değişiklikler"
+    },
+    {
+      "type": "p",
+      "text": "Masaüstü Uygulaması kendini güncellemez. Her yeni sürüm, orqanix.com'dan yeniden indirilen ve eskisinin üzerine kurduğunuz bir dosyadır. Güvenlik düzeltmeleri daha yeni sürümlerle gelir; bu nedenle en son sürümü kullanın. Eski sürümlerin düzeltme almaya devam edeceği sabit bir süre belirlemiyoruz."
+    },
+    {
+      "type": "p",
+      "text": "Yeni sürümlerde özellikleri değiştirebilir veya kaldırabiliriz. Değişikliklere ilişkin kurallar [Hizmetlerde ve bu koşullarda yapılan değişiklikler](/instant/legal/terms#changes) bölümünde yer almaktadır.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Masaüstü Uygulamasını tüketici olarak (ticari veya mesleki faaliyetiniz dışında) kullanıyorsanız, AB hukukunun dijital içerik konusunda tüketicilere tanıdığı haklara sahipsiniz. Uygulama ücretsiz olsa bile bu haklar geçerlidir, çünkü uygulamayı kullanmak için bize kişisel veri vermektesiniz (Dir. (EU) 2019/770). Uygulama, bu koşullarda ve web sitemizde açıklandığı şekilde çalışmalıdır. Hukukun gerektirdiği süre boyunca, bu durumu korumak için gereken güvenlik güncellemeleri de dahil olmak üzere güncellemeleri kullanıma sunacak ve bir güncelleme mevcut olduğunda bunu ve neyi düzelttiğini orqanix.com'da bildireceğiz. Size bildirdiğimiz bir güncellemeyi makul bir süre içinde kurmazsanız, kurulum talimatlarımız hatalı olmadıkça, o güncellemenin gidereceği bir kusurdan sorumlu olmayız.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Uygulamanın çalışmaya devam etmesi için gerekenin ötesinde, Masaüstü Uygulamasını yalnızca yeni yasalar, güvenlik veya iyileştirmeler gibi geçerli bir nedenle ve size hiçbir maliyet yüklemeden değiştireceğiz. Bir değişiklik uygulamaya erişiminizi veya uygulamayı kullanımınızı önemsiz olmayan bir ölçüde olumsuz etkilerse, değişiklik gerçekleşmeden makul bir süre önce size e-posta göndereceğiz. Bu durumda, değişmemiş sürümü ek bir ücret olmadan kullanmaya devam etmenize izin vermediğimiz sürece, bildirimimizden veya değişiklikten (hangisi daha sonraysa) itibaren 30 gün içinde bu sözleşmeyi ücretsiz olarak sona erdirebilirsiniz.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Yaptırımlar ve ihracat"
+    },
+    {
+      "type": "p",
+      "text": "ABD veya AB yaptırımlarının ya da ihracat kurallarının yasakladığı yerlerde veya bir ABD ya da AB yaptırım listesinde adınız yer alıyorsa Masaüstü Uygulamasını indiremez veya kullanamazsınız. Hizmet Koşullarındaki [Yaptırımlar ve ihracat](/instant/legal/terms#sanctions) bölümüne bakın."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Kullanımın sona ermesi"
+    },
+    {
+      "type": "p",
+      "text": "Masaüstü Uygulamasını istediğiniz zaman kullanmayı bırakabilirsiniz. Önce oturumu kapatın; bu, Orqanix oturumunuzu iptal eder. Ardından uygulamayı Uygulamalar klasörünüzden silin. Yerel sohbet geçmişinizi, ayarlarınızı, günlük kayıtlarınızı ve saklanan anahtarlarınızı kaldırmak için Mac'inizin Library (Kitaplık) klasöründeki (Application Support altındaki) uygulama klasörünü de silin. Ajanların proje klasörlerinizde oluşturduğu dosyalar siz silene kadar kalır."
+    },
+    {
+      "type": "p",
+      "text": "Uygulamayı silmek, Orqanix hesabınızı veya bulut çalışma alanınızı silmez. Hesabınızı kapatmak veya verilerinizin silinmesini talep etmek için [Hizmet Koşullarına](/instant/legal/terms) ve [Gizlilik Politikasına](/instant/legal/privacy) bakın."
+    },
+    {
+      "type": "p",
+      "text": "Lisansınız sona ererse Masaüstü Uygulamasını kullanmayı bırakmalı ve silmelisiniz. Hizmet Koşullarındaki [Askıya alma ve sona erme](/instant/legal/terms#ending) bölümü hesabınıza ne olacağını açıklar."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "İletişim"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullarla ilgili sorular: {company.email}. Güvenlik sorunları: {company.securityEmail}. Gizlilik talepleri: {company.privacyEmail}."
+    }
+  ]
+}

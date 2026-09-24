@@ -1,3 +1,4 @@
+import DirArrow from '../../ui/DirArrow';
 /** The opening lines every text page shares: bracketed label, title, one line. */
 export function InfoHead({ page, center = false }) {
   return (
@@ -32,7 +33,7 @@ export function SectionCopy({ text = [], list, links }) {
       {links?.map(({ label, href }) => (
         <a key={href} className="oin-mail" href={href}>
           {label}
-          <span aria-hidden="true">→</span>
+          <DirArrow />
         </a>
       ))}
     </div>

@@ -1,0 +1,325 @@
+{
+  "meta": {
+    "slug": "desktop-app-terms",
+    "title": "Términos de la Aplicación de escritorio",
+    "summary": "Estos términos regulan la instalación y el uso de la aplicación Orqanix en su Mac, incluidas las acciones reales que pueden realizar sus agentes de IA.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Primera versión."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Support period: no automatic updates in code and no stated support period. The text says fixes come in newer versions and that there is no fixed support period for old versions. Owner to decide a support period (EU Cyber Resilience Act: support-period end date shown at purchase from 11 Dec 2027; CRA vulnerability reporting applies since 11 Sep 2026).",
+        "EU update duty (Dir. 2019/770 Art. 8): the EU text promises to say on orqanix.com when an update is available and what it fixes. Owner must set up that notice (download page or News) before publishing; lawyer to confirm a manual download without auto-update meets Art. 8.",
+        "EU change notice (Dir. 2019/770 Art. 19): the EU text promises notice by email before a change that harms use. Needs working email (no MX record, FACTS open point #2) and the account email from Clerk.",
+        "Defaults disclosed as they are in code: Auto-approve (agents act without asking), shell and file editing on, voice dictation on, provider keys in a plain-text file. If the owner changes any default (FACTS open point #8), update the agent-action and data sections. A DPIA is advisable for these defaults (critique #19).",
+        "Voice dictation: whether it works end to end is uncertain; the text only says that if you use it, your voice is sent to the model provider.",
+        "App not notarized: the text tells users macOS may block the first open. Update if the app is signed and notarized (FACTS open point #14).",
+        "Governing law and contracting company: follow the Terms of Service; no company name is printed here (FACTS open point #1).",
+        "Download location: the file is served from Google Cloud Storage via the link on orqanix.com; bucket region unknown (FACTS open point #7). Not stated here. The stale local download link should be fixed.",
+        "Research tool: records are immutable in the cloud database; deletion wording defers to the Privacy Policy (FACTS open point #5). The text says research may search the web and look up company registers (search engines and OpenRegister per FACTS §7/§10); the Privacy Policy and Sub-processors page list them (cross-check 2026-09-21).",
+        "AI Act Art. 50(2): outputs, including text files the agents make, are not machine-marked and nothing here claims marking. Owner to confirm the Desktop App's first EU market date; if after 2 Aug 2026, marking applies now (FACTS open point #10).",
+        "Gemini paid tier (FACTS open point #3): serving EEA/UK/CH users needs Google's paid Gemini tier; this document does not state Google's data terms.",
+        "Age 18+: sign-in asks no age; needs a self-declaration and an acceptance record at sign-up, including the Desktop App's first-run sign-in (FACTS open point #9). California AB 1043 age signals also cover Mac apps from 1 Jan 2027.",
+        "Consumer licence limits: the text keeps rights the law gives to study software and make it interoperable (EU Software Directive 2009/24 Art. 5(3), 6). Lawyer to confirm the \"no competing product\" limit is fair for EU consumers.",
+        "Lawyer review of the liability wording in both regions, including the EU Product Liability Directive (EU) 2024/2853 (applies to products placed on the market after 9 Dec 2026; missing security updates can make software defective)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "Acerca de estos términos"
+    },
+    {
+      "type": "p",
+      "text": "Estos términos complementan nuestros [Términos del servicio](/instant/legal/terms) para la aplicación Orqanix para Mac (la \"Aplicación de escritorio\"). Junto con los Términos del servicio, nuestra [Política de uso aceptable](/instant/legal/acceptable-use) y nuestra [Política de privacidad](/instant/legal/privacy), forman un único acuerdo. Si estos términos y los Términos del servicio discrepan en lo relativo a la Aplicación de escritorio, prevalecen estos términos."
+    },
+    {
+      "type": "p",
+      "text": "La Aplicación de escritorio es gratuita mientras nuestros productos se encuentran en una fase inicial. Antes de que comience cualquier plan de pago, publicaremos el precio y las normas de pago y cancelación."
+    },
+    {
+      "type": "p",
+      "text": "Antes de ese momento, también publicaremos las normas para desistir de una compra, tal como exige el Derecho de la UE.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "Su licencia"
+    },
+    {
+      "type": "p",
+      "text": "Mientras cumpla estos términos, le concedemos una licencia personal, no exclusiva e intransferible para descargar, instalar y usar la Aplicación de escritorio en los Mac que sean de su propiedad o que estén bajo su control. Podemos ponerle fin según lo descrito en [Suspensión y terminación](/instant/legal/terms#ending) de los Términos del servicio."
+    },
+    {
+      "type": "p",
+      "text": "Usted no puede:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "vender, alquilar, prestar ni sublicenciar la Aplicación de escritorio;",
+        "eliminar ni modificar nuestros avisos ni los avisos de licencia de terceros;",
+        "eludir el inicio de sesión ni ningún límite que establezcamos en la aplicación;",
+        "usar la Aplicación de escritorio para crear un producto competidor, ni copiar nuestras instrucciones de producto con ese fin."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Estas limitaciones no se aplican a las partes de código abierto de la aplicación, como Goose (Apache 2.0), que siguen sujetas a sus propias licencias (consulte [Avisos de código abierto](/instant/legal/open-source)). Tampoco le privan de nada que la ley le permita hacer con software que usa de forma lícita, como estudiar su funcionamiento o hacer que funcione con otros programas."
+    },
+    {
+      "type": "h2",
+      "id": "system-needs",
+      "text": "Qué necesita"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Un Mac con Apple silicon (M1 o posterior). La aplicación no funciona en Mac con procesador Intel ni en otros sistemas.",
+        "Una conexión a internet y una cuenta de Orqanix para iniciar sesión. El modelo predeterminado no requiere ninguna clave de un proveedor de IA.",
+        "Debe tener 18 años o más."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Descargue la Aplicación de escritorio únicamente desde el enlace de orqanix.com. No somos responsables de las copias obtenidas de cualquier otro lugar."
+    },
+    {
+      "type": "h2",
+      "id": "first-open",
+      "text": "Primer inicio"
+    },
+    {
+      "type": "p",
+      "text": "Apple no ha notarizado la Aplicación de escritorio (la notarización es la comprobación automatizada que Apple realiza de las aplicaciones que se ofrecen fuera de su App Store), por lo que macOS puede bloquearla la primera vez que la abra. Para permitirla, elija Abrir igualmente en Ajustes del Sistema > Privacidad y seguridad. Hágalo únicamente con una copia procedente de orqanix.com."
+    },
+    {
+      "type": "h2",
+      "id": "agentic-actions",
+      "text": "Acciones de los agentes"
+    },
+    {
+      "type": "p",
+      "text": "La Aplicación de escritorio ejecuta agentes de IA en su Mac. Un agente es un software que usa un modelo de IA para elegir pasos y llevarlos a cabo. Cuando usted encarga una tarea a la aplicación, sus agentes pueden realizar acciones reales en su Mac, por ejemplo:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "leer, crear, modificar, mover y eliminar archivos;",
+        "ejecutar comandos en el terminal del Mac (la shell), lo que puede instalar software, cambiar ajustes o acceder a internet;",
+        "usar las herramientas, extensiones y servicios conectados que usted active, que pueden actuar en sus cuentas en otros servicios;",
+        "ejecutar tareas guardadas (recetas) de forma programada, pero solo mientras la Aplicación de escritorio esté abierta."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Las herramientas de shell y de archivos están activadas desde la primera instalación de la aplicación."
+    },
+    {
+      "type": "h3",
+      "id": "approval-modes",
+      "text": "Cuándo preguntan primero los agentes"
+    },
+    {
+      "type": "p",
+      "text": "De forma predeterminada, los agentes actúan sin preguntarle antes. Este modo predeterminado se denomina \"Aprobar automáticamente las llamadas a herramientas\". Puede cambiarlo en los ajustes de la aplicación por:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "preguntar antes de cada acción;",
+        "preguntar solo antes de las acciones que la aplicación considera sensibles;",
+        "solo chat, sin acciones."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Cuando la aplicación pregunta, puede responder Permitir una vez, Permitir siempre o Denegar. Después de Permitir siempre, el agente no volverá a preguntar por ese tipo de acción."
+    },
+    {
+      "type": "h2",
+      "id": "authorization",
+      "text": "Su responsabilidad"
+    },
+    {
+      "type": "p",
+      "text": "Usted decide qué pueden hacer los agentes: la tarea, el modo de aprobación y las carpetas, herramientas y cuentas que pueden usar. Usted autoriza las acciones que realizan dentro de esos límites y es responsable de ellas como si las hubiera realizado usted mismo."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Dirija los agentes únicamente a archivos, sistemas y cuentas que usted esté autorizado a usar y a permitir que un software use en su nombre.",
+        "Cumpla los términos de cualquier servicio en el que actúe un agente, así como nuestra [Política de uso aceptable](/instant/legal/acceptable-use).",
+        "No use agentes para acceder a los sistemas o datos de terceros sin su permiso.",
+        "Si trabaja para una empresa, asegúrese de que esta le permite usar la Aplicación de escritorio con sus archivos y sistemas."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "human-review",
+      "text": "Revisión humana"
+    },
+    {
+      "type": "p",
+      "text": "La IA comete errores. Un agente puede malinterpretar una tarea, elegir el archivo equivocado, ejecutar un comando perjudicial o informar de que ha tenido éxito cuando ha fallado. Los resultados pueden ser erróneos, incompletos o estar desactualizados, y no constituyen asesoramiento jurídico, médico, financiero ni de ningún otro tipo profesional. Consulte [Cómo funciona nuestra IA](/instant/legal/ai)."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Haga una copia de seguridad de todo lo importante antes de dejar que los agentes trabajen con ello. No podemos restaurar los archivos que un agente haya eliminado o modificado.",
+        "Use un [modo de aprobación](#approval-modes) que pregunte primero para los trabajos que afecten a archivos importantes, dinero, otras personas o sistemas en producción.",
+        "Revise lo que han creado los agentes antes de confiar en ello, enviarlo o publicarlo."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "consequences",
+      "text": "Responsabilidad"
+    },
+    {
+      "type": "p",
+      "text": "Las acciones de los agentes en su Mac o en sus cuentas conectadas pueden tener efectos reales difíciles o imposibles de deshacer, como la pérdida de datos, cambios en los ajustes, mensajes enviados o cargos de otros proveedores."
+    },
+    {
+      "type": "p",
+      "text": "En la medida en que la ley lo permita, no somos responsables de las pérdidas o daños derivados de las acciones que usted haya permitido realizar a un agente, del modo de aprobación que haya elegido o de la falta de copias de seguridad. La Aplicación de escritorio se proporciona \"tal cual\" y \"según disponibilidad\", sin garantías de ningún tipo, según lo establecido en [Exenciones de garantía](/instant/legal/terms#warranty) y [Responsabilidad](/instant/legal/terms#liability) de los Términos del servicio. Nada de lo dispuesto en estos términos limita la responsabilidad que la ley no nos permite limitar.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Conforme a la legislación de su país, somos responsables si la Aplicación de escritorio no es conforme con nuestro contrato, así como de los daños que causemos. No somos responsables de los daños derivados únicamente de las acciones que usted haya permitido realizar a un agente, del modo de aprobación que haya elegido o de la falta de copias de seguridad, salvo que los hayamos causado por incumplir nuestras obligaciones. Nada de lo dispuesto en estos términos limita sus derechos legales como consumidor, ni la responsabilidad por dolo, negligencia grave, daños a la vida, la integridad física o la salud, o conforme a la normativa sobre responsabilidad por productos. El resto se establece en [Responsabilidad](/instant/legal/terms#liability) de los Términos del servicio.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "your-data",
+      "text": "Adónde van sus datos"
+    },
+    {
+      "type": "p",
+      "text": "Esto es un resumen. La [Política de privacidad](/instant/legal/privacy) contiene toda la información detallada."
+    },
+    {
+      "type": "h3",
+      "id": "on-your-mac",
+      "text": "En su Mac"
+    },
+    {
+      "type": "list",
+      "items": [
+        "La aplicación guarda sus datos en una carpeta de la Biblioteca de su Mac que solo puede leer su cuenta de usuario de macOS.",
+        "Su historial de chat se guarda en un archivo de base de datos local, sin más cifrado que la protección que le proporciona su Mac.",
+        "Las claves de los proveedores de IA que conecte y los secretos de las extensiones que añada se almacenan en un archivo de texto sin formato en la carpeta de la aplicación, no en el Llavero de macOS. Cualquier persona o programa que pueda leer sus archivos puede leerlos.",
+        "Su inicio de sesión en Orqanix se almacena en el Llavero de macOS. Al cerrar la sesión, se cancela.",
+        "Los archivos que crean los agentes se guardan en la carpeta de proyecto que usted elija.",
+        "La aplicación guarda registros en su Mac y elimina automáticamente los antiguos. No nos envía estadísticas de uso y no tiene un sistema de informes de fallos."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "sent-to-the-cloud",
+      "text": "Lo que se envía desde su Mac"
+    },
+    {
+      "type": "p",
+      "text": "Con el modelo predeterminado, cada paso de una tarea envía al modelo de IA toda la conversación hasta ese momento: lo que usted ha escrito, el contenido de los archivos que leen los agentes, la salida de los comandos y nuestras instrucciones de producto. Pasa por nuestros servidores en la UE (Google Cloud, Países Bajos) hasta Google Gemini. Nuestros servidores lo transmiten y no lo almacenan. Google puede tratarlo fuera de la UE conforme a sus [términos de la API de Gemini](https://ai.google.dev/gemini-api/terms)."
+    },
+    {
+      "type": "p",
+      "text": "El dictado por voz está activado de forma predeterminada. Si lo usa, su voz se envía al proveedor del modelo."
+    },
+    {
+      "type": "p",
+      "text": "Cuando un agente usa nuestra herramienta de investigación, envía una pregunta a su espacio de trabajo en la nube de Orqanix, junto con extractos de hasta cinco de sus documentos en la nube si el agente los selecciona. La pregunta, los extractos y el resultado con sus fuentes se almacenan allí como un registro inalterable. La investigación puede buscar en la web y consultar registros mercantiles públicos. La [Política de privacidad](/instant/legal/privacy) explica cómo solicitar una copia o la eliminación."
+    },
+    {
+      "type": "h2",
+      "id": "third-party-services",
+      "text": "Otros proveedores de IA y herramientas"
+    },
+    {
+      "type": "p",
+      "text": "Puede conectar otros proveedores de IA, como OpenAI, Anthropic o modelos que se ejecutan en su Mac, y añadir herramientas y extensiones creadas por terceros. Cuando lo hace:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "ese proveedor recibe directamente su conversación y los resultados de las herramientas, conforme a sus propios términos y política de privacidad;",
+        "su acuerdo con ese proveedor, incluidas las tarifas que cobre, es un asunto entre usted y dicho proveedor;",
+        "no controlamos, revisamos ni respondemos de otros proveedores, herramientas o extensiones, ni de lo que hagan con sus datos."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Actualizaciones y cambios"
+    },
+    {
+      "type": "p",
+      "text": "La Aplicación de escritorio no se actualiza sola. Cada nueva versión es una nueva descarga desde orqanix.com que usted instala sobre la anterior. Las correcciones de seguridad llegan en las versiones más recientes, así que use la última. No fijamos ningún periodo durante el cual las versiones anteriores sigan recibiendo correcciones."
+    },
+    {
+      "type": "p",
+      "text": "Podemos modificar o eliminar funciones en nuevas versiones. Las normas sobre cambios figuran en [Cambios en los Servicios y en estos términos](/instant/legal/terms#changes).",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Si usa la Aplicación de escritorio como consumidor (fuera de su actividad comercial, empresarial o profesional), tiene los derechos que el Derecho de la UE concede a los consumidores en materia de contenidos digitales. Se aplican aunque la aplicación sea gratuita, porque usted nos facilita datos personales para usarla (Directiva (UE) 2019/770). La aplicación debe funcionar según lo descrito en estos términos y en nuestro sitio web. Durante el tiempo que exija la ley, pondremos a su disposición las actualizaciones, incluidas las de seguridad, necesarias para que siga siendo así, e indicaremos en orqanix.com cuándo hay una disponible y qué corrige. Si no instala en un plazo razonable una actualización de la que le hayamos informado, no seremos responsables de un defecto que esta habría corregido, salvo que el fallo se deba a nuestras instrucciones de instalación.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Más allá de lo necesario para que siga funcionando, solo modificaremos la Aplicación de escritorio por un motivo válido, como nuevas leyes, seguridad o mejoras, y sin coste alguno para usted. Si un cambio perjudica de forma no meramente menor su acceso a la aplicación o su uso, se lo notificaremos por correo electrónico con antelación suficiente. En ese caso, podrá resolver este acuerdo sin coste alguno en un plazo de 30 días desde nuestra notificación o desde el cambio, lo que ocurra más tarde, salvo que le permitamos conservar la versión sin cambios sin coste adicional.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Sanciones y exportación"
+    },
+    {
+      "type": "p",
+      "text": "No puede descargar ni usar la Aplicación de escritorio donde las sanciones o las normas de exportación de EE. UU. o de la UE lo prohíban, ni si figura en una lista de sanciones de EE. UU. o de la UE. Consulte [Sanciones y exportación](/instant/legal/terms#sanctions) en los Términos del servicio."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Dejar de usar la aplicación"
+    },
+    {
+      "type": "p",
+      "text": "Puede dejar de usar la Aplicación de escritorio en cualquier momento. Primero, cierre la sesión, lo que cancela su inicio de sesión en Orqanix. Después, elimine la aplicación de su carpeta Aplicaciones. Para eliminar su historial de chat local, sus ajustes, sus registros y las claves almacenadas, elimine también su carpeta en la Biblioteca de su Mac (en Application Support). Los archivos que los agentes hayan creado en sus carpetas de proyecto se conservan hasta que usted los elimine."
+    },
+    {
+      "type": "p",
+      "text": "Eliminar la aplicación no elimina su cuenta de Orqanix ni su espacio de trabajo en la nube. Para cerrar su cuenta o solicitarnos que eliminemos sus datos, consulte los [Términos del servicio](/instant/legal/terms) y la [Política de privacidad](/instant/legal/privacy)."
+    },
+    {
+      "type": "p",
+      "text": "Si su licencia termina, debe dejar de usar la Aplicación de escritorio y eliminarla. [Suspensión y terminación](/instant/legal/terms#ending), en los Términos del servicio, indica qué ocurre con su cuenta."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Contacto"
+    },
+    {
+      "type": "p",
+      "text": "Preguntas sobre estos términos: {company.email}. Problemas de seguridad: {company.securityEmail}. Solicitudes de privacidad: {company.privacyEmail}."
+    }
+  ]
+}

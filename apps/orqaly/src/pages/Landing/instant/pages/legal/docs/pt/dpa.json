@@ -1,0 +1,531 @@
+{
+  "meta": {
+    "slug": "dpa",
+    "title": "Adendo de Tratamento de Dados",
+    "summary": "Como tratamos dados pessoais como seu operador quando sua empresa usa a API, trabalhos Empresariais ou o Assistente Virtual.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Primeira versão."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the party block (legalName, address) and the SCC governing-law sentence (law) stay hidden until company.js is filled (FACTS open point 1).",
+        "SCC structure depends on the entity (critique point 13): with an EU processor serving EU controllers no SCCs are needed between the parties; non-EU customers need Module Four; a non-EU entity needs Modules Two and Three and an EU representative (euRepresentative). The text covers all cases; lawyer to confirm, and to confirm the Clause 17/18 fallback.",
+        "Google Gemini: the processor promises only hold once the paid Gemini tier and Google's data processing terms apply (geminiPaidTier). Until then Google may use content under its free-tier terms, which conflicts with this DPA and with the US service-provider promises (FACTS open point 3; us.md). Do not offer this DPA to customers before that.",
+        "Google Cloud: accept Google's Cloud data processing terms for both projects (site and API) and record it.",
+        "Roles split (processor for customer data; controller for account data, logs, web searches and OpenRegister lookups) needs lawyer confirmation (FACTS open point 11; critique point 14).",
+        "Deletion at the end: the workspace database refuses deletion of some records (immutable tables) and there is no deletion, export or retention code. The text promises deletion or anonymisation, or an explanation where a record must be kept. A working process is needed before the first customer (FACTS open point 5).",
+        "Backups: the workspace database keeps 7 daily backups plus point-in-time recovery (about 7 days); the API database's backup settings were not checked, so the annex states backups only for the cloud workspace.",
+        "Sub-processor changes: the notice period is 'before the change takes effect', with no fixed number. Owner to set one (commonly 30 days) and a way to notify customers (needs working email).",
+        "Breach notice: 'without undue delay' only; an internal breach runbook is needed (critique point 19).",
+        "Assistant Bot: no code exists; the DPA only names it in scope and makes no feature or data claims (FACTS open point 13).",
+        "Security annex lists only measures FACTS supports; encryption is stated only as 'in transit (HTTPS) and at rest by our cloud provider'. Download-bucket region is unknown and not mentioned.",
+        "Mailboxes: privacy@ and security@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: 'Where' row and the transfers section now say the cloud workspace, the API and Enterprise hosting store data in the EU, instead of all customer data, because where the Assistant Bot keeps messages and tokens is unknown (FACTS §6). Secret Manager checked in both deploy scripts. Added a 'Frequency' row for SCC Annex I.",
+        "Legal review 2026-09-21: added the EU representative block (needs euRepresentative; required if the entity is outside the EU, GDPR Art. 27); instructions now cover transfers and we tell you 'at once' about unlawful instructions (GDPR Art. 28(3)(a) and last sentence); connected messaging and email accounts named as the customer's own providers, not our sub-processors (lawyer to confirm).",
+        "SCC Clause 9(a) Option 2 needs a fixed advance-notice period for sub-processor changes; the DPA only says 'before the change takes effect'. Owner to set a number of days before the DPA is used with non-EEA transfers.",
+        "SCC Clause 17/18 fallback: if company.law is not an EU member state and the customer is outside the EU, no governing law is named. Lawyer to pick a fallback member state.",
+        "Scope: business use of the Desktop App and the cloud workspace (outside the Assistant Bot) is not covered by this DPA. Owner to decide whether business users of those products can rely on it (the Terms of Service already point business users here)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Sobre este adendo"
+    },
+    {
+      "type": "p",
+      "text": "Este Adendo de Tratamento de Dados (o “DPA”) estabelece as regras para os dados pessoais que tratamos para clientes empresariais. Ele faz parte dos [Termos da API](/instant/legal/api-terms), dos [Termos Empresariais](/instant/legal/enterprise-terms) e, quando você usa o Assistente Virtual para sua empresa, dos [Termos do Assistente Virtual](/instant/legal/assistant-bot-terms). Chamamos qualquer um deles que se aplique a você de “contrato principal”."
+    },
+    {
+      "type": "p",
+      "text": "O DPA se aplica automaticamente quando você aceita o contrato principal. Não é necessária assinatura. Se precisar de uma cópia assinada para seus registros, escreva para {company.privacyEmail}."
+    },
+    {
+      "type": "p",
+      "text": "Se este DPA e o contrato principal divergirem quanto a dados pessoais, este DPA prevalece. Quando as Cláusulas Contratuais-Padrão se aplicarem (veja [Transferências internacionais](#transfers)), elas prevalecem sobre ambos."
+    },
+    {
+      "type": "h2",
+      "id": "parties",
+      "text": "As partes"
+    },
+    {
+      "type": "p",
+      "text": "Este DPA é celebrado entre você, o cliente empresarial (“você”), e a Orqanix (“nós”)."
+    },
+    {
+      "type": "p",
+      "text": "A Orqanix é operada por {company.legalName}, {company.address}, que é a parte deste DPA.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Nosso representante na UE é {company.euRepresentative}.",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Nosso contato de proteção de dados é {company.privacyEmail}. Informe-nos quem é o seu contato, para que possamos falar com você sobre este DPA."
+    },
+    {
+      "type": "h2",
+      "id": "words",
+      "text": "Termos que usamos"
+    },
+    {
+      "type": "list",
+      "items": [
+        "“Dados pessoais” significa qualquer informação relativa a uma pessoa identificada ou identificável.",
+        "“Tratamento” significa qualquer operação realizada com dados pessoais, como armazená-los, lê-los, enviá-los ou excluí-los.",
+        "O “controlador” decide por que e como os dados pessoais são tratados. O “operador” os trata para um controlador e de acordo com as instruções dele. O “suboperador” é um operador que nós utilizamos.",
+        "“Dados pessoais do cliente” significa os dados pessoais que tratamos para você nos termos do contrato principal.",
+        "“Legislação de proteção de dados” significa toda lei de privacidade aplicável ao tratamento, como o Regulamento Geral sobre a Proteção de Dados da UE (RGPD), o RGPD do Reino Unido, a Lei Federal Suíça sobre a Proteção de Dados (FADP) e as leis estaduais de privacidade dos EUA."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "roles",
+      "text": "Nossos papéis"
+    },
+    {
+      "type": "p",
+      "text": "Você é o controlador dos dados pessoais do cliente, ou um operador que age para seus próprios clientes. Nós somos seu operador ou suboperador. Tratamos alguns dados para nossas próprias finalidades e, quanto a esses dados, somos o controlador:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Dados",
+        "Nosso papel",
+        "O que se aplica"
+      ],
+      "rows": [
+        [
+          "Dados pessoais contidos no que você ou seus usuários enviam à API, em trabalhos Empresariais ou no espaço de trabalho e nas contas conectadas de um Assistente Virtual empresarial",
+          "Operador para você",
+          "Este DPA"
+        ],
+        [
+          "Dados de conta e de login da sua equipe, suas pessoas de contato e nossos registros de contratos e faturas",
+          "Controlador",
+          "Nossa [Política de Privacidade](/instant/legal/privacy)"
+        ],
+        [
+          "Registros de serviço e de segurança (endereço IP, navegador, horário, endereço solicitado)",
+          "Controlador",
+          "Nossa Política de Privacidade"
+        ],
+        [
+          "Consultas de pesquisa que nosso próprio serviço de busca envia a mecanismos de busca na web para realizar uma tarefa",
+          "Controlador",
+          "Nossa Política de Privacidade"
+        ],
+        [
+          "Consultas a registros comerciais por meio do OpenRegister, cujos resultados podem incluir nomes de administradores",
+          "Controlador",
+          "Nossa Política de Privacidade"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Nós decidimos como nossas pesquisas e consultas a registros funcionam; portanto, nelas agimos por conta própria (RGPD art. 4(7)). As consultas de pesquisa são criadas a partir da sua tarefa; por isso, não inclua dados pessoais no texto da tarefa, a menos que a tarefa precise deles."
+    },
+    {
+      "type": "h2",
+      "id": "details",
+      "text": "Detalhes do tratamento"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Item",
+        "Detalhes"
+      ],
+      "rows": [
+        [
+          "Objeto",
+          "Prestação do serviço previsto no contrato principal: a API, trabalhos Empresariais ou o Assistente Virtual usado para sua empresa."
+        ],
+        [
+          "Duração",
+          "Enquanto durar o contrato principal e, depois disso, até que tenhamos excluído ou devolvido os dados pessoais do cliente conforme estabelecido neste DPA."
+        ],
+        [
+          "Natureza",
+          "Recebimento, armazenamento, organização, leitura, análise com modelos de IA, produção de respostas e arquivos, envio para você e seus sistemas, e exclusão."
+        ],
+        [
+          "Finalidade",
+          "Apenas prestar o serviço a você, mantê-lo seguro e cumprir nossas obrigações legais."
+        ],
+        [
+          "Tipos de dados pessoais",
+          "Tudo o que você decidir nos enviar ou conectar. Normalmente nomes, dados de contato, cargos, relações comerciais e o conteúdo de tarefas, mensagens, documentos e arquivos."
+        ],
+        [
+          "Titulares envolvidos",
+          "Sua equipe, seus clientes e usuários finais, seus fornecedores e contatos comerciais, e qualquer outra pessoa mencionada nos dados que você envia ou conecta, incluindo os contatos das contas de e-mail e de mensagens que você conecta a um Assistente Virtual empresarial."
+        ],
+        [
+          "Categorias especiais",
+          "Nenhuma, salvo acordo diferente por escrito. Sem esse acordo, não nos envie dados de saúde, biométricos ou de outras categorias especiais, nem dados sobre condenações penais."
+        ],
+        [
+          "Frequência",
+          "Contínua, sempre que você ou seus usuários usarem o serviço."
+        ],
+        [
+          "Onde",
+          "Nosso espaço de trabalho na nuvem e a API armazenam dados no Google Cloud na UE (Países Baixos). Os trabalhos Empresariais são hospedados na região do Google Cloud na UE indicada no pedido. Os suboperadores podem tratar dados em outros lugares, conforme mostra a página [Suboperadores](/instant/legal/subprocessors)."
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "our-duties",
+      "text": "O que prometemos"
+    },
+    {
+      "type": "p",
+      "text": "Estas promessas expressam em palavras simples as obrigações de um operador (RGPD art. 28(3); RGPD do Reino Unido art. 28(3); FADP art. 9)."
+    },
+    {
+      "type": "h3",
+      "id": "instructions",
+      "text": "Suas instruções"
+    },
+    {
+      "type": "p",
+      "text": "Tratamos os dados pessoais do cliente somente de acordo com suas instruções documentadas, incluindo instruções sobre o envio deles para outros países. Suas instruções são o contrato principal, este DPA e a forma como você configura e usa o serviço. Você pode dar instruções adicionais por escrito, se forem compatíveis com o serviço. Só podemos tratar dados sem sua instrução quando a lei o exigir. Nesse caso, informamos você antes, a menos que essa lei o proíba. Se considerarmos que uma instrução viola a legislação de proteção de dados, informamos você imediatamente."
+    },
+    {
+      "type": "h3",
+      "id": "confidentiality",
+      "text": "Confidencialidade"
+    },
+    {
+      "type": "p",
+      "text": "Somente as pessoas que precisam dos dados pessoais do cliente para seu trabalho podem acessá-los, e cada uma delas está obrigada a mantê-los em sigilo."
+    },
+    {
+      "type": "h3",
+      "id": "security",
+      "text": "Segurança"
+    },
+    {
+      "type": "p",
+      "text": "Adotamos medidas técnicas e organizacionais adequadas ao risco para proteger os dados pessoais do cliente contra perda, alteração, divulgação ou acesso acidentais ou ilícitos (RGPD art. 32). O [anexo de segurança](#security-measures) ao final deste DPA as descreve. Podemos alterá-las ao longo do tempo, mas não reduziremos o nível geral de proteção."
+    },
+    {
+      "type": "h3",
+      "id": "sub-processors",
+      "text": "Suboperadores"
+    },
+    {
+      "type": "p",
+      "text": "Você nos autoriza a usar suboperadores. A página [Suboperadores](/instant/legal/subprocessors) lista os que usamos hoje, o que fazem e onde. Para trabalhos Empresariais, o pedido pode indicar outros."
+    },
+    {
+      "type": "p",
+      "text": "Antes de adicionarmos ou substituirmos um suboperador, atualizamos essa página e avisamos você, para que possa se opor antes que a alteração entre em vigor. Se você se opuser por motivos razoáveis de proteção de dados, buscaremos uma solução junto com você. Se não encontrarmos nenhuma, você poderá encerrar a parte do serviço afetada."
+    },
+    {
+      "type": "p",
+      "text": "Vinculamos por escrito cada suboperador a obrigações de proteção de dados pelo menos tão protetivas quanto as deste DPA. Continuamos responsáveis perante você pelo trabalho deles."
+    },
+    {
+      "type": "p",
+      "text": "Os aplicativos de mensagens, as contas de e-mail e outros serviços que você conecta são seus próprios provedores, escolhidos por você. Eles não são nossos suboperadores, e os termos deles se aplicam ao que fazem com os dados."
+    },
+    {
+      "type": "p",
+      "text": "Usamos o Google Gemini como nosso modelo de IA; por isso, o conteúdo de tarefas e conversas é enviado ao Google. O Google pode tratá-lo fora da UE."
+    },
+    {
+      "type": "p",
+      "text": "Usamos a API paga do Gemini do Google. Nela, o Google atua como nosso operador nos termos de suas condições de tratamento de dados e não usa o conteúdo para melhorar seus produtos.",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "rights-requests",
+      "text": "Direitos dos titulares"
+    },
+    {
+      "type": "p",
+      "text": "As pessoas podem pedir para ver, corrigir, excluir ou transferir seus dados, ou se opor ao uso deles. Se recebermos um pedido desse tipo relativo a dados pessoais do cliente, nós o encaminhamos a você e não o respondemos nós mesmos, a menos que você nos peça. Ajudamos você a responder aos pedidos, na medida em que a natureza do serviço permitir (RGPD art. 12-23)."
+    },
+    {
+      "type": "h3",
+      "id": "breaches",
+      "text": "Violações de dados"
+    },
+    {
+      "type": "p",
+      "text": "Se tomarmos conhecimento de uma violação de segurança que afete dados pessoais do cliente, informaremos você sem demora injustificada. Fornecemos o que sabemos e mais informações à medida que as obtivermos (RGPD art. 33(2) e (3)):"
+    },
+    {
+      "type": "list",
+      "items": [
+        "o que aconteceu;",
+        "quais tipos de dados e de pessoas foram afetados e, aproximadamente, quantos;",
+        "os efeitos prováveis;",
+        "o que fizemos e o que planejamos fazer a respeito;",
+        "com quem você pode falar."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Informar você não constitui admissão de culpa."
+    },
+    {
+      "type": "h3",
+      "id": "other-help",
+      "text": "Outros tipos de ajuda"
+    },
+    {
+      "type": "p",
+      "text": "Na medida em que a natureza do serviço e as informações de que dispomos permitirem, ajudamos você com suas obrigações de segurança, com avaliações de impacto sobre a proteção de dados e com a consulta à sua autoridade de proteção de dados (RGPD art. 32-36)."
+    },
+    {
+      "type": "h3",
+      "id": "end",
+      "text": "Devolução e exclusão"
+    },
+    {
+      "type": "p",
+      "text": "Quando o contrato principal terminar, excluiremos os dados pessoais do cliente. Se você nos pedir antes disso, primeiro os devolveremos a você. Mantemos uma cópia apenas quando a lei o exigir, somente pelo tempo que ela exigir e protegida conforme estabelecido neste DPA. As cópias em nossos backups desaparecem à medida que esses backups expiram."
+    },
+    {
+      "type": "p",
+      "text": "Alguns registros do que os agentes fizeram são mantidos em um log fixo que não pode ser alterado. Quando um registro desse tipo contiver dados pessoais do cliente, nós o excluímos ou anonimizamos ou, quando formos obrigados a mantê-lo, explicamos a você o motivo."
+    },
+    {
+      "type": "h3",
+      "id": "audits",
+      "text": "Auditorias"
+    },
+    {
+      "type": "p",
+      "text": "Fornecemos a você as informações de que razoavelmente precisa para demonstrar que cumprimos estas obrigações. Se isso não for suficiente, você, ou um auditor independente obrigado a sigilo, pode nos auditar. Você nos dá um aviso prévio razoável, e a auditoria não deve prejudicar nosso serviço nem colocar em risco os dados de outros clientes. Você arca com seus próprios custos de auditoria. Uma autoridade de proteção de dados pode sempre nos auditar, conforme a lei permitir."
+    },
+    {
+      "type": "h2",
+      "id": "your-duties",
+      "text": "O que você promete"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Você tem uma base legal para o tratamento e fornece às pessoas as informações de privacidade exigidas por lei, inclusive a de que utiliza nossos serviços.",
+        "Suas instruções estão em conformidade com a legislação de proteção de dados.",
+        "Você nos envia somente os dados pessoais de que o serviço precisa e nenhum dado de categoria especial, a menos que tenhamos concordado com isso por escrito.",
+        "Você configura o serviço de forma segura do seu lado, inclusive mantendo em segurança as chaves de acesso e os dados de login e escolhendo configurações de aprovação adequadas para os agentes."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "transfers",
+      "text": "Transferências internacionais"
+    },
+    {
+      "type": "p",
+      "text": "Nosso espaço de trabalho na nuvem, a API e a hospedagem Empresarial armazenam os dados pessoais do cliente na UE. Alguns suboperadores podem tratá-los em outros países, conforme mostra a página [Suboperadores](/instant/legal/subprocessors)."
+    },
+    {
+      "type": "p",
+      "text": "Só transferimos dados pessoais para fora do EEE, do Reino Unido ou da Suíça quando a legislação de proteção de dados o permitir. Por exemplo, nós os transferimos para um país que a UE reconheceu como tendo proteção adequada de dados, para uma empresa dos EUA certificada no EU-US Data Privacy Framework ou com base em Cláusulas Contratuais-Padrão."
+    },
+    {
+      "type": "h3",
+      "id": "sccs",
+      "text": "Cláusulas Contratuais-Padrão"
+    },
+    {
+      "type": "p",
+      "text": "Quando uma transferência entre você e nós as exigir, as Cláusulas Contratuais-Padrão aprovadas pela Comissão Europeia (Decisão (UE) 2021/914, as “CCP”) fazem parte deste DPA. Qual parte das CCP (um “módulo”) se aplica depende de onde cada um de nós está estabelecido:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Módulo Dois (de controlador para operador), quando você é o controlador e nos envia dados fora do EEE.",
+        "Módulo Três (de operador para operador), quando você é operador para seus próprios clientes e nos envia dados fora do EEE.",
+        "Módulo Quatro (de operador para controlador), quando estamos no EEE e devolvemos dados a você fora dele."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Para as CCP, fazemos as seguintes escolhas:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Cláusula 7: aplica-se a cláusula de adesão opcional.",
+        "Cláusula 9: aplica-se a Opção 2 (autorização geral para suboperadores), com aviso conforme estabelecido em [Suboperadores](#sub-processors).",
+        "Cláusula 11: a redação opcional não se aplica.",
+        "Cláusula 13: a autoridade de controle é a responsável por você como exportador de dados.",
+        "Anexos: [Nossos papéis](#roles) e [Detalhes do tratamento](#details) preenchem o Anexo I, o [anexo de segurança](#security-measures) preenche o Anexo II e a página Suboperadores preenche o Anexo III."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Nos termos das Cláusulas 17 e 18, as CCP seguem a lei do Estado-Membro da UE em que você está estabelecido, e as disputas vão aos tribunais desse Estado. Se você não estiver estabelecido na UE, elas seguem a lei e os tribunais de {company.law}, desde que se trate de um Estado-Membro da UE.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "uk-switzerland",
+      "text": "Reino Unido e Suíça"
+    },
+    {
+      "type": "p",
+      "text": "Para transferências a partir do Reino Unido, aplica-se o Adendo Internacional de Transferência de Dados às CCP emitido pelo Comissário de Informação do Reino Unido (o “Adendo do Reino Unido”), preenchido com os detalhes deste DPA."
+    },
+    {
+      "type": "p",
+      "text": "Para transferências a partir da Suíça, as CCP se aplicam com as seguintes alterações: o Comissário Federal Suíço de Proteção de Dados e Informação é a autoridade de controle para transferências nos termos da FADP; as referências ao RGPD também significam a FADP; e “Estado-Membro” inclui a Suíça, para que as pessoas de lá possam apresentar reivindicações no lugar onde moram."
+    },
+    {
+      "type": "h3",
+      "id": "onward",
+      "text": "Transferências por suboperadores"
+    },
+    {
+      "type": "p",
+      "text": "Quando um suboperador transferir dados pessoais do cliente para fora do EEE, do Reino Unido ou da Suíça, garantimos que uma base válida a cubra, como o Data Privacy Framework ou as CCP em nosso contrato com esse suboperador."
+    },
+    {
+      "type": "h2",
+      "id": "us-state-law",
+      "text": "Leis estaduais de privacidade dos EUA",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Quando você for uma “business” nos termos da California Consumer Privacy Act, ou um controlador nos termos de outra lei estadual de privacidade dos EUA, nós somos seu “service provider”, “contractor” ou “processor” em relação aos dados pessoais do cliente. Nós:",
+      "only": "us"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "não vendemos nem compartilhamos dados pessoais do cliente, no sentido que essas leis dão a esses termos;",
+        "os tratamos somente para as finalidades comerciais estabelecidas no contrato principal e neste DPA, e para nenhuma outra finalidade comercial;",
+        "não os mantemos, usamos nem divulgamos fora da nossa relação comercial direta com você;",
+        "não os combinamos com dados pessoais que recebemos de terceiros ou que coletamos nós mesmos, exceto conforme essas leis permitirem;",
+        "cumprimos essas leis e oferecemos o mesmo nível de proteção da privacidade que elas exigem;",
+        "informamos você se concluirmos que não podemos mais cumprir essas obrigações."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Você pode adotar medidas razoáveis e adequadas para garantir que usemos os dados pessoais do cliente de acordo com essas leis e para interromper e corrigir qualquer uso não permitido. Compreendemos essas restrições e as cumpriremos.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Responsabilidade"
+    },
+    {
+      "type": "p",
+      "text": "A responsabilidade de cada parte nos termos deste DPA segue os limites do contrato principal, na medida em que a legislação de proteção de dados o permitir. Esses limites não reduzem os direitos que as pessoas têm diretamente pela legislação de proteção de dados."
+    },
+    {
+      "type": "h2",
+      "id": "term",
+      "text": "Duração e atualizações"
+    },
+    {
+      "type": "p",
+      "text": "Este DPA vigora enquanto tratarmos dados pessoais do cliente para você, mesmo após o término do contrato principal."
+    },
+    {
+      "type": "p",
+      "text": "Podemos atualizar este DPA para refletir mudanças na lei, em nossos suboperadores ou em nossos serviços. Sem sua concordância, não o alteraremos de forma que reduza a proteção dos dados pessoais do cliente, a menos que a lei exija a alteração."
+    },
+    {
+      "type": "h2",
+      "id": "security-measures",
+      "text": "Anexo: medidas de segurança"
+    },
+    {
+      "type": "p",
+      "text": "Estas são as principais medidas técnicas e organizacionais que adotamos hoje. A página [Segurança e Divulgação de Vulnerabilidades](/instant/legal/security) explica como relatar um problema de segurança para {company.securityEmail}."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Área",
+        "O que fazemos"
+      ],
+      "rows": [
+        [
+          "Hospedagem",
+          "Nossos serviços em nuvem e bancos de dados funcionam no Google Cloud na UE (Países Baixos). Os trabalhos Empresariais são hospedados na região do Google Cloud na UE indicada no pedido."
+        ],
+        [
+          "Criptografia",
+          "Os dados são criptografados em trânsito (HTTPS) e em repouso pelo nosso provedor de nuvem."
+        ],
+        [
+          "Acesso às contas",
+          "As pessoas entram no espaço de trabalho Orqanix por meio do nosso provedor de login, Clerk, com uma verificação anti-bot no cadastro. A API só pode ser acessada com uma chave de acesso secreta emitida por nós."
+        ],
+        [
+          "Chaves e segredos armazenados",
+          "As chaves de aplicativo para automações são armazenadas apenas como hashes, não em formato legível. Os segredos que nossos serviços usam são mantidos no Google Cloud Secret Manager, e não em nosso código."
+        ],
+        [
+          "Arquivos armazenados",
+          "Os arquivos produzidos pelo espaço de trabalho na nuvem são mantidos em um bucket privado do Google Cloud Storage na UE."
+        ],
+        [
+          "Acesso da equipe",
+          "Somente as pessoas que precisam de acesso para seu trabalho o têm, e estão obrigadas a manter sigilo."
+        ],
+        [
+          "Registros das ações dos agentes",
+          "O que os agentes fizeram, o que foi aprovado e os arquivos que criaram são registrados em um registro que não pode ser alterado posteriormente. Os clientes Empresariais definem aprovações (Allow Once, Always Allow, Deny) e o acesso baseado em funções."
+        ],
+        [
+          "Registros de solicitações",
+          "Os registros (logs) de solicitações contêm endereço IP, navegador, horário, o endereço solicitado e o resultado. Não registramos o conteúdo de prompts ou mensagens."
+        ],
+        [
+          "Cópias de segurança",
+          "O banco de dados do espaço de trabalho na nuvem tem cópias de segurança (backups) automáticas diárias, recuperação para um ponto no tempo e proteção contra exclusão acidental."
+        ],
+        [
+          "Modelos",
+          "Não treinamos nossos próprios modelos de IA com dados de clientes."
+        ],
+        [
+          "Incidentes",
+          "Informamos os clientes afetados sobre violações de dados pessoais sem demora injustificada, conforme estabelecido em [Violações de dados](#breaches)."
+        ]
+      ]
+    }
+  ]
+}

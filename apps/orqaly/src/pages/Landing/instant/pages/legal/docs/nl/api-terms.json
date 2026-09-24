@@ -1,0 +1,420 @@
+{
+  "meta": {
+    "slug": "api-terms",
+    "title": "API-voorwaarden",
+    "summary": "De aanvullende regels voor bedrijven die de Orqanix API in hun eigen producten of systemen inbouwen.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Eerste versie."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1 and 11).",
+        "Roles: we say we are the customer's processor for personal data they send, and act for ourselves (controller) for our own web searches and OpenRegister lookups. A lawyer must confirm this split (FACTS open point 11).",
+        "Access keys: the code uses one shared machine key, not one key per customer. The text only says 'the key we give you'. Per-customer keys are needed before a second customer gets access, or the confidentiality and 'you are responsible for use of the key' clauses do not work.",
+        "Google Gemini: until the paid Gemini tier and Google's data processing terms are in place (geminiPaidTier), Google may use API content under its free-tier terms, which conflicts with our processor role and must not be offered to EEA/UK/CH customers (FACTS open point 3).",
+        "Data Act export: there is no export code. A manual process that produces the customer's data in a machine-readable format within the 30-day transition is needed before the first EU customer.",
+        "Retention period for API records (decisions, outcomes, scope records) is unknown; the text says 'while you use the API and then as the DPA sets out' (FACTS open point 5).",
+        "US liability cap is 'what you paid in the 12 months before the claim', which is zero while the API is free. Owner and lawyer should decide whether to add a fixed minimum amount.",
+        "Data Act Art. 31 (lighter rules for trial versions and custom services) may apply while the API is free and early; lawyer to decide. The government-access promise (Data Act Art. 32) is a commitment the owner must be able to keep.",
+        "Notice of changes to these terms is 'in advance' without a fixed period; owner to set one if wanted.",
+        "Mailboxes: hello@, privacy@ and security@ need MX records before anyone can reach us (FACTS open point 2).",
+        "Fact check 2026-09-21: added Google Search grounding (FACTS §7/§12), the Gemini paid-tier processor sentence under needs geminiPaidTier, and the under-18 flow-down required by the Gemini API terms (us.md row 12). 'The key stops working' changed to 'we end your access', because one shared key cannot be switched off for one customer.",
+        "US liability cap now reads 'the greater of US$100 and the amounts paid in 12 months' so the cap is not zero while the API is free (us.md row 27). Owner and lawyer to confirm the amount; the US warranty disclaimer is shown as a highlighted note for conspicuousness, lawyer to confirm this is enough (capitals are the usual form).",
+        "Data Act switching: added the 30-day data-retrieval period after the transition (Data Act Art. 25(2)). Still missing: the pre-contract information on switching and the register of data formats (Data Act Art. 26); owner to publish before the first EU customer.",
+        "Research tools not in FACTS: the API code also contains other research services (for example a Eurostat trade-data service). If any of them receive task data in production, they must be added to the Sub-processors page and here; owner to confirm.",
+        "Contracting party for the API (the API runs in a separate Google Cloud project) must be the same entity as for the rest of Orqanix, or these terms need their own party block (FACTS open point 11)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Over deze voorwaarden"
+    },
+    {
+      "type": "p",
+      "text": "Deze API-voorwaarden zijn van toepassing wanneer een bedrijf de Orqanix API gebruikt. Ze vormen een aanvulling op onze [Servicevoorwaarden](/instant/legal/terms) en ons [Beleid voor aanvaardbaar gebruik](/instant/legal/acceptable-use). Voor persoonsgegevens is ook de [Verwerkersovereenkomst](/instant/legal/dpa) (de “verwerkersovereenkomst”) van toepassing; deze maakt deel uit van deze voorwaarden. Waar deze voorwaarden en de Servicevoorwaarden over de API met elkaar in strijd zijn, gaan deze voorwaarden voor. Een afzonderlijke schriftelijke overeenkomst die wij allebei hebben ondertekend, gaat voor beide."
+    },
+    {
+      "type": "p",
+      "text": "“U” betekent het bedrijf dat de API gebruikt. De persoon die deze voorwaarden aanvaardt, bevestigt dat hij of zij dat bedrijf mag binden. “Wij” en “ons” betekenen Orqanix."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix wordt geëxploiteerd door {company.legalName}, {company.address}, die partij is bij deze voorwaarden.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "who-may-use",
+      "text": "Wie de API mag gebruiken"
+    },
+    {
+      "type": "p",
+      "text": "De API is uitsluitend bedoeld voor bedrijven. Gebruik haar niet als consument, dat wil zeggen voor doeleinden buiten uw handel, bedrijf of beroep. Iedereen die haar namens u gebruikt, moet 18 jaar of ouder zijn."
+    },
+    {
+      "type": "p",
+      "text": "Zolang de API zich in een vroeg stadium bevindt, is toegang alleen op aanvraag mogelijk. Schrijf naar {company.email} met als onderwerp “API-toegang” en vertel ons over uw bedrijf en wat u wilt bouwen. Wij beslissen wie toegang krijgt, en wij kunnen nee zeggen of voorwaarden stellen."
+    },
+    {
+      "type": "p",
+      "text": "De API is gratis zolang zij zich in een vroeg stadium bevindt. Voordat een betaald abonnement ingaat, spreken wij de prijs en de betalingsvoorwaarden schriftelijk met u af. Zonder die afspraak brengen wij niets in rekening."
+    },
+    {
+      "type": "h2",
+      "id": "what-it-does",
+      "text": "Wat de API doet"
+    },
+    {
+      "type": "p",
+      "text": "De API is een redeneerlaag voor uw eigen product. U stuurt haar een taak, samen met de agents, hulpmiddelen en het budget die u hebt. Zij antwoordt met wie het werk moet doen (een agent, een team of een persoon), een score voor elke factor die zij heeft meegewogen, context, vangrails, terugvalopties en, voor grotere klussen, een teamplan."
+    },
+    {
+      "type": "p",
+      "text": "De API beslist alleen; zij voert het werk niet uit. Uw systeem bepaalt of en hoe het op elk antwoord handelt, en u bent verantwoordelijk voor wat uw systeem vervolgens doet."
+    },
+    {
+      "type": "p",
+      "text": "Bij langlopende taken kunt u het resultaat later ophalen of het ontvangen via een ondertekende webhook. Klanten met toegang krijgen de technische documentatie van de API."
+    },
+    {
+      "type": "p",
+      "text": "Antwoorden worden met AI gemaakt. Ze kunnen onjuist, onvolledig of verouderd zijn. Controleer ze voordat u erop vertrouwt, vooral waar een fout iemand schade kan berokkenen. [Hoe onze AI werkt](/instant/legal/ai) legt meer uit."
+    },
+    {
+      "type": "h2",
+      "id": "keys",
+      "text": "Toegangssleutels"
+    },
+    {
+      "type": "p",
+      "text": "U krijgt toegang tot de API met een geheime sleutel die wij u geven. Behandel die als een wachtwoord:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Houd hem geheim en bewaar hem alleen op uw eigen servers. Zet hem nooit in een app, een webpagina of code die anderen kunnen zien.",
+        "Deel hem alleen met de mensen en systemen die hem nodig hebben voor uw integratie.",
+        "Meld het ons onmiddellijk via {company.securityEmail} als u denkt dat hij is uitgelekt of zonder uw toestemming is gebruikt."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "U bent verantwoordelijk voor alle gebruik van de sleutel die wij u geven, totdat u ons laat weten dat hij mogelijk is gecompromitteerd. Wij mogen een sleutel op elk moment wijzigen, beperken of intrekken, bijvoorbeeld als wij misbruik of een beveiligingsrisico zien. Waar mogelijk laten wij u dat weten."
+    },
+    {
+      "type": "h2",
+      "id": "your-users",
+      "text": "Uw product en gebruikers"
+    },
+    {
+      "type": "p",
+      "text": "Wanneer u de API in uw eigen product inbouwt, blijft dat product van u. U bent verantwoordelijk voor het product en voor hoe het omgaat met de mensen die het gebruiken (uw “eindgebruikers”). U moet:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Uw eindgebruikers laten weten wanneer zij met AI te maken hebben, tenzij dat uit de context duidelijk is (EU-AI-verordening art. 50, lid 1; sommige wetten van Amerikaanse staten).",
+        "De API niet gebruiken in producten die gericht zijn op, of waarschijnlijk worden gebruikt door, personen onder de 18 jaar.",
+        "Uw eindgebruikers uw eigen privacyverklaring geven. Die moet uitleggen hoe uw product hun gegevens gebruikt, inclusief dat u die naar ons stuurt. Ons [Privacybeleid](/instant/legal/privacy) geldt niet voor uw product.",
+        "Een rechtsgrondslag hebben, en alle toestemming die u nodig hebt, voordat u ons persoonsgegevens van wie dan ook stuurt.",
+        "Uw eindgebruikers regels laten naleven die minstens zo streng zijn als ons [Beleid voor aanvaardbaar gebruik](/instant/legal/acceptable-use), en iedereen tegenhouden die ze overtreedt.",
+        "Uw product presenteren als uw eigen product, niet als gemaakt of aanbevolen door Orqanix, tenzij wij schriftelijk anders overeenkomen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Onder de EU-AI-verordening bent u de aanbieder of de gebruiksverantwoordelijke van het AI-systeem dat u met de API bouwt, en draagt u de verplichtingen van die rol. Wij leveren één onderdeel van uw systeem; wij zijn niet de aanbieder ervan."
+    },
+    {
+      "type": "h2",
+      "id": "high-risk",
+      "text": "Gebruik met een hoog risico"
+    },
+    {
+      "type": "p",
+      "text": "Sommige beslissingen hebben rechtsgevolgen of vergelijkbaar ernstige gevolgen voor mensen, zoals beslissingen over werving en werk, onderwijs, krediet, verzekeringen, huisvesting, gezondheidszorg, toegang tot overheidsdiensten, rechtshandhaving, migratie en rechtspraak. Gebruik antwoorden van de API niet om zulke beslissingen te nemen of te ondersteunen voordat u uw eigen juridische toetsing hebt uitgevoerd en de waarborgen hebt getroffen die de wet vereist. Tot die waarborgen behoort een echte menselijke beoordeling voordat een beslissing van kracht wordt."
+    },
+    {
+      "type": "p",
+      "text": "Deze verplichtingen zijn de uwe onder de wetten die op u van toepassing zijn. Daartoe behoren de regels van de EU-AI-verordening voor AI-systemen met een hoog risico, die gelden vanaf 2 december 2027 (AI-verordening bijlage III), en de regels van de AVG over geautomatiseerde besluitvorming (AVG art. 22)."
+    },
+    {
+      "type": "p",
+      "text": "Daartoe behoren ook wetten van Amerikaanse staten over geautomatiseerde beslissingen. De wet van Colorado over AI die wordt gebruikt bij ingrijpende beslissingen treedt bijvoorbeeld in werking op 1 januari 2027.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "your-data",
+      "text": "Uw gegevens"
+    },
+    {
+      "type": "p",
+      "text": "Uw gegevens zijn wat u naar de API stuurt (taken, beschrijvingen van uw agents en hulpmiddelen, budgetten en context) en de antwoorden die zij u geeft. Wij slaan de beslissingen, de uitkomsten daarvan en registraties van de reikwijdte van elke taak op in de eigen database van de API, die draait op Google Cloud in de EU (Nederland). Wij bewaren ze zolang u de API gebruikt, en daarna zoals de verwerkersovereenkomst bepaalt."
+    },
+    {
+      "type": "p",
+      "text": "Om een taak te beantwoorden, sturen wij haar naar Google Gemini, het AI-model dat wij gebruiken. Gemini kan ook met Google Search op het web zoeken. Google kan de taak buiten de EU verwerken. De pagina [Subverwerkers](/instant/legal/subprocessors) vermeldt iedereen die ons helpt de API te laten draaien."
+    },
+    {
+      "type": "p",
+      "text": "Wij gebruiken de betaalde Gemini API van Google. Daarbij treedt Google op als onze verwerker onder zijn voorwaarden voor gegevensverwerking en gebruikt het uw taken niet om zijn producten te verbeteren.",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "for-you",
+      "text": "Wanneer wij voor u handelen"
+    },
+    {
+      "type": "p",
+      "text": "Voor persoonsgegevens die u ons stuurt, zijn wij uw verwerker. Dat betekent dat wij ze uitsluitend volgens uw instructies verwerken en alleen om de API voor u te laten draaien, onder de verwerkersovereenkomst."
+    },
+    {
+      "type": "h3",
+      "id": "for-ourselves",
+      "text": "Wanneer wij voor onszelf handelen"
+    },
+    {
+      "type": "p",
+      "text": "Een deel van het werk van de API is ons eigen werk, niet het uwe. Om voor een taak op het web te zoeken, stuurt onze eigen zoekdienst zoekopdrachten die op basis van uw taak zijn opgesteld naar zoekmachines (Google, Bing, Brave en DuckDuckGo). Om een bedrijf op te zoeken, raadpleegt de API de handelsregisterdienst OpenRegister, waarvan de resultaten namen van bestuurders kunnen bevatten. Wij bepalen hoe deze zoekopdrachten en raadplegingen werken. Daarvoor handelen wij voor onszelf (als “verwerkingsverantwoordelijke”), en is ons [Privacybeleid](/instant/legal/privacy) van toepassing, niet de verwerkersovereenkomst."
+    },
+    {
+      "type": "p",
+      "text": "Omdat delen van een taak in zoekopdrachten terecht kunnen komen, laat u persoonsgegevens weg uit de tekst van een taak, tenzij de taak ze nodig heeft."
+    },
+    {
+      "type": "h3",
+      "id": "what-we-dont-do",
+      "text": "Wat wij niet doen"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Wij trainen onze eigen AI-modellen niet met uw gegevens.",
+        "Wij verkopen uw gegevens niet, en wij gebruiken ze niet voor reclame."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "what-not-to-send",
+      "text": "Wat u niet moet sturen"
+    },
+    {
+      "type": "p",
+      "text": "Stuur ons geen bijzondere categorieën van persoonsgegevens (zoals gegevens over gezondheid, religie, seksuele gerichtheid of biometrische gegevens) of gegevens over strafrechtelijke veroordelingen, tenzij wij daar schriftelijk mee hebben ingestemd."
+    },
+    {
+      "type": "p",
+      "text": "Stuur ons geen beschermde gezondheidsinformatie die onder HIPAA valt. Wij sluiten geen business associate agreements.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "rights",
+      "text": "Wie wat bezit"
+    },
+    {
+      "type": "p",
+      "text": "U behoudt alle rechten op wat u ons stuurt. Tussen ons beiden zijn de antwoorden die de API u geeft van u, voor zover daarop rechten bestaan. U geeft ons de rechten die wij nodig hebben om uw invoer te gebruiken om de API voor u te laten draaien. Wij behouden alle rechten op de API, onze software, onze instructies en onze methoden. Als u ons ideeën of feedback stuurt, mogen wij die vrij gebruiken."
+    },
+    {
+      "type": "h2",
+      "id": "limits",
+      "text": "Limieten en beperkingen"
+    },
+    {
+      "type": "p",
+      "text": "Wij mogen limieten instellen en wijzigen voor het aantal, de omvang en het totale volume van uw verzoeken. Wij mogen verzoeken boven die limieten vertragen of weigeren. Probeer een limiet niet te omzeilen, bijvoorbeeld door meerdere sleutels of accounts te gebruiken."
+    },
+    {
+      "type": "p",
+      "text": "Het is u niet toegestaan om:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "de API te kopiëren, te ontleden of te reverse-engineeren, behalve voor zover de wet dat toestaat;",
+        "de API te gebruiken om een concurrerende redeneerdienst te bouwen;",
+        "de beveiliging van de API te testen zonder onze toestemming (onze pagina [Beveiliging en melding van kwetsbaarheden](/instant/legal/security) legt uit hoe u een probleem meldt);",
+        "malware te sturen, of verkeer dat bedoeld is om de API te overbelasten of te schaden."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "no-service-levels",
+      "text": "Beschikbaarheid en wijzigingen"
+    },
+    {
+      "type": "p",
+      "text": "Er is geen service level agreement voor de API. Wij beloven geen enkel niveau van beschikbaarheid, uptime of antwoordsnelheid. De API kan worden onderbroken voor onderhoud, voor wijzigingen of om redenen buiten onze controle. Bouw uw product zo dat het veilig blijft werken wanneer de API traag of niet beschikbaar is, bijvoorbeeld met uw eigen terugvaloptie."
+    },
+    {
+      "type": "p",
+      "text": "De API zal veranderen naarmate wij haar verder bouwen. Wij streven ernaar u vooraf te informeren over wijzigingen die een werkende integratie zouden breken. Dat kunnen wij niet altijd, bijvoorbeeld wanneer wij een beveiligingsprobleem snel moeten verhelpen."
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "Vertrouwelijkheid"
+    },
+    {
+      "type": "p",
+      "text": "Ieder van ons kan vertrouwelijke informatie van de ander te zien krijgen: niet-openbare informatie die als vertrouwelijk is gemarkeerd of die redelijkerwijs als zodanig moet worden begrepen. Voor u omvat dit uw invoer. Voor ons omvat dit de documentatie en de sleutels van de API."
+    },
+    {
+      "type": "p",
+      "text": "De partij die deze informatie ontvangt, gebruikt haar uitsluitend voor deze voorwaarden, beschermt haar met redelijke zorg en deelt haar alleen met personen die haar nodig hebben en tot geheimhouding zijn verplicht. Deze verplichting geldt niet voor informatie die openbaar is, die de ontvanger al kende, die de ontvanger zelfstandig heeft ontwikkeld of die de ontvanger rechtmatig van een ander heeft verkregen. Als de wet openbaarmaking vereist, mag de ontvanger openbaar maken wat vereist is en licht hij, voor zover toegestaan, de andere partij eerst in."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Opschorting en beëindiging"
+    },
+    {
+      "type": "p",
+      "text": "U mag op elk moment stoppen met het gebruik van de API. Zolang de API gratis is, mag ieder van ons deze voorwaarden op elk moment per e-mail beëindigen."
+    },
+    {
+      "type": "p",
+      "text": "Wij mogen uw toegang met onmiddellijke ingang opschorten of beëindigen als u deze voorwaarden of het Beleid voor aanvaardbaar gebruik overtreedt, als uw gebruik de API, andere klanten of wie dan ook in gevaar brengt, of als de wet dat vereist. Waar mogelijk laten wij het u eerst weten en geven wij u de kans om het probleem op te lossen."
+    },
+    {
+      "type": "p",
+      "text": "Wanneer deze voorwaarden eindigen, eindigt uw recht om de API te gebruiken en beëindigen wij uw toegang. Daarna gaan wij met uw gegevens om zoals de verwerkersovereenkomst bepaalt. Delen van deze voorwaarden die naar hun aard moeten blijven gelden, zoals vertrouwelijkheid, aansprakelijkheid en het toepasselijke recht, blijven van toepassing."
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "Overstappen naar een andere aanbieder",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "De EU-Dataverordening stelt zakelijke klanten van cloud- en andere gegevensverwerkingsdiensten in staat om zonder lock-in over te stappen naar een andere aanbieder of naar hun eigen systemen (Dataverordening art. 23-31). Voor de API geldt:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "U kunt een overstap starten, of de API beëindigen en uw gegevens meenemen, door ons dat schriftelijk te laten weten. De opzegtermijn is ten hoogste twee maanden, en u kunt voor een kortere termijn kiezen.",
+        "Wij geven u uw gegevens, dat wil zeggen uw invoer en de beslissingen, uitkomsten en reikwijdteregistraties die wij voor u opslaan, in een gangbaar machineleesbaar formaat.",
+        "De overgangsperiode duurt maximaal 30 dagen. Als dat technisch niet haalbaar is, laten wij u weten waarom en hoeveel tijd wij nodig hebben, binnen de grenzen die de Dataverordening toestaat.",
+        "Tijdens de overgangsperiode houden wij de API zoals afgesproken voor u draaiende en helpen wij u te goeder trouw.",
+        "Na afloop van de overgangsperiode hebt u nog ten minste 30 dagen om uw gegevens op te halen.",
+        "Zodra de overstap is voltooid, verwijderen wij uw gegevens zoals de verwerkersovereenkomst bepaalt.",
+        "Tot 12 januari 2027 mogen wij alleen onze directe kosten van een overstap in rekening brengen. Vanaf 12 januari 2027 brengen wij voor een overstap niets in rekening. Zolang de API gratis is, brengen wij helemaal niets in rekening."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "Locatie en toegang door overheden",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "De API en haar database draaien op Google Cloud in de EU (Nederland). Google Gemini kan taken buiten de EU verwerken, en de zoekmachines en OpenRegister verwerken zoekopdrachten op de plaats die zij kiezen. De pagina [Subverwerkers](/instant/legal/subprocessors) vermeldt elke aanbieder en waar deze werkt (Dataverordening art. 28).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Als een overheid buiten de EU ons om uw niet-persoonsgebonden gegevens vraagt, verstrekken wij die alleen voor zover het recht van de EU of van een lidstaat dat toestaat. Wij laten het u eerst weten, tenzij de wet dat verbiedt (Dataverordening art. 32).",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Garanties en aansprakelijkheid",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "De API wordt geleverd “in de huidige staat” en “voor zover beschikbaar”. Voor zover de wet dat toestaat, geven wij geen enkele garantie, uitdrukkelijk of stilzwijgend, waaronder garanties van verkoopbaarheid, geschiktheid voor een bepaald doel, eigendom en niet-inbreuk. Wij garanderen niet dat antwoorden juist, volledig of geschikt voor uw gebruik zijn.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Voor zover de wet dat toestaat, is geen van ons aansprakelijk voor indirecte, incidentele, bijzondere of gevolgschade of voor punitieve schadevergoeding, of voor gederfde winst, omzet, gegevens of goodwill. Onze totale aansprakelijkheid onder deze voorwaarden is beperkt tot het hoogste van US$100 en de bedragen die u ons voor de API hebt betaald in de 12 maanden vóór de gebeurtenis die tot de vordering heeft geleid. Deze beperkingen gelden niet voor aansprakelijkheid die volgens de wet niet mag worden beperkt.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Aansprakelijkheid",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wij zijn volledig aansprakelijk voor schade die wij opzettelijk of door grove nalatigheid veroorzaken, voor letsel aan leven, lichaam of gezondheid, en op grond van dwingend recht inzake productaansprakelijkheid.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Bij lichte nalatigheid zijn wij alleen aansprakelijk wanneer wij een wezenlijke verplichting schenden: een verplichting die de behoorlijke uitvoering van deze voorwaarden mogelijk maakt en op de nakoming waarvan u regelmatig mag vertrouwen. Zelfs dan zijn wij alleen aansprakelijk voor schade die typisch en voorzienbaar is voor dit soort overeenkomsten. Voor het overige is onze aansprakelijkheid voor lichte nalatigheid uitgesloten.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "U vrijwaart ons tegen vorderingen van anderen, waaronder uw eindgebruikers, die voortvloeien uit uw product, uit de gegevens die u ons stuurt of uit uw schending van deze voorwaarden, en tegen de redelijke kosten van de afhandeling daarvan. Wij informeren u zonder vertraging over zo’n vordering en laten u meewerken aan de afhandeling ervan."
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "Recht en geschillen"
+    },
+    {
+      "type": "p",
+      "text": "Op deze voorwaarden is het recht van {company.law} van toepassing, met uitsluiting van de regels van dat recht over conflictenrecht. De rechter van {company.law} beslecht geschillen, tenzij de wet een andere rechter voorschrijft.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Voordat een van ons naar de rechter stapt, proberen wij de kwestie te goeder trouw op te lossen. Schrijf naar {company.email} en beschrijf het probleem."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Deze voorwaarden bevatten geen arbitrageclausule. Ieder van ons mag een vordering instellen bij een small-claims court als de vordering daarvoor in aanmerking komt."
+    },
+    {
+      "type": "p",
+      "text": "U bevestigt dat u niet op een sanctielijst van de VS of de EU staat en niet bent gevestigd in een land waartegen de VS of de EU een embargo hebben ingesteld, en dat hetzelfde, voor zover u weet, geldt voor uw eindgebruikers. U mag de API niet gebruiken in strijd met sanctie- of exportregels van de VS of de EU."
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Algemeen"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Wij kunnen deze voorwaarden bijwerken. Over wijzigingen die niet in uw voordeel zijn, informeren wij u vooraf. Als u de API blijft gebruiken nadat een wijziging van kracht is geworden, gelden de nieuwe voorwaarden. Als u er niet mee instemt, stop dan met het gebruik ervan.",
+        "U mag deze voorwaarden niet overdragen zonder onze schriftelijke toestemming. Wij mogen ze overdragen aan een onderneming die de API overneemt.",
+        "Als een deel van deze voorwaarden ongeldig is, blijft de rest van toepassing.",
+        "Kennisgevingen aan ons gaan naar {company.email}. Kennisgevingen aan u gaan naar het e-mailadres dat u ons hebt gegeven."
+      ]
+    }
+  ]
+}

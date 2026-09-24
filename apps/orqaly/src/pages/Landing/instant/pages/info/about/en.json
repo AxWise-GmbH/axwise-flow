@@ -1,0 +1,138 @@
+{
+  "chapters": {
+    "story": "Story",
+    "goal": "Goal",
+    "mission": "Mission",
+    "founders": "Founders"
+  },
+  "story": {
+    "tag": "Our story",
+    "title": "Two paths that met.",
+    "lede": "Two product managers, two products, one idea. This is how Orqanix came to be.",
+    "steps": [
+      {
+        "when": "Nov 2024",
+        "who": "Vitaly · AxWise",
+        "title": "The thinking layer",
+        "text": "Vitaly began mapping the new AI industry that was building itself: its models, its providers and its services. His idea was a cognitive layer, an AI that thinks a problem through before it answers, so the finished result arrives ready to use."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "From 40 minutes to seconds",
+        "text": "The first runs took 30 to 40 minutes. Then the models improved, and the layer improved with them. Each round came back faster and sharper, until the same work took seconds."
+      },
+      {
+        "when": "Feb 2026",
+        "who": "Viktor · Orqaly",
+        "title": "One person, a whole team's work",
+        "text": "Viktor had followed AI for years. When a new frontier model arrived, he saw he could build a real product alone, with no front-end, back-end, DevOps or design team. So he started a platform where AI agents share the work, with no hand-offs to slow it down."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "The missing piece",
+        "text": "Many experiments failed, and every one taught something. At last the platform worked, but one piece was still missing: agents reliable enough to be its final layer."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "The call",
+        "text": "Then Viktor called Vitaly, a friend from college. During that call they found they were building the same thing from opposite ends: the thinking layer, and the orchestration around it."
+      },
+      {
+        "when": "Sep 2026",
+        "who": "AxWise + Orqaly",
+        "title": "One product",
+        "text": "Months of joining one product into the other, with research and benchmarks along the way, became one platform: Orqanix. It helps people plan a business, research simple or deep questions, and build real things faster."
+      }
+    ],
+    "close": "Research, plan and build. In minutes."
+  },
+  "goal": {
+    "tag": "Our goal",
+    "title": "Your AI. Your machine. Your choice.",
+    "lede": "AI should run where you want it, on the models you pick, and your knowledge should stay yours when you switch.",
+    "core": "Your knowledge",
+    "orbit": [
+      "Local model",
+      "Cloud model",
+      "Your agent"
+    ],
+    "caption": "Models change. Your knowledge stays.",
+    "points": [
+      {
+        "title": "Run models locally",
+        "text": "Run local language models, or other kinds of AI, right on your own computer."
+      },
+      {
+        "title": "Use any provider",
+        "text": "Pick any service that works with AI. No lock-in to one cloud or one vendor."
+      },
+      {
+        "title": "Bring or build agents",
+        "text": "Import the agent you already use, or create your own for the job."
+      },
+      {
+        "title": "One knowledge base",
+        "text": "Keep everything in one place, so nothing is lost when you move to another model."
+      }
+    ],
+    "close": "Choose what fits today's task and your hardware. That is the freedom of running AI your way."
+  },
+  "mission": {
+    "tag": "Our mission",
+    "statement": [
+      "An AI space that grows with you.",
+      "Built around who you are and what you want to make."
+    ],
+    "stages": [
+      {
+        "title": "Learns you",
+        "text": "It reads what you tell it, your files and your business, and understands what you need."
+      },
+      {
+        "title": "Shapes your space",
+        "text": "It builds a personal workspace around your goals, not a one-size-fits-all chat."
+      },
+      {
+        "title": "Improves itself",
+        "text": "Like a living thing, it keeps getting better: more reliable, more secure, easier to use."
+      }
+    ],
+    "loopLabel": "The loop",
+    "loop": [
+      "Pay the bills",
+      "Go to work",
+      "Get paid",
+      "Repeat"
+    ],
+    "pathLabel": "Your path",
+    "path": "Think big. Find what you are good at. Build the life you want.",
+    "text": "We want anyone who wants to join the race to have a path of their own, beyond the standard ways of working with AI. A new way to create, to learn and to keep what you know."
+  },
+  "founders": {
+    "tag": "Founders",
+    "title": "The people behind Orqanix.",
+    "people": [
+      {
+        "name": "Vitaly",
+        "role": "Program Manager",
+        "years": "10+ years of experience",
+        "since": "Building AxWise since November 2024",
+        "place": "Berlin",
+        "text": "Leads the cognitive layer: how Orqanix thinks a task through before it answers.",
+        "href": "https://www.linkedin.com/in/vitalijs-visnevskis"
+      },
+      {
+        "name": "Viktor",
+        "role": "Product Manager",
+        "years": "10+ years of experience",
+        "since": "Building Orqaly since February 2026",
+        "place": "",
+        "text": "Leads the orchestration: how AI agents share the work and turn it into real files.",
+        "href": "https://www.linkedin.com/in/viktors-ivanovs"
+      }
+    ]
+  }
+}

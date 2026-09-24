@@ -37,7 +37,11 @@
   position: absolute;
   inset: 12%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(var(--oi-deep-rgb), 0.4), transparent 66%);
+  background: radial-gradient(
+    circle,
+    rgba(var(--oi-deep-rgb), calc(0.4 * var(--oi-halo-k))),
+    transparent 66%
+  );
   filter: blur(60px);
   animation: oip-breathe 12s ease-in-out infinite alternate;
 }

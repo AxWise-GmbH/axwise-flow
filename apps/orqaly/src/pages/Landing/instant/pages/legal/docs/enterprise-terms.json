@@ -1,0 +1,469 @@
+{
+  "meta": {
+    "slug": "enterprise-terms",
+    "title": "Enterprise Terms",
+    "summary": "The terms for businesses that hire Orqanix to build, run or advise on AI with our agents and experts.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "First version."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1).",
+        "Order / statement-of-work template does not exist yet. Every order must set scope, deliverables, timeline, price, acceptance criteria and testing period, hosting region, notice periods for monthly services and any third-party components (FACTS open point 12).",
+        "Third-party software: the automation tool used in builds is not named here because its commercial licence is still open (FACTS open point 12). No order may include it until that licence is settled.",
+        "Hosting region: the text says an EU Google Cloud region agreed per project and named in the order; the unapplied infrastructure template defaults to a different EU region than the site. Confirm per order.",
+        "Ownership: the text transfers rights in deliverables once paid, with an exclusive licence where rights cannot be transferred (for example under German copyright law). Lawyer to confirm under the chosen governing law.",
+        "AI Act roles: the customer is the deployer; it may become the provider if it puts a system into service under its own name. For high-risk uses the order must split duties. Lawyer to confirm (critique point 7).",
+        "Data Act: managed agent operations and hosting are likely data processing services; custom-built services may fall under the lighter rules of Data Act Art. 31. Lawyer to decide per offer; export must be done by hand (no export code).",
+        "Liability cap (fees paid or payable under the order in the 12 months before the event) and the EU liability wording are drafts for lawyer review.",
+        "US: HIPAA stance is 'no protected health information, no business associate agreements'. Owner to confirm, given the healthcare marketing (us.md must-have 7).",
+        "Late-payment interest is left to the law; payment periods are set per invoice or order.",
+        "Mailboxes: hello@ and privacy@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: every service, pricing model, process step, approval setting and hosting statement matches FACTS §8 and the Enterprise page. Role-based access and the agent record are page claims (FACTS §8); each order must confirm they are part of that build.",
+        "Legal review 2026-09-21: fixed an orphan sentence on third-party licences; AI literacy duty reworded to the softened AI Act Art. 4 (effort, not result; verify.md row 5); added the 30-day data-retrieval period (Data Act Art. 25(2)); US courts clause now states no arbitration and a small-claims option (owner decision); US warranty disclaimer shown as a highlighted note for conspicuousness (lawyer to confirm).",
+        "Data Act Art. 26 pre-contract information (switching procedure, data formats) must go into each order for managed services; no template exists yet.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026) covers software; the EU liability clause keeps mandatory product liability, lawyer to confirm the wording for deliverables that are software (verify.md, missed requirement 1).",
+        "FTC Health Breach Notification Rule and US state breach laws: the terms say no HIPAA data, but Enterprise marketing names healthcare; owner to decide whether healthcare builds are offered at all (verify.md, missed requirements 2-3)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "About these terms"
+    },
+    {
+      "type": "p",
+      "text": "These Enterprise Terms apply when your business hires Orqanix to build, run or advise on AI. They cover work such as AI readiness audits, pilots, automated business units, new AI roles, custom connectors, managed agent operations and team training."
+    },
+    {
+      "type": "p",
+      "text": "They add to our [Terms of Service](/instant/legal/terms) and [Acceptable Use Policy](/instant/legal/acceptable-use). When we handle personal data for you, the [Data Processing Addendum](/instant/legal/dpa) (the “DPA”) also applies and forms part of these terms. When the work includes the Orqanix API, for example a white-label reasoning API, the [API Terms](/instant/legal/api-terms) apply to that part too."
+    },
+    {
+      "type": "p",
+      "text": "“You” means the business that hires us. The person who accepts these terms or signs an order confirms that they may bind that business. “We” and “us” mean Orqanix."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix is run by {company.legalName}, {company.address}, which is the party to these terms and to every order.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Enterprise work is for businesses only. Everyone who works with us for you must be 18 or older."
+    },
+    {
+      "type": "h2",
+      "id": "orders",
+      "text": "Orders"
+    },
+    {
+      "type": "p",
+      "text": "We agree each piece of work in a written order or statement of work (an “order”) before the work starts. Each order describes:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "the scope: what we will do, and what is not included;",
+        "the deliverables: what you will receive;",
+        "the timeline and any milestones;",
+        "the price and how we charge: a fixed price per project, a monthly fee, a fee per result, or a mix;",
+        "the acceptance criteria and how long you have to test;",
+        "where the work is hosted, including which EU Google Cloud region;",
+        "any third-party software or services the work relies on, and their terms."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "An order binds us both once we have both signed it or confirmed it in writing. Email is enough. Several orders may run at the same time, and each one stands on its own."
+    },
+    {
+      "type": "p",
+      "text": "Our work usually runs from discovery and a written plan (the “blueprint”) through building with your data and launch, to running and improving. The order says which steps it covers."
+    },
+    {
+      "type": "p",
+      "text": "If documents disagree, they rank in this order: the order for the work, then the DPA for personal data, then these terms, then the Terms of Service."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-work",
+      "text": "How we work"
+    },
+    {
+      "type": "p",
+      "text": "We do the work with our AI agents, our specialists (engineers and consultants), or both, as the order says. We may use subcontractors. We stay responsible for their work and bind them to the same confidentiality and data protection duties we have."
+    },
+    {
+      "type": "p",
+      "text": "The agents we build and run for you work inside rules you set: approvals for each action (Allow Once, Always Allow or Deny), role-based access, and a record of what each agent did. We agree these settings with you in the order or before launch."
+    },
+    {
+      "type": "h2",
+      "id": "cooperation",
+      "text": "Your cooperation"
+    },
+    {
+      "type": "p",
+      "text": "You will:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "give us, in time, the access to people, systems, data and decisions that the work needs;",
+        "make sure you have the right to give us that data and access, including personal data and the licences for your own systems and tools;",
+        "name a contact person who can make decisions;",
+        "review plans and deliverables promptly;",
+        "keep your own backups of the systems and data we work on;",
+        "tell us about rules that affect the work, such as rules for your industry."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "If you are late, or something you gave us is wrong, and that delays us, the timeline moves by the same amount. Any extra effort this causes is handled as a [change](#changes)."
+    },
+    {
+      "type": "h2",
+      "id": "acceptance",
+      "text": "Acceptance"
+    },
+    {
+      "type": "p",
+      "text": "Where an order sets acceptance criteria, we tell you when a deliverable is ready. You test it against those criteria within the period the order sets. If it meets them, you accept it. If it doesn't, you tell us in writing what falls short, and we fix it and offer it again."
+    },
+    {
+      "type": "p",
+      "text": "A deliverable counts as accepted when you confirm it, when the testing period ends without a written rejection that gives reasons, or when you start using it in your live business other than for testing. Small defects that don't stop its use do not block acceptance. We fix them under [our promises](#warranties)."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Changes"
+    },
+    {
+      "type": "p",
+      "text": "Either of us may ask to change the scope. We tell you how the change affects the timeline and the price. A change applies once we have both agreed it in writing. Until then, we keep working under the order as it stands."
+    },
+    {
+      "type": "h2",
+      "id": "fees",
+      "text": "Fees and payment"
+    },
+    {
+      "type": "p",
+      "text": "You pay the fees set in the order. For a fee per result, the order defines what counts as a result and how it is measured."
+    },
+    {
+      "type": "p",
+      "text": "We invoice as the order says. You pay within the period stated on the order or invoice. Fees do not include VAT or other taxes, which you pay where they apply. We charge expenses only where the order allows."
+    },
+    {
+      "type": "p",
+      "text": "If you dispute part of an invoice, tell us in good faith and pay the rest. If an amount is still unpaid after a reminder, we may pause the work until it is paid. Late payments carry interest as the law allows."
+    },
+    {
+      "type": "h2",
+      "id": "ownership",
+      "text": "Who owns what"
+    },
+    {
+      "type": "h3",
+      "id": "your-material",
+      "text": "Your material"
+    },
+    {
+      "type": "p",
+      "text": "You keep all rights to the data, content, systems and other material you give us. You let us use it only to do the work."
+    },
+    {
+      "type": "h3",
+      "id": "deliverables",
+      "text": "Deliverables"
+    },
+    {
+      "type": "p",
+      "text": "Once you have paid for a deliverable in full, you own what we made specifically for you under the order, such as agent setups, workflows, connectors, documents and code. We transfer to you the rights we have in it. Where the law does not allow a right to be transferred, we give you an exclusive, worldwide, permanent licence that you may pass on. Until you have paid, you may use a deliverable to review and test it."
+    },
+    {
+      "type": "h3",
+      "id": "our-material",
+      "text": "Our material"
+    },
+    {
+      "type": "p",
+      "text": "We keep all rights to our tools, platform, software, agents, templates, instructions, methods and know-how, and to anything we made before or outside the order. Where our material is part of a deliverable, you get a non-exclusive, worldwide, permanent licence, once paid, to use, copy and change it as part of that deliverable for your own business. You may not sell or license our material on its own."
+    },
+    {
+      "type": "h3",
+      "id": "other-parts",
+      "text": "Services, third-party parts and AI output"
+    },
+    {
+      "type": "p",
+      "text": "Where we run something for you, such as managed agent operations or a hosted reasoning API, that is a service, not a deliverable. Your access to it lasts as long as the order."
+    },
+    {
+      "type": "p",
+      "text": "Third-party and open-source parts of a deliverable stay under their own licences. We tell you which ones a deliverable includes."
+    },
+    {
+      "type": "p",
+      "text": "Parts of a deliverable may be made by AI. In some countries, material made by AI without enough human creative input is not protected by copyright. We transfer whatever rights exist, but we do not promise that any exist."
+    },
+    {
+      "type": "p",
+      "text": "Each of us may keep using the general skills and experience gained from the work, without using the other's confidential information."
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "Confidentiality"
+    },
+    {
+      "type": "p",
+      "text": "Each of us will see the other's confidential information: non-public information that is marked as confidential or should reasonably be understood to be."
+    },
+    {
+      "type": "p",
+      "text": "The party that receives it uses it only for the work, protects it with reasonable care, and shares it only with people who need it and are bound to keep it confidential. This duty does not cover information that is public, already known to the receiver, developed on its own or lawfully received from someone else. If the law requires disclosure, the receiver may disclose what is required and, where allowed, tells the other party first. We name you as a customer only with your permission."
+    },
+    {
+      "type": "h2",
+      "id": "data-protection",
+      "text": "Data and hosting"
+    },
+    {
+      "type": "p",
+      "text": "When we handle personal data for you, we are your processor: we handle it only on your instructions, and the DPA applies. For our own records about you, such as your contact people and invoices, we act for ourselves, and our [Privacy Policy](/instant/legal/privacy) applies."
+    },
+    {
+      "type": "p",
+      "text": "We host your work in an EU Google Cloud region agreed with you and named in the order. Some providers we use, such as Google Gemini for the AI model, may process data outside the EU. The [Sub-processors](/instant/legal/subprocessors) page lists them."
+    },
+    {
+      "type": "p",
+      "text": "We do not train our own AI models on your data, and we do not sell it."
+    },
+    {
+      "type": "p",
+      "text": "Don't give us protected health information covered by HIPAA. We do not sign business associate agreements.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "ai-act",
+      "text": "AI laws and your role"
+    },
+    {
+      "type": "p",
+      "text": "You decide how the systems we build are used in your business. Under the EU AI Act, you are the “deployer” of what we build for you: the organisation that uses an AI system under its own authority. If you put a system into service under your own name, you may also be its “provider”."
+    },
+    {
+      "type": "p",
+      "text": "Tell us before the work starts if a system might be used in a high-risk area, such as hiring and work, education, credit or access to essential services. The order then says who does what. For those uses, your deployer duties apply from 2 December 2027 (AI Act Art. 26 and Annex III). They include human oversight, using the system as instructed, monitoring how it works and keeping its logs."
+    },
+    {
+      "type": "p",
+      "text": "Where the law requires it, you make sure that people who deal with a system you run know they are dealing with AI, and you take steps to build AI literacy among your staff who use it (AI Act Art. 4 and 50). Our team training can help, but these duties stay yours."
+    },
+    {
+      "type": "p",
+      "text": "US state laws on AI in consequential decisions apply to you as the business that makes those decisions. For example, Colorado's law takes effect on 1 January 2027.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "results",
+      "text": "Business results"
+    },
+    {
+      "type": "p",
+      "text": "We work toward the goals set in the order. But business results depend on your data, people, processes and markets, which we do not control. Unless the order expressly says so, we do not guarantee savings, revenue or any other business result. A fee per result is a way to price the work, not a promise that a result will be reached."
+    },
+    {
+      "type": "p",
+      "text": "AI output can be wrong, and agents can make mistakes. Keep human review for important decisions, and choose approval settings that fit the risk. [How Our AI Works](/instant/legal/ai) explains more."
+    },
+    {
+      "type": "h2",
+      "id": "warranties",
+      "text": "Our promises"
+    },
+    {
+      "type": "p",
+      "text": "We promise to do the work with reasonable skill and care, using suitably qualified people. We also promise that each deliverable, when accepted, matches the order in all important respects."
+    },
+    {
+      "type": "p",
+      "text": "If a deliverable falls short of that promise, tell us in writing. We will fix it or redo the work. If we cannot do so within a reasonable time, you may end that part of the order and get back the fees you paid for it."
+    },
+    {
+      "type": "note",
+      "text": "That is your only remedy for a deliverable that falls short of our promise. Apart from the promises in these terms and the order, and to the extent the law allows, we give no other warranties, express or implied, including warranties of merchantability, fitness for a particular purpose and non-infringement.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Your legal rights for defects still apply, but you must first give us a reasonable chance to fix the defect.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Liability",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "To the extent the law allows, neither of us is liable for indirect, incidental, special, consequential or punitive damages, or for lost profits, revenue, data or goodwill.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Each party's total liability under an order is limited to the fees paid and payable under that order in the 12 months before the event that caused the claim.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "These limits do not apply to your duty to pay fees, to a breach of confidentiality, to fraud, or to liability that the law does not allow to be limited.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Liability",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "We are fully liable for harm we cause on purpose or through gross negligence, for injury to life, body or health, and under mandatory product liability law.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "For slight negligence, we are liable only when we breach an essential duty: a duty that makes proper performance of the order possible and that you may regularly rely on. Even then, we are liable only for damage that is typical and foreseeable for this kind of contract, and in total for no more than the fees paid and payable under that order in the 12 months before the event. Otherwise, our liability for slight negligence is excluded.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "You will cover us against claims by others that arise from the material you gave us or from your breach of these terms, and against the reasonable costs of dealing with them. We tell you about any such claim promptly and let you take part in handling it."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Term and ending"
+    },
+    {
+      "type": "p",
+      "text": "These terms apply from your first order until your last order ends. Each order runs for the time it states. Monthly services continue month by month until one of us ends them with the notice the order sets."
+    },
+    {
+      "type": "p",
+      "text": "Either of us may end an order at once in writing if the other seriously breaches it and does not fix the breach within a reasonable time after being told, or if the other becomes insolvent. You may also end an order early where the order allows it."
+    },
+    {
+      "type": "p",
+      "text": "When an order ends, you pay for the work done up to that date and, if you ended it early, for costs we cannot cancel. We hand over your data and the deliverables you have paid for, stop the services we ran for you, and deal with personal data as the DPA sets out. Parts of these terms that by their nature should last, such as ownership, confidentiality, liability and the law that applies, keep applying."
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "Switching providers",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Where we run a data processing service for you, such as managed agent operations or hosting, the EU Data Act gives you the right to switch to another provider or to your own systems (Data Act Art. 23-31). For those services:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "You can start a switch, or end the service and take your data, by telling us in writing. The notice period is two months at most, and you can choose a shorter one.",
+        "We give you your data, and the digital assets we made for you that you are entitled to, in a common machine-readable format.",
+        "The transition lasts up to 30 days. If that is not technically possible, we tell you why and how long we need, within the limits the Data Act allows.",
+        "During the transition, we keep the service running as agreed and help you and your new provider in good faith.",
+        "After the transition ends, you have at least 30 more days to retrieve your data.",
+        "Once the switch is complete, we delete your data as the DPA sets out.",
+        "Until 12 January 2027, we may charge only our direct costs of a switch, and only where the order lists them. From 12 January 2027, we charge nothing for switching."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Where a service is custom-built for you, some of these rules may apply only in part (Data Act Art. 31). If so, the order says which ones, and we tell you before you sign it.",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "Location and government access",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "We host your work in the EU Google Cloud region named in the order. The [Sub-processors](/instant/legal/subprocessors) page lists each provider and where it works (Data Act Art. 28).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "If a government outside the EU asks us for your non-personal data, we hand it over only where EU or member-state law allows it. We tell you first, unless the law forbids that (Data Act Art. 32).",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "Law and disputes"
+    },
+    {
+      "type": "p",
+      "text": "These terms and every order follow the law of {company.law}, without its rules on conflicts of law. The courts of {company.law} decide disputes, unless the law requires another court.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Before either of us goes to court, our contact people try to settle the matter in good faith. Write to {company.email} and describe the problem."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "These terms have no arbitration clause. Either of us may bring a claim in a small-claims court if the claim qualifies."
+    },
+    {
+      "type": "p",
+      "text": "You confirm that you are not on a US or EU sanctions list, or located in a country under a US or EU embargo. Neither of us will use the work in breach of US or EU sanctions or export rules."
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "General"
+    },
+    {
+      "type": "list",
+      "items": [
+        "We may update these terms. An order already agreed keeps the terms that applied when it was agreed, unless we both agree otherwise.",
+        "Neither of us may transfer these terms or an order without the other's written consent, except to a company that takes over the business concerned.",
+        "Neither of us is responsible for delays caused by events outside its reasonable control.",
+        "If one part of these terms is invalid, the rest still applies.",
+        "Notices to us go to {company.email}. Notices to you go to the contact person named in the order."
+      ]
+    }
+  ]
+}

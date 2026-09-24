@@ -1,0 +1,129 @@
+{
+  "meta": {
+    "slug": "open-source",
+    "title": "मुक्त स्रोत सूचनाएँ",
+    "summary": "यह पृष्ठ Orqanix डेस्कटॉप ऐप और हमारी वेबसाइट में मौजूद मुक्त स्रोत (ओपन-सोर्स) सॉफ़्टवेयर, उसके लाइसेंस और लाइसेंस पाठ प्राप्त करने का तरीका बताता है।",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "पहला संस्करण।"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Checked in the app build: the app bundles the Goose Apache 2.0 licence and a NOTICE file, the engineering runtime's MIT licence and third-party notices, and the Electron, Chromium and Node.js licence files. The licences of the other npm and Rust packages are NOT collected into the app. Owner: add a generated third-party licence file (or SBOM) to the build, then update the \"For the smaller packages\" sentence.",
+        "Apache 2.0 section 4 (Goose): the bundled NOTICE file describes the Orqanix changes. Lawyer to confirm this meets the \"prominent notice in changed files\" duty for the modified source. The in-app NOTICE file says \"Built on Goose\", a phrase the website avoids; owner to decide whether to reword it.",
+        "The engineering runtime is not named on this page (the in-app notice names it). Owner to decide whether to name it.",
+        "Licence names for Electron (MIT) and Node.js (MIT with other bundled parts) match the bundled files; Chromium (BSD-style and others) is general knowledge. Confirm with a licence scan or SBOM of the shipped app.",
+        "Whether any bundled component is under a licence that gives a right to source code (for example LGPL parts of Chromium). The page offers source on request by email; the owner must be able to fulfil it.",
+        "Mailbox hello@orqanix.com may not receive mail yet (no MX record, FACTS open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-this-page",
+      "text": "इस पृष्ठ के बारे में"
+    },
+    {
+      "type": "p",
+      "text": "हमारे उत्पादों के कुछ हिस्से मुक्त स्रोत सॉफ़्टवेयर हैं: ऐसा सॉफ़्टवेयर जिसके लेखक किसी प्रकाशित लाइसेंस के तहत किसी को भी उसका उपयोग करने, उसे बदलने और साझा करने देते हैं। यह पृष्ठ मुख्य मुक्त स्रोत हिस्सों और उनके लाइसेंस पाठ प्राप्त करने का तरीका बताता है।"
+    },
+    {
+      "type": "p",
+      "text": "हर हिस्सा अपने स्वयं के लाइसेंस के अधीन रहता है। हमारी [सेवा की शर्तें](/instant/legal/terms) या [डेस्कटॉप ऐप की शर्तें](/instant/legal/desktop-app-terms) में कुछ भी उन अधिकारों को सीमित नहीं करता जो वे लाइसेंस आपको देते हैं। जहाँ कोई लाइसेंस कहता है कि उसके लेखक कोई वारंटी नहीं देते, वह उनके काम पर लागू होता है। हमारे उत्पादों के बारे में हमारे अपने वादे हमारी शर्तों में हैं।"
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "डेस्कटॉप ऐप"
+    },
+    {
+      "type": "p",
+      "text": "Mac के लिए Orqanix ऐप में मुक्त स्रोत सॉफ़्टवेयर शामिल है, जैसे:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "सॉफ़्टवेयर",
+        "ऐप में यह क्या करता है",
+        "लाइसेंस"
+      ],
+      "rows": [
+        [
+          "Goose",
+          "वह एजेंट फ़्रेमवर्क जिस पर ऐप के एजेंट चलते हैं",
+          "Apache License 2.0"
+        ],
+        [
+          "ऐप के साथ शामिल एक वैकल्पिक इंजीनियरिंग रनटाइम",
+          "ऐप के इंजीनियरिंग टूल चलाता है",
+          "MIT License"
+        ],
+        [
+          "Electron",
+          "ऐप की विंडो और डेस्कटॉप शेल",
+          "MIT License"
+        ],
+        [
+          "Chromium (Electron में शामिल)",
+          "ऐप की स्क्रीन दिखाता है",
+          "एक BSD-शैली का लाइसेंस और अन्य"
+        ],
+        [
+          "Node.js",
+          "ऐप के कुछ हिस्से चलाता है",
+          "MIT License, जिसके कुछ शामिल हिस्से अन्य लाइसेंसों के अधीन हैं"
+        ],
+        [
+          "कई छोटे npm और Rust पैकेज",
+          "पूरे ऐप में इस्तेमाल होने वाले बुनियादी घटक",
+          "विभिन्न मुक्त स्रोत लाइसेंस, जैसे MIT, Apache 2.0 और BSD"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "ऐप में Goose, इंजीनियरिंग रनटाइम, Electron, Chromium और Node.js के लाइसेंस पाठ और सूचनाएँ शामिल हैं। उन्हें देखने के लिए, Finder में ऐप पर Control-क्लिक करें, Show Package Contents चुनें, फिर Contents और उसके बाद Resources खोलें। वे फ़ाइलें ही प्रामाणिक पाठ हैं; यह तालिका केवल एक सारांश है। छोटे पैकेजों के लिए, हमसे उसी तरह पूछें जैसा [लाइसेंस पाठ और स्रोत कोड](#get-the-texts) में बताया गया है।"
+    },
+    {
+      "type": "h2",
+      "id": "website",
+      "text": "हमारी वेबसाइट"
+    },
+    {
+      "type": "p",
+      "text": "हमारी वेबसाइट Geist, Geist Mono और Inter टाइपफ़ेस का उपयोग करती है, जो सभी [SIL Open Font License 1.1](https://openfontlicense.org) के तहत लाइसेंस प्राप्त हैं।"
+    },
+    {
+      "type": "h2",
+      "id": "names",
+      "text": "नाम और ट्रेडमार्क"
+    },
+    {
+      "type": "p",
+      "text": "मुक्त स्रोत परियोजनाओं के नाम उनके स्वामियों के हैं। हमारे द्वारा उनके सॉफ़्टवेयर के उपयोग का यह अर्थ नहीं है कि वे परियोजनाएँ या उनके स्वामी Orqanix का समर्थन करते हैं, और ये लाइसेंस किसी को भी उनके नामों या लोगो पर कोई अधिकार नहीं देते।"
+    },
+    {
+      "type": "h2",
+      "id": "get-the-texts",
+      "text": "लाइसेंस पाठ और स्रोत कोड"
+    },
+    {
+      "type": "p",
+      "text": "किसी लाइसेंस पाठ की प्रति, या जहाँ कोई लाइसेंस आपको स्रोत कोड का अधिकार देता है वहाँ स्रोत कोड, माँगने के लिए {company.email} पर \"Open source\" विषय के साथ लिखें। हमें बताएँ कि आपके पास डेस्कटॉप ऐप का कौन-सा संस्करण है।"
+    },
+    {
+      "type": "p",
+      "text": "यदि आपको लगता है कि हमसे कोई सूचना छूट गई है या हमने मुक्त स्रोत सॉफ़्टवेयर का उपयोग ऐसे तरीके से किया है जिसकी उसका लाइसेंस अनुमति नहीं देता, तो हमें उसी पते पर बताएँ और हम इसकी जाँच करेंगे।"
+    }
+  ]
+}

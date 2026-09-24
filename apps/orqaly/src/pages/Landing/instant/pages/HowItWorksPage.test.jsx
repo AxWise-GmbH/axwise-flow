@@ -112,6 +112,16 @@ describe('HowItWorksPage', () => {
     expect(first.querySelector('.hiw-head .oi-tag')).toBeNull();
   });
 
+  it('heads "You set the rules" with its title alone, no [ Control ] tag above it', () => {
+    const { container } = renderPage();
+    const section = container.querySelector('#how-control');
+    expect(within(section).getByRole('heading', { level: 2 })).toHaveTextContent(
+      'You set the rules'
+    );
+    expect(section.querySelector('.oi-tag-bracket')).toBeNull();
+    expect(within(section).queryByText('Control')).toBeNull();
+  });
+
   it('tells the five steps in order, each a title and one line', () => {
     const { container } = renderPage();
     const section = container.querySelector('#how-steps');

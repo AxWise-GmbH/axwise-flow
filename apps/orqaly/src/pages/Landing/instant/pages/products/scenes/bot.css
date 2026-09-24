@@ -1,0 +1,1623 @@
+/*
+ * Assistant Bot scene (prefix pbo-): the base parts, the header menu cut and the page hero.
+ * The page's other cuts live in bot-page.css, which ships with the page. Every selector
+ * starts from [data-product='assistant-bot'], so nothing here reaches another product;
+ * the one exception is .pbo-orb, an opt-in class other scenes may reuse.
+ *
+ * Every part sits in its cut by --u and moves on the shared clock; plain styles are each
+ * cut's finished frame, keyframes bring parts in and take them out again, so reduced motion
+ * shows the finished frame. Words that tell the story stay at 1.6u or more (10px on the
+ * 628px menu stage) and at 9px or more on a narrow card.
+ *
+ * Menu loop (12.5s; the other cuts run 11s). It OPENS on the finished frame and holds it for
+ * 2.75s: 0-22% hold; 22-27% it winds back; 29-39% "+ New bot" is pressed and the roles fan
+ * out; 39-51% Finance is picked and its card joins the roster; 50-57% the business map
+ * draws; 57-79% a contact, a mail, a file and an image fly in and light Team, Clients,
+ * Suppliers and Files; 76-100% the app comes forward, the bot's cursor runs a job and
+ * "Monthly report.pdf" lands with a tick, and the loop is back on its first frame.
+ */
+
+.ps[data-product='assistant-bot'] {
+  --ps-loop: 11s;
+  /* Surfaces: a file or source tile, the "+ New bot" chip and its ghost slot on the wall, a
+     map node, the wall's cards (the one being made is the lead), the ring that cuts the
+     cursor's orb out of what is under it. */
+  --pbo-tile-bg: linear-gradient(180deg, #303030, #1a1a1a);
+  --pbo-new-bg: #262626;
+  --pbo-ghost: #1e1e1e;
+  --pbo-node-bg: #171717;
+  --pbo-wall-card: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015));
+  --pbo-wall-lead: linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.035));
+  /* Material, the same in both looks: the orbs' faces, and the pick, a white pill that
+     inverts what is under it (mix-blend-mode: difference). */
+  --pbo-cur-orb: radial-gradient(circle at 34% 28%, #ffffff, #a0a0a0 28%, #2a2a2a 80%);
+  --pbo-hub-face: radial-gradient(
+    circle at 36% 30%,
+    #eeeeee,
+    #aaaaaa 16%,
+    #4a4a4a 54%,
+    #1c1c1c 84%
+  );
+  --pbo-sel-ink: #ffffff;
+}
+
+/* Light: the app's light theme. White tiles, chips and nodes; the wall's cards a faint
+   grey, the one being made the whitest (in dark it is the brightest). */
+.ps[data-product='assistant-bot']:is([data-oi-theme='light'] *) {
+  --pbo-tile-bg: linear-gradient(180deg, #ffffff, #f3f3f3);
+  --pbo-new-bg: #ffffff;
+  --pbo-ghost: #fbfbfb;
+  --pbo-node-bg: #ffffff;
+  --pbo-wall-card: linear-gradient(180deg, rgba(0, 0, 0, 0.035), rgba(0, 0, 0, 0.012));
+  --pbo-wall-lead: linear-gradient(180deg, #ffffff, #fcfcfc);
+  /* The opaque face of a role chip (the grey its fill gives it on the card). */
+  --pbo-chip-face: #f2f2f2;
+}
+
+/* The pick inverts what is under it. In light a role chip's fill is see-through, so the
+   white pill would show white with pale words; on an opaque face it turns the chip near
+   black with light words, the dark look's white pick mirrored. */
+.ps[data-product='assistant-bot']:is([data-oi-theme='light'] *) .pbo-chips .ps-chip:not(.pbo-new) {
+  background: var(--pbo-chip-face);
+}
+
+/* The menu holds its payoff longer, so its story keeps its pace on a longer loop. */
+.ps[data-product='assistant-bot'][data-cut='menu'] {
+  --ps-loop: 12.5s;
+}
+
+/* --t sizes the words. Narrow cards (the phone menu, stacked page cards) raise it so the
+   few words stay readable; boxes still follow --u. */
+[data-product='assistant-bot'] .ps-scene {
+  text-align: left;
+  --t: var(--u);
+  /* One role chip, and the chip plus its gap: the pick moves in these steps. */
+  --cw: calc(var(--u) * 10.6);
+  --pitch: calc(var(--cw) + var(--u) * 1.2);
+  /* Where the bot's cursor clicks, and where it rests after. */
+  --cx: calc(var(--u) * 15);
+  --cy: calc(var(--u) * 5.8);
+  --rx: calc(var(--u) * 35);
+  --ry: calc(var(--u) * 10.6);
+  --pbo-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+
+/* A soft light that follows the story from part to part. */
+
+[data-product='assistant-bot'] .ps-scene::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--u) * 72);
+  height: calc(var(--u) * 72);
+  margin: calc(var(--u) * -36) 0 0 calc(var(--u) * -36);
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-fg-rgb), calc(0.09 * var(--oi-halo-k))),
+    rgba(var(--oi-fg-rgb), calc(0.03 * var(--oi-halo-k))) 55%,
+    transparent
+  );
+  pointer-events: none;
+  animation: pbo-light var(--ps-loop) var(--oi-ease) infinite;
+}
+
+/* Shared parts ----------------------------------------------------------------------- */
+
+/* A bot's face: a glossy orb, kept soft (a small highlight, a hairline rim, no halo) so it
+   sits with the flat UI around it. Unscoped on purpose: an opt-in class other scenes reuse. */
+.pbo-orb {
+  /* Material: the same glossy face in both looks. */
+  --pbo-orb-face: radial-gradient(
+    circle at 36% 30%,
+    #e6e6e6,
+    #9a9a9a 16%,
+    #464646 50%,
+    #1c1c1c 80%
+  );
+
+  display: block;
+  flex: none;
+  width: calc(var(--u) * 3.8);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--pbo-orb-face);
+  box-shadow:
+    inset 0 0 0 max(1px, calc(var(--u) * 0.12)) rgba(var(--oi-fg-rgb), 0.22),
+    inset 0 calc(var(--u) * -0.4) calc(var(--u) * 0.8)
+      rgba(var(--oi-shadow-rgb), calc(0.5 * var(--oi-shadow-k)));
+}
+
+/* A bot: orb, role and a live dot, two drawn lines. Laid out as a row by default. */
+
+[data-product='assistant-bot'] .pbo-bot {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: center;
+  align-items: center;
+  gap: calc(var(--u) * 0.6) calc(var(--u) * 1.3);
+}
+
+[data-product='assistant-bot'] .pbo-bot .pbo-orb {
+  grid-row: span 2;
+}
+
+[data-product='assistant-bot'] .pbo-bot b {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.8);
+  min-width: 0;
+  color: var(--oi-app-text);
+  font-size: calc(var(--t) * 1.6);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+[data-product='assistant-bot'] .pbo-bot b::after {
+  content: '';
+  flex: none;
+  width: calc(var(--u) * 0.7);
+  height: calc(var(--u) * 0.7);
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--oi-app-text);
+  box-shadow: 0 0 calc(var(--u) * 0.9) rgba(var(--oi-fg-rgb), calc(0.55 * var(--oi-halo-k)));
+}
+
+[data-product='assistant-bot'] .pbo-bot .ps-bars {
+  flex-direction: row;
+  gap: calc(var(--u) * 0.7);
+  color: var(--oi-app-muted);
+}
+
+[data-product='assistant-bot'] .pbo-bot .ps-bar {
+  height: calc(var(--u) * 0.6);
+}
+
+[data-product='assistant-bot'] .pbo-bot .ps-bar:first-child {
+  width: 46%;
+}
+
+[data-product='assistant-bot'] .pbo-bot .ps-bar + .ps-bar {
+  width: 24%;
+}
+
+/* A small file or source tile with one icon. */
+
+[data-product='assistant-bot'] .pbo-tile {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: calc(var(--u) * 4.4);
+  aspect-ratio: 1;
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  border-radius: calc(var(--u) * 1.1);
+  background: var(--pbo-tile-bg);
+  color: var(--oi-app-text);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.12),
+    0 calc(var(--u) * 1) calc(var(--u) * 3) calc(var(--u) * -1)
+      rgba(var(--oi-shadow-rgb), calc(0.85 * var(--oi-shadow-k)));
+}
+
+[data-product='assistant-bot'] .pbo-tile .ps-icon {
+  width: 50%;
+  height: 50%;
+}
+
+/* The bot's cursor: a white arrow with the bot's orb beside it. */
+
+[data-product='assistant-bot'] .pbo-cur {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  width: calc(var(--u) * 2.2);
+  height: calc(var(--u) * 3);
+}
+
+[data-product='assistant-bot'] .pbo-cur::before,
+[data-product='assistant-bot'] .pbo-cur::after {
+  content: '';
+  position: absolute;
+}
+
+[data-product='assistant-bot'] .pbo-cur::before {
+  inset: 0;
+  background: rgb(var(--oi-fg-rgb));
+  clip-path: polygon(0 0, 0 80%, 26% 62%, 44% 100%, 60% 92%, 42% 56%, 80% 56%);
+}
+
+[data-product='assistant-bot'] .pbo-cur::after {
+  top: 78%;
+  left: 72%;
+  width: calc(var(--u) * 1.7);
+  height: calc(var(--u) * 1.7);
+  border-radius: 50%;
+  background: var(--pbo-cur-orb);
+  box-shadow: 0 0 0 calc(var(--u) * 0.25) var(--oi-paper-strong);
+}
+
+/* The drawn lines (the map's, the contacts'): stretched over their part. */
+
+[data-product='assistant-bot'] svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: rgba(var(--oi-fg-rgb), 0.32);
+  stroke-width: 0.42;
+  stroke-linecap: round;
+}
+
+/* Widths are in grid units, so they stretch with the part; each cut sets its own. */
+
+[data-product='assistant-bot'] .pbo-map path {
+  stroke-dasharray: 1 2;
+}
+
+/* Menu: chips, roster, map, app ------------------------------------------------------ */
+
+[data-product='assistant-bot'] .pbo-chips {
+  position: absolute;
+  top: calc(var(--u) * 4.6);
+  left: calc(var(--u) * 5);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1.2);
+  animation: pbo-back var(--ps-loop) var(--oi-ease) infinite;
+}
+
+[data-product='assistant-bot'] .pbo-chips .ps-chip {
+  justify-content: center;
+  width: var(--cw);
+  height: calc(var(--u) * 4.2);
+  padding: 0;
+  font-size: calc(var(--t) * 1.7);
+  animation: pbo-chip var(--ps-loop) var(--oi-ease) infinite both;
+}
+
+[data-product='assistant-bot'] .pbo-chips .ps-chip:nth-child(3) {
+  animation-delay: calc(var(--ps-loop) * 0.016);
+}
+
+[data-product='assistant-bot'] .pbo-chips .ps-chip:nth-child(4) {
+  animation-delay: calc(var(--ps-loop) * 0.032);
+}
+
+/* "+ New bot": pressed, a ring leaves it, a short line leads to the roles. */
+
+[data-product='assistant-bot'] .pbo-chips .pbo-new {
+  position: relative;
+  z-index: 1;
+  gap: calc(var(--u) * 0.5);
+  width: auto;
+  margin-right: calc(var(--u) * 3.4);
+  padding: 0 calc(var(--u) * 1.5) 0 calc(var(--u) * 1.1);
+  border-color: var(--oi-app-border-strong);
+  background: var(--pbo-new-bg);
+  color: var(--oi-app-text);
+  animation-name: pbo-press;
+}
+
+[data-product='assistant-bot'] .pbo-new .ps-icon {
+  width: calc(var(--t) * 1.4);
+  height: calc(var(--t) * 1.4);
+}
+
+[data-product='assistant-bot'] .pbo-new::before,
+[data-product='assistant-bot'] .pbo-new::after {
+  content: '';
+  position: absolute;
+}
+
+[data-product='assistant-bot'] .pbo-new::before {
+  inset: calc(var(--ps-line) * -1);
+  border: var(--ps-line) solid rgba(var(--oi-fg-rgb), 0.7);
+  border-radius: inherit;
+  opacity: 0;
+  animation: pbo-ring var(--ps-loop) ease-out infinite;
+}
+
+[data-product='assistant-bot'] .pbo-new::after {
+  top: 50%;
+  left: calc(100% + var(--u) * 0.8);
+  width: calc(var(--u) * 1.8);
+  height: var(--ps-line);
+  background: linear-gradient(90deg, var(--oi-app-border-strong), var(--oi-app-muted));
+  transform-origin: left;
+  animation: pbo-grow var(--ps-loop) var(--oi-ease) infinite;
+}
+
+/* The pick: a white pill that inverts the chip under it. It rests on Finance. */
+
+[data-product='assistant-bot'] .pbo-sel {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: var(--cw);
+  height: calc(var(--u) * 4.2);
+  margin-top: calc(var(--u) * -2.1);
+  border-radius: 999px;
+  background: var(--pbo-sel-ink);
+  mix-blend-mode: difference;
+  transform: translateX(calc(var(--pitch) * -1));
+  animation: pbo-sel var(--ps-loop) var(--oi-ease) infinite;
+}
+
+[data-product='assistant-bot'] .pbo-roster {
+  position: absolute;
+  top: calc(var(--u) * 12.8);
+  left: calc(var(--u) * 5);
+  width: calc(var(--u) * 33);
+  height: calc(var(--u) * 27.2);
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: calc(var(--u) * 1.8);
+  background: var(--oi-app-sunk);
+  animation: pbo-back var(--ps-loop) var(--oi-ease) infinite;
+}
+
+/* Finance lands on top; Sales and Support step down to make room. */
+
+[data-product='assistant-bot'] .pbo-roster .pbo-bot {
+  position: absolute;
+  top: calc(var(--u) * 9.8);
+  right: calc(var(--u) * 1);
+  left: calc(var(--u) * 1);
+  height: calc(var(--u) * 7.6);
+  padding: 0 calc(var(--u) * 1.4);
+  border-radius: calc(var(--u) * 1.2);
+  animation: pbo-slot var(--ps-loop) var(--oi-ease) infinite;
+}
+
+[data-product='assistant-bot'] .pbo-roster .pbo-bot b {
+  font-size: calc(var(--t) * 1.8);
+}
+
+[data-product='assistant-bot'] .pbo-roster .pbo-bot:nth-child(2) {
+  top: calc(var(--u) * 1.4);
+  background: var(--oi-app-fill);
+  box-shadow: inset 0 0 0 var(--ps-line) var(--oi-app-border-strong);
+  animation-name: pbo-join;
+  animation-timing-function: var(--pbo-spring);
+}
+
+[data-product='assistant-bot'] .pbo-roster .pbo-bot:nth-child(3) {
+  top: calc(var(--u) * 18.2);
+}
+
+/* The business map: the business in the middle, four groups around it. */
+
+[data-product='assistant-bot'] .pbo-map {
+  position: absolute;
+  top: calc(var(--u) * 13.2);
+  left: calc(var(--u) * 45);
+  width: calc(var(--u) * 50);
+  height: calc(var(--u) * 28.4);
+  animation: pbo-back var(--ps-loop) var(--oi-ease) infinite;
+}
+
+[data-product='assistant-bot'] .pbo-map path {
+  animation: pbo-draw var(--ps-loop) var(--oi-ease) infinite both;
+}
+
+[data-product='assistant-bot'] .pbo-map path:nth-child(n + 5) {
+  display: none;
+}
+
+[data-product='assistant-bot'] .pbo-map path:nth-child(2) {
+  animation-delay: calc(var(--ps-loop) * 0.011);
+}
+
+[data-product='assistant-bot'] .pbo-map path:nth-child(3) {
+  animation-delay: calc(var(--ps-loop) * 0.022);
+}
+
+[data-product='assistant-bot'] .pbo-map path:nth-child(4) {
+  animation-delay: calc(var(--ps-loop) * 0.032);
+}
+
+[data-product='assistant-bot'] .pbo-hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--u) * 6.4);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: var(--pbo-hub-face);
+  box-shadow:
+    inset 0 0 0 var(--ps-line) rgba(var(--oi-fg-rgb), 0.24),
+    0 0 0 calc(var(--u) * 0.8) rgba(var(--oi-fg-rgb), 0.05),
+    0 0 calc(var(--u) * 3.2) rgba(var(--oi-fg-rgb), calc(0.18 * var(--oi-halo-k)));
+  animation: pbo-hub var(--ps-loop) var(--pbo-spring) infinite;
+}
+
+[data-product='assistant-bot'] .pbo-hub::before,
+[data-product='assistant-bot'] .pbo-hub::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--u) * -1.4);
+  border: var(--ps-line) solid rgba(var(--oi-fg-rgb), 0.34);
+  border-radius: 50%;
+  opacity: 0.3;
+  animation: pbo-ping calc(var(--ps-loop) / 4) ease-out infinite;
+}
+
+[data-product='assistant-bot'] .pbo-hub::after {
+  animation-delay: calc(var(--ps-loop) / -8);
+}
+
+[data-product='assistant-bot'] .pbo-node {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: calc(var(--u) * 5);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  border-radius: 50%;
+  background: var(--pbo-node-bg);
+  color: var(--oi-app-text);
+  animation: pbo-pop var(--ps-loop) var(--pbo-spring) infinite both;
+}
+
+[data-product='assistant-bot'] .pbo-node .ps-icon {
+  position: relative;
+  z-index: 1;
+  width: 44%;
+  height: 44%;
+}
+
+/* Lit: a bright ring and a glow, once its item has arrived. */
+
+[data-product='assistant-bot'] .pbo-node::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--ps-line) * -1);
+  border: var(--ps-line) solid rgba(var(--oi-fg-rgb), 0.85);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(var(--oi-fg-rgb), calc(0.24 * var(--oi-halo-k))),
+    rgba(var(--oi-fg-rgb), calc(0.06 * var(--oi-halo-k))) 72%
+  );
+  box-shadow: 0 0 calc(var(--u) * 2.4) rgba(var(--oi-fg-rgb), calc(0.3 * var(--oi-halo-k)));
+  animation:
+    pbo-lit var(--ps-loop) var(--oi-ease) infinite both,
+    pbo-unlit var(--ps-loop) var(--oi-ease) infinite;
+}
+
+[data-product='assistant-bot'] .pbo-node::after {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + var(--u) * 1);
+  translate: 0 -50%;
+  color: var(--oi-app-soft);
+  font-size: calc(var(--t) * 1.65);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+[data-product='assistant-bot'] .pbo-map .pbo-tile {
+  translate: -50% -50%;
+  opacity: 0;
+  animation: pbo-fly var(--ps-loop) var(--oi-ease) infinite both;
+}
+
+/* The groups and the items that light them, in order: Team gets a contact, Clients a
+   mail, Suppliers a PDF, Files an image. */
+
+[data-product='assistant-bot'] .pbo-node:nth-of-type(1),
+[data-product='assistant-bot'] .pbo-map .pbo-tile:nth-of-type(5) {
+  --fx: calc(var(--u) * -12);
+  --fy: calc(var(--u) * -9);
+  top: 26%;
+  left: 22%;
+}
+
+[data-product='assistant-bot'] .pbo-node:nth-of-type(2),
+[data-product='assistant-bot'] .pbo-map .pbo-tile:nth-of-type(6) {
+  --fx: calc(var(--u) * 11);
+  --fy: calc(var(--u) * -11);
+  top: 26%;
+  left: 78%;
+  animation-delay: calc(var(--ps-loop) * 0.011);
+}
+
+[data-product='assistant-bot'] .pbo-node:nth-of-type(3),
+[data-product='assistant-bot'] .pbo-map .pbo-tile:nth-of-type(7) {
+  --fx: calc(var(--u) * 12);
+  --fy: calc(var(--u) * 9);
+  top: 74%;
+  left: 78%;
+  animation-delay: calc(var(--ps-loop) * 0.022);
+}
+
+[data-product='assistant-bot'] .pbo-node:nth-of-type(4),
+[data-product='assistant-bot'] .pbo-map .pbo-tile:nth-of-type(8) {
+  --fx: calc(var(--u) * -12);
+  --fy: calc(var(--u) * 10);
+  top: 74%;
+  left: 22%;
+  animation-delay: calc(var(--ps-loop) * 0.032);
+}
+
+[data-product='assistant-bot'] .pbo-map .pbo-tile:nth-of-type(6),
+[data-product='assistant-bot'] .pbo-node:nth-of-type(2)::before {
+  animation-delay: calc(var(--ps-loop) * 0.045), 0s;
+}
+
+[data-product='assistant-bot'] .pbo-map .pbo-tile:nth-of-type(7),
+[data-product='assistant-bot'] .pbo-node:nth-of-type(3)::before {
+  animation-delay: calc(var(--ps-loop) * 0.09), 0s;
+}
+
+[data-product='assistant-bot'] .pbo-map .pbo-tile:nth-of-type(8),
+[data-product='assistant-bot'] .pbo-node:nth-of-type(4)::before {
+  animation-delay: calc(var(--ps-loop) * 0.135), 0s;
+}
+
+[data-product='assistant-bot'] .pbo-node:nth-of-type(1)::after {
+  content: var(--pbo-say-team, 'Team');
+}
+
+[data-product='assistant-bot'] .pbo-node:nth-of-type(2)::after {
+  content: var(--pbo-say-clients, 'Clients');
+}
+
+[data-product='assistant-bot'] .pbo-node:nth-of-type(3)::after {
+  content: var(--pbo-say-suppliers, 'Suppliers');
+}
+
+[data-product='assistant-bot'] .pbo-node:nth-of-type(2)::after,
+[data-product='assistant-bot'] .pbo-node:nth-of-type(3)::after {
+  right: calc(100% + var(--u) * 1);
+  left: auto;
+}
+
+[data-product='assistant-bot'] .pbo-node:nth-of-type(4)::after {
+  content: var(--pbo-say-files, 'Files');
+}
+
+/* The app, in front: the bot's name on its bar, a job row, the new file. */
+
+[data-product='assistant-bot'] .pbo-mac {
+  position: absolute;
+  top: calc(var(--u) * 42.6);
+  left: calc(var(--u) * 24);
+  z-index: 2;
+  width: calc(var(--u) * 52);
+  height: calc(var(--u) * 14.8);
+  overflow: visible;
+  box-shadow:
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.1),
+    0 calc(var(--u) * 3) calc(var(--u) * 7) calc(var(--u) * -1)
+      rgba(var(--oi-shadow-rgb), calc(0.9 * var(--oi-shadow-k)));
+  animation: pbo-front var(--ps-loop) var(--oi-ease) infinite;
+}
+
+[data-product='assistant-bot'] .pbo-mac .ps-win-bar {
+  height: calc(var(--u) * 3.6);
+  border-radius: calc(var(--u) * 1.4) calc(var(--u) * 1.4) 0 0;
+  color: var(--oi-app-text);
+  font-size: calc(var(--t) * 1.7);
+}
+
+[data-product='assistant-bot'] .pbo-mac .ps-win-bar::after {
+  content: var(--pbo-say-bot, 'Finance');
+}
+
+[data-product='assistant-bot'] .pbo-mac .ps-win-bar .pbo-orb {
+  width: calc(var(--u) * 1.9);
+}
+
+[data-product='assistant-bot'] .pbo-run {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1);
+  margin: calc(var(--u) * 1.2) calc(var(--u) * 1.6) calc(var(--u) * 0.6);
+  padding: calc(var(--u) * 0.8) calc(var(--u) * 1);
+  border-radius: calc(var(--u) * 0.8);
+  background: var(--oi-app-fill);
+  color: var(--oi-app-muted);
+}
+
+[data-product='assistant-bot'] .pbo-run .ps-icon {
+  color: var(--oi-app-text);
+}
+
+/* The click lands here. */
+
+[data-product='assistant-bot'] .pbo-run::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(var(--oi-fg-rgb), 0.14);
+  box-shadow: inset 0 0 0 var(--ps-line) rgba(var(--oi-fg-rgb), 0.4);
+  opacity: 0;
+  animation: pbo-flash var(--ps-loop) ease-out infinite;
+}
+
+[data-product='assistant-bot'] .pbo-mac .ps-file {
+  margin: 0 calc(var(--u) * 0.8);
+  color: var(--oi-app-text);
+  font-size: calc(var(--t) * 1.8);
+  animation: pbo-file var(--ps-loop) var(--oi-ease) infinite;
+}
+
+/* Done: a white tick, not a tiny badge. */
+[data-product='assistant-bot'] .ps-file .ps-tick {
+  width: calc(var(--u) * 2.2);
+  height: calc(var(--u) * 2.2);
+  box-shadow: 0 0 calc(var(--u) * 1.4) rgba(var(--oi-fg-rgb), calc(0.35 * var(--oi-halo-k)));
+}
+
+[data-product='assistant-bot'] .pbo-mac .ps-tick {
+  margin-right: calc(var(--u) * 0.6);
+  animation: pbo-tick var(--ps-loop) var(--pbo-spring) infinite;
+}
+
+[data-product='assistant-bot'] .pbo-mac .pbo-cur {
+  transform: translate(var(--rx), var(--ry));
+  animation: pbo-cur var(--ps-loop) var(--oi-ease) infinite;
+}
+
+@keyframes pbo-light {
+  0%,
+  22% {
+    transform: translate(0, calc(var(--u) * 16));
+  }
+  27%,
+  48.8% {
+    transform: translate(calc(var(--u) * -24), calc(var(--u) * -8));
+  }
+  54.7%,
+  74% {
+    transform: translate(calc(var(--u) * 21), calc(var(--u) * -4));
+  }
+  79.9%,
+  100% {
+    transform: translate(0, calc(var(--u) * 16));
+  }
+}
+
+@keyframes pbo-press {
+  0%,
+  29.5% {
+    transform: none;
+  }
+  31.2% {
+    transform: scale(0.9);
+  }
+  33.7%,
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes pbo-ring {
+  0%,
+  26.6% {
+    opacity: 0;
+    transform: scale(1.35, 1.9);
+  }
+  27%,
+  30.3% {
+    opacity: 0;
+    transform: none;
+  }
+  31.2% {
+    opacity: 0.9;
+  }
+  38.7%,
+  100% {
+    opacity: 0;
+    transform: scale(1.35, 1.9);
+  }
+}
+
+@keyframes pbo-chip {
+  0%,
+  22% {
+    opacity: 1;
+    transform: none;
+  }
+  24.1%,
+  32.9% {
+    opacity: 0;
+    transform: translateX(calc(var(--u) * -3)) scale(0.94);
+  }
+  37.1%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pbo-grow {
+  0%,
+  23.4% {
+    transform: none;
+  }
+  27%,
+  31.2% {
+    transform: scaleX(0);
+  }
+  34.6%,
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes pbo-sel {
+  0%,
+  22% {
+    opacity: 1;
+    transform: translateX(calc(var(--pitch) * -1));
+  }
+  25.6%,
+  26.6% {
+    opacity: 0;
+    transform: translateX(calc(var(--pitch) * -1)) scale(0.9);
+  }
+  27%,
+  38.7% {
+    opacity: 0;
+    transform: translateX(calc(var(--pitch) * -2)) scale(0.9);
+  }
+  41.2% {
+    opacity: 1;
+    transform: translateX(calc(var(--pitch) * -2));
+  }
+  44.7% {
+    transform: translateX(calc(var(--pitch) * -1));
+  }
+  45.8% {
+    transform: translateX(calc(var(--pitch) * -1)) scale(0.9);
+  }
+  47.5%,
+  100% {
+    opacity: 1;
+    transform: translateX(calc(var(--pitch) * -1));
+  }
+}
+
+@keyframes pbo-slot {
+  0%,
+  22% {
+    transform: none;
+  }
+  27%,
+  45.5% {
+    transform: translateY(calc(var(--u) * -8.4));
+  }
+  51.3%,
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes pbo-join {
+  0%,
+  22% {
+    opacity: 1;
+    transform: none;
+  }
+  26.6% {
+    opacity: 0;
+    transform: translateX(calc(var(--u) * -3));
+  }
+  27%,
+  45.5% {
+    opacity: 0;
+    transform: translateY(calc(var(--u) * -6)) scale(1.08);
+  }
+  51.3%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pbo-back {
+  0%,
+  77.4% {
+    opacity: 1;
+    transform: none;
+  }
+  82.3%,
+  94.1% {
+    opacity: 0.4;
+    transform: translateY(calc(var(--u) * -0.8)) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pbo-draw {
+  0%,
+  22% {
+    stroke-dashoffset: 0;
+  }
+  27%,
+  51.3% {
+    stroke-dashoffset: 1.05;
+  }
+  56.4%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pbo-hub {
+  0%,
+  22% {
+    opacity: 1;
+    transform: none;
+  }
+  27%,
+  50.5% {
+    opacity: 0.45;
+    transform: scale(0.72);
+  }
+  53.9%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pbo-ping {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.75);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+@keyframes pbo-pop {
+  0%,
+  22% {
+    opacity: 1;
+    transform: none;
+  }
+  27%,
+  53.9% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+  57.2%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pbo-fly {
+  0%,
+  26.6% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  27%,
+  58% {
+    opacity: 0;
+    transform: translate(var(--fx), var(--fy)) scale(1.15) rotate(-10deg);
+  }
+  59.7% {
+    opacity: 1;
+  }
+  63% {
+    opacity: 1;
+    transform: none;
+  }
+  64.8%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+@keyframes pbo-lit {
+  0%,
+  22% {
+    opacity: 1;
+    transform: none;
+  }
+  25.6%,
+  62.7% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  64% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+  66.5%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Each ring lights as its item lands, but at the wind-back they all fold away at once. */
+@keyframes pbo-unlit {
+  0%,
+  22% {
+    scale: 1;
+  }
+  25%,
+  62% {
+    scale: 0;
+  }
+  62.5%,
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes pbo-front {
+  0%,
+  22% {
+    opacity: 1;
+    transform: none;
+  }
+  27%,
+  76.5% {
+    opacity: 0.45;
+    transform: translateY(calc(var(--u) * 2.4)) scale(0.95);
+  }
+  82.3%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pbo-cur {
+  0%,
+  22% {
+    opacity: 1;
+    transform: translate(var(--rx), var(--ry));
+  }
+  26.6% {
+    opacity: 0;
+    transform: translate(var(--rx), var(--ry));
+  }
+  27%,
+  79.9% {
+    opacity: 0;
+    transform: translate(calc(var(--u) * -9), calc(var(--u) * 12));
+  }
+  82.3% {
+    opacity: 1;
+  }
+  87.4% {
+    transform: translate(var(--cx), var(--cy));
+  }
+  88.6% {
+    transform: translate(var(--cx), var(--cy)) scale(0.8);
+  }
+  89.9% {
+    transform: translate(var(--cx), var(--cy));
+  }
+  98.3%,
+  100% {
+    opacity: 1;
+    transform: translate(var(--rx), var(--ry));
+  }
+}
+
+@keyframes pbo-flash {
+  0%,
+  87.8% {
+    opacity: 0;
+  }
+  89.1% {
+    opacity: 1;
+  }
+  97.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pbo-file {
+  0%,
+  22% {
+    opacity: 1;
+    transform: none;
+  }
+  26.6% {
+    opacity: 0;
+  }
+  27%,
+  89.9% {
+    opacity: 0;
+    transform: translateY(calc(var(--u) * 1.8));
+  }
+  94.1%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pbo-tick {
+  0%,
+  22% {
+    opacity: 1;
+    transform: none;
+  }
+  26.6% {
+    opacity: 0;
+  }
+  27%,
+  93.3% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  96.7%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The menu on a narrow card (the phone menu): bigger words, fewer of them, none under 9px. */
+@container ps (max-width: 480px) {
+  [data-product='assistant-bot'] .ps-scene {
+    --t: calc(var(--u) * 1.9);
+    --cw: max(calc(var(--u) * 15), 50px);
+    --pitch: calc(var(--cw) + var(--u) * 1.4);
+    --cx: calc(var(--u) * 30);
+    --cy: calc(var(--u) * 9);
+    --rx: calc(var(--u) * 58);
+    --ry: calc(var(--u) * 8.6);
+  }
+
+  [data-product='assistant-bot'] .pbo-chips {
+    top: calc(var(--u) * 3);
+    left: calc(var(--u) * 4);
+    gap: calc(var(--u) * 1.4);
+  }
+
+  [data-product='assistant-bot'] .pbo-chips .ps-chip,
+  [data-product='assistant-bot'] .pbo-sel {
+    width: var(--cw);
+    height: calc(var(--u) * 6);
+    font-size: max(9px, calc(var(--u) * 2.9));
+  }
+
+  [data-product='assistant-bot'] .pbo-sel {
+    margin-top: calc(var(--u) * -3);
+  }
+
+  [data-product='assistant-bot'] .pbo-chips .pbo-new {
+    width: auto;
+    margin-right: calc(var(--u) * 2.4);
+    padding: 0 calc(var(--u) * 2) 0 calc(var(--u) * 1.6);
+  }
+
+  [data-product='assistant-bot'] .pbo-new::after {
+    width: calc(var(--u) * 1.2);
+  }
+
+  [data-product='assistant-bot'] .pbo-roster {
+    top: calc(var(--u) * 11.6);
+    left: calc(var(--u) * 4);
+    width: calc(var(--u) * 40);
+    height: calc(var(--u) * 30);
+  }
+
+  [data-product='assistant-bot'] .pbo-roster .ps-bars,
+  [data-product='assistant-bot'] .pbo-node::after,
+  [data-product='assistant-bot'] .pbo-run {
+    display: none;
+  }
+
+  [data-product='assistant-bot'] .pbo-roster .pbo-bot {
+    top: calc(var(--u) * 10.6);
+    height: calc(var(--u) * 8.6);
+    padding: 0 calc(var(--u) * 1.8);
+  }
+
+  [data-product='assistant-bot'] .pbo-roster .pbo-bot:nth-child(2) {
+    top: calc(var(--u) * 1.4);
+  }
+
+  [data-product='assistant-bot'] .pbo-roster .pbo-bot:nth-child(3) {
+    top: calc(var(--u) * 19.8);
+  }
+
+  [data-product='assistant-bot'] .pbo-roster .pbo-orb {
+    width: calc(var(--u) * 5);
+  }
+
+  [data-product='assistant-bot'] .pbo-roster .pbo-bot b {
+    font-size: max(9px, calc(var(--u) * 3.1));
+  }
+
+  [data-product='assistant-bot'] .pbo-bot b::after {
+    width: calc(var(--u) * 1.1);
+    height: calc(var(--u) * 1.1);
+  }
+
+  [data-product='assistant-bot'] .pbo-map {
+    top: calc(var(--u) * 11.6);
+    left: calc(var(--u) * 49);
+    width: calc(var(--u) * 46);
+    height: calc(var(--u) * 30);
+  }
+
+  [data-product='assistant-bot'] .pbo-node {
+    width: calc(var(--u) * 7.4);
+  }
+
+  [data-product='assistant-bot'] .pbo-hub {
+    width: calc(var(--u) * 8);
+  }
+
+  [data-product='assistant-bot'] .pbo-tile {
+    width: calc(var(--u) * 6.6);
+  }
+
+  [data-product='assistant-bot'] .pbo-mac {
+    top: calc(var(--u) * 43.4);
+    left: calc(var(--u) * 12);
+    width: calc(var(--u) * 76);
+    height: calc(var(--u) * 15.4);
+  }
+
+  [data-product='assistant-bot'] .pbo-mac .ps-win-bar {
+    height: calc(var(--u) * 4.4);
+    font-size: max(9px, calc(var(--u) * 2.6));
+  }
+
+  [data-product='assistant-bot'] .pbo-mac .ps-win-bar .pbo-orb {
+    width: calc(var(--u) * 2.8);
+  }
+
+  [data-product='assistant-bot'] .pbo-mac .ps-file {
+    margin-top: calc(var(--u) * 1.4);
+    font-size: max(9.5px, calc(var(--u) * 3));
+  }
+
+  [data-product='assistant-bot'] .pbo-mac .ps-file-icon {
+    width: calc(var(--u) * 5);
+    height: calc(var(--u) * 5);
+  }
+
+  [data-product='assistant-bot'] .pbo-mac .ps-tick {
+    width: calc(var(--u) * 3.4);
+    height: calc(var(--u) * 3.4);
+  }
+
+  [data-product='assistant-bot'] .pbo-cur {
+    width: calc(var(--u) * 3.4);
+    height: calc(var(--u) * 4.6);
+  }
+}
+
+/* Hero: a wall of bots; the one in the middle is being made ----------------------------
+   Loop: 12-15% "+ New bot" is pressed; 15-22% its outline gives way; 16-32% the orb, the
+   role and the lines arrive; the live dots run a slow wave across the wall. */
+
+[data-product='assistant-bot'][data-cut='hero'] .ps-scene {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000000 14%, #000000 86%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000000 14%, #000000 86%, transparent);
+}
+
+[data-product='assistant-bot'][data-cut='hero'] .ps-scene::before {
+  animation-name: pbo-glow;
+}
+
+/* Two rows of six on a grid of half cards, the second row set half a card over, so the
+   ninth card sits dead centre. */
+
+[data-product='assistant-bot'] .pbo-wall {
+  --h: calc(var(--u) * 9.3);
+
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  grid-template-columns: repeat(13, var(--h));
+  row-gap: calc(var(--u) * 1.8);
+  translate: calc(-50% + var(--h) / 2) -50%;
+}
+
+[data-product='assistant-bot'] .pbo-wall .pbo-bot {
+  grid-column: span 2;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 1fr auto auto;
+  align-content: stretch;
+  gap: calc(var(--u) * 1);
+  height: calc(var(--u) * 13);
+  margin: 0 calc(var(--u) * 0.9);
+  padding: calc(var(--u) * 1.8);
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: calc(var(--u) * 1.6);
+  background: var(--pbo-wall-card);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.08);
+  animation: pbo-drift var(--ps-loop) ease-in-out infinite;
+}
+
+[data-product='assistant-bot'] .pbo-wall .pbo-bot:nth-child(7) {
+  grid-column: 2 / span 2;
+}
+
+[data-product='assistant-bot'] .pbo-wall .pbo-bot:nth-child(n + 7) {
+  animation-direction: reverse;
+}
+
+/* While the new one is made, the others step back. */
+
+[data-product='assistant-bot'] .pbo-wall .pbo-bot:not(:nth-child(9)) {
+  animation:
+    pbo-drift var(--ps-loop) ease-in-out infinite,
+    pbo-hush var(--ps-loop) var(--oi-ease) infinite;
+}
+
+[data-product='assistant-bot'] .pbo-wall .pbo-bot:not(:nth-child(9)):nth-child(n + 7) {
+  animation-direction: reverse, normal;
+}
+
+/* A slow sheen of light crosses the wall once a loop. */
+
+[data-product='assistant-bot'] .pbo-wall::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--u) * -30) 0;
+  background: linear-gradient(
+    100deg,
+    transparent 38%,
+    rgba(var(--oi-fg-rgb), calc(0.07 * var(--oi-halo-k))) 48%,
+    rgba(var(--oi-fg-rgb), calc(0.12 * var(--oi-halo-k))) 50%,
+    rgba(var(--oi-fg-rgb), calc(0.07 * var(--oi-halo-k))) 52%,
+    transparent 62%
+  );
+  opacity: 0;
+  pointer-events: none;
+  animation: pbo-sheen var(--ps-loop) ease-in-out infinite;
+}
+
+[data-product='assistant-bot'] .pbo-wall .pbo-orb {
+  grid-row: auto;
+  align-self: start;
+  width: calc(var(--u) * 4);
+}
+
+[data-product='assistant-bot'] .pbo-wall b {
+  font-size: calc(var(--t) * 1.8);
+}
+
+[data-product='assistant-bot'] .pbo-wall b::after {
+  position: absolute;
+  top: calc(var(--u) * 2.2);
+  right: calc(var(--u) * 2.2);
+  animation: pbo-wave calc(var(--ps-loop) / 2) ease-in-out infinite both;
+}
+
+[data-product='assistant-bot'] .pbo-wall .ps-bar:first-child {
+  width: 72%;
+}
+
+[data-product='assistant-bot'] .pbo-wall .ps-bar + .ps-bar {
+  width: 22%;
+}
+
+/* The wave of live dots runs left to right, column by column. */
+
+[data-product='assistant-bot'] .pbo-wall .pbo-bot:nth-child(6n + 2) b::after {
+  animation-delay: calc(var(--ps-loop) * 0.04);
+}
+
+[data-product='assistant-bot'] .pbo-wall .pbo-bot:nth-child(6n + 3) b::after {
+  animation-delay: calc(var(--ps-loop) * 0.08);
+}
+
+[data-product='assistant-bot'] .pbo-wall .pbo-bot:nth-child(6n + 4) b::after {
+  animation-delay: calc(var(--ps-loop) * 0.12);
+}
+
+[data-product='assistant-bot'] .pbo-wall .pbo-bot:nth-child(6n + 5) b::after {
+  animation-delay: calc(var(--ps-loop) * 0.16);
+}
+
+[data-product='assistant-bot'] .pbo-wall .pbo-bot:nth-child(6n) b::after {
+  animation-delay: calc(var(--ps-loop) * 0.2);
+}
+
+/* The one being made: a dashed "+ New bot" slot that is pressed and becomes a bot. */
+
+[data-product='assistant-bot'] .pbo-wall .pbo-bot:nth-child(9) {
+  z-index: 1;
+  scale: 1.04;
+  border-color: var(--oi-app-border-strong);
+  background: var(--pbo-wall-lead);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.18),
+    0 calc(var(--u) * 2) calc(var(--u) * 6)
+      rgba(var(--oi-shadow-rgb), calc(0.6 * var(--oi-shadow-k))),
+    0 0 calc(var(--u) * 6) rgba(var(--oi-fg-rgb), calc(0.08 * var(--oi-halo-k)));
+  animation:
+    pbo-drift var(--ps-loop) ease-in-out infinite reverse,
+    pbo-lift var(--ps-loop) var(--pbo-spring) infinite;
+}
+
+[data-product='assistant-bot'] .pbo-wall .pbo-bot:nth-child(9)::before {
+  content: var(--pbo-say-new, '+ New bot');
+  position: absolute;
+  inset: calc(var(--ps-line) * -1);
+  display: grid;
+  place-items: center;
+  border: var(--ps-line) dashed var(--oi-app-muted);
+  border-radius: inherit;
+  background: var(--pbo-ghost);
+  color: var(--oi-app-soft);
+  font-size: calc(var(--t) * 1.6);
+  opacity: 0;
+  animation: pbo-ghost var(--ps-loop) var(--oi-ease) infinite;
+}
+
+[data-product='assistant-bot'] .pbo-wall .pbo-bot:nth-child(9) .pbo-orb {
+  position: relative;
+  animation: pbo-born var(--ps-loop) var(--pbo-spring) infinite;
+}
+
+[data-product='assistant-bot'] .pbo-wall .pbo-bot:nth-child(9) .pbo-orb::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--u) * -0.6);
+  border: var(--ps-line) solid rgba(var(--oi-fg-rgb), 0.7);
+  border-radius: 50%;
+  opacity: 0;
+  animation: pbo-burst var(--ps-loop) ease-out infinite;
+}
+
+/* Opacity only on the name: a transform would carry its live dot along. */
+
+[data-product='assistant-bot'] .pbo-wall .pbo-bot:nth-child(9) b {
+  animation: pbo-in var(--ps-loop) var(--oi-ease) infinite;
+}
+
+/* Held on its first keyframe through the delay, so no line shows through the empty slot. */
+[data-product='assistant-bot'] .pbo-wall .pbo-bot:nth-child(9) .ps-bars {
+  transform-origin: left;
+  animation: pbo-up var(--ps-loop) var(--oi-ease) calc(var(--ps-loop) * 0.02) infinite both;
+}
+
+@keyframes pbo-glow {
+  0%,
+  12% {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
+  26% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  60% {
+    opacity: 0.8;
+    transform: none;
+  }
+  94%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
+}
+
+@keyframes pbo-drift {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: translateX(calc(var(--u) * -2.4));
+  }
+}
+
+@keyframes pbo-wave {
+  0%,
+  30%,
+  100% {
+    opacity: 0.35;
+    transform: none;
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1.6);
+  }
+}
+
+@keyframes pbo-ghost {
+  0%,
+  12% {
+    opacity: 1;
+    transform: none;
+  }
+  14.5% {
+    opacity: 1;
+    transform: scale(0.94);
+  }
+  22%,
+  93% {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pbo-born {
+  0%,
+  16% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  22% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  27%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pbo-burst {
+  0%,
+  19% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  21% {
+    opacity: 1;
+  }
+  34%,
+  100% {
+    opacity: 0;
+    transform: scale(3.4);
+  }
+}
+
+@keyframes pbo-in {
+  0%,
+  20% {
+    opacity: 0;
+  }
+  28%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pbo-lift {
+  0%,
+  12% {
+    scale: 1;
+  }
+  14.5% {
+    scale: 0.95;
+  }
+  24% {
+    scale: 1.08;
+  }
+  34%,
+  93% {
+    scale: 1.04;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes pbo-hush {
+  0%,
+  13% {
+    opacity: 1;
+  }
+  20%,
+  30% {
+    opacity: 0.55;
+  }
+  44%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pbo-sheen {
+  0%,
+  30% {
+    opacity: 0;
+    transform: translateX(-45%);
+  }
+  34% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 1;
+  }
+  66%,
+  100% {
+    opacity: 0;
+    transform: translateX(45%);
+  }
+}
+
+@keyframes pbo-up {
+  0%,
+  20% {
+    opacity: 0;
+    transform: translateY(calc(var(--u) * 1.2));
+  }
+  28%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@container ps (max-width: 480px) {
+  [data-product='assistant-bot'][data-cut='hero'] .ps-scene {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000000 7%, #000000 93%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000000 7%, #000000 93%, transparent);
+  }
+
+  [data-product='assistant-bot'] .pbo-wall {
+    --h: calc(var(--u) * 20);
+
+    row-gap: calc(var(--u) * 3);
+  }
+
+  [data-product='assistant-bot'] .pbo-wall .pbo-bot {
+    gap: calc(var(--u) * 1.4);
+    height: calc(var(--u) * 26);
+    margin: 0 calc(var(--u) * 1.4);
+    padding: calc(var(--u) * 3);
+    border-radius: calc(var(--u) * 3);
+  }
+
+  [data-product='assistant-bot'] .pbo-wall .pbo-orb {
+    width: calc(var(--u) * 7);
+  }
+
+  [data-product='assistant-bot'] .pbo-wall b {
+    font-size: calc(var(--u) * 4.2);
+  }
+
+  [data-product='assistant-bot'] .pbo-wall b::after {
+    top: calc(var(--u) * 3.6);
+    right: calc(var(--u) * 3.6);
+    width: calc(var(--u) * 1.4);
+    height: calc(var(--u) * 1.4);
+  }
+
+  [data-product='assistant-bot'] .pbo-wall .ps-bar {
+    height: calc(var(--u) * 1);
+  }
+
+  [data-product='assistant-bot'] .pbo-wall .pbo-bot:nth-child(9)::before {
+    font-size: calc(var(--u) * 3.8);
+  }
+}

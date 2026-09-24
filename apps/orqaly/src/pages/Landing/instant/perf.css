@@ -31,11 +31,10 @@
 
 @media (max-width: 900px), (hover: none) {
   /* Glass under a fixed bar re-blurs the whole page as it scrolls beneath. */
-  [data-landing-variant='instant'] .oi-bar[data-scrolled='true'],
-  [data-landing-variant='instant'] .oi-bar[data-open='true'] {
+  [data-landing-variant='instant'] .oi-bar[data-scrolled='true'] {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-    background: rgba(0, 0, 0, 0.94);
+    background: rgba(var(--oi-bg-rgb), 0.94);
   }
 
   /* Still light costs nothing; drifting light keeps a full-screen layer busy. The

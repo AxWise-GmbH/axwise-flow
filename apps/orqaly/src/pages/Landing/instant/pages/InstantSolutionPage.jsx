@@ -2,6 +2,7 @@ import { Component, Suspense, use, useEffect } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import InstantLayout from '../InstantLayout';
 import DownloadBlock from '../DownloadBlock';
+import { useT } from '../i18n/useT';
 import PageHero from './PageHero';
 import SolutionPage from './solutions/SolutionPage';
 import { loadSolution } from './solutions/data';
@@ -64,6 +65,7 @@ function Skeleton() {
 
 export default function InstantSolutionPage() {
   const { slug } = useParams();
+  const { t } = useT('sp');
   const entry = SOLUTIONS_MENU.find((item) => item.slug === slug);
 
   // A new page starts at its top; the router keeps the old scroll position otherwise.
@@ -73,17 +75,18 @@ export default function InstantSolutionPage() {
 
   if (!entry) return <Navigate to={solutionPath(SOLUTIONS_MENU[0].slug)} replace />;
 
+  const label = t(`solutions.${entry.slug}.label`, entry.label);
   return (
-    <InstantLayout title={`${entry.label} · Orqanix`}>
+    <InstantLayout title={t('sp.page.title', '{label} · Orqanix', { label })} translated>
       <BodyBoundary
         slug={slug}
         fallback={
           <>
             <PageHero
               id="instant-solution-heading"
-              tag={`Solutions · ${entry.label}`}
-              title={entry.label}
-              line="This page did not load. Please try again in a moment."
+              tag={t('sp.page.tag', 'Solutions · {label}', { label })}
+              title={label}
+              line={t('sp.page.failed', 'This page did not load. Please try again in a moment.')}
             />
             <DownloadBlock />
           </>

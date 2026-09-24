@@ -1,0 +1,469 @@
+{
+  "meta": {
+    "slug": "enterprise-terms",
+    "title": "Kurumsal Koşullar",
+    "summary": "Yapay zekâ alanında bir şey kurmak, işletmek veya danışmanlık almak için ajanlarımız ve uzmanlarımızla Orqanix’i görevlendiren işletmelere yönelik koşullar.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "İlk sürüm."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1).",
+        "Order / statement-of-work template does not exist yet. Every order must set scope, deliverables, timeline, price, acceptance criteria and testing period, hosting region, notice periods for monthly services and any third-party components (FACTS open point 12).",
+        "Third-party software: the automation tool used in builds is not named here because its commercial licence is still open (FACTS open point 12). No order may include it until that licence is settled.",
+        "Hosting region: the text says an EU Google Cloud region agreed per project and named in the order; the unapplied infrastructure template defaults to a different EU region than the site. Confirm per order.",
+        "Ownership: the text transfers rights in deliverables once paid, with an exclusive licence where rights cannot be transferred (for example under German copyright law). Lawyer to confirm under the chosen governing law.",
+        "AI Act roles: the customer is the deployer; it may become the provider if it puts a system into service under its own name. For high-risk uses the order must split duties. Lawyer to confirm (critique point 7).",
+        "Data Act: managed agent operations and hosting are likely data processing services; custom-built services may fall under the lighter rules of Data Act Art. 31. Lawyer to decide per offer; export must be done by hand (no export code).",
+        "Liability cap (fees paid or payable under the order in the 12 months before the event) and the EU liability wording are drafts for lawyer review.",
+        "US: HIPAA stance is 'no protected health information, no business associate agreements'. Owner to confirm, given the healthcare marketing (us.md must-have 7).",
+        "Late-payment interest is left to the law; payment periods are set per invoice or order.",
+        "Mailboxes: hello@ and privacy@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: every service, pricing model, process step, approval setting and hosting statement matches FACTS §8 and the Enterprise page. Role-based access and the agent record are page claims (FACTS §8); each order must confirm they are part of that build.",
+        "Legal review 2026-09-21: fixed an orphan sentence on third-party licences; AI literacy duty reworded to the softened AI Act Art. 4 (effort, not result; verify.md row 5); added the 30-day data-retrieval period (Data Act Art. 25(2)); US courts clause now states no arbitration and a small-claims option (owner decision); US warranty disclaimer shown as a highlighted note for conspicuousness (lawyer to confirm).",
+        "Data Act Art. 26 pre-contract information (switching procedure, data formats) must go into each order for managed services; no template exists yet.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026) covers software; the EU liability clause keeps mandatory product liability, lawyer to confirm the wording for deliverables that are software (verify.md, missed requirement 1).",
+        "FTC Health Breach Notification Rule and US state breach laws: the terms say no HIPAA data, but Enterprise marketing names healthcare; owner to decide whether healthcare builds are offered at all (verify.md, missed requirements 2-3)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Bu koşullar hakkında"
+    },
+    {
+      "type": "p",
+      "text": "Bu Kurumsal Koşullar, işletmeniz yapay zekâ alanında bir şey kurmak, işletmek veya danışmanlık almak için Orqanix’i görevlendirdiğinde uygulanır. Yapay zekâya hazırlık denetimleri, pilot projeler, otomatik iş birimleri, yeni yapay zekâ rolleri, özel bağlayıcılar, yönetilen ajan operasyonları ve ekip eğitimi gibi işleri kapsar."
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullar, [Hizmet Koşullarımıza](/instant/legal/terms) ve [Kabul Edilebilir Kullanım Politikamıza](/instant/legal/acceptable-use) ek niteliğindedir. Sizin adınıza kişisel verileri işlediğimizde [Veri İşleme Eki](/instant/legal/dpa) (“VİE”) de uygulanır ve bu koşulların bir parçasını oluşturur. İş, örneğin beyaz etiketli bir akıl yürütme API’si gibi Orqanix API’sini içerdiğinde, o kısım için [API Koşulları](/instant/legal/api-terms) da uygulanır."
+    },
+    {
+      "type": "p",
+      "text": "“Siz”, bizi görevlendiren işletme anlamına gelir. Bu koşulları kabul eden veya bir siparişi imzalayan kişi, o işletmeyi bağlamaya yetkili olduğunu teyit eder. “Biz”, Orqanix anlamına gelir."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix, bu koşulların ve her siparişin tarafı olan {company.legalName}, {company.address} tarafından işletilmektedir.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Kurumsal işler yalnızca işletmelere yöneliktir. Sizin adınıza bizimle çalışan herkes 18 yaşında veya daha büyük olmalıdır."
+    },
+    {
+      "type": "h2",
+      "id": "orders",
+      "text": "Siparişler"
+    },
+    {
+      "type": "p",
+      "text": "Her işi, iş başlamadan önce yazılı bir sipariş veya iş tanımında (bir “sipariş”) kararlaştırırız. Her sipariş şunları açıklar:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "kapsam: ne yapacağımız ve nelerin dahil olmadığı;",
+        "teslimatlar: size neyin teslim edileceği;",
+        "zaman çizelgesi ve varsa ara hedefler;",
+        "fiyat ve ücretlendirme şeklimiz: proje başına sabit fiyat, aylık ücret, sonuç başına ücret veya bunların bir karışımı;",
+        "kabul kriterleri ve test için ne kadar süreniz olduğu;",
+        "işin nerede barındırıldığı, hangi AB Google Cloud bölgesi olduğu dahil;",
+        "işin dayandığı üçüncü taraf yazılım veya hizmetler ve bunların koşulları."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Bir sipariş, ikimiz de imzaladığımızda veya yazılı olarak onayladığımızda ikimizi de bağlar. E-posta yeterlidir. Aynı anda birden fazla sipariş yürütülebilir ve her biri kendi başına geçerlidir."
+    },
+    {
+      "type": "p",
+      "text": "İşimiz genellikle keşif ve yazılı bir plandan (“taslak plan”) başlar; verilerinizle geliştirme ve devreye almayla devam eder; işletme ve iyileştirmeyle sürer. Sipariş, hangi adımları kapsadığını belirtir."
+    },
+    {
+      "type": "p",
+      "text": "Belgeler arasında çelişki olursa şu sırayla öncelik taşırlar: önce ilgili işin siparişi, ardından kişisel veriler için VİE, ardından bu koşullar, ardından Hizmet Koşulları."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-work",
+      "text": "Nasıl çalışırız"
+    },
+    {
+      "type": "p",
+      "text": "İşi, siparişte belirtildiği gibi yapay zekâ ajanlarımızla, uzmanlarımızla (mühendisler ve danışmanlar) veya her ikisiyle yaparız. Alt yükleniciler kullanabiliriz. Onların işinden sorumlu olmaya devam eder ve onları bizim taşıdığımız aynı gizlilik ve veri koruma yükümlülükleriyle bağlarız."
+    },
+    {
+      "type": "p",
+      "text": "Sizin için kurduğumuz ve işlettiğimiz ajanlar, sizin belirlediğiniz kurallar dahilinde çalışır: her işlem için onaylar (Bir Kez İzin Ver, Her Zaman İzin Ver veya Reddet), rol tabanlı erişim ve her ajanın ne yaptığının kaydı. Bu ayarları sizinle siparişte veya devreye almadan önce kararlaştırırız."
+    },
+    {
+      "type": "h2",
+      "id": "cooperation",
+      "text": "İş birliğiniz"
+    },
+    {
+      "type": "p",
+      "text": "Siz:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "işin gerektirdiği kişilere, sistemlere, verilere ve kararlara erişimi bize zamanında sağlarsınız;",
+        "kişisel veriler ve kendi sistemleriniz ile araçlarınızın lisansları dahil, bu verileri ve erişimi bize verme hakkına sahip olduğunuzdan emin olursunuz;",
+        "karar verebilecek bir irtibat kişisi belirlersiniz;",
+        "planları ve teslimatları gecikmeden incelersiniz;",
+        "üzerinde çalıştığımız sistemlerin ve verilerin kendi yedeklerini tutarsınız;",
+        "sektörünüze özgü kurallar gibi işi etkileyen kuralları bize bildirirsiniz."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Geç kalırsanız veya bize verdiğiniz bir şey hatalıysa ve bu bizi geciktirirse, zaman çizelgesi aynı süre kadar kayar. Bunun doğurduğu ek emek bir [değişiklik](#changes) olarak ele alınır."
+    },
+    {
+      "type": "h2",
+      "id": "acceptance",
+      "text": "Kabul"
+    },
+    {
+      "type": "p",
+      "text": "Bir siparişte kabul kriterleri belirlenmişse, bir teslimat hazır olduğunda size bildiririz. Siz de onu siparişte belirlenen süre içinde bu kriterlere göre test edersiniz. Kriterleri karşılıyorsa kabul edersiniz. Karşılamıyorsa, neyin eksik kaldığını bize yazılı olarak bildirirsiniz; biz de düzeltir ve yeniden sunarız."
+    },
+    {
+      "type": "p",
+      "text": "Bir teslimat; siz onu onayladığınızda, test süresi gerekçeli yazılı bir ret olmaksızın sona erdiğinde veya onu test dışında canlı işinizde kullanmaya başladığınızda kabul edilmiş sayılır. Kullanımını engellemeyen küçük kusurlar kabulü engellemez. Bunları [taahhütlerimiz](#warranties) kapsamında düzeltiriz."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Değişiklikler"
+    },
+    {
+      "type": "p",
+      "text": "Taraflardan her biri kapsamın değiştirilmesini isteyebilir. Değişikliğin zaman çizelgesini ve fiyatı nasıl etkilediğini size bildiririz. Bir değişiklik, ikimiz de yazılı olarak kabul ettiğimizde geçerli olur. O zamana kadar siparişin mevcut hâline göre çalışmaya devam ederiz."
+    },
+    {
+      "type": "h2",
+      "id": "fees",
+      "text": "Ücretler ve ödeme"
+    },
+    {
+      "type": "p",
+      "text": "Siparişte belirlenen ücretleri ödersiniz. Sonuç başına ücrette, neyin sonuç sayıldığını ve nasıl ölçüldüğünü sipariş tanımlar."
+    },
+    {
+      "type": "p",
+      "text": "Siparişte belirtildiği şekilde fatura keseriz. Sipariş veya faturada belirtilen süre içinde ödeme yaparsınız. Ücretlere KDV veya diğer vergiler dahil değildir; bunlar uygulandığı durumlarda tarafınızca ödenir. Masrafları yalnızca siparişin izin verdiği durumlarda yansıtırız."
+    },
+    {
+      "type": "p",
+      "text": "Bir faturanın bir kısmına itiraz ederseniz, bunu iyi niyetle bize bildirin ve kalanını ödeyin. Bir tutar hatırlatmadan sonra hâlâ ödenmemişse, ödenene kadar işi durdurabiliriz. Geç ödemelere kanunun izin verdiği ölçüde faiz uygulanır."
+    },
+    {
+      "type": "h2",
+      "id": "ownership",
+      "text": "Kim neye sahip"
+    },
+    {
+      "type": "h3",
+      "id": "your-material",
+      "text": "Sizin materyaliniz"
+    },
+    {
+      "type": "p",
+      "text": "Bize verdiğiniz veriler, içerikler, sistemler ve diğer materyaller üzerindeki tüm haklar sizde kalır. Bunları yalnızca işi yapmak için kullanmamıza izin verirsiniz."
+    },
+    {
+      "type": "h3",
+      "id": "deliverables",
+      "text": "Teslimatlar"
+    },
+    {
+      "type": "p",
+      "text": "Bir teslimatın bedelini tamamen ödediğinizde, sipariş kapsamında özellikle sizin için yaptığımız ajan kurulumları, iş akışları, bağlayıcılar, belgeler ve kod gibi şeylerin sahibi olursunuz. Bunlar üzerindeki haklarımızı size devrederiz. Kanunun bir hakkın devrine izin vermediği durumlarda, size başkalarına devredebileceğiniz münhasır, dünya çapında ve süresiz bir lisans veririz. Ödemeyi yapana kadar bir teslimatı inceleme ve test amacıyla kullanabilirsiniz."
+    },
+    {
+      "type": "h3",
+      "id": "our-material",
+      "text": "Bizim materyalimiz"
+    },
+    {
+      "type": "p",
+      "text": "Araçlarımız, platformumuz, yazılımımız, ajanlarımız, şablonlarımız, talimatlarımız, yöntemlerimiz ve teknik bilgimiz ile siparişten önce veya sipariş dışında yaptığımız her şey üzerindeki tüm haklar bizde kalır. Bizim materyalimiz bir teslimatın parçası olduğunda, ödeme yapıldıktan sonra onu o teslimatın parçası olarak kendi işiniz için kullanmak, kopyalamak ve değiştirmek üzere münhasır olmayan, dünya çapında ve süresiz bir lisans alırsınız. Bizim materyalimizi tek başına satamaz veya lisanslayamazsınız."
+    },
+    {
+      "type": "h3",
+      "id": "other-parts",
+      "text": "Hizmetler, üçüncü taraf bileşenler ve yapay zekâ çıktısı"
+    },
+    {
+      "type": "p",
+      "text": "Yönetilen ajan operasyonları veya barındırılan bir akıl yürütme API’si gibi sizin için işlettiğimiz bir şey, teslimat değil hizmettir. Ona erişiminiz sipariş süresince devam eder."
+    },
+    {
+      "type": "p",
+      "text": "Bir teslimatın üçüncü taraf ve açık kaynak bileşenleri kendi lisanslarına tabi kalır. Bir teslimatın hangilerini içerdiğini size bildiririz."
+    },
+    {
+      "type": "p",
+      "text": "Bir teslimatın bazı kısımları yapay zekâ tarafından yapılmış olabilir. Bazı ülkelerde, yeterli insan yaratıcı katkısı olmadan yapay zekâ tarafından yapılan materyal telif hakkıyla korunmaz. Var olan hakları size devrederiz, ancak herhangi bir hakkın var olduğunu taahhüt etmeyiz."
+    },
+    {
+      "type": "p",
+      "text": "Taraflardan her biri, diğerinin gizli bilgilerini kullanmadan, işten edindiği genel beceri ve deneyimi kullanmaya devam edebilir."
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "Gizlilik"
+    },
+    {
+      "type": "p",
+      "text": "Taraflardan her biri diğerinin gizli bilgilerini görecektir: gizli olarak işaretlenmiş veya makul olarak gizli olduğu anlaşılması gereken, kamuya açık olmayan bilgiler."
+    },
+    {
+      "type": "p",
+      "text": "Bunları alan taraf, bu bilgileri yalnızca iş için kullanır, makul özenle korur ve yalnızca ihtiyacı olan ve gizlilikle bağlı kişilerle paylaşır. Bu yükümlülük; kamuya açık olan, alan tarafça zaten bilinen, onun tarafından bağımsız olarak geliştirilen veya başka birinden hukuka uygun şekilde alınan bilgileri kapsamaz. Kanun açıklamayı gerektiriyorsa, alan taraf gerekeni açıklayabilir ve izin verilen durumlarda önce diğer tarafa bildirir. Sizi yalnızca izninizle müşterimiz olarak anarız."
+    },
+    {
+      "type": "h2",
+      "id": "data-protection",
+      "text": "Veriler ve barındırma"
+    },
+    {
+      "type": "p",
+      "text": "Sizin adınıza kişisel verileri işlediğimizde veri işleyeniniz oluruz: bu verileri yalnızca sizin talimatlarınız doğrultusunda işleriz ve VİE uygulanır. İrtibat kişileriniz ve faturalarınız gibi sizinle ilgili kendi kayıtlarımız için kendi adımıza hareket ederiz ve [Gizlilik Politikamız](/instant/legal/privacy) uygulanır."
+    },
+    {
+      "type": "p",
+      "text": "İşinizi, sizinle kararlaştırılan ve siparişte belirtilen bir AB Google Cloud bölgesinde barındırırız. Yapay zekâ modeli için Google Gemini gibi kullandığımız bazı sağlayıcılar verileri AB dışında işleyebilir. [Alt İşleyenler](/instant/legal/subprocessors) sayfası bunları listeler."
+    },
+    {
+      "type": "p",
+      "text": "Kendi yapay zekâ modellerimizi verilerinizle eğitmeyiz ve verilerinizi satmayız."
+    },
+    {
+      "type": "p",
+      "text": "Bize HIPAA kapsamındaki korunan sağlık bilgilerini vermeyin. İş ortağı sözleşmeleri (business associate agreements) imzalamayız.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "ai-act",
+      "text": "Yapay zekâ mevzuatı ve rolünüz"
+    },
+    {
+      "type": "p",
+      "text": "Kurduğumuz sistemlerin işletmenizde nasıl kullanılacağına siz karar verirsiniz. AB Yapay Zekâ Yasası kapsamında, sizin için kurduğumuz şeyin “uygulayıcısı” sizsiniz: yani bir yapay zekâ sistemini kendi yetkisi altında kullanan kuruluş. Bir sistemi kendi adınız altında hizmete sokarsanız, onun “sağlayıcısı” da olabilirsiniz."
+    },
+    {
+      "type": "p",
+      "text": "Bir sistemin işe alım ve çalışma hayatı, eğitim, kredi veya temel hizmetlere erişim gibi yüksek riskli bir alanda kullanılma ihtimali varsa, iş başlamadan önce bize bildirin. Bu durumda sipariş kimin neyi yapacağını belirler. Bu kullanımlar için uygulayıcı yükümlülükleriniz 2 Aralık 2027’den itibaren geçerlidir (AI Act Art. 26 ve Annex III). Bunlar arasında insan gözetimi, sistemin talimatlara uygun kullanılması, işleyişinin izlenmesi ve kayıtlarının saklanması yer alır."
+    },
+    {
+      "type": "p",
+      "text": "Kanunun gerektirdiği durumlarda, işlettiğiniz bir sistemle muhatap olan kişilerin bir yapay zekâ ile muhatap olduklarını bilmelerini sağlarsınız ve sistemi kullanan çalışanlarınız arasında yapay zekâ okuryazarlığını geliştirmek için adımlar atarsınız (AI Act Art. 4 ve 50). Ekip eğitimimiz yardımcı olabilir, ancak bu yükümlülükler sizde kalır."
+    },
+    {
+      "type": "p",
+      "text": "Önemli sonuçlar doğuran kararlarda yapay zekâya ilişkin ABD eyalet kanunları, bu kararları veren işletme olarak size uygulanır. Örneğin Colorado’nun kanunu 1 Ocak 2027’de yürürlüğe girer.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "results",
+      "text": "İş sonuçları"
+    },
+    {
+      "type": "p",
+      "text": "Siparişte belirlenen hedeflere yönelik çalışırız. Ancak iş sonuçları; kontrolümüzde olmayan verilerinize, çalışanlarınıza, süreçlerinize ve pazarlarınıza bağlıdır. Sipariş açıkça aksini belirtmedikçe tasarruf, gelir veya başka herhangi bir iş sonucunu garanti etmeyiz. Sonuç başına ücret, işi fiyatlandırmanın bir yoludur; bir sonuca ulaşılacağı taahhüdü değildir."
+    },
+    {
+      "type": "p",
+      "text": "Yapay zekâ çıktısı hatalı olabilir ve ajanlar hata yapabilir. Önemli kararlarda insan incelemesini sürdürün ve riske uygun onay ayarlarını seçin. [Yapay Zekâmız Nasıl Çalışır](/instant/legal/ai) sayfası daha fazlasını açıklar."
+    },
+    {
+      "type": "h2",
+      "id": "warranties",
+      "text": "Taahhütlerimiz"
+    },
+    {
+      "type": "p",
+      "text": "İşi, uygun niteliklere sahip kişilerle, makul beceri ve özenle yapmayı taahhüt ederiz. Ayrıca her teslimatın, kabul edildiğinde, tüm önemli yönleriyle siparişe uygun olacağını taahhüt ederiz."
+    },
+    {
+      "type": "p",
+      "text": "Bir teslimat bu taahhüdü karşılamıyorsa, bunu bize yazılı olarak bildirin. Onu düzeltir veya işi yeniden yaparız. Bunu makul bir süre içinde yapamazsak, siparişin o kısmını sona erdirebilir ve o kısım için ödediğiniz ücretleri geri alabilirsiniz."
+    },
+    {
+      "type": "note",
+      "text": "Taahhüdümüzü karşılamayan bir teslimat için tek çareniz budur. Bu koşullardaki ve siparişteki taahhütler dışında ve kanunun izin verdiği ölçüde; satılabilirlik, belirli bir amaca uygunluk ve hak ihlali olmaması garantileri dahil olmak üzere, açık veya zımni başka hiçbir garanti vermeyiz.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Kusurlara ilişkin yasal haklarınız geçerliliğini korur, ancak önce bize kusuru düzeltmemiz için makul bir fırsat vermelisiniz.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Sorumluluk",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Kanunun izin verdiği ölçüde, taraflardan hiçbiri dolaylı, arızi, özel, sonuç olarak doğan veya cezai tazminatlardan ya da kâr, gelir, veri veya itibar kayıplarından sorumlu değildir.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Her tarafın bir sipariş kapsamındaki toplam sorumluluğu, talebe yol açan olaydan önceki 12 ay içinde o sipariş kapsamında ödenen ve ödenmesi gereken ücretlerle sınırlıdır.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Bu sınırlar; ücret ödeme yükümlülüğünüze, gizlilik ihlaline, hileye veya kanunun sınırlandırılmasına izin vermediği sorumluluğa uygulanmaz.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Sorumluluk",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Kasten veya ağır ihmalle verdiğimiz zararlardan, hayata, vücuda veya sağlığa verilen zararlardan ve emredici ürün sorumluluğu mevzuatı kapsamında tam olarak sorumluyuz.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Hafif ihmal durumunda yalnızca esaslı bir yükümlülüğü ihlal ettiğimizde sorumluyuz: yani siparişin gereği gibi ifasını mümkün kılan ve sizin düzenli olarak güvenebileceğiniz bir yükümlülük. O durumda bile yalnızca bu tür bir sözleşme için tipik ve öngörülebilir olan zarardan ve toplamda talebe yol açan olaydan önceki 12 ay içinde o sipariş kapsamında ödenen ve ödenmesi gereken ücretleri aşmayacak şekilde sorumluyuz. Bunun dışında hafif ihmalden doğan sorumluluğumuz hariç tutulmuştur.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Bize verdiğiniz materyalden veya bu koşulları ihlal etmenizden doğan üçüncü kişi taleplerine ve bunlarla ilgilenmenin makul masraflarına karşı bizi tazmin edersiniz. Böyle bir talebi size gecikmeden bildirir ve sürecin yürütülmesine katılmanıza izin veririz."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Süre ve sona erme"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullar ilk siparişinizden son siparişiniz sona erene kadar uygulanır. Her sipariş, belirttiği süre boyunca devam eder. Aylık hizmetler, taraflardan biri siparişte belirlenen bildirim süresiyle sona erdirene kadar aydan aya devam eder."
+    },
+    {
+      "type": "p",
+      "text": "Taraflardan biri siparişi ciddi şekilde ihlal eder ve kendisine bildirildikten sonra makul bir süre içinde ihlali gidermezse veya aciz hâline düşerse, diğer taraf siparişi yazılı olarak derhâl sona erdirebilir. Siparişin izin verdiği durumlarda siparişi erken de sona erdirebilirsiniz."
+    },
+    {
+      "type": "p",
+      "text": "Bir sipariş sona erdiğinde, o tarihe kadar yapılan işin ve erken sona erdirdiyseniz iptal edemediğimiz masrafların bedelini ödersiniz. Verilerinizi ve bedelini ödediğiniz teslimatları size teslim eder, sizin için işlettiğimiz hizmetleri durdurur ve kişisel verileri VİE’de belirtildiği şekilde ele alırız. Bu koşulların mülkiyet, gizlilik, sorumluluk ve uygulanacak hukuk gibi doğası gereği devam etmesi gereken kısımları uygulanmaya devam eder."
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "Sağlayıcı değiştirme",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Sizin için yönetilen ajan operasyonları veya barındırma gibi bir veri işleme hizmeti işlettiğimizde, AB Veri Yasası size başka bir sağlayıcıya veya kendi sistemlerinize geçme hakkı tanır (Data Act Art. 23-31). Bu hizmetler için:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Bize yazılı olarak bildirerek bir geçiş başlatabilir veya hizmeti sona erdirip verilerinizi alabilirsiniz. Bildirim süresi en fazla iki aydır ve daha kısa bir süre seçebilirsiniz.",
+        "Verilerinizi ve sizin için yaptığımız, hak sahibi olduğunuz dijital varlıkları yaygın, makinece okunabilir bir formatta size veririz.",
+        "Geçiş süreci en fazla 30 gün sürer. Bu teknik olarak mümkün değilse, Veri Yasası’nın izin verdiği sınırlar içinde nedenini ve ne kadar süreye ihtiyacımız olduğunu size bildiririz.",
+        "Geçiş süreci boyunca hizmeti kararlaştırıldığı şekilde çalıştırmaya devam eder ve size ve yeni sağlayıcınıza iyi niyetle yardımcı oluruz.",
+        "Geçiş süreci sona erdikten sonra verilerinizi geri almak için en az 30 gün daha süreniz olur.",
+        "Geçiş tamamlandığında verilerinizi VİE’de belirtildiği şekilde sileriz.",
+        "12 Ocak 2027’ye kadar yalnızca bir geçişin doğrudan maliyetlerini ve yalnızca siparişte listelenmişlerse talep edebiliriz. 12 Ocak 2027’den itibaren geçiş için hiçbir ücret almayız."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Bir hizmet size özel olarak geliştirildiğinde, bu kuralların bazıları yalnızca kısmen uygulanabilir (Data Act Art. 31). Bu durumda hangilerinin uygulandığını sipariş belirtir ve bunu imzalamadan önce size bildiririz.",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "Konum ve kamu makamlarının erişimi",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "İşinizi siparişte belirtilen AB Google Cloud bölgesinde barındırırız. [Alt İşleyenler](/instant/legal/subprocessors) sayfası her sağlayıcıyı ve nerede çalıştığını listeler (Data Act Art. 28).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "AB dışındaki bir hükûmet bizden kişisel olmayan verilerinizi talep ederse, bunları yalnızca AB veya üye devlet hukukunun izin verdiği durumlarda teslim ederiz. Kanun yasaklamadıkça önce size bildiririz (Data Act Art. 32).",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "Uygulanacak hukuk ve uyuşmazlıklar"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullar ve her sipariş, kanunlar ihtilafı kuralları hariç olmak üzere {company.law} hukukuna tabidir. Kanun başka bir mahkemeyi gerektirmedikçe uyuşmazlıkları {company.law} mahkemeleri çözer.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Taraflardan herhangi biri mahkemeye başvurmadan önce, irtibat kişilerimiz meseleyi iyi niyetle çözmeye çalışır. {company.email} adresine yazın ve sorunu açıklayın."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Bu koşullar tahkim şartı içermez. Talep uygun olduğu takdirde taraflardan her biri küçük talepler mahkemesine (small-claims court) başvurabilir."
+    },
+    {
+      "type": "p",
+      "text": "ABD veya AB yaptırım listesinde bulunmadığınızı ya da ABD veya AB ambargosu altındaki bir ülkede yerleşik olmadığınızı teyit edersiniz. Taraflardan hiçbiri işi ABD veya AB yaptırımlarını ya da ihracat kurallarını ihlal edecek şekilde kullanmaz."
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Genel"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Bu koşulları güncelleyebiliriz. Daha önce kararlaştırılmış bir sipariş, ikimiz aksini kararlaştırmadıkça, kararlaştırıldığı sırada geçerli olan koşullara tabi kalır.",
+        "Taraflardan hiçbiri, ilgili işi devralan bir şirkete devir hâli dışında, diğerinin yazılı onayı olmadan bu koşulları veya bir siparişi devredemez.",
+        "Taraflardan hiçbiri makul kontrolü dışındaki olayların neden olduğu gecikmelerden sorumlu değildir.",
+        "Bu koşulların bir kısmı geçersizse, geri kalanı uygulanmaya devam eder.",
+        "Bize yapılacak bildirimler {company.email} adresine gönderilir. Size yapılacak bildirimler siparişte belirtilen irtibat kişisine gönderilir."
+      ]
+    }
+  ]
+}

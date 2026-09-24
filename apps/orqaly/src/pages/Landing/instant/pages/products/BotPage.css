@@ -1,0 +1,361 @@
+/*
+ * Assistant Bot page (class prefix pbo-; the scene's parts live in scenes/bot.css).
+ * A centred title over a wide wall of bots, two bands that swap sides, a pair of half
+ * cards, one wide picture, four cards of what a bot does, then the questions (the home
+ * FAQ's classes, from sections.css). Every picture and card sits in the shared graphite.
+ * Words: headings in ink, every paragraph muted, no line longer than about 62ch.
+ * The scene's own parts are styled in scenes/bot.css and scenes/bot-page.css; rules here
+ * reach only the page's own elements (direct children, own classes), never into a scene.
+ */
+
+/* Every card on the page sits in the shared graphite. */
+.pbo-stage,
+.pbo-half,
+.pbo-card {
+  border: 1px solid var(--oi-app-edge);
+  border-radius: var(--oi-radius-card);
+  background: var(--oi-app-surface), var(--oi-page);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
+}
+
+/* A card holding one cut of the scene. The cut sets its shape. */
+.pbo-stage {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+
+.pbo-stage[data-cut='hero'] {
+  aspect-ratio: 2.6;
+}
+
+.pbo-stage[data-cut='control'] {
+  aspect-ratio: 2;
+}
+
+/* Hero ------------------------------------------------------------------------------ */
+
+.pbo-hero {
+  position: relative;
+  padding-block: clamp(112px, 16vh, 168px) var(--oi-s4);
+  overflow: clip;
+  text-align: center;
+}
+
+/* One still pool of light behind the wall. */
+.pbo-hero::before {
+  content: '';
+  position: absolute;
+  bottom: -18%;
+  left: 50%;
+  width: min(120vw, 1400px);
+  aspect-ratio: 2;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-glow-rgb), calc(0.3 * var(--oi-halo-k))),
+    rgba(var(--oi-deep-rgb), calc(0.12 * var(--oi-halo-k))) 50%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+.pbo-hero .oi-container {
+  position: relative;
+}
+
+.pbo-hero .oi-container > * {
+  animation: pbo-enter 1100ms var(--oi-ease) backwards;
+}
+
+.pbo-title {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: clamp(3.1rem, 9.4vw, 8rem);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+  text-wrap: balance;
+}
+
+.pbo-lede {
+  max-width: 46ch;
+  margin: 28px auto 0;
+  color: var(--oi-muted);
+  font-size: clamp(1.05rem, 1.6vw, 1.3rem);
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  animation-delay: 130ms;
+}
+
+/* The primary pill, as in the bar. */
+.pbo-cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  margin-top: 34px;
+  padding: 0 28px;
+  border-radius: var(--oi-radius-pill);
+  background: var(--oi-ink);
+  color: var(--oi-page);
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  transition:
+    background-color 300ms ease,
+    box-shadow 400ms ease;
+  animation-delay: 260ms;
+}
+
+.pbo-cta:hover {
+  background: rgb(var(--oi-fg-rgb));
+  box-shadow: 0 0 36px rgba(var(--oi-accent-rgb), calc(0.5 * var(--oi-halo-k)));
+}
+
+.pbo-cta:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 4px;
+}
+
+.pbo-hero .pbo-stage {
+  margin-top: clamp(48px, 8vh, 80px);
+  animation-duration: 1500ms;
+  animation-delay: 380ms;
+}
+
+/* Bands: words on one side, the picture on the other; the second band swaps. ---------- */
+
+.pbo-band {
+  padding-block: clamp(72px, 11vw, 128px);
+}
+
+.pbo-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: clamp(32px, 6vw, 96px);
+  align-items: center;
+}
+
+.pbo-band[data-cut='map'] .pbo-grid {
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+}
+
+.pbo-band[data-cut='map'] .pbo-copy {
+  order: 1;
+}
+
+.pbo-line {
+  max-width: 44ch;
+  margin: 24px 0 0;
+  color: var(--oi-muted);
+  font-size: clamp(1rem, 1.3vw, 1.125rem);
+  line-height: 1.65;
+  letter-spacing: -0.005em;
+  text-wrap: pretty;
+}
+
+/* The last band: the words centred over one wide picture. */
+.pbo-band[data-cut='control'] .pbo-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--oi-s4);
+  text-align: center;
+}
+
+/* On the narrowest phones the title breaks as a pair, not with one word left over. */
+.pbo-band[data-cut='control'] .oi-h2 {
+  text-wrap: balance;
+}
+
+.pbo-band[data-cut='control'] .pbo-line {
+  max-width: 62ch;
+  margin-inline: auto;
+  text-wrap: balance;
+}
+
+/* The pair: two half cards, the picture above its title. ------------------------------ */
+
+.pbo-pair {
+  padding-block: clamp(24px, 4vw, 48px);
+}
+
+.pbo-duo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--oi-s2);
+}
+
+.pbo-half {
+  overflow: hidden;
+}
+
+.pbo-half .pbo-stage {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.pbo-h,
+.pbo-half > p {
+  max-width: 22ch;
+  margin: 0;
+  padding-inline: clamp(20px, 3vw, 32px);
+}
+
+.pbo-h {
+  color: var(--oi-ink);
+  font-size: clamp(1.3rem, 2.1vw, 1.8rem);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.pbo-half > p {
+  max-width: 40ch;
+  padding-block: 12px clamp(24px, 3vw, 32px);
+  color: var(--oi-muted);
+  font-size: 1rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+/* What a bot can do: four graphite cards, the icon on top, the words at the foot. ------- */
+
+.pbo-can {
+  padding-block: clamp(72px, 9vw, 112px) clamp(24px, 4vw, 48px);
+}
+
+.pbo-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--oi-s2);
+  margin: var(--oi-s4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pbo-card {
+  --pbo-pad: 28px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 240px;
+  padding: var(--pbo-pad);
+  box-sizing: border-box;
+}
+
+/* The kit's line icon in a hairline ring: the ring's edge lines up with the words. */
+.pbo-card::before {
+  content: '';
+  position: absolute;
+  top: var(--pbo-pad);
+  left: var(--pbo-pad);
+  width: 44px;
+  height: 44px;
+  box-sizing: border-box;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 50%;
+  background: rgba(var(--oi-fg-rgb), 0.04);
+}
+
+.pbo-card .ps-icon {
+  width: 20px;
+  height: 20px;
+  margin: 12px;
+  color: var(--oi-ink);
+}
+
+.pbo-card h3 {
+  margin: auto 0 0;
+  padding-top: 36px;
+  color: var(--oi-ink);
+  font-size: 1.15rem;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.pbo-card p {
+  margin: 10px 0 0;
+  color: var(--oi-muted);
+  font-size: 0.98rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+/* Named apart from every scene keyframe: @keyframes names are global. */
+@keyframes pbo-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0);
+  }
+}
+
+@media (max-width: 1080px) {
+  .pbo-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pbo-card {
+    min-height: 200px;
+  }
+}
+
+@media (max-width: 900px) {
+  .pbo-grid,
+  .pbo-band[data-cut='map'] .pbo-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 36px;
+  }
+
+  .pbo-band[data-cut='map'] .pbo-copy {
+    order: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .pbo-duo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .pbo-cards {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .pbo-card {
+    --pbo-pad: 24px;
+    min-height: 0;
+  }
+
+  .pbo-card h3 {
+    padding-top: 24px;
+  }
+}
+
+/* A phone: the wide pictures get taller so their parts can grow. */
+@media (max-width: 528px) {
+  .pbo-hero {
+    padding-block: 104px 32px;
+  }
+
+  .pbo-stage[data-cut='hero'] {
+    aspect-ratio: 4 / 3;
+  }
+
+  .pbo-stage[data-cut='control'] {
+    aspect-ratio: 5 / 4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pbo-hero .oi-container > * {
+    animation: none;
+  }
+}
