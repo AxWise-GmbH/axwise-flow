@@ -21,10 +21,8 @@ export function clerkBrowserOptionsFromEnvironment(environment = {}) {
     if (apiUrl.origin !== environment.VITE_ORQALY_API_URL) {
       throw new Error('VITE_ORQALY_API_URL must be an exact HTTPS origin');
     }
-    if (target === 'production'
-      && apiUrl.origin === 'https://orqaly-v2-api-preview-161074549006.europe-west4.run.app') {
-      throw new Error('Production Clerk cannot use the existing preview API');
-    }
+    // A service can be promoted without renaming its historical Cloud Run URL.
+    // The explicit API environment, not its hostname, is the deployment contract.
   }
 
   return { publishableKey };

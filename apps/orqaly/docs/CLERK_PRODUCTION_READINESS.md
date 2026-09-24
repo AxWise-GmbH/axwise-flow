@@ -1,114 +1,125 @@
-# Orqanix Clerk environments and production readiness
+# Orqanix single-production Clerk cutover
 
-This code adds explicit configuration and failure checks. It does **not** create
-or switch live Clerk instances, DNS records, API services, secrets, accounts or
-desktop OAuth clients. The released desktop remains on its existing development
-issuer and preview API until a separately tested desktop cutover.
+The owner selected one production login environment, not parallel preview and
+production deployments. `orqanix.com` is the canonical website and the existing
+Clerk application's primary production domain. `/login` and `/signup` keep their
+local Clerk forms; no AxWise login hop or paid satellite domain is needed.
 
-The agreed direction is to make Orqanix the existing Clerk application's primary
-production domain, not to add a paid satellite or introduce a second login hop
-through AxWise. `/login` and `/signup` retain their existing local Clerk forms.
+The existing Cloud Run services, project and secret names may retain `preview`
+in their names when promoted in place. A resource's historical name does not
+select its identity environment. Configuration, credentials and the tested
+desktop OAuth contract do. This document is a cutover checklist, not proof that
+a particular image or configuration has already been deployed.
 
-## Identity boundaries
+## Identity and data boundaries
 
-- Preview currently uses the existing AxWise Development instance
-  `ins_2vHl8PVNUNRJVv23OVqAcYOkVRK` and `pk_test_` / `sk_test_` keys. Renaming
-  application branding must not silently change the released desktop's issuer.
 - Production uses `pk_live_` / `sk_live_` keys from the existing Production
-  instance, after its primary domain has been migrated to Orqanix. Obtain the
-  current publishable key after changing the domain; do not keep a key that
-  encodes the former `clerk.axwise.de` Frontend API.
-- One API service verifies one instance. Never mount both key sets or select keys
-  from the request hostname or an unverified token. Clerk user IDs and local
-  application identity/data remain environment-specific.
-- For a preview/development and production split, use separate web and API
-  services with their own secrets, browser-origin allowlists and application data.
-  Do not replace the preview API's key with a live key while released desktops
-  still use its development OAuth client.
+  instance `ins_2wVQ9PHCQaHJWny0hOGReocAGV9`, with
+  `https://clerk.orqanix.com` as the Frontend API. Obtain the current publishable
+  key after changing the primary domain; do not reuse a key encoding
+  `clerk.axwise.de`.
+- One API verifies one Clerk instance. Never mount both key sets or choose keys
+  from a request hostname or an unverified token.
+- Development remains a separate Clerk instance,
+  `ins_2vHl8PVNUNRJVv23OVqAcYOkVRK`. Retiring its public website is not permission
+  to delete its accounts, application records, secrets or infrastructure.
+- Changing `ORQALY_ENVIRONMENT` does not migrate application identities or
+  history. Clerk user IDs and application identity bindings are
+  environment-specific. Preserve existing data; any desired account/history
+  mapping needs a separate explicit migration and verification.
+- Old desktop releases pin the development issuer and OAuth client. They do not
+  automatically switch when the website or API is promoted. Publish a matching
+  production desktop and expect a fresh sign-in; do not claim old sessions will
+  survive the cutover.
 
 ## Browser build inputs
 
-| Variable | Preview | Production |
-| --- | --- | --- |
-| `VITE_CLERK_ENVIRONMENT` | `preview` | `production` |
-| `VITE_CLERK_PUBLISHABLE_KEY` | Development publishable key | Migrated Production publishable key |
-| `VITE_ORQALY_API_ENVIRONMENT` | `preview` | `production` |
-| `VITE_ORQALY_API_URL` | Existing preview API HTTPS origin | Separately configured production API HTTPS origin |
+| Variable | Production value |
+| --- | --- |
+| `VITE_CLERK_ENVIRONMENT` | `production` |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Migrated Production publishable key (`pk_live_`) |
+| `VITE_ORQALY_API_ENVIRONMENT` | `production` |
+| `VITE_ORQALY_API_URL` | Exact HTTPS origin of the promoted API |
 
-The two environment declarations must match. Prefix checks reject test keys in a
-production build and live keys in a preview build. The existing preview API URL is
-explicitly rejected in production. These checks cannot discover the actual issuer
-behind an arbitrary API URL: verify that the selected live API uses the intended
-Clerk instance before changing traffic.
+Both environment declarations must match. Prefix checks still reject test keys
+in production and live keys in a declared preview build. A production build can
+use the existing `https://orqaly-v2-api-preview-161074549006.europe-west4.run.app`
+origin after that service is deliberately promoted. Hostname text cannot prove
+the actual issuer behind an API: verify the selected service's runtime identity
+configuration and real authentication before switching traffic.
 
 The Docker build runs the same browser-safe validation before Vite compilation.
-Direct local Vite entrypoints validate when the application starts. Legacy local
-builds without an explicit environment remain compatible; new releases should
-declare it. No key is chosen automatically from the browser hostname.
+Direct local Vite entrypoints validate at startup. Legacy local builds without
+an explicit environment remain compatible; all new releases should declare it.
+No key is selected automatically from the browser hostname.
 
-Cloud Build keeps the existing preview defaults. To build production, override
-`_CLERK_ENVIRONMENT`, `_ORQALY_API_ENVIRONMENT`, `_CLERK_PUBLISHABLE_KEY_SECRET`,
-`_CLERK_PUBLISHABLE_KEY_VERSION` and `_ORQALY_API_URL` together. The secret value
-remains in Secret Manager; only the public key is included in browser assets. A
-matching prefix does not establish that two keys belong to the same Clerk
-application; verify their instance in Clerk and test real authentication.
+Cloud Build retains historical preview defaults for compatibility. Production
+builds must override `_CLERK_ENVIRONMENT`, `_ORQALY_API_ENVIRONMENT`,
+`_CLERK_PUBLISHABLE_KEY_SECRET`, `_CLERK_PUBLISHABLE_KEY_VERSION` and
+`_ORQALY_API_URL` together. Secret keys stay server-side; only the public key
+belongs in browser assets. Matching key prefixes do not prove the keys belong
+to the same instance, so verify the instance in Clerk.
 
-## API inputs
+## API, worker and desktop cutover
 
-Set `ORQALY_ENVIRONMENT=production`, both production Clerk keys and explicit
-`ORQALY_BROWSER_ORIGINS=https://orqanix.com` on the production API. This existing
-allowlist controls both CORS and Clerk browser `authorizedParties`. Add only other
-actual intended production browser origins. Preview retains its configured
-origins during the transition; the code does not silently modify its deployed
-allowlist.
+1. Record the current service revisions, non-secret configuration, secret
+   version references and desktop OAuth contract for rollback. Preserve the
+   database and prior secret versions; promotion is not a cleanup operation.
+2. Confirm the primary domain's DNS and certificates are ready in Clerk. The
+   publishable key must refer to the new Frontend API. Confirm production OAuth
+   provider callbacks and a production native OAuth application with the
+   desktop's exact redirect URI, public-client/PKCE behavior and scopes.
+3. Set `ORQALY_ENVIRONMENT=production`, both production Clerk keys and
+   `ORQALY_BROWSER_ORIGINS=https://orqanix.com` on the promoted API. Add only other
+   intentional production browser origins. This allowlist controls both CORS
+   and Clerk browser `authorizedParties`; native OAuth tokens use the exact
+   configured client and scopes instead.
+4. Disable `ORQALY_AGENT_EVALUATION_ENABLED` before promoting the API: the
+   evaluation feature explicitly rejects production. Do not blindly clone the
+   whole old environment or remove required service configuration merely
+   because the desktop no longer uses remote workflow routing.
+5. Coordinate any workflow worker configuration with the API. The current
+   shared database outbox claimant is not environment-filtered, so do not run
+   competing preview and production workers as if they were isolated. Inspect
+   pending work and preserve historical rows; neither changing worker settings
+   nor retiring a hostname is a migration of existing jobs.
+6. Rebuild the desktop with the production issuer, production OAuth client and
+   promoted API origin as one matching contract. Increment the app version and
+   verify fresh native sign-in and an authenticated model call. Existing local
+   chats/artifacts are not deliberately deleted by this configuration change.
+7. Build and deploy the website using the matching production inputs. Test
+   fresh-browser sign-up/sign-in, an existing production account, sign-out,
+   authenticated API access, deep-link returns, CORS and denied external return
+   URLs. Website sign-in alone does not validate desktop sign-in.
 
-Declared preview/production services fail startup on mismatched/missing key
-prefixes. Browser auth requires explicit HTTPS origins. Desktop OAuth still
-validates the single configured Clerk instance, its exact OAuth client and scope;
-browser `authorizedParties` are not applied to native OAuth tokens.
+Declared preview/production API services fail startup on missing or mismatched
+key prefixes. Browser origins must be explicit HTTPS origins. These guards are
+retained during promotion.
 
-## Required primary-domain migration before production activation
+## Canonical website and retained infrastructure
 
-1. Inspect the existing Production application and record its current domain,
-   key references, OAuth callbacks and branding before changing them. Other apps
-   using that Production instance are affected by a primary-domain change.
-2. Change the primary domain to `orqanix.com` through Clerk's supported domain
-   migration. Add exactly the DNS records Clerk supplies, including the required
-   Frontend API/Account Portal/email records. Do not guess CNAME targets. Confirm
-   DNS and certificates are ready in Clerk before switching website traffic.
-3. Update the public/secret key references for the production API and web build
-   as appropriate, including OAuth provider callback configuration. Confirm the
-   publishable key points to the new primary Frontend API.
-4. Test fresh-browser sign-up/sign-in, existing accounts, return to an Orqanix
-   deep link, sign-out, denied external return URLs, authenticated API access and
-   browser CORS. Verify preview desktop sign-in still works before publishing.
-5. Only a separately rebuilt desktop with matching Production OAuth issuer,
-   OAuth client and API URL should move to Production. Website authentication
-   alone does not migrate an already-installed desktop.
+The web image redirects only `preview.orqanix.com` to
+`https://orqanix.com$request_uri` with HTTP 308, preserving the escaped path and
+query string. The default Cloud Run host and its health probes still reach the
+normal SPA server. Keeping the old domain mapping for this redirect does not
+create a second authentication environment.
 
 The CSP permits exact `clerk.orqanix.com` and `accounts.orqanix.com` sources,
-without wildcarding the Orqanix domain. Adding these sources alone does not
-provision DNS or authorize API access. No satellite feature or subscription
-change is required by this code.
+without wildcarding the Orqanix domain. No billing plan, paid satellite feature,
+cloud session sync or API-key provisioning product is introduced by this
+cutover. Resource deletion and any later reduction of legacy cloud services
+remain separate, explicitly scoped work.
+
+## Provider progress — 24 September 2026
+
+At the owner's request, Clerk application
+`app_2vHl8Ims5SawQHOW5khhcKSxmpW` was renamed to Orqanix and its Production
+primary domain changed from `axwise.de` to `orqanix.com`. The five
+Clerk-provided CNAME records were added through Hostinger without changing
+existing apex, www or preview website records. No accounts were deleted and no
+subscription was changed. Clerk subsequently reported domain, DNS, SSL and mail
+status complete. Web/API deployment and desktop release verification must still
+be recorded independently; provider readiness does not establish that they are
+live.
 
 Reference: [Clerk React setup](https://clerk.com/docs/react/getting-started/quickstart).
-
-## Operator progress — 24 September 2026
-
-At the owner's explicit request, the existing Clerk application
-`app_2vHl8Ims5SawQHOW5khhcKSxmpW` was renamed to Orqanix and its Production
-instance `ins_2wVQ9PHCQaHJWny0hOGReocAGV9` primary domain changed from
-`axwise.de` to `orqanix.com`. Development remains a separate instance; no
-accounts were deleted and no subscription was changed. The five Clerk-provided
-CNAME records were added through Hostinger without changing the website's
-existing apex, www or preview records. Domain/certificate verification and
-production web/API activation must be checked separately; these provider changes
-alone do not switch the currently deployed website or desktop.
-
-Do not clone the whole preview API configuration into production. In particular,
-preview agent evaluations explicitly reject production, and the existing shared
-database's outbox claimant is not environment-filtered. Production workflow
-execution therefore needs separate storage/workers, or a deliberately restricted
-account-only API before using shared storage. Hiding workflow links is not an API
-security boundary. The current preview service and desktop issuer stay unchanged
-until this production deployment boundary is implemented and verified.

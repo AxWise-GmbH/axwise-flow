@@ -25,6 +25,19 @@ describe('explicit browser Clerk environment', () => {
     expect(clerkBrowserOptionsFromEnvironment(environment))
       .toEqual({ publishableKey: environment.VITE_CLERK_PUBLISHABLE_KEY });
   });
+  it('allows a promoted service URL when both environments explicitly declare production', () => {
+    expect(clerkBrowserOptionsFromEnvironment({
+      ...production,
+      VITE_ORQALY_API_URL: 'https://orqaly-v2-api-preview-161074549006.europe-west4.run.app',
+    })).toEqual({ publishableKey: production.VITE_CLERK_PUBLISHABLE_KEY });
+  });
+  it('rejects a preview API declaration even when the physical service is being reused', () => {
+    expect(() => clerkBrowserOptionsFromEnvironment({
+      ...production,
+      VITE_ORQALY_API_ENVIRONMENT: 'preview',
+      VITE_ORQALY_API_URL: 'https://orqaly-v2-api-preview-161074549006.europe-west4.run.app',
+    })).toThrow('VITE_ORQALY_API_ENVIRONMENT must match VITE_CLERK_ENVIRONMENT');
+  });
   it.each([
     { ...preview, VITE_CLERK_PUBLISHABLE_KEY: 'pk_live_wrong' },
     { ...production, VITE_CLERK_PUBLISHABLE_KEY: 'pk_test_wrong' },
@@ -33,7 +46,9 @@ describe('explicit browser Clerk environment', () => {
     { ...production, VITE_ORQALY_API_ENVIRONMENT: undefined },
     { ...production, VITE_ORQALY_API_URL: 'http://api.example.com' },
     { ...production, VITE_ORQALY_API_URL: 'https://api.example.com/path' },
-    { ...production, VITE_ORQALY_API_URL: 'https://orqaly-v2-api-preview-161074549006.europe-west4.run.app' },
+    { ...production, VITE_ORQALY_API_URL: 'https://api.example.com?query=1' },
+    { ...production, VITE_ORQALY_API_URL: 'https://user:password@api.example.com' },
+    { ...production, VITE_ORQALY_API_URL: 'https://api.example.com#fragment' },
   ])('fails closed on mismatched or partial declared configuration', (environment) => {
     expect(() => clerkBrowserOptionsFromEnvironment(environment)).toThrow();
   });

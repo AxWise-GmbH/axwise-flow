@@ -1,6 +1,6 @@
 # Orqaly Goose authentication connector
 
-## Current desktop: Goose-controlled reset (2.3.11)
+## Current desktop: Goose-controlled workflow (2.3.15)
 
 The packaged desktop mounts `src/utilities-mcp.mjs`, not the legacy Axwise
 conversation extension. It exposes `get_weather`, `convert_currency`, and
@@ -14,8 +14,10 @@ using another available retrieval tool. OMP remains separately optional. JEV's
 advisory decision/review capabilities do not take ownership of the Goose loop.
 Authentication and model transport still use the account-scoped gateway.
 
-A genuinely local Axwise specialist extension is a **planned separate step**,
-not something provided by the old cloud connector. See the
+The optional local Axwise specialist is packaged separately from this connector
+in [`packages/axwise-local`](../axwise-local). Its workflow, validation and
+artifacts stay local; model inference still uses the authenticated gateway.
+It is an ordinary Goose extension, not a controller for everyday chat. See the
 [local extension boundary](../../apps/orqaly/docs/LOCAL_AXWISE_EXTENSION_PLAN_2026-09-23.md).
 
 ## Legacy conversation tools (not mounted by the reset)
@@ -79,16 +81,26 @@ neither conversation IDs nor account hashes are credentials or authorization.
 
 ## Authentication
 
-Node 22+ CLI for Clerk public OAuth with PKCE. The shipped example contains only
-public preview connection metadata. It does not contain a password, Clerk secret,
-Gemini key, access token or refresh token.
+Node 22+ CLI for Clerk public OAuth with PKCE. The desktop ships with
+`production.config.example.json`, which contains only public production
+connection metadata. It does not contain a password, Clerk secret, Gemini key,
+access token or refresh token. The API service name still includes `preview`
+because the existing infrastructure is reused; authentication is production
+Clerk at `clerk.orqanix.com` with its dedicated public PKCE client.
 
 ```sh
 npm ci --ignore-scripts
-node src/cli.mjs login --config preview.config.example.json
-node src/cli.mjs token --config preview.config.example.json
-node src/cli.mjs logout --config preview.config.example.json
+node src/cli.mjs login --config production.config.example.json
+node src/cli.mjs token --config production.config.example.json
+node src/cli.mjs logout --config production.config.example.json
 ```
+
+`preview.config.example.json` is retained as historical development metadata;
+it is not selected by the production desktop and its old development tokens
+are not accepted by the production API. There is no development-auth fallback.
+The production issuer/client binding has a distinct credential identity, so an
+existing preview user signs in again. This does not migrate or delete preview
+credentials, local account profiles, conversations, or Axwise artifacts.
 
 `login` prints the authorization URL and opens the system browser. `--no-open`
 prints the URL without opening it. The loopback listener accepts one valid
