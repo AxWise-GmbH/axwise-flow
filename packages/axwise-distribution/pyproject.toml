@@ -1,0 +1,26 @@
+[build-system]
+requires = []
+build-backend = "build_backend"
+backend-path = ["packages/axwise-distribution"]
+
+[project]
+name = "axwise-extension"
+version = "0.3.0"
+description = "Scoped local product discovery and evidence-to-PRD MCP extension"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = [
+  "annotated-types==0.8.0",
+  "pydantic==2.13.4",
+  "pydantic_core==2.46.4",
+  "typing-inspection==0.4.4",
+  "typing_extensions==4.16.0",
+]
+
+[project.scripts]
+axwise = "axwise_extension.cli:main"
+
+[project.urls]
+Repository = "https://github.com/AxWise-GmbH/axwise-flow"
+Homepage = "https://axwise.de"
