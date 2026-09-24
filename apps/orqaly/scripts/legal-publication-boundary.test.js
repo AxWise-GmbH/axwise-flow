@@ -15,11 +15,12 @@ describe('unpublished Legal Center boundary', () => {
         name.endsWith('.json')
       )
     ).toHaveLength(17);
-    for (const path of ['src/gcp-routes.jsx', 'src/routes.jsx']) {
+    for (const path of ['src/account-routes.jsx', 'src/gcp-routes.jsx', 'src/routes.jsx']) {
       expect(read(path)).not.toMatch(/import\(['"][^'"]*\/legal\//);
       expect(read(path)).not.toContain('<LegalCenter');
     }
     expect(read('src/gcp-routes.jsx')).not.toContain("path: '/instant/legal");
+    expect(read('src/account-routes.jsx')).not.toContain("path: '/instant/legal");
   });
 
   it('keeps footer links and compatibility aliases on the existing notices', () => {

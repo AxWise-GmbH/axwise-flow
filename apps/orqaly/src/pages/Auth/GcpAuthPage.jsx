@@ -25,7 +25,7 @@ export default function GcpAuthPage({ mode }) {
   const { isLoaded, isSignedIn } = useAuth();
   const location = useLocation();
   const requested = location.state?.from || new URLSearchParams(location.search).get('returnTo');
-  const returnTo = safeAuthReturnTo(requested, '/home');
+  const returnTo = safeAuthReturnTo(requested, '/account');
 
   const isSignedOut = new URLSearchParams(location.search).get('signout') === 'true';
 
@@ -67,7 +67,7 @@ export default function GcpAuthPage({ mode }) {
             {signingUp ? 'Start with one job.' : 'Welcome back.'}
           </Typography>
           <Typography sx={{ color: '#60677B', mt: 2, maxWidth: 480 }}>
-            One chat, a connected workspace, and useful results. Pick up where you left off.
+            Manage your account here. Conversations, tools and results are in the Orqanix desktop app.
           </Typography>
         </Box>
         <Typography variant="caption" sx={{ color: '#60677B' }}>
