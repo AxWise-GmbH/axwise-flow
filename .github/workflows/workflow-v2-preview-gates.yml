@@ -18,6 +18,10 @@ on:
       - 'apps/orqaly/shared/workflow-v2/**'
       - 'apps/orqaly/src/GcpApp.jsx'
       - 'apps/orqaly/src/gcp-routes*'
+      - 'apps/orqaly/src/account-routes*'
+      - 'apps/orqaly/src/pages/Account/**'
+      - 'apps/orqaly/src/components/Auth/**'
+      - 'apps/orqaly/scripts/legal-publication-*'
       - 'apps/orqaly/src/main.jsx'
       - 'apps/orqaly/src/components/Auth/GcpClerkGate*'
       - 'apps/orqaly/src/components/Common/LineOrb.jsx'
@@ -79,6 +83,10 @@ on:
       - 'apps/orqaly/shared/workflow-v2/**'
       - 'apps/orqaly/src/GcpApp.jsx'
       - 'apps/orqaly/src/gcp-routes*'
+      - 'apps/orqaly/src/account-routes*'
+      - 'apps/orqaly/src/pages/Account/**'
+      - 'apps/orqaly/src/components/Auth/**'
+      - 'apps/orqaly/scripts/legal-publication-*'
       - 'apps/orqaly/src/main.jsx'
       - 'apps/orqaly/src/components/Auth/GcpClerkGate*'
       - 'apps/orqaly/src/components/Common/LineOrb.jsx'
@@ -190,6 +198,16 @@ jobs:
           src/components/Layout/gcpNav
           src/components/VoiceControl/AssistantMarkdown
           src/components/VoiceControl/CollapsibleMarkdownDocument
+
+      - name: Run production account website and publication boundary tests
+        run: >-
+          npm exec -- vitest run --maxWorkers=1
+          src/account-routes
+          src/pages/Account
+          src/pages/Auth/GcpAuthPage
+          src/components/Auth/ClerkOnDemand
+          src/components/Auth/clerk-config
+          scripts/legal-publication
 
       - name: Create isolated real-PostgreSQL test databases
         run: |

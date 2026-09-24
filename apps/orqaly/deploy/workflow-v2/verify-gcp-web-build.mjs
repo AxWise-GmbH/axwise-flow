@@ -16,10 +16,14 @@ const manifest = JSON.parse(readFileSync(resolve(dist, '.vite/manifest.json'), '
 for (const [source, asset] of Object.entries(manifest)) {
   if ([source, asset.src].some((value) => value?.replaceAll('\\', '/').includes('/pages/legal/')))
     throw new Error(`GCP web build imported an unpublished legal draft: ${source}`);
+  if ([source, asset.src].some((value) => /\/pages\/(?:WorkflowV2|GcpWorkspace|Settings)\//u.test(value?.replaceAll('\\', '/') || '')))
+    throw new Error(`Account website imported a retired workspace module: ${source}`);
 }
 for (const file of readdirSync(dist, { recursive: true })) {
   if (file.endsWith('.draft') || /(?:^|\/)LegalCenter-[^/]+\.js$/u.test(file))
     throw new Error(`GCP web build contains an unpublished legal draft: ${file}`);
+  if (/(?:^|\/)(?:WorkflowV2|GcpClerkSettings|HomePage|StructurePage|AgentsPage|AgentDetailPage|SolutionDetailPage|WorkflowBuildPage|WorkflowsPage|CapabilitiesPage|KnowledgePage|ResultsPage|NotificationsPage|ActivityPage|HistoryPage)-[^/]+\.m?js$/u.test(file))
+    throw new Error(`Account website contains a retired workspace route chunk: ${file}`);
   if (!file.endsWith('.json')) continue;
   const content = JSON.parse(readFileSync(resolve(dist, file), 'utf8'));
   if (content?.meta && Object.hasOwn(content.meta, 'review'))
@@ -39,17 +43,7 @@ for (const marker of [
 const assetsDir = resolve(dist, 'assets');
 const scripts = readdirSync(assetsDir).filter((name) => /\.m?js$/u.test(name));
 for (const routeChunk of [
-  'WorkflowV2',
-  'GcpClerkSettings',
-  'HomePage',
-  'StructurePage',
-  'AgentsPage',
-  'CapabilitiesPage',
-  'KnowledgePage',
-  'ResultsPage',
-  'NotificationsPage',
-  'ActivityPage',
-  'HistoryPage',
+  'AccountPage',
 ]) {
   if (!scripts.some((name) => new RegExp(`^${routeChunk}-.+\\.js$`, 'u').test(name))) {
     throw new Error(`GCP build is missing the ${routeChunk} route chunk`);
@@ -58,17 +52,10 @@ for (const routeChunk of [
 
 const combined = scripts.map((name) => readFileSync(resolve(assetsDir, name), 'utf8')).join('\n');
 for (const marker of [
-  'Assistant',
-  'Goals',
-  'Workspace',
-  '/workspace',
-  'Agents',
-  'Capabilities',
-  'Knowledge',
-  'Results',
-  'Notifications',
-  'Activity & Usage',
-  'This page is not in the launch build.',
+  'Your Orqanix account',
+  'Account security and profile',
+  'Sign out',
+  'Cloud conversation sync is not enabled.',
 ]) {
   if (!combined.includes(marker)) throw new Error(`GCP bundle is missing launch marker ${marker}`);
 }

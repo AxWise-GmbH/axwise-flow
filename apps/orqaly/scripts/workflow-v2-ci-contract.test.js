@@ -21,6 +21,14 @@ const retainedUiFilters = [
   'src/components/VoiceControl/AssistantMarkdown',
   'src/components/VoiceControl/CollapsibleMarkdownDocument',
 ];
+const accountUiFilters = [
+  'src/account-routes',
+  'src/pages/Account',
+  'src/pages/Auth/GcpAuthPage',
+  'src/components/Auth/ClerkOnDemand',
+  'src/components/Auth/clerk-config',
+  'scripts/legal-publication',
+];
 
 function trackedPaths() {
   const result = spawnSync('git', ['ls-files', '-z'], { encoding: 'utf8' });
@@ -102,6 +110,7 @@ describe('workflow v2 reproducible preview CI contract', () => {
     const criticalPrefixes = [
       ...serviceInputs,
       ...retainedUiFilters,
+      ...accountUiFilters,
       'src/components/Layout/Gcp',
       'src/components/Common/useInView',
       'src/lib/authReturnTo',
@@ -183,6 +192,32 @@ describe('workflow v2 reproducible preview CI contract', () => {
     expect(packageJson.scripts['test:workflow-v2:release']).toContain('scripts/workflow-v2');
     expect(readFileSync('vitest.config.js', 'utf8')).toContain('scripts/**/*.test.js');
     expect(existsSync('scripts/workflow-v2-nginx-config.test.js')).toBe(true);
+  });
+
+  it('runs account-only auth and publication tests and triggers on their source changes', () => {
+    const account = command('Run production account website and publication boundary tests');
+    const prefix = 'npm exec -- vitest run --maxWorkers=1 ';
+    expect(account.run.startsWith(prefix)).toBe(true);
+    expect(account.run.slice(prefix.length).trim().split(/\s+/)).toEqual(accountUiFilters);
+    expect(account.if).toBeUndefined();
+    expect(account['continue-on-error']).toBeUndefined();
+    const files = [
+      'src/account-routes.jsx',
+      'src/account-routes.test.jsx',
+      'src/pages/Account/AccountPage.jsx',
+      'src/pages/Account/AccountPage.test.jsx',
+      'src/pages/Auth/GcpAuthPage.test.jsx',
+      'src/components/Auth/ClerkOnDemand.test.jsx',
+      'src/components/Auth/clerk-config.test.js',
+      'scripts/legal-publication-build.test.js',
+      'scripts/legal-publication-boundary.test.js',
+    ];
+    for (const file of files) {
+      expect(existsSync(file), file).toBe(true);
+      for (const event of ['push', 'pull_request']) {
+        expect(workflow.on[event].paths.some((pattern) => matchesPath(`apps/orqaly/${file}`, pattern)), file).toBe(true);
+      }
+    }
   });
 
   it('resolves every root npm gate to a checked-in package command', () => {

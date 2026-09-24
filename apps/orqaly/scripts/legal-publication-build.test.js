@@ -23,35 +23,15 @@ function fixture() {
   put(dist, 'manifest.json', '{}');
   put(dist, '.vite/manifest.json', '{}');
   put(dist, 'logo-line.svg', '<svg/>');
-  for (const name of [
-    'WorkflowV2',
-    'GcpClerkSettings',
-    'HomePage',
-    'StructurePage',
-    'AgentsPage',
-    'CapabilitiesPage',
-    'KnowledgePage',
-    'ResultsPage',
-    'NotificationsPage',
-    'ActivityPage',
-    'HistoryPage',
-  ])
-    put(dist, `assets/${name}-fixture.js`, '// route fixture');
+  put(dist, 'assets/AccountPage-fixture.js', '// route fixture');
   put(
     dist,
     'assets/index-fixture.js',
     JSON.stringify([
-      'Assistant',
-      'Goals',
-      'Workspace',
-      '/workspace',
-      'Agents',
-      'Capabilities',
-      'Knowledge',
-      'Results',
-      'Notifications',
-      'Activity & Usage',
-      'This page is not in the launch build.',
+      'Your Orqanix account',
+      'Account security and profile',
+      'Sign out',
+      'Cloud conversation sync is not enabled.',
     ])
   );
   return dist;
@@ -73,7 +53,7 @@ afterEach(() => {
 });
 
 describe('build verification of unpublished legal drafts', () => {
-  it('accepts a retained build with no policy drafts', () => {
+  it('accepts an account-only build with no policy drafts or workspace modules', () => {
     expect(verify(fixture()).passed).toBe(true);
   });
 
@@ -106,5 +86,35 @@ describe('build verification of unpublished legal drafts', () => {
     const result = verify(dist);
     expect(result.passed).toBe(false);
     expect(result.output).toContain('imported an unpublished legal draft');
+  });
+
+  it.each(['WorkflowV2', 'GcpClerkSettings', 'HomePage', 'SolutionDetailPage', 'ResultsPage'])
+  ('rejects emitted retired route chunks even when absent from the manifest: %s', (name) => {
+    const dist = fixture();
+    put(dist, `assets/${name}-fixture.js`, '// stale route');
+    const result = verify(dist);
+    expect(result.passed).toBe(false);
+    expect(result.output).toContain('retired workspace route chunk');
+  });
+
+  it.each([
+    ['src/pages/GcpWorkspace/HomePage.jsx', { file: 'assets/generic-abc.js' }],
+    ['src/pages/WorkflowV2/WorkflowV2.jsx', { file: 'assets/generic-abc.js' }],
+    ['opaque-source', { file: 'assets/generic-abc.js', src: 'src/pages/Settings/GcpClerkSettings.jsx' }],
+    ['src\\pages\\GcpWorkspace\\HomePage.jsx', { file: 'assets/generic-abc.js' }],
+  ])('rejects retired workspace manifest sources with arbitrary output names: %s', (source, asset) => {
+    const dist = fixture();
+    put(dist, '.vite/manifest.json', JSON.stringify({ [source]: asset }));
+    const result = verify(dist);
+    expect(result.passed).toBe(false);
+    expect(result.output).toContain('retired workspace module');
+  });
+
+  it('requires the account route chunk', () => {
+    const dist = fixture();
+    rmSync(resolve(dist, 'assets/AccountPage-fixture.js'));
+    const result = verify(dist);
+    expect(result.passed).toBe(false);
+    expect(result.output).toContain('missing the AccountPage route chunk');
   });
 });

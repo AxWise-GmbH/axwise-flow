@@ -17,7 +17,7 @@ initSentry();
 const clerkOptions = clerkBrowserOptionsFromEnvironment(import.meta.env);
 // Branding is local to this client; identity is selected explicitly by build
 // configuration, independent of the deployment hostname or display name.
-const previewLocalization = import.meta.env.MODE === 'gcp-launch' ? {
+const accountLocalization = import.meta.env.MODE === 'gcp-launch' ? {
   signIn: { start: {
     title: 'Sign in to Orqanix',
     titleCombined: 'Continue to Orqanix',
@@ -27,7 +27,7 @@ const previewLocalization = import.meta.env.MODE === 'gcp-launch' ? {
   signUp: { start: {
     title: 'Create your Orqanix account',
     titleCombined: 'Continue to Orqanix',
-    subtitle: 'Your account connects your desktop and cloud workspace.',
+    subtitle: 'Your account connects your desktop to managed model services.',
     subtitleCombined: 'Sign in or create an account to continue.',
   } },
 } : undefined;
@@ -59,9 +59,9 @@ if (
 
 const clerkProps = {
   ...clerkOptions,
-  localization: previewLocalization,
-  signInFallbackRedirectUrl: '/home',
-  signUpFallbackRedirectUrl: '/home',
+  localization: accountLocalization,
+  signInFallbackRedirectUrl: import.meta.env.MODE === 'gcp-launch' ? '/account' : '/home',
+  signUpFallbackRedirectUrl: import.meta.env.MODE === 'gcp-launch' ? '/account' : '/home',
 };
 
 createRoot(document.getElementById('root')).render(
