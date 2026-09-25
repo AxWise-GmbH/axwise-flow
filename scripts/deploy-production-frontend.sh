@@ -133,10 +133,10 @@ PY
 curl --fail --silent --show-error \
   -H 'Cache-Control: no-cache' \
   "https://axwise.de/" |
-  grep -F 'Give agents the context to solve the' >/dev/null
+  grep -F 'Better questions. Clearer evidence.' >/dev/null
 curl --fail --silent --show-error \
   -H 'Cache-Control: no-cache' \
   "https://axwise.de/docs" |
-  grep -F 'Run the Reference Stack' >/dev/null
+  grep -F 'Developer Documentation' >/dev/null
 
 echo "Deployment complete: ${IMAGE} (${CREATED_REVISION})"
