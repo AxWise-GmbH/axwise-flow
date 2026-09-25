@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { 
   ArrowLeft, 
@@ -14,107 +14,46 @@ import {
   Terminal as TerminalIcon,
   ChevronRight,
   Activity,
-  Check
+  Check,
+  Download,
+  Copy,
+  ExternalLink,
+  MessageSquare,
+  Layers,
+  FileText,
+  Users
 } from 'lucide-react';
 
-function HighlightPython({ code, dark = false }: { code: string; dark?: boolean }) {
-  const lines = code.split('\n');
-  return (
-    <code className={`block font-mono text-xs whitespace-pre-wrap break-all break-words leading-relaxed ${dark ? 'text-stone-300' : 'text-stone-800'}`}>
-      {lines.map((line, lineIdx) => {
-        if (line.trim().startsWith('#') || line.trim().startsWith('//')) {
-          return (
-            <div key={lineIdx} className={`${dark ? 'text-stone-500' : 'text-stone-400'} font-mono italic`}>
-              {line}
-            </div>
-          );
-        }
+function CodeBlock({ code, language = 'bash' }: { code: string; language?: string }) {
+  const [copied, setCopied] = useState(false);
 
-        const tokens = line.split(/(".*?"|'.*?'|\b(?:import|as|from|def|class|return|requests|print|json)\b)/g);
-        return (
-          <div key={lineIdx} className="font-mono">
-            {tokens.map((token, tokenIdx) => {
-              if (token.startsWith('"') || token.startsWith("'")) {
-                return (
-                  <span key={tokenIdx} className="text-emerald-600 font-medium whitespace-pre-wrap break-all">
-                    {token}
-                  </span>
-                );
-              }
-              if (['import', 'as', 'from', 'def', 'class', 'return'].includes(token)) {
-                return (
-                  <span key={tokenIdx} className={`${dark ? 'text-stone-100' : 'text-stone-900'} font-bold`}>
-                    {token}
-                  </span>
-                );
-              }
-              if (['requests', 'print', 'json'].includes(token)) {
-                return (
-                  <span key={tokenIdx} className={`${dark ? 'text-blue-400' : 'text-indigo-600'} font-semibold`}>
-                    {token}
-                  </span>
-                );
-              }
-              return <span key={tokenIdx} className="whitespace-pre-wrap break-all">{token}</span>;
-            })}
-          </div>
-        );
-      })}
-    </code>
-  );
-}
+  const handleCopy = () => {
+    if (typeof window !== 'undefined' && navigator?.clipboard) {
+      navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
-function HighlightJSON({ code }: { code: string }) {
-  const lines = code.split('\n');
   return (
-    <code className="block font-mono text-xs text-stone-300 whitespace-pre-wrap break-all break-words leading-relaxed">
-      {lines.map((line, lineIdx) => {
-        const tokens = line.split(/(".*?"(?=\s*:)|\".*?\"|\b(?:true|false|null)\b|\b\d+(?:\.\d+)?\b)/g);
-        return (
-          <div key={lineIdx} className="font-mono">
-            {tokens.map((token, tokenIdx) => {
-              if (token.startsWith('"') && token.endsWith('"')) {
-                const isKey = token.includes('"') && !line.includes('//') && line.split(token)[1]?.trim().startsWith(':');
-                if (isKey) {
-                  return (
-                    <span key={tokenIdx} className="text-[#34D399] font-medium whitespace-pre-wrap break-all">
-                      {token}
-                    </span>
-                  );
-                }
-                return (
-                  <span key={tokenIdx} className="text-stone-300 whitespace-pre-wrap break-all">
-                    {token}
-                  </span>
-                );
-              }
-              if (['true', 'false'].includes(token)) {
-                return (
-                  <span key={tokenIdx} className="text-amber-400 font-semibold">
-                    {token}
-                  </span>
-                );
-              }
-              if (token === 'null') {
-                return (
-                  <span key={tokenIdx} className="text-stone-500 font-semibold">
-                    {token}
-                  </span>
-                );
-              }
-              if (/^\d+(?:\.\d+)?$/.test(token)) {
-                return (
-                  <span key={tokenIdx} className="text-blue-400">
-                    {token}
-                  </span>
-                );
-              }
-              return <span key={tokenIdx} className="whitespace-pre-wrap break-all">{token}</span>;
-            })}
-          </div>
-        );
-      })}
-    </code>
+    <div className="relative my-4 rounded-lg bg-[#141414] border border-stone-800 overflow-hidden text-xs font-mono shadow-md">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-stone-800 bg-[#1A1A1A] text-stone-400 text-[11px]">
+        <span>{language.toUpperCase()}</span>
+        <button
+          onClick={handleCopy}
+          className="hover:text-stone-200 transition-colors flex items-center gap-1"
+        >
+          {copied ? (
+            <span className="text-emerald-400 flex items-center gap-1"><Check className="w-3 h-3" /> Copied!</span>
+          ) : (
+            <span className="flex items-center gap-1 text-stone-400 hover:text-stone-200"><Copy className="w-3 h-3" /> Copy</span>
+          )}
+        </button>
+      </div>
+      <pre className="p-4 overflow-x-auto text-stone-300 leading-relaxed">
+        <code>{code}</code>
+      </pre>
+    </div>
   );
 }
 
@@ -122,8 +61,8 @@ export default function DocsPage(): React.JSX.Element {
   return (
     <div className="min-h-screen bg-[#FCFAF7] text-[#1C1917] font-sans antialiased selection:bg-emerald-100 selection:text-emerald-900">
       
-      {/* ----------------- Minimal, Premium Header ----------------- */}
-      <header className="sticky top-0 z-50 bg-[#FCFAF7]/90 backdrop-blur-md border-b border-[#EAE6DF] px-4 lg:px-8 xl:px-16 py-4 flex items-center justify-between">
+      {/* ----------------- Minimal Header ----------------- */}
+      <header className="sticky top-0 z-50 bg-[#FCFAF7]/90 backdrop-blur-md border-b border-[#EAE6DF] px-6 lg:px-16 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
           <div className="flex items-center gap-2">
             <svg width="24" height="24" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}><rect width="24" height="24" rx="6" fill="#000" stroke="#333" strokeWidth="1"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" strokeWidth="2" fill="none" strokeLinejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg>
@@ -131,442 +70,320 @@ export default function DocsPage(): React.JSX.Element {
           </div>
         </Link>
 
-        <nav className="hidden lg:flex items-center gap-4 xl:gap-8 text-xs xl:text-sm font-medium text-stone-600">
+        <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-stone-600">
+          <Link href="/#install" className="hover:text-stone-900 transition-colors">Install</Link>
+          <Link href="/#chat-examples" className="hover:text-stone-900 transition-colors">Examples</Link>
           <Link href="/#decision-lab" className="hover:text-stone-900 transition-colors">Decision Lab</Link>
-          <Link href="/#evidence" className="hover:text-stone-900 transition-colors">Evidence</Link>
-          <Link href="/#trust" className="hover:text-stone-900 transition-colors">Trust Boundary</Link>
-          <Link href="/#execution" className="hover:text-stone-900 transition-colors">Orqaly Integration</Link>
-          <Link href="/#use-cases" className="hover:text-stone-900 transition-colors">Use Cases</Link>
         </nav>
 
         <div className="flex items-center gap-3">
-          <a 
-            href="https://github.com/AxWise-GmbH/axwise-flow-oss"
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="hidden lg:inline-flex items-center gap-2 px-3.5 py-1.5 border border-stone-300 rounded-md text-xs font-mono text-stone-700 hover:border-stone-900 hover:text-stone-900 transition-all"
+          <a
+            href="https://github.com/AxWise-GmbH/axwise-flow"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-stone-300 rounded-md text-xs font-mono text-stone-700 hover:border-stone-900 hover:text-stone-900 transition-all"
           >
             <GitBranch className="w-3.5 h-3.5" />
-            Apache 2.0 OSS
+            <span>GitHub</span>
           </a>
-          <Link 
-            href="/" 
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1C1917] hover:bg-stone-800 text-[#FCFAF7] rounded-md text-xs font-medium tracking-tight transition-all"
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 text-xs text-stone-600 hover:text-stone-900 pl-2 font-medium"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Main Gate
+            Back to Home
           </Link>
         </div>
       </header>
 
-      {/* ----------------- Main Layout ----------------- */}
-      <div className="max-w-7xl mx-auto px-6 lg:px-16 py-16 grid lg:grid-cols-12 gap-12">
+      {/* ----------------- Docs Body ----------------- */}
+      <main className="max-w-5xl mx-auto px-6 lg:px-12 py-16 space-y-16">
         
-        {/* Left column: Sidebar */}
-        <aside className="lg:col-span-3 space-y-8 lg:sticky lg:top-24 h-fit">
-          <div className="space-y-2">
-            <span className="text-xs font-mono text-stone-400 uppercase tracking-wider">// COGNITIVE DECISION API</span>
-            <h1 className="font-serif text-2xl text-stone-900">Developer Docs</h1>
+        {/* Intro Banner */}
+        <div className="border-b border-[#EAE6DF] pb-10 space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+              AXWISE 0.3.0
+            </span>
+            <span className="text-xs font-mono text-stone-500 uppercase tracking-wider">
+              MODEL CONTEXT PROTOCOL (MCP) SPECIALIST
+            </span>
           </div>
-          
-          <nav className="flex flex-col gap-2.5 text-sm">
-            <a href="#installation" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">1. Setup &amp; Docker</a>
-            <a href="#decision" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">2. Create a Decision</a>
-            <a href="#continue" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">3. Retrieve &amp; Refresh</a>
-            <a href="#outcomes" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">4. Replan &amp; Outcomes</a>
-            <a href="#research" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">5. Lower-level Research</a>
-            <a href="#trust-boundary" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">6. Trust Boundary</a>
-          </nav>
+          <h1 className="font-serif text-4xl text-stone-900">Developer Documentation</h1>
+          <p className="text-base text-stone-600 max-w-3xl leading-relaxed">
+            AxWise is a scoped, open-source local specialist extension for turning product questions and evidence into discovery scopes, synthetic persona cohorts, simulated interviews, qualitative analysis, evidence-linked PRDs, and delivery briefs.
+          </p>
+          <p className="text-xs text-stone-500 leading-relaxed max-w-3xl">
+            It connects to any standard MCP host (Goose, Codex, Claude Desktop, Orqanix) over standard I/O (stdio). AxWise is invoked for specific discovery deliverables—not for every chat turn.
+          </p>
+        </div>
 
-          <div className="bg-white border border-[#EAE6DF] p-4 rounded-lg space-y-3 shadow-sm text-xs">
-            <div className="flex items-center gap-1.5 text-stone-500 font-mono text-[10px]">
-              <Shield className="w-3 h-3 text-emerald-600" />
-              <span>TRUST BOUNDARY</span>
-            </div>
-            <p className="text-stone-600 leading-normal">
-              The core is self-hostable. The hosted reference contract shown here is currently optimized for Orqaly. AxWise remains advisory; the integrating host owns identity, approvals, connector access, execution, and delivery.
+        {/* Section 1: Quick Install & Launch */}
+        <section id="launch" className="space-y-6">
+          <div className="border-b border-[#EAE6DF] pb-4">
+            <span className="text-xs font-mono uppercase tracking-wider text-emerald-700 font-semibold">// 1. QUICK LAUNCH</span>
+            <h2 className="font-serif text-2xl text-stone-900 mt-1">Install from a Verified Release</h2>
+            <p className="text-sm text-stone-500 mt-1">
+              Version 0.3.0 is distributed as direct GitHub release artifacts. Choose either launch path; both execute the same engine.
             </p>
           </div>
-        </aside>
 
-        {/* Right column: Interactive API Content */}
-        <main className="lg:col-span-9 space-y-16">
-          
-          {/* Section 1: Installation */}
-          <section id="installation" className="space-y-6 scroll-mt-24">
-            <div className="border-b border-[#EAE6DF] pb-4">
-              <h2 className="font-serif text-3xl text-stone-900">1. Run the Reference Stack</h2>
-              <p className="text-sm text-stone-500 mt-1">Start PostgreSQL, the FastAPI decision service, and the durable research worker together.</p>
+          <div className="space-y-4">
+            <h3 className="font-serif text-lg text-stone-900">Launch with uvx (Python)</h3>
+            <p className="text-xs text-stone-600">Requires uv and Node.js on PATH:</p>
+            <CodeBlock 
+              language="bash"
+              code="uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.3.0/axwise_extension-0.3.0-py3-none-any.whl axwise --config /absolute/path/axwise.json"
+            />
+
+            <h3 className="font-serif text-lg text-stone-900 pt-2">Launch with npx (Node.js)</h3>
+            <p className="text-xs text-stone-600">Requires Node.js 22+ and uv on PATH:</p>
+            <CodeBlock 
+              language="bash"
+              code="npx --yes --package=https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.3.0/axwise-extension-0.3.0.tgz axwise --config /absolute/path/axwise.json"
+            />
+          </div>
+
+          <div className="bg-white border border-[#EAE6DF] rounded-lg p-5 text-xs text-stone-600 space-y-2">
+            <div className="font-semibold text-stone-900 flex items-center gap-1.5">
+              <Download className="w-4 h-4 text-emerald-600" />
+              Direct Artifact Downloads &amp; Verified Checksums (SHA-256):
             </div>
+            <ul className="space-y-1 font-mono text-[11px] pt-1">
+              <li>
+                <a href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.3.0/axwise-extension-0.3.0.tgz" className="text-emerald-700 underline font-semibold">npm archive (.tgz)</a>: 157,987 bytes · <span className="text-stone-500">a17caf788dd42e7979f281f2dce6aa3ec527ad6bd1b3a8c8a7f7b2d72c22fe20</span>
+              </li>
+              <li>
+                <a href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.3.0/axwise_extension-0.3.0-py3-none-any.whl" className="text-emerald-700 underline font-semibold">Python wheel (.whl)</a>: 152,383 bytes · <span className="text-stone-500">d3c13786ce62de85a8e7dc6ef380c9cb0de61ca6b6477409133b579d36fe336f</span>
+              </li>
+            </ul>
+          </div>
+        </section>
 
-            <p className="text-stone-700 text-sm leading-relaxed">
-              The decision endpoint can return a durable research job, so running only the backend is incomplete. The repository&apos;s Docker Compose stack builds the actual backend image, applies database migrations during API startup, and starts the worker that claims queued research.
+        {/* Section 2: Configuration */}
+        <section id="config" className="space-y-6">
+          <div className="border-b border-[#EAE6DF] pb-4">
+            <span className="text-xs font-mono uppercase tracking-wider text-emerald-700 font-semibold">// 2. LOCAL CONFIGURATION</span>
+            <h2 className="font-serif text-2xl text-stone-900 mt-1">Configure Model and Local State (axwise.json)</h2>
+            <p className="text-sm text-stone-500 mt-1">
+              Create an <code>axwise.json</code> file on your computer. Never embed raw API secrets in the JSON; specify the name of the environment variable.
             </p>
+          </div>
 
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 text-sm text-stone-700 leading-relaxed">
-              <strong className="font-semibold text-stone-900">Product boundary:</strong>{' '}
-              the Apache-2.0 cognitive core is self-hostable. The current hosted path, headers, and tenant-mapping model below are the Orqaly reference adapter—not yet a product-neutral hosted contract. Another host product can integrate the core, but it must supply its own trusted identity, authorization, approval, and execution boundary.
-            </div>
-
-            <div className="bg-[#1A1A1A] text-stone-300 rounded-lg p-4 font-mono text-xs border border-stone-800 shadow-md">
-              <div className="text-[10px] text-stone-500 border-b border-stone-800 pb-1.5 mb-2.5">// Fresh clone · backend + durable worker</div>
-              <HighlightPython dark code={`git clone https://github.com/AxWise-GmbH/axwise-flow-oss.git
-cd axwise-flow-oss
-cp .env.example .env
-
-# Set GEMINI_API_KEY in .env.
-# Replace AXWISE_API_KEY before exposing the service.
-docker compose up -d --build db backend worker
-
-# Health and interactive OpenAPI
-docker compose ps
-curl http://localhost:8000/health
-# Visit http://localhost:8000/docs`} />
-            </div>
-
-            <p className="text-xs text-stone-600 bg-stone-50 border border-stone-200 rounded-lg p-4 leading-relaxed">
-              The reference endpoints fail closed unless a trusted host tenant is mapped to an AxWise workspace. For a local-only reference tenant, run{' '}
-              <code>docker compose exec backend python -m backend.scripts.seed_reference_tenant --org-id local-org --user-id local-user</code>.
-              Provision production mappings through an administrator-controlled process, never from a browser request.
+          <div className="space-y-3">
+            <p className="text-xs text-stone-600 leading-relaxed">
+              Example configuration using Google Gemini (via OpenAI-compatible endpoint) or standard OpenAI:
             </p>
-          </section>
+            <CodeBlock 
+              language="json"
+              code={`{
+  "version": 1,
+  "provider": "gemini",
+  "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
+  "model": "gemini-2.5-flash",
+  "apiKeyEnv": "GEMINI_API_KEY",
+  "stateDir": "/Users/admin/.axwise/state",
+  "profileId": "personal",
+  "workspaceId": "customer-discovery",
+  "sessionId": "discovery-session-001"
+}`}
+            />
+          </div>
 
-          {/* Section 2: Create a decision */}
-          <section id="decision" className="space-y-6 scroll-mt-24">
-            <div className="border-b border-[#EAE6DF] pb-4">
-              <h2 className="font-serif text-3xl text-stone-900">2. Create an Evidence-aware Decision</h2>
-              <p className="text-sm text-stone-500 mt-1">POST /api/orqaly-axwise/v1/orchestration/decisions</p>
+          <div className="grid md:grid-cols-2 gap-4 text-xs">
+            <div className="p-4 bg-white border border-[#EAE6DF] rounded-lg space-y-1.5">
+              <div className="font-semibold text-stone-900 font-mono text-[11px]">apiKeyEnv</div>
+              <p className="text-stone-600">The name of the environment variable holding your provider API key. Evaluated at inference time.</p>
+            </div>
+            <div className="p-4 bg-white border border-[#EAE6DF] rounded-lg space-y-1.5">
+              <div className="font-semibold text-stone-900 font-mono text-[11px]">stateDir</div>
+              <p className="text-stone-600">Absolute directory where generated personas, transcripts, PRD revisions, and JSON artifacts are saved locally.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 3: Connecting Hosts */}
+        <section id="hosts" className="space-y-6">
+          <div className="border-b border-[#EAE6DF] pb-4">
+            <span className="text-xs font-mono uppercase tracking-wider text-emerald-700 font-semibold">// 3. HOST INTEGRATION</span>
+            <h2 className="font-serif text-2xl text-stone-900 mt-1">Connect Your AI Assistant</h2>
+            <p className="text-sm text-stone-500 mt-1">
+              AxWise communicates over standard Model Context Protocol (MCP) stdio.
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <h3 className="font-serif text-lg text-stone-900">Goose Assistant</h3>
+              <p className="text-xs text-stone-600 mt-1">Add to your Goose extensions configuration or run:</p>
+              <CodeBlock 
+                language="bash"
+                code="goose configure"
+              />
             </div>
 
-            <p className="text-[#1C1917] text-sm leading-relaxed">
-              Start every integrated goal here. AxWise evaluates ambiguity, evidence sufficiency, consequence, and value of more information before choosing direct, evidence-assisted, bounded-research, or human-clarification routing. It then returns an immutable recommendation package. It does not authorize or execute the recommendation.
-            </p>
-
-            <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
-              <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Trusted host request</span>
-                <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
-                  <HighlightPython code={`import requests
-
-base = "https://api.axwise.de/api/orqaly-axwise/v1"
-headers = {
-    "x-axwise-key": "<SERVICE_KEY>",
-    "Idempotency-Key": "<GOAL_VERSION_KEY>",
-    "X-Request-ID": "<TRACE_ID>"
-}
-payload = {
-    "contract_version": "1.0",
-    "tenant": {
-        "orgId": "<ORQALY_ORG_ID>",
-        "userId": "<ORQALY_USER_ID>"
-    },
-    "task": {
-        "contract_version": "1.0",
-        "task_id": "goal-warehouse-handoff-v1",
-        "domain": "operations",
-        "objective": "Reduce damage at warehouse handoffs",
-        "desired_outcome": "A reviewed plan with owners and measurable controls",
-        "required_capabilities": ["operational analysis"],
-        "preferred_capabilities": ["stakeholder communication"],
-        "stakeholders": ["warehouse manager", "shift lead"],
-        "constraints": ["No external side effect without host approval"],
-        "data_classification": "internal",
-        "risk_level": "medium"
-    },
-    "available_agents": [{
-        "agent_id": "agent-operations",
-        "org_id": "<ORQALY_ORG_ID>",
-        "name": "Operations Analyst",
-        "capabilities": [
-            "operational analysis",
-            "stakeholder communication"
-        ],
-        "availability": "available",
-        "max_data_classification": "confidential",
-        "max_risk_level": "high"
-    }],
-    "policy_context": {
-        "maximum_risk_without_human": "medium",
-        "guardrails": ["The host must approve execution"]
-    },
-    "budget": {
-        "currency": "EUR",
-        "maximum_cost": 25,
-        "maximum_latency_ms": 120000
+            <div>
+              <h3 className="font-serif text-lg text-stone-900">Codex / Claude Desktop / Cursor</h3>
+              <p className="text-xs text-stone-600 mt-1">Add the stdio MCP server definition to your client configuration file:</p>
+              <CodeBlock 
+                language="json"
+                code={`{
+  "mcpServers": {
+    "axwise": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.3.0/axwise_extension-0.3.0-py3-none-any.whl",
+        "axwise",
+        "--config",
+        "/absolute/path/to/axwise.json"
+      ],
+      "env": {
+        "GEMINI_API_KEY": "your-api-key-here"
+      }
     }
-}
-response = requests.post(
-    f"{base}/orchestration/decisions",
-    headers=headers,
-    json=payload,
-    timeout=30
-)
-response.raise_for_status()`} />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Immutable recommendation excerpt · HTTP 201</span>
-                <div className="bg-[#1A1A1A] p-4 rounded-lg border border-stone-900 shadow-md">
-                  <HighlightJSON code={`{
-  "contract_version": "1.0",
-  "decision_id": "decision-…",
-  "task_id": "goal-warehouse-handoff-v1",
-  "routing_mode": "direct",
-  "status": "recommended",
-  "recommended_agents": [{
-    "agent_id": "agent-operations",
-    "eligible": true,
-    "score": 0.82,
-    "factors": []
-  }],
-  "execution_plan": {
-    "nodes": [{
-      "node_id": "node-direct-assignment",
-      "assigned_agent_id": "agent-operations"
-    }],
-    "executable": true
-  },
-  "approval_points": [],
-  "evidence": [],
-  "confidence": 0.82,
-  "requires_orqaly_authorization": true,
-  "request_hash": "4c61236d…"
-}`} />
-                </div>
-              </div>
+  }
+}`}
+              />
             </div>
 
-            <p className="text-xs text-stone-600 bg-emerald-50 border border-emerald-200 rounded-lg p-4 leading-relaxed">
-              Construct <code>available_agents</code>, <code>available_tools</code>, policy, and tenant identifiers on the trusted host backend from the authenticated catalogue. Never accept candidate ownership, the machine credential, or authorization decisions from a browser. Retrieve the exact JSON Schemas at <code>/orchestration/schemas/decision-request-v1</code> and <code>/orchestration/schemas/execution-outcome-v1</code>.
+            <div className="p-4 bg-emerald-50/50 border border-emerald-200/80 rounded-lg text-xs text-stone-700 space-y-1">
+              <strong className="text-emerald-900">Orqanix Desktop:</strong>
+              <p className="text-stone-600">
+                Orqanix bundles the AxWise extension and local runtime out of the box with zero manual terminal configuration. Simply enable the AxWise capability toggle in settings.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 4: The 8 MCP Specialist Tools */}
+        <section id="tools" className="space-y-6">
+          <div className="border-b border-[#EAE6DF] pb-4">
+            <span className="text-xs font-mono uppercase tracking-wider text-emerald-700 font-semibold">// 4. TOOL REFERENCE</span>
+            <h2 className="font-serif text-2xl text-stone-900 mt-1">The 8 Discovery &amp; Product Tools</h2>
+            <p className="text-sm text-stone-500 mt-1">
+              These specialist tools are invoked by your host agent to perform bounded research, qualitative synthesis, and documentation.
             </p>
-            <div className="bg-stone-50 border border-stone-200 rounded-lg p-4 text-xs text-stone-600 leading-relaxed">
-              <strong className="text-stone-900">Failure contract:</strong> <code>401</code> missing or invalid service key; <code>403</code> inactive or unknown tenant mapping; <code>409</code> idempotency key reused with different input; <code>422</code> invalid strict contract. Retry transient failures with backoff and the same idempotency key.
-            </div>
-          </section>
+          </div>
 
-          {/* Section 3: Retrieve and refresh */}
-          <section id="continue" className="space-y-6 scroll-mt-24">
-            <div className="border-b border-[#EAE6DF] pb-4">
-              <h2 className="font-serif text-3xl text-stone-900">3. Retrieve or Refresh the Decision</h2>
-              <p className="text-sm text-stone-500 mt-1">GET /decisions/{`{decision_id}`} · POST /decisions/{`{decision_id}`}/research/refresh</p>
-            </div>
-
-            <p className="text-[#1C1917] text-sm leading-relaxed">
-              A direct, evidence-assisted, or clarification decision is immediately retrievable. A research-assisted decision returns <code>status: pending_research</code> and a durable <code>research_job</code>. Call refresh with a new idempotency key: HTTP 202 means the worker is still running; HTTP 201 returns a new linked decision after the evidence is available. The original snapshot is never rewritten.
-            </p>
-
-            <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
-              <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Tenant-scoped retrieval</span>
-                <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
-                  <HighlightPython code={`tenant_headers = {
-    "x-axwise-key": "<SERVICE_KEY>",
-    "X-Orqaly-Org-ID": "<ORQALY_ORG_ID>",
-    "X-Orqaly-User-ID": "<ORQALY_USER_ID>"
-}
-decision = requests.get(
-    f"{base}/orchestration/decisions/{decision_id}",
-    headers=tenant_headers,
-    timeout=30
-)
-decision.raise_for_status()`} />
-                </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-white border border-[#EAE6DF] rounded-xl p-5 space-y-2 hover:border-emerald-300 transition-all shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">prepare_discovery</span>
+                <span className="text-[10px] font-mono text-stone-400">Step 01 · Frame</span>
               </div>
+              <h3 className="font-serif text-base text-stone-900 font-medium">Discovery Scope &amp; Guide</h3>
+              <p className="text-xs text-stone-600 leading-relaxed">
+                Agrees the problem boundaries, target customer segments, key uncertainties, and an evidence-seeking interview questionnaire.
+              </p>
+            </div>
 
-              <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Continue bounded research</span>
-                <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
-                  <HighlightPython code={`refresh_headers = {
-    **tenant_headers,
-    "Idempotency-Key": "<REFRESH_ATTEMPT_KEY>",
-    "X-Request-ID": "<TRACE_ID>"
-}
-refreshed = requests.post(
-    f"{base}/orchestration/decisions/{decision_id}/research/refresh",
-    headers=refresh_headers,
-    timeout=30
-)
-if refreshed.status_code == 202:
-    # Keep the goal non-executable and retry with backoff.
-    pass
-elif refreshed.status_code in (200, 201):
-    next_decision = refreshed.json()
-else:
-    refreshed.raise_for_status()`} />
-                </div>
+            <div className="bg-white border border-[#EAE6DF] rounded-xl p-5 space-y-2 hover:border-emerald-300 transition-all shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">generate_personas</span>
+                <span className="text-[10px] font-mono text-stone-400">Step 02 · Explore</span>
               </div>
+              <h3 className="font-serif text-base text-stone-900 font-medium">Persona Cohort Synthesis</h3>
+              <p className="text-xs text-stone-600 leading-relaxed">
+                Creates a bounded cohort of synthetic personas with operational roles, psychological traits, and problem context based on the agreed discovery scope.
+              </p>
             </div>
 
-            <div className="bg-[#1A1A1A] p-4 rounded-lg border border-stone-900 shadow-md">
-              <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block mb-3">// Research-assisted state excerpt</span>
-              <HighlightJSON code={`{
-  "decision_id": "decision-parent",
-  "routing_mode": "research_assisted",
-  "status": "pending_research",
-  "research_job": {
-    "job_id": "hybrid-…",
-    "status": "queued",
-    "pipeline": "hybrid_a_plus_b"
-  },
-  "execution_plan": {"nodes": [], "executable": false},
-  "requires_orqaly_authorization": true
-}`} />
-            </div>
-          </section>
-
-          {/* Section 4: Replan and outcomes */}
-          <section id="outcomes" className="space-y-6 scroll-mt-24">
-            <div className="border-b border-[#EAE6DF] pb-4">
-              <h2 className="font-serif text-3xl text-stone-900">4. Replan and Report Outcomes</h2>
-              <p className="text-sm text-stone-500 mt-1">Immutable recovery decisions and observed execution receipts</p>
-            </div>
-
-            <p className="text-[#1C1917] text-sm leading-relaxed">
-              If the host rejects a recommendation or live execution state changes, request a linked replan instead of mutating the original decision. After the host authorizes and executes the plan, report observed outcomes using the real decision, node, and agent IDs. Outcomes improve evaluation; they do not give AxWise authority to run anything.
-            </p>
-
-            <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
-              <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Replan after live state changes</span>
-                <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
-                  <HighlightPython code={`replan = requests.post(
-    f"{base}/orchestration/decisions/{decision_id}/replan",
-    headers={
-        **tenant_headers,
-        "Idempotency-Key": "<REPLAN_KEY>"
-    },
-    json={
-        "contract_version": "1.0",
-        "trigger": "agent_unavailable",
-        "reason": "Selected agent became unavailable",
-        "unavailable_agent_ids": ["agent-operations"],
-        "replacement_agents": [{
-            "agent_id": "agent-operations-backup",
-            "org_id": "<ORQALY_ORG_ID>",
-            "name": "Backup Operations Analyst",
-            "capabilities": ["operational analysis"],
-            "availability": "available"
-        }]
-    },
-    timeout=30
-)
-replan.raise_for_status()`} />
-                </div>
+            <div className="bg-white border border-[#EAE6DF] rounded-xl p-5 space-y-2 hover:border-emerald-300 transition-all shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">simulate_interviews</span>
+                <span className="text-[10px] font-mono text-stone-400">Step 02 · Explore</span>
               </div>
+              <h3 className="font-serif text-base text-stone-900 font-medium">Synthetic Interview Engine</h3>
+              <p className="text-xs text-stone-600 leading-relaxed">
+                Executes simulated multi-turn qualitative interviews against synthetic personas. Retains full transcript provenance with synthetic labels.
+              </p>
+            </div>
 
-              <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Outcome after host execution</span>
-                <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
-                  <HighlightPython code={`outcome = requests.post(
-    f"{base}/orchestration/decisions/{decision_id}/outcomes",
-    headers={
-        **tenant_headers,
-        "Idempotency-Key": "<OUTCOME_KEY>"
-    },
-    json={
-        "contract_version": "1.0",
-        "outcome_id": "outcome-goal-warehouse-v1",
-        "decision_id": decision_id,
-        "authorization_status": "approved",
-        "execution_status": "completed",
-        "task_success": True,
-        "quality_score": 0.86,
-        "stakeholder_acceptance": 0.80,
-        "cost": 7.50,
-        "currency": "EUR",
-        "latency_ms": 42000,
-        "node_receipts": [{
-            "receipt_id": "receipt-node-direct-v1",
-            "node_id": "node-direct-assignment",
-            "agent_id": "agent-operations",
-            "status": "completed",
-            "quality_score": 0.86
-        }]
-    },
-    timeout=30
-)
-outcome.raise_for_status()`} />
-                </div>
+            <div className="bg-white border border-[#EAE6DF] rounded-xl p-5 space-y-2 hover:border-emerald-300 transition-all shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">chat_with_persona</span>
+                <span className="text-[10px] font-mono text-stone-400">Step 02 · Explore</span>
               </div>
+              <h3 className="font-serif text-base text-stone-900 font-medium">Interactive Persona Rehearsal</h3>
+              <p className="text-xs text-stone-600 leading-relaxed">
+                Discuss an exact selected document, proposal, or PRD draft directly with a saved persona to stress-test usability and value.
+              </p>
             </div>
 
-            <p className="text-xs text-stone-600 bg-stone-50 border border-stone-200 rounded-lg p-4 leading-relaxed">
-              List accepted records with <code>GET /orchestration/decisions/{`{decision_id}`}/outcomes</code>. Reuse the same idempotency key only for an identical body; changed retries return HTTP 409.
-            </p>
-          </section>
-
-          {/* Section 5: Lower-level research */}
-          <section id="research" className="space-y-6 scroll-mt-24">
-            <div className="border-b border-[#EAE6DF] pb-4">
-              <h2 className="font-serif text-3xl text-stone-900">5. Lower-level Research Is Secondary</h2>
-              <p className="text-sm text-stone-500 mt-1">POST /api/orqaly-axwise/v1/simulate-enhanced-async</p>
-            </div>
-
-            <p className="text-[#1C1917] text-sm leading-relaxed">
-              Use the enhanced simulation endpoint only when a trusted integration deliberately needs the raw durable customer-and-executor pipeline. It starts research unconditionally. For normal goal handling, the decision endpoint is the correct entry point because it may determine that existing evidence, direct routing, or human clarification is safer and faster.
-            </p>
-
-            <div className="bg-[#1A1A1A] p-4 rounded-lg border border-stone-900 shadow-md">
-              <HighlightJSON code={`{
-  "secondary_flow": {
-    "start": "POST /api/orqaly-axwise/v1/simulate-enhanced-async",
-    "status": "GET /api/orqaly-axwise/v1/runs/{job_id}/status",
-    "result": "GET /api/orqaly-axwise/v1/runs/{job_id}",
-    "cancel": "POST /api/orqaly-axwise/v1/runs/{job_id}/cancel"
-  },
-  "rule": "Synthetic output remains an unverified working hypothesis",
-  "preferred_goal_entry": "POST /api/orqaly-axwise/v1/orchestration/decisions"
-}`} />
-            </div>
-          </section>
-
-          {/* Section 6: Execution boundary */}
-          <section id="trust-boundary" className="space-y-6 scroll-mt-24">
-            <div className="border-b border-[#EAE6DF] pb-4">
-              <h2 className="font-serif text-3xl text-stone-900">6. Host Authorization and Execution Boundary</h2>
-              <p className="text-sm text-stone-500 mt-1">AxWise intelligence → host approval, tools, execution, and delivery</p>
-            </div>
-
-            <p className="text-[#1C1917] text-sm leading-relaxed">
-              AxWise returns who the work is for, what remains uncertain, the ideal executor requirements, a goal-specific execution persona, ranked eligible agents or teams, and an advisory plan. In the reference integration, Orqaly preserves permanent Agent Hub identities and owns both human gates, tenant ownership, live availability, budget, connectors, execution, monitoring, and delivery.
-            </p>
-
-            <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
-              <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// AxWise returns advice</span>
-                <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
-                  <HighlightPython code={`# Evidence-bounded customer and stakeholder context
-# Ideal executor requirements and goal persona overlay
-# Ranked authenticated catalogue candidates
-# Routing rationale, confidence, plan, and fallbacks
-# Immutable request and decision hashes
-# requires_orqaly_authorization = True`} />
-                </div>
+            <div className="bg-white border border-[#EAE6DF] rounded-xl p-5 space-y-2 hover:border-emerald-300 transition-all shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">analyze_interviews</span>
+                <span className="text-[10px] font-mono text-stone-400">Step 03 · Understand</span>
               </div>
-
-              <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// The host remains authoritative</span>
-                <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
-                  <HighlightPython code={`# Authenticate the user and establish tenant ownership
-# Confirm context before planning
-# Confirm exact team, tools, budget, and plan before execution
-# Revalidate approvals and live state when a queued task starts
-# Execute through customer-authorized connectors
-# Deliver output and report observed outcomes`} />
-                </div>
-              </div>
+              <h3 className="font-serif text-base text-stone-900 font-medium">Qualitative Evidence Matrix</h3>
+              <p className="text-xs text-stone-600 leading-relaxed">
+                Extracts recurring patterns, conflicting needs, and stakeholder sentiment linked to verbatim quotations and character offsets.
+              </p>
             </div>
-            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-4">
-              Legacy <code>/twins/*</code> demonstration routes are not the cognitive decision contract. Do not build new integrations against them. Self-hosting gives you control of the data plane; it does not by itself establish authorization, compliance, or safe autonomy.
-            </p>
-          </section>
 
-        </main>
-      </div>
+            <div className="bg-white border border-[#EAE6DF] rounded-xl p-5 space-y-2 hover:border-emerald-300 transition-all shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">research_market</span>
+                <span className="text-[10px] font-mono text-stone-400">Step 03 · Understand</span>
+              </div>
+              <h3 className="font-serif text-base text-stone-900 font-medium">Grounded Market Synthesis</h3>
+              <p className="text-xs text-stone-600 leading-relaxed">
+                Synthesizes explicitly selected market sources provided by your host assistant, surfacing commercial gaps and uncertainty.
+              </p>
+            </div>
 
-      {/* Footer */}
-      <footer className="bg-[#121212] text-stone-500 px-6 lg:px-16 py-8 border-t border-stone-900 text-xs flex flex-wrap justify-between items-center mt-12">
+            <div className="bg-white border border-[#EAE6DF] rounded-xl p-5 space-y-2 hover:border-emerald-300 transition-all shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">create_prd</span>
+                <span className="text-[10px] font-mono text-stone-400">Step 04 · Shape</span>
+              </div>
+              <h3 className="font-serif text-base text-stone-900 font-medium">Evidence-Linked PRD</h3>
+              <p className="text-xs text-stone-600 leading-relaxed">
+                Builds a structured PRD with provenance tracking. Supports additive revisions without discarding previously agreed constraints.
+              </p>
+            </div>
+
+            <div className="bg-white border border-[#EAE6DF] rounded-xl p-5 space-y-2 hover:border-emerald-300 transition-all shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">create_delivery_brief</span>
+                <span className="text-[10px] font-mono text-stone-400">Step 04 · Deliver</span>
+              </div>
+              <h3 className="font-serif text-base text-stone-900 font-medium">Engineering &amp; Handoff Brief</h3>
+              <p className="text-xs text-stone-600 leading-relaxed">
+                Translates the verified PRD into an actionable engineering delivery brief with acceptance tests, milestones, and boundary assumptions.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 5: Boundaries & Governance */}
+        <section id="boundaries" className="space-y-6">
+          <div className="border-b border-[#EAE6DF] pb-4">
+            <span className="text-xs font-mono uppercase tracking-wider text-emerald-700 font-semibold">// 5. BOUNDARIES &amp; PROVENANCE</span>
+            <h2 className="font-serif text-2xl text-stone-900 mt-1">Clear Operating Principles</h2>
+          </div>
+
+          <div className="space-y-4 text-xs text-stone-600 leading-relaxed">
+            <div className="p-4 bg-white border border-[#EAE6DF] rounded-lg">
+              <strong className="text-stone-900 block mb-1">Your Host Stays in Charge:</strong>
+              The host assistant (Goose, Codex, Orqanix) retains conversational agency, user confirmation gates, and tool execution permissions. AxWise never acts outside its designated MCP tools.
+            </div>
+            <div className="p-4 bg-white border border-[#EAE6DF] rounded-lg">
+              <strong className="text-stone-900 block mb-1">Local State, Provider Privacy:</strong>
+              All generated artifacts, PRD revisions, and schemas remain saved on your local filesystem under your configured <code>stateDir</code>. Model inference goes exclusively to your chosen provider credentials.
+            </div>
+            <div className="p-4 bg-white border border-[#EAE6DF] rounded-lg">
+              <strong className="text-stone-900 block mb-1">Synthetic vs. Grounded Provenance:</strong>
+              Simulated interviews and personas are always marked with synthetic provenance flags, ensuring hypothetical data is never accidentally presented as empirical customer proof.
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      {/* ----------------- Footer ----------------- */}
+      <footer className="bg-[#121212] text-stone-500 px-6 lg:px-16 py-8 border-t border-stone-900 text-xs flex flex-wrap justify-between items-center">
         <div>© 2026 AxWise. AxWise Flow is licensed under Apache 2.0.</div>
         <div className="flex gap-6 mt-4 md:mt-0">
           <Link href="/privacy-policy" className="hover:text-stone-300">Privacy Policy</Link>
