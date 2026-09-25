@@ -21,7 +21,7 @@ export default function B2BPage() {
         },
         {
             title: "Rank Agents and Teams",
-            description: "Compare authenticated Orqaly Agent Hub profiles using task, customer, tool, constraint, and evidence fit.",
+            description: "Compare authenticated Orqanix Agent Hub profiles using task, customer, tool, constraint, and evidence fit.",
             icon: BarChart3,
         },
         {
@@ -31,7 +31,7 @@ export default function B2BPage() {
         },
         {
             title: "Preserve the Trust Boundary",
-            description: "AxWise recommends; Orqaly owns tenant authorization, approvals, budgets, connectors, and execution.",
+            description: "AxWise recommends; Orqanix owns tenant authorization, approvals, budgets, connectors, and execution.",
             icon: ShieldCheck,
         },
         {
@@ -60,7 +60,7 @@ export default function B2BPage() {
                             </span>
                         </h1>
                         <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-12">
-                            AxWise turns vague operational goals into evidence-aware customer context, ideal executor profiles, and traceable agent or team recommendations. Orqaly plans, authorizes, and executes the work.
+                            AxWise turns vague operational goals into evidence-aware customer context, ideal executor profiles, and traceable agent or team recommendations. Orqanix plans, authorizes, and executes the work.
                         </p>
                         <div className="flex flex-wrap justify-center gap-4">
                             <Button3D href="https://calendar.app.google/LTCGuJt8RBN7XrD47" size="lg">

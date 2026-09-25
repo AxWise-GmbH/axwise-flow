@@ -7,7 +7,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'AxWise — Cognitive Decision Layer for Agentic Work',
-  description: 'Turn vague goals into evidence-aware context and trusted agent or team recommendations. Host systems authorize and execute; Orqaly is the reference integration.',
+  description: 'Turn vague goals into evidence-aware context and trusted agent or team recommendations. Host systems authorize and execute; Orqanix is the reference integration.',
   icons: {
     icon: [
       { url: '/favicon.ico' },
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'AxWise — Cognitive Decision Layer for Agentic Work',
-    description: 'Turn vague goals into evidence-aware context and trusted agent or team recommendations. Host systems authorize and execute; Orqaly is the reference integration.',
+    description: 'Turn vague goals into evidence-aware context and trusted agent or team recommendations. Host systems authorize and execute; Orqanix is the reference integration.',
     url: 'https://axwise.de',
     siteName: 'AxWise Flow',
     locale: 'en_US',
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary',
     title: 'AxWise — Cognitive Decision Layer for Agentic Work',
-    description: 'Turn vague goals into evidence-aware context and trusted agent or team recommendations. Host systems authorize and execute; Orqaly is the reference integration.',
+    description: 'Turn vague goals into evidence-aware context and trusted agent or team recommendations. Host systems authorize and execute; Orqanix is the reference integration.',
   },
 };
 

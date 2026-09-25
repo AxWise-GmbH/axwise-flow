@@ -31,13 +31,13 @@ export default function ImpressumPage() {
           <Link href="/#decision-lab" className="hover:text-stone-900 transition-colors">Decision Lab</Link>
           <Link href="/#evidence" className="hover:text-stone-900 transition-colors">Evidence</Link>
           <Link href="/#trust" className="hover:text-stone-900 transition-colors">Trust Boundary</Link>
-          <Link href="/#execution" className="hover:text-stone-900 transition-colors">Orqaly Integration</Link>
+          <Link href="/#execution" className="hover:text-stone-900 transition-colors">Orqanix Integration</Link>
           <Link href="/#use-cases" className="hover:text-stone-900 transition-colors">Use Cases</Link>
         </nav>
 
         <div className="flex items-center gap-3">
           <a 
-            href="https://github.com/AxWise-GmbH/axwise-flow-oss"
+            href="https://github.com/AxWise-GmbH/axwise-flow"
             target="_blank" 
             rel="noopener noreferrer" 
             className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 border border-stone-300 rounded-md text-xs font-mono text-stone-700 hover:border-stone-900 hover:text-stone-900 transition-all"
