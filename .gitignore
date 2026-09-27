@@ -144,3 +144,12 @@ temp/
 output/
 process-map.html
 .DS_Store
+
+# Private data & credentials
+codex_migration/
+*.sqlite
+*.sqlite-*
+*.jsonl
+*credentials*.json
+*client_secret*.json
+auth.json

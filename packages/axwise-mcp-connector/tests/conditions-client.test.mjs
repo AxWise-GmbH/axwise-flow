@@ -5,6 +5,7 @@ import {
     CONDITIONS_ENDPOINT,
     buildConditionsRequest,
 } from "../build/conditions-client.js";
+import { redactPromptSecrets } from "../build/prompt-sanitizer.js";
 
 test("targets the supported cognitive-conditions endpoint", () => {
     assert.equal(CONDITIONS_ENDPOINT, "/api/orqaly-axwise/v1/conditions/evaluate");
@@ -30,5 +31,12 @@ test("requires a complete tenant scope", () => {
     assert.throws(
         () => buildConditionsRequest({ integration_point: "agent.generate", payload: {} }),
         /tenant\.userId and tenant\.orgId are required/,
+    );
+});
+
+test("redacts common credentials from the automatic prompt preflight", () => {
+    assert.equal(
+        redactPromptSecrets("API_KEY=secret-value Bearer abc.def-token ghp_123456789012345678901234"),
+        "API_KEY=[REDACTED] Bearer [REDACTED] [REDACTED_SECRET]",
     );
 });
