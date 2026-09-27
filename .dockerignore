@@ -32,3 +32,23 @@ packages/*
 # Screenshots and docs (not needed in containers)
 screenshots
 docs
+
+# --- Sensitive and Private Data Protection ---
+*.sqlite
+*.sqlite-*
+*.db
+*.db-wal
+*.db-shm
+*.jsonl
+*.pfx
+*.pem
+*.key
+*credentials*.json
+*client_secret*.json
+auth.json
+.env
+.env.local
+.env.*.local
+codex_migration/
+.codex/
+.gmail-mcp/
