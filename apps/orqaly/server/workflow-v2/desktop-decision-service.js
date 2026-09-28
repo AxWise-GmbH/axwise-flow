@@ -55,7 +55,7 @@ const rubric = 'message-disposition-v1';
 const laneRubric = 'lane-triage-v1';
 
 // Advice only. A signed-in caller's text is data, not authority over tools/approvals.
-export function createDesktopDecisionService({ apiKey, fetchImpl = fetch, timeoutMs = 900 } = {}) {
+export function createDesktopDecisionService({ apiKey, fetchImpl = fetch, timeoutMs = 2000 } = {}) {
   return {
     async decide(_auth, input) {
       const request = DecisionInputSchema.parse(input);
@@ -70,7 +70,7 @@ export function createDesktopDecisionService({ apiKey, fetchImpl = fetch, timeou
           advisory: true,
           provenance: { rubric: laneRubric, inputHash },
         };
-        const fallback = (reason) => ({ ...base, decision: 'uncertain', reason });
+        const fallback = (reason) => ({ ...base, decision: 'research', thinkingEffort: 'high', reason });
         if (request.enabled === false || !apiKey?.trim()) return fallback('disabled');
 
         const controller = new AbortController();

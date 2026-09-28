@@ -7,13 +7,19 @@
  */
 
 const ENDPOINT = 'https://api.typesafe.ai/v1/systemone';
-const DEFAULT_TIMEOUT_MS = 2500;
+const DEFAULT_TIMEOUT_MS = 2000;
 
 export const GOOSE_LANES = Object.freeze({
   QUICK_INFO: 'quick_info',
   RESEARCH: 'research',
   LOCAL_ENGINEERING: 'local_engineering',
   CONVERSATION: 'conversation',
+});
+
+export const THINKING_EFFORTS = Object.freeze({
+  OFF: 'off',
+  LOW: 'low',
+  HIGH: 'high',
 });
 
 const LANE_CRITERIA = Object.freeze({
@@ -61,6 +67,15 @@ export async function triageTurnIntentWithJev({
         instructions: 'Choose the single safest handling lane for this user request.',
         criteria: LANE_CRITERIA,
       },
+      thinking_effort: {
+        type: 'choice',
+        instructions: 'Select the optimal reasoning effort level required for an LLM to accurately solve this request.',
+        criteria: {
+          off: 'Trivial short lookup, acknowledgement, yes, proceed, weather, currency, simple greeting',
+          low: 'Light single-turn question, bugfix, or direct explanation',
+          high: 'Deep multi-domain planning, complex valuation modeling, architectural design, or legal compliance analysis',
+        },
+      },
     },
   };
 
@@ -86,7 +101,8 @@ export async function triageTurnIntentWithJev({
       return {
         evaluated: false,
         reason: `HTTP_${res.status}`,
-        route: GOOSE_LANES.CONVERSATION,
+        route: GOOSE_LANES.RESEARCH,
+        thinkingEffort: THINKING_EFFORTS.HIGH,
         confidence: 0,
         probabilities: {},
       };
@@ -95,12 +111,14 @@ export async function triageTurnIntentWithJev({
     const data = await res.json();
     const latencyMs = Math.round(performance.now() - t0);
     const ans = data.answers?.route;
+    const thinkingAns = data.answers?.thinking_effort;
 
     if (!ans || ans.type !== 'choice') {
       return {
         evaluated: false,
         reason: 'INVALID_JEV_RESPONSE',
-        route: GOOSE_LANES.CONVERSATION,
+        route: GOOSE_LANES.RESEARCH,
+        thinkingEffort: THINKING_EFFORTS.HIGH,
         confidence: 0,
         probabilities: {},
       };
@@ -109,6 +127,7 @@ export async function triageTurnIntentWithJev({
     return {
       evaluated: true,
       route: ans.choice,
+      thinkingEffort: thinkingAns?.choice || THINKING_EFFORTS.HIGH,
       confidence: ans.confidence || 0,
       probabilities: ans.probabilities || {},
       latencyMs,
@@ -119,7 +138,8 @@ export async function triageTurnIntentWithJev({
     return {
       evaluated: false,
       reason: err.name === 'AbortError' ? 'TIMEOUT' : 'NETWORK_ERROR',
-      route: GOOSE_LANES.CONVERSATION,
+      route: GOOSE_LANES.RESEARCH,
+      thinkingEffort: THINKING_EFFORTS.HIGH,
       confidence: 0,
       probabilities: {},
     };
