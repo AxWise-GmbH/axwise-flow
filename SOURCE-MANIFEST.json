@@ -1,6 +1,6 @@
 {
   "format": "axwise.source-allowlist.v1",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "files": [
     {
       "path": ".gitignore",
@@ -14,8 +14,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "bad5ad0b1b7f171de5e9f284f627dfdb7f4da3d55f1980f9e56a4490f219feb6",
-      "bytes": 9674
+      "sha256": "1ee45a471baa993aca8988e535ff15a84607c7225f3c3b767762974dbc5381c5",
+      "bytes": 9972
     },
     {
       "path": "axwise.example.json",
@@ -74,8 +74,8 @@
     },
     {
       "path": "backend/services/local_axwise/delivery.py",
-      "sha256": "a8af3e7c417c0521f5e4057cc6a6d6552b395d797d0086612806b14662dca47d",
-      "bytes": 28133
+      "sha256": "42833c4933cbe51ab439561d598d69ce609ace49a005cbed242cd1c16abcdbdf",
+      "bytes": 28299
     },
     {
       "path": "backend/services/local_axwise/discovery.py",
@@ -83,13 +83,23 @@
       "bytes": 28773
     },
     {
+      "path": "backend/services/local_axwise/engine.py",
+      "sha256": "e879943a6ef51db2dd0bc45520e690e687f4fe929f3e96fe57b95c2326618210",
+      "bytes": 11907
+    },
+    {
+      "path": "backend/services/local_axwise/fastmcp_server.py",
+      "sha256": "9941f3b7f3ff849179bb0f5802a797a31d0f1df2f2eca59c6ef5bb0e5321f942",
+      "bytes": 12026
+    },
+    {
       "path": "backend/services/local_axwise/kernel.py",
-      "sha256": "22d4b16d2c185bc81c26b48d402f26392a3c128702e606d361f82849d817beeb",
-      "bytes": 78778
+      "sha256": "84cee7903a3f3c1bf3c1328626eb6ce6687a6d453b0caddb416f3ba1e667022f",
+      "bytes": 78815
     },
     {
       "path": "backend/services/local_axwise/personas.py",
-      "sha256": "0cf5e0e313901cea48dcc677b5e5596db569bde0a765e453bf0df45dc7013e27",
+      "sha256": "fc73b032533f9d89cdca75b17a6e6f7b1aa9c4fbbacb1c220321d252a50a6601",
       "bytes": 36876
     },
     {
@@ -99,8 +109,13 @@
     },
     {
       "path": "backend/services/local_axwise/prd_revisions.py",
-      "sha256": "c044891620e49574c5e5049e181c43cdf58fc089d38ca758b388327d02c80fa2",
-      "bytes": 9321
+      "sha256": "2f5e620099dd1833a3ad81ebfb202202c7fcf76b14dab241d8210a8fc039073c",
+      "bytes": 9775
+    },
+    {
+      "path": "backend/services/local_axwise/provider.py",
+      "sha256": "b6facd21c07b3196af2f7b52aaa02e18973fee37f93c2036333b25d888dd7ab0",
+      "bytes": 14860
     },
     {
       "path": "backend/services/local_axwise/quality.py",
@@ -109,8 +124,18 @@
     },
     {
       "path": "backend/services/local_axwise/requirements.txt",
-      "sha256": "39bb5bd9f00ed2942d51b2004994bfd45b27b03bfbd1acd0a74b511eb4b7dbe3",
-      "bytes": 183
+      "sha256": "d11c23117da1ba76f84ddf3eb40db9dd00cc29b78b3e56731c2b9fa85e53ca0b",
+      "bytes": 160
+    },
+    {
+      "path": "backend/services/local_axwise/schema_cleaner.py",
+      "sha256": "88621c214e855cff71244ebcb69906dfac4606f0fcbe64538582d8ea1536abb5",
+      "bytes": 4726
+    },
+    {
+      "path": "backend/services/local_axwise/storage.py",
+      "sha256": "dc7fba72fcf830e5fdfaefb93c909ccce532df570b045da830240968ae1ce88c",
+      "bytes": 13856
     },
     {
       "path": "backend/services/local_axwise/worker.py",
@@ -124,8 +149,8 @@
     },
     {
       "path": "backend/services/workflow_v2/analysis_candidates.py",
-      "sha256": "1581046042f898d4dd22eb6ef4d9fb2d22dd50b34ed182f8aee6c1f90688a2ce",
-      "bytes": 7065
+      "sha256": "f3cc452b3468c33a32c4991d6a977fd5a16b0ad90679faef314d54f9934690da",
+      "bytes": 8540
     },
     {
       "path": "backend/services/workflow_v2/capability_generation_payloads.py",
@@ -179,8 +204,8 @@
     },
     {
       "path": "backend/tests/local_axwise/test_kernel.py",
-      "sha256": "30b58bc1e8e87ba190f5b1bb574202907b3a91bbc87f1f760462e6663157dc52",
-      "bytes": 20483
+      "sha256": "fb22d116df475064f139b1407825db2d30686e5b876e54890c619cfca63bdc03",
+      "bytes": 20565
     },
     {
       "path": "backend/tests/local_axwise/test_personas.py",
@@ -204,8 +229,8 @@
     },
     {
       "path": "packages/axwise-distribution/PUBLIC_README.md",
-      "sha256": "bad5ad0b1b7f171de5e9f284f627dfdb7f4da3d55f1980f9e56a4490f219feb6",
-      "bytes": 9674
+      "sha256": "1ee45a471baa993aca8988e535ff15a84607c7225f3c3b767762974dbc5381c5",
+      "bytes": 9972
     },
     {
       "path": "packages/axwise-distribution/README.md",
@@ -229,23 +254,23 @@
     },
     {
       "path": "packages/axwise-distribution/launcher.py",
-      "sha256": "c52f9b443cebf08e9d7ab6b07a565a4b0fe26e91cd2e479bfc8d8d9324f4438e",
-      "bytes": 2125
+      "sha256": "6bed5929a9d108d9c25fab90165978c0af990aa0847742dc07710de5c79d55c8",
+      "bytes": 1282
     },
     {
       "path": "packages/axwise-distribution/manifest.py",
-      "sha256": "fa0f94306826595c92aa486129169e480dd52d244889c424ca1d870085207c64",
-      "bytes": 2391
+      "sha256": "30569f766f1837274bde7f4fbd0e0424248acdaed4ddda06a74e21be4d73fe6e",
+      "bytes": 2532
     },
     {
       "path": "packages/axwise-distribution/npm-cli.mjs",
-      "sha256": "8cb68c786c5256b74bd16c9c4f5d1f72a9a9c6e930336a9826f285756de4176d",
-      "bytes": 957
+      "sha256": "11c0bdf87e57c7c7e6a11de9db55657bfd620e74ae6db2ed783b8face7087d6c",
+      "bytes": 1020
     },
     {
       "path": "packages/axwise-distribution/pyproject.toml",
-      "sha256": "9552b5f321d4330adbd15e1aa0ccc5cb14876260fbee8fb1cb72914c776ab639",
-      "bytes": 634
+      "sha256": "e077500d54cd8f18d2f57a43f46aac9e83d2f39259bb1d9c5f0e1b8698d5d33f",
+      "bytes": 700
     },
     {
       "path": "packages/axwise-distribution/smoke.py",
@@ -259,7 +284,7 @@
     },
     {
       "path": "packages/axwise-local/package.json",
-      "sha256": "fdc7e41c366f33f9649f2cf0dfe37bb2ad56be30ef929d015265150e711ef07e",
+      "sha256": "b1de3e77b71d6f0d5fca3e57e520d5e5085e91952b94485f1fc1dbb67c59d58e",
       "bytes": 203
     },
     {
@@ -344,8 +369,8 @@
     },
     {
       "path": "pyproject.toml",
-      "sha256": "9552b5f321d4330adbd15e1aa0ccc5cb14876260fbee8fb1cb72914c776ab639",
-      "bytes": 634
+      "sha256": "e077500d54cd8f18d2f57a43f46aac9e83d2f39259bb1d9c5f0e1b8698d5d33f",
+      "bytes": 700
     }
   ]
 }

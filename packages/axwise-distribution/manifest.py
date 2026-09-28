@@ -1,12 +1,15 @@
 """Public distribution boundary. Never replace these lists with directory walks."""
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 PYTHON_NAME = "axwise-extension"
 NPM_NAME = "@axwise/extension"
 DEPENDENCIES = (
     "annotated-types==0.8.0",
+    "httpx==0.28.1",
+    "mcp==1.25.0",
     "pydantic==2.13.4",
     "pydantic_core==2.46.4",
+    "python-dotenv==1.2.1",
     "typing-inspection==0.4.4",
     "typing_extensions==4.16.0",
 )
@@ -17,6 +20,7 @@ JS_FILES = tuple(f"packages/axwise-local/src/{name}.mjs" for name in (
 KERNEL_FILES = tuple(f"backend/services/local_axwise/{name}.py" for name in (
     "__init__", "kernel", "worker", "quality", "pipeline_common", "discovery",
     "personas", "delivery", "prd_revisions", "analysis_views",
+    "fastmcp_server", "engine", "provider", "storage", "schema_cleaner",
 ))
 DEPENDENCY_FILES = (
     "backend/domain/workflow_v2/wire.py",

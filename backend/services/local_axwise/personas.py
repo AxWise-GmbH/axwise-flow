@@ -374,6 +374,7 @@ def _materialize_quotes(selections: list[EvidenceSelection], context: dict) -> l
 
 def _roles(value: GeneratePersonasInput, scope: dict | None) -> list[PersonaRole]:
     roles = value.stakeholders
+    role_limit, participant_limit = (3, 2) if value.depth == "standard" else (4, 3)
     if scope is not None:
         saved = scope["artifact"].get("stakeholders", [])
         if not isinstance(saved, list):
@@ -395,7 +396,6 @@ def _roles(value: GeneratePersonasInput, scope: dict | None) -> list[PersonaRole
                     raise ValueError("persona geography differs from saved scope")
     if not roles or len({role.id for role in roles}) != len(roles):
         raise ValueError("one or more unique stakeholder roles required")
-    role_limit, participant_limit = (3, 2) if value.depth == "standard" else (4, 3)
     if len(roles) > role_limit or any(role.participants > participant_limit for role in roles):
         raise ValueError("requested persona cohort exceeds depth budget; explicitly select a subset of exact saved stakeholder identities")
     return roles
