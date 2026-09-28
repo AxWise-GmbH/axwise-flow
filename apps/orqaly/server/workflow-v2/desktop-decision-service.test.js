@@ -26,6 +26,28 @@ const body = (choice = 'steer') => ({
   },
 });
 describe('bounded advisory desktop decisions', () => {
+  it('correctly classifies outer turn lane_triage requests using Jev choice', async () => {
+    const laneBody = {
+      model: 'jev-1.13',
+      answers: {
+        route: {
+          type: 'choice',
+          choice: 'quick_info',
+          confidence: 0.98,
+          probabilities: { quick_info: 0.98, research: 0.01, local_engineering: 0.005, conversation: 0.005 },
+        },
+      },
+    };
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify(laneBody)));
+    const value = await createDesktopDecisionService({ apiKey: 'test', fetchImpl }).decide(
+      {},
+      { kind: 'lane_triage', sessionId: 's1', message: 'What is the weather in Berlin?' }
+    );
+    expect(value).toMatchObject({ kind: 'lane_triage', decision: 'quick_info', confidence: 0.98, advisory: true });
+    expect(value.provenance.rubric).toBe('lane-triage-v1');
+    expect(value.provenance.inputHash).toMatch(/^[a-f0-9]{64}$/);
+  });
+
   it('binds the result to run/message plus rubric and exact input hash', async () => {
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify(body())));
     const value = await createDesktopDecisionService({ apiKey: 'test', fetchImpl }).decide(

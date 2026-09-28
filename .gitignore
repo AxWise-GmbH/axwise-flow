@@ -93,12 +93,19 @@ temp/
 /packages/orqaly-goose-connector/src/*
 !/packages/orqaly-goose-connector/src/utilities-mcp.mjs
 !/packages/orqaly-goose-connector/src/utility-providers.mjs
+!/packages/orqaly-goose-connector/src/native-engineering-gems.mjs
+!/packages/orqaly-goose-connector/src/jev-loop-router.mjs
 !/packages/orqaly-goose-connector/test/
 /packages/orqaly-goose-connector/test/*
 !/packages/orqaly-goose-connector/test/utilities-mcp.test.mjs
 !/packages/orqaly-goose-connector/test/utility-providers.test.mjs
+!/packages/orqaly-goose-connector/test/native-engineering-gems.test.mjs
+!/packages/orqaly-goose-connector/test/jev-loop-router.test.mjs
 !/scripts/benchmark-goose-reset.mjs
 !/scripts/benchmark-goose-reset.test.mjs
+!/scripts/benchmark-native-engineering-gems.mjs
+!/scripts/benchmark-jev-acceleration.mjs
+!/scripts/sophisticated-gems-benchmark.mjs
 !/scripts/run-local-reset-preview.mjs
 !/scripts/sync-local-desktop-utilities.mjs
 
@@ -133,6 +140,9 @@ temp/
 !/backend/services/workflow_v2/
 /backend/services/workflow_v2/*
 !/backend/services/workflow_v2/cognitive_factory.py
+!/backend/services/workflow_v2/cognitive/
+/backend/services/workflow_v2/cognitive/*
+!/backend/services/workflow_v2/cognitive/typesafe_triage.py
 !/backend/tests/
 /backend/tests/*
 !/backend/tests/local_axwise/

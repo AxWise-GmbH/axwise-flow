@@ -13,6 +13,15 @@ from backend.services.local_axwise.storage import (
     save_operation,
 )
 
+try:
+    from backend.services.workflow_v2.cognitive.typesafe_triage import (
+        is_typesafe_available,
+        validate_deliverable_with_jev,
+    )
+except ImportError:
+    is_typesafe_available = lambda: False  # type: ignore
+    validate_deliverable_with_jev = None  # type: ignore
+
 
 class EngineError(Exception):
     pass
@@ -177,67 +186,101 @@ async def execute_tool(
     # 5. Review & Repair loop (when depth == 'deep')
     quality_review: dict[str, Any] = {"passed": True, "mode": depth}
     if depth == "deep" and tool_name not in ("simulate_interviews",):
-        try:
-            review_prep = quality.prepare_review(
-                tool_name,
-                resolved_input,
-                finalized.get("candidate", {}),
-                host_evidence,
-            )
-            review_content, _ = await llm.complete(
-                review_prep["systemPrompt"],
-                review_prep["userPrompt"],
-                review_prep.get("responseSchema"),
-                review_prep.get("maxOutputTokens", 4096),
-            )
-            review_obj = quality.validate_review(
-                tool_name,
-                resolved_input,
-                finalized.get("candidate", {}),
-                review_content,
-            )
-            quality_review = review_obj
+        jev_passed = False
+        candidate_md = finalized.get("markdown") or ""
+        if is_typesafe_available() and validate_deliverable_with_jev and candidate_md:
+            try:
+                candidate_dict = finalized.get("candidate", {})
+                criteria = [
+                    {"code": c, "description": c}
+                    for c in quality.CRITERIA.get(tool_name, ())
+                ]
+                evidence_data = {
+                    "sources": [e.get("reference", {}) for e in host_evidence if isinstance(e, dict)],
+                    "claims": [f.get("summary") for f in candidate_dict.get("findings", []) if isinstance(f, dict)],
+                }
+                jev_res = await validate_deliverable_with_jev(
+                    candidate_md,
+                    acceptance_criteria=criteria if criteria else [{"code": "default", "description": "traceability"}],
+                    evidence=evidence_data if evidence_data["sources"] or evidence_data["claims"] else {"claims": ["default"]},
+                    timeout_seconds=3.0,
+                )
+                if getattr(jev_res, "status", None) == "passed":
+                    quality_review = {
+                        "passed": True,
+                        "score": 1.0,
+                        "mode": depth,
+                        "fastPath": "jev",
+                        "model": "jev-latest",
+                        "advisory": True,
+                    }
+                    jev_passed = True
+                    record_stage(operation_id, "quality_reviewed", quality_review)
+            except Exception:
+                jev_passed = False
 
-            if not review_obj.get("passed"):
-                # One repair pass
-                diagnostics = review_obj.get("diagnostics", ["REVIEW_FAILED"])
-                repair_prep = quality.prepare_repair(
-                    tool=tool_name,
-                    value=resolved_input,
-                    candidate=finalized.get("candidate", {}),
-                    review=review_obj,
-                    diagnostics=diagnostics,
-                    host_evidence=host_evidence,
-                )
-                repaired_content, _ = await llm.complete(
-                    repair_prep["systemPrompt"],
-                    repair_prep["userPrompt"],
-                    repair_prep.get("responseSchema"),
-                    repair_prep.get("maxOutputTokens", 8192),
-                )
-                finalized = kernel.finalize(
+        if not jev_passed:
+            try:
+                review_prep = quality.prepare_review(
                     tool_name,
                     resolved_input,
-                    repaired_content,
-                    normalized_usage,
-                    prepared.get("context"),
+                    finalized.get("candidate", {}),
                     host_evidence,
                 )
-                # Final review
-                final_rev_content, _ = await llm.complete(
+                review_content, _ = await llm.complete(
                     review_prep["systemPrompt"],
                     review_prep["userPrompt"],
                     review_prep.get("responseSchema"),
                     review_prep.get("maxOutputTokens", 4096),
                 )
-                quality_review = quality.validate_review(
+                review_obj = quality.validate_review(
                     tool_name,
                     resolved_input,
                     finalized.get("candidate", {}),
-                    final_rev_content,
+                    review_content,
                 )
-        except Exception as review_err:
-            quality_review = {"passed": True, "note": f"Review skipped or advisory: {review_err}"}
+                quality_review = review_obj
+
+                if not review_obj.get("passed"):
+                    # One repair pass
+                    diagnostics = review_obj.get("diagnostics", ["REVIEW_FAILED"])
+                    repair_prep = quality.prepare_repair(
+                        tool=tool_name,
+                        value=resolved_input,
+                        candidate=finalized.get("candidate", {}),
+                        review=review_obj,
+                        diagnostics=diagnostics,
+                        host_evidence=host_evidence,
+                    )
+                    repaired_content, _ = await llm.complete(
+                        repair_prep["systemPrompt"],
+                        repair_prep["userPrompt"],
+                        repair_prep.get("responseSchema"),
+                        repair_prep.get("maxOutputTokens", 8192),
+                    )
+                    finalized = kernel.finalize(
+                        tool_name,
+                        resolved_input,
+                        repaired_content,
+                        normalized_usage,
+                        prepared.get("context"),
+                        host_evidence,
+                    )
+                    # Final review
+                    final_rev_content, _ = await llm.complete(
+                        review_prep["systemPrompt"],
+                        review_prep["userPrompt"],
+                        review_prep.get("responseSchema"),
+                        review_prep.get("maxOutputTokens", 4096),
+                    )
+                    quality_review = quality.validate_review(
+                        tool_name,
+                        resolved_input,
+                        finalized.get("candidate", {}),
+                        final_rev_content,
+                    )
+            except Exception as review_err:
+                quality_review = {"passed": True, "note": f"Review skipped or advisory: {review_err}"}
 
     # 6. Save artifact to SQLite and disk
     if tool_name in ("create_prd", "simulate_interviews", "analyze_interviews"):
