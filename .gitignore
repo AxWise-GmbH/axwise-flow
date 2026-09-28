@@ -110,6 +110,7 @@ temp/
 !/scripts/e2e-matrix-benchmark.mjs
 !/scripts/benchmark-axwise-e2e.py
 !/scripts/demo-full-discovery-tiers.py
+!/scripts/benchmark-real-creation-times.mjs
 !/scripts/run-local-reset-preview.mjs
 !/scripts/sync-local-desktop-utilities.mjs
 
