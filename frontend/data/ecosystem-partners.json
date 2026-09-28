@@ -4,6 +4,32 @@
   "description": "Comprehensive index of partner programs, accelerators, and developer companies for axwise.de",
   "accelerators_and_programs": [
     {
+      "id": "nvidia-inception",
+      "name": "NVIDIA Inception Program",
+      "organization": "NVIDIA Corporation",
+      "domain": "nvidia.com",
+      "url": "https://www.nvidia.com/en-us/startups/",
+      "relationship": "Inception Member / AI Ecosystem",
+      "participant": "Vitalijs Visnevskis (Founder @ Axwise)",
+      "logo_png": "/logos/nvidia-inception.png",
+      "description": "Global deep tech accelerator supporting companies revolutionizing industries with advancements in AI and data science.",
+      "status": "active",
+      "active_featured": true
+    },
+    {
+      "id": "google-for-startups",
+      "name": "Google for Startups Cloud Program",
+      "organization": "Google LLC / Google Cloud",
+      "domain": "startup.google.com",
+      "url": "https://startup.google.com/",
+      "relationship": "Cloud Program / Scale & Technical Backing",
+      "participant": "Vitalijs Visnevskis (Founder @ Axwise)",
+      "logo_svg": "/logos/google-for-startups.svg",
+      "description": "Google Cloud program providing infrastructure, mentoring, and technical resources to high-growth AI startups.",
+      "status": "active",
+      "active_featured": true
+    },
+    {
       "id": "constructor-start",
       "name": "Constructor Start Accelerator",
       "organization": "Constructor University / Constructor Knowledge",

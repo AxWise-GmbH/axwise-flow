@@ -22,6 +22,22 @@ interface AcceleratorItem {
 // Active startup accelerator and incubator programs
 const ACCELERATORS: AcceleratorItem[] = [
   {
+    id: 'nvidia-inception',
+    name: 'NVIDIA Inception',
+    program: 'Global Deep Tech & AI Ecosystem',
+    relationship: 'Inception Member / AI Startups',
+    logo: '/logos/nvidia-inception.png',
+    url: 'https://www.nvidia.com/en-us/startups/',
+  },
+  {
+    id: 'google-for-startups',
+    name: 'Google for Startups',
+    program: 'Google Cloud Startup Program',
+    relationship: 'Cloud Program & Scale Partner',
+    logo: '/logos/google-for-startups.svg',
+    url: 'https://startup.google.com/',
+  },
+  {
     id: 'constructor-start',
     name: 'Constructor Start Accelerator',
     program: 'Constructor University · Bremen',
@@ -88,27 +104,27 @@ export function EcosystemLogos(): React.JSX.Element {
             AxWise has been supported, incubated, and mentored by leading European startup programs and deep-tech innovation hubs.
           </p>
 
-          <div className="pt-4 flex flex-wrap items-center justify-center gap-6">
+          <div className="pt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {ACCELERATORS.map((accel) => (
               <a
                 key={accel.id}
                 href={accel.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-4 bg-white border border-[#EAE6DF] rounded-lg p-4 px-6 hover:border-emerald-300 hover:shadow-sm transition-all text-left group"
+                className="flex items-center gap-3.5 bg-white border border-[#EAE6DF] rounded-xl p-4 hover:border-emerald-400 hover:shadow-sm transition-all text-left group"
               >
-                <div className="h-10 w-28 flex items-center justify-center">
+                <div className="h-10 w-24 flex-shrink-0 flex items-center justify-center">
                   <img
                     src={accel.logo}
                     alt={accel.name}
                     className="max-h-full max-w-full object-contain filter grayscale group-hover:grayscale-0 opacity-80 group-hover:opacity-100 transition-all duration-300"
                   />
                 </div>
-                <div className="border-l border-[#EAE6DF] pl-4">
-                  <div className="text-xs font-semibold text-stone-900 group-hover:text-emerald-700 transition-colors">
+                <div className="border-l border-[#EAE6DF] pl-3.5 min-w-0">
+                  <div className="text-xs font-semibold text-stone-900 group-hover:text-emerald-700 transition-colors truncate">
                     {accel.name}
                   </div>
-                  <div className="text-[10px] font-mono text-stone-500 mt-0.5">
+                  <div className="text-[10px] font-mono text-stone-500 mt-0.5 leading-snug">
                     {accel.relationship}
                   </div>
                 </div>
