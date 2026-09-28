@@ -4,24 +4,16 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { 
   ArrowLeft, 
-  BookOpen, 
-  Code, 
-  Cpu, 
   GitBranch, 
-  Lock, 
-  Server, 
-  Shield, 
+  Check, 
+  Download, 
+  Copy, 
   Terminal as TerminalIcon,
-  ChevronRight,
-  Activity,
-  Check,
-  Download,
-  Copy,
-  ExternalLink,
-  MessageSquare,
+  Sparkles,
+  Database,
+  Key,
   Layers,
-  FileText,
-  Users
+  FileText
 } from 'lucide-react';
 
 function CodeBlock({ code, language = 'bash' }: { code: string; language?: string }) {
@@ -103,109 +95,106 @@ export default function DocsPage(): React.JSX.Element {
         <div className="border-b border-[#EAE6DF] pb-10 space-y-4">
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-              AXWISE 0.3.0
+              AXWISE FASTMCP 0.4.0
             </span>
             <span className="text-xs font-mono text-stone-500 uppercase tracking-wider">
-              MODEL CONTEXT PROTOCOL (MCP) SPECIALIST
+              PURE-PYTHON MODEL CONTEXT PROTOCOL (MCP) SPECIALIST
             </span>
           </div>
           <h1 className="font-serif text-4xl text-stone-900">Developer Documentation</h1>
           <p className="text-base text-stone-600 max-w-3xl leading-relaxed">
-            AxWise is a scoped, open-source local specialist extension for turning product questions and evidence into discovery scopes, synthetic persona cohorts, simulated interviews, qualitative analysis, evidence-linked PRDs, and delivery briefs.
+            AxWise is a scoped, pure-Python local specialist extension for turning product briefs and evidence into discovery scopes, synthetic persona cohorts, simulated interviews, qualitative analysis, evidence-linked PRDs, and delivery handoffs.
           </p>
           <p className="text-xs text-stone-500 leading-relaxed max-w-3xl">
-            It connects to any standard MCP host (Goose, Codex, Claude Desktop, Orqanix) over standard I/O (stdio). AxWise is invoked for specific discovery deliverables—not for every chat turn.
+            Built with <strong>zero Node.js</strong> and <strong>zero PostgreSQL</strong> dependencies. Runs on standard Python 3.11+ using FastMCP and persists local artifacts in an embedded SQLite database (<code>~/.axwise/state/axwise.db</code>).
           </p>
         </div>
 
         {/* Section 1: Quick Install & Launch */}
         <section id="launch" className="space-y-6">
           <div className="border-b border-[#EAE6DF] pb-4">
-            <span className="text-xs font-mono uppercase tracking-wider text-emerald-700 font-semibold">// 1. QUICK LAUNCH</span>
-            <h2 className="font-serif text-2xl text-stone-900 mt-1">Install from a Verified Release</h2>
+            <span className="text-xs font-mono uppercase tracking-wider text-emerald-700 font-semibold">// 1. QUICK LAUNCH &amp; INSTALL</span>
+            <h2 className="font-serif text-2xl text-stone-900 mt-1">Run Instantly with uvx or pip</h2>
             <p className="text-sm text-stone-500 mt-1">
-              Version 0.3.0 is distributed as direct GitHub release artifacts. Choose either launch path; both execute the same engine.
+              AxWise 0.4.0 is a pure-Python package. No JSON config files, Node.js runtimes, or database containers required.
             </p>
           </div>
 
           <div className="space-y-4">
-            <h3 className="font-serif text-lg text-stone-900">Launch with uvx (Python)</h3>
-            <p className="text-xs text-stone-600">Requires uv and Node.js on PATH:</p>
+            <h3 className="font-serif text-lg text-stone-900">Launch with uvx (Zero Install)</h3>
+            <p className="text-xs text-stone-600">Downloads and executes the FastMCP server in an isolated environment:</p>
             <CodeBlock 
               language="bash"
-              code="uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.3.0/axwise_extension-0.3.0-py3-none-any.whl axwise --config /absolute/path/axwise.json"
+              code="uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl axwise"
             />
 
-            <h3 className="font-serif text-lg text-stone-900 pt-2">Launch with npx (Node.js)</h3>
-            <p className="text-xs text-stone-600">Requires Node.js 22+ and uv on PATH:</p>
+            <h3 className="font-serif text-lg text-stone-900 pt-2">Install via pip</h3>
+            <p className="text-xs text-stone-600">Installs the <code>axwise</code> executable directly into your Python environment:</p>
             <CodeBlock 
               language="bash"
-              code="npx --yes --package=https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.3.0/axwise-extension-0.3.0.tgz axwise --config /absolute/path/axwise.json"
+              code="pip install https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl"
             />
           </div>
 
           <div className="bg-white border border-[#EAE6DF] rounded-lg p-5 text-xs text-stone-600 space-y-2">
             <div className="font-semibold text-stone-900 flex items-center gap-1.5">
               <Download className="w-4 h-4 text-emerald-600" />
-              Direct Artifact Downloads &amp; Verified Checksums (SHA-256):
+              Verified Release Packages &amp; Checksums (SHA-256):
             </div>
             <ul className="space-y-1 font-mono text-[11px] pt-1">
               <li>
-                <a href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.3.0/axwise-extension-0.3.0.tgz" className="text-emerald-700 underline font-semibold">npm archive (.tgz)</a>: 157,987 bytes · <span className="text-stone-500">a17caf788dd42e7979f281f2dce6aa3ec527ad6bd1b3a8c8a7f7b2d72c22fe20</span>
+                <a href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl" className="text-emerald-700 underline font-semibold">Python wheel (.whl)</a>: 168,627 bytes · <span className="text-stone-500">e25035620cf4d5125cd7aa46b9ddb119a5a8c735edcffbab50f398ba866b280d</span>
               </li>
               <li>
-                <a href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.3.0/axwise_extension-0.3.0-py3-none-any.whl" className="text-emerald-700 underline font-semibold">Python wheel (.whl)</a>: 152,383 bytes · <span className="text-stone-500">d3c13786ce62de85a8e7dc6ef380c9cb0de61ca6b6477409133b579d36fe336f</span>
+                <a href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise-extension-0.4.0.tgz" className="text-emerald-700 underline font-semibold">npm archive (.tgz)</a>: 173,642 bytes · <span className="text-stone-500">885b98a13ba59da56730035ba8f12419b54e537010a1f0352ef2484812a91c71</span>
               </li>
             </ul>
           </div>
         </section>
 
-        {/* Section 2: Configuration */}
+        {/* Section 2: Zero-Config Architecture & Storage */}
         <section id="config" className="space-y-6">
           <div className="border-b border-[#EAE6DF] pb-4">
-            <span className="text-xs font-mono uppercase tracking-wider text-emerald-700 font-semibold">// 2. LOCAL CONFIGURATION</span>
-            <h2 className="font-serif text-2xl text-stone-900 mt-1">Configure Model and Local State (axwise.json)</h2>
+            <span className="text-xs font-mono uppercase tracking-wider text-emerald-700 font-semibold">// 2. ZERO-CONFIG CREDENTIALS &amp; STORAGE</span>
+            <h2 className="font-serif text-2xl text-stone-900 mt-1">Automatic Key Discovery &amp; Embedded SQLite</h2>
             <p className="text-sm text-stone-500 mt-1">
-              Create an <code>axwise.json</code> file on your computer. Never embed raw API secrets in the JSON; specify the name of the environment variable.
+              No configuration ceremony. AxWise auto-detects credentials and uses embedded single-file storage.
             </p>
-          </div>
-
-          <div className="space-y-3">
-            <p className="text-xs text-stone-600 leading-relaxed">
-              Example configuration using Google Gemini (via OpenAI-compatible endpoint) or standard OpenAI:
-            </p>
-            <CodeBlock 
-              language="json"
-              code={`{
-  "version": 1,
-  "provider": "gemini",
-  "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
-  "model": "gemini-2.5-flash",
-  "apiKeyEnv": "GEMINI_API_KEY",
-  "stateDir": "/Users/admin/.axwise/state",
-  "profileId": "personal",
-  "workspaceId": "customer-discovery",
-  "sessionId": "discovery-session-001"
-}`}
-            />
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 text-xs">
-            <div className="p-4 bg-white border border-[#EAE6DF] rounded-lg space-y-1.5">
-              <div className="font-semibold text-stone-900 font-mono text-[11px]">apiKeyEnv</div>
-              <p className="text-stone-600">The name of the environment variable holding your provider API key. Evaluated at inference time.</p>
+            <div className="p-5 bg-white border border-[#EAE6DF] rounded-xl space-y-2.5">
+              <div className="flex items-center gap-2 text-stone-900 font-semibold font-serif text-sm">
+                <Key className="w-4 h-4 text-emerald-600" />
+                <span>Zero-Config Model Discovery</span>
+              </div>
+              <p className="text-stone-600 leading-relaxed">
+                AxWise automatically scans for <code>GEMINI_API_KEY</code>, <code>OPENAI_API_KEY</code>, or <code>ANTHROPIC_API_KEY</code> in your environment, <code>.env</code> file, or OS keychain (Goose/Codex secrets).
+              </p>
+              <p className="text-stone-500 text-[11px] leading-relaxed">
+                Automatically resolves the latest frontier models (<code>gemini-flash-latest</code>, <code>gpt-6-sol</code>, <code>claude-sonnet-5</code>) and caches available model capabilities in SQLite for 24 hours.
+              </p>
             </div>
-            <div className="p-4 bg-white border border-[#EAE6DF] rounded-lg space-y-1.5">
-              <div className="font-semibold text-stone-900 font-mono text-[11px]">stateDir</div>
-              <p className="text-stone-600">Absolute directory where generated personas, transcripts, PRD revisions, and JSON artifacts are saved locally.</p>
+
+            <div className="p-5 bg-white border border-[#EAE6DF] rounded-xl space-y-2.5">
+              <div className="flex items-center gap-2 text-stone-900 font-semibold font-serif text-sm">
+                <Database className="w-4 h-4 text-emerald-600" />
+                <span>Embedded SQLite Storage</span>
+              </div>
+              <p className="text-stone-600 leading-relaxed">
+                All artifacts, stage journals, and PRD revision lineages are persisted locally in <code>~/.axwise/state/axwise.db</code> and rendered as human-readable Markdown files.
+              </p>
+              <p className="text-stone-500 text-[11px] leading-relaxed">
+                Zero PostgreSQL, zero Docker containers, and zero background daemons. Artifact references are automatically linked across chat turns.
+              </p>
             </div>
           </div>
         </section>
 
-        {/* Section 3: Connecting Hosts */}
+        {/* Section 3: Host Integration & Codex Setup */}
         <section id="hosts" className="space-y-6">
           <div className="border-b border-[#EAE6DF] pb-4">
-            <span className="text-xs font-mono uppercase tracking-wider text-emerald-700 font-semibold">// 3. HOST INTEGRATION</span>
+            <span className="text-xs font-mono uppercase tracking-wider text-emerald-700 font-semibold">// 3. HOST INTEGRATION &amp; FIRST STEPS</span>
             <h2 className="font-serif text-2xl text-stone-900 mt-1">Connect Your AI Assistant</h2>
             <p className="text-sm text-stone-500 mt-1">
               AxWise communicates over standard Model Context Protocol (MCP) stdio.
@@ -216,30 +205,30 @@ export default function DocsPage(): React.JSX.Element {
             {/* Codex Dedicated Quickstart */}
             <div className="bg-stone-50 border border-stone-200 rounded-xl p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-serif text-lg text-stone-900 font-medium">OpenAI Codex (CLI & Desktop)</h3>
+                <h3 className="font-serif text-lg text-stone-900 font-medium">OpenAI Codex (CLI &amp; Desktop)</h3>
                 <span className="text-[10px] font-mono uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">1-Line Setup</span>
               </div>
               <p className="text-xs text-stone-600">
-                Register AxWise directly in Codex with a single terminal command. Codex configures <code>~/.codex/config.toml</code> automatically:
+                Register AxWise in Codex with one terminal command. Codex configures <code>~/.codex/config.toml</code> automatically:
               </p>
               <CodeBlock 
                 language="bash"
                 code="codex mcp add axwise-local -- uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl axwise"
               />
 
-              <div className="pt-2 border-t border-stone-200 space-y-2">
+              <div className="pt-3 border-t border-stone-200 space-y-3">
                 <span className="text-[11px] font-semibold text-stone-800 uppercase tracking-wider font-mono">First Steps in Codex Chat:</span>
                 <p className="text-xs text-stone-600">Open Codex (<code>codex</code>) and run your first discovery workflow:</p>
                 <div className="space-y-2 text-xs">
                   <div className="p-3 bg-white border border-stone-200 rounded-lg">
-                    <span className="font-mono text-emerald-700 font-semibold block text-[11px] mb-1">Option A: End-to-End Pipeline in One Shot</span>
-                    <p className="text-stone-700 font-mono text-[11px]">“Run axwise_local run_full_discovery for an autonomous solar-powered harbor cleaning boat”</p>
-                    <span className="text-stone-500 text-[10px] block mt-1">Executes framing, synthetic personas, interviews, analysis, and PRD in a single shot.</span>
+                    <span className="font-mono text-emerald-700 font-semibold block text-[11px] mb-1">Option A: End-to-End Discovery in One Shot (Recommended)</span>
+                    <p className="text-stone-800 font-mono text-[11px]">“Run axwise_local run_full_discovery for an autonomous solar-powered harbor cleaning boat”</p>
+                    <span className="text-stone-500 text-[10px] block mt-1">Executes framing, personas, interview simulations, qualitative analysis, and PRD in a single turn without interruptions.</span>
                   </div>
                   <div className="p-3 bg-white border border-stone-200 rounded-lg">
                     <span className="font-mono text-emerald-700 font-semibold block text-[11px] mb-1">Option B: Interactive Step-by-Step Flow</span>
-                    <ol className="list-decimal list-inside text-stone-600 space-y-1 font-mono text-[11px] pt-1">
-                      <li>“Call axwise_local prepare_discovery for [your idea]”</li>
+                    <ol className="list-decimal list-inside text-stone-700 space-y-1 font-mono text-[11px] pt-1">
+                      <li>“Call axwise_local prepare_discovery for [your product idea]”</li>
                       <li>“Generate synthetic personas for this discovery”</li>
                       <li>“Simulate qualitative interviews across the cohort”</li>
                       <li>“Analyze interviews to extract recurring needs and pains”</li>
@@ -285,23 +274,34 @@ export default function DocsPage(): React.JSX.Element {
             <div className="p-4 bg-emerald-50/50 border border-emerald-200/80 rounded-lg text-xs text-stone-700 space-y-1">
               <strong className="text-emerald-900">Orqanix Desktop:</strong>
               <p className="text-stone-600">
-                Orqanix bundles the AxWise extension and local runtime out of the box with zero manual terminal configuration. Simply enable the AxWise capability toggle in settings.
+                Orqanix bundles the AxWise specialist extension and local runtime out of the box with zero manual terminal configuration. Simply enable the AxWise capability toggle in settings.
               </p>
             </div>
           </div>
         </section>
 
-        {/* Section 4: The 8 MCP Specialist Tools */}
+        {/* Section 4: Tool Reference — The 9 Tools */}
         <section id="tools" className="space-y-6">
           <div className="border-b border-[#EAE6DF] pb-4">
             <span className="text-xs font-mono uppercase tracking-wider text-emerald-700 font-semibold">// 4. TOOL REFERENCE</span>
-            <h2 className="font-serif text-2xl text-stone-900 mt-1">The 8 Discovery &amp; Product Tools</h2>
+            <h2 className="font-serif text-2xl text-stone-900 mt-1">The 9 Specialist Tools</h2>
             <p className="text-sm text-stone-500 mt-1">
               These specialist tools are invoked by your host agent to perform bounded research, qualitative synthesis, and documentation.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
+            <div className="md:col-span-2 bg-emerald-50/70 border border-emerald-200 rounded-xl p-5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-xs font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">run_full_discovery</span>
+                <span className="text-[10px] font-mono text-emerald-700 uppercase font-semibold">Step 00 · Complete Pipeline in One Shot</span>
+              </div>
+              <h3 className="font-serif text-base text-stone-900 font-medium">End-to-End Autonomous Discovery</h3>
+              <p className="text-xs text-stone-700 leading-relaxed">
+                Executes the entire discovery lifecycle in a single turn: Framing $\rightarrow$ Personas $\rightarrow$ Simulation $\rightarrow$ Qualitative Analysis $\rightarrow$ Evidence-Linked PRD. Persists all intermediate artifacts to SQLite and renders the full PRD directly in chat.
+              </p>
+            </div>
+
             <div className="bg-white border border-[#EAE6DF] rounded-xl p-5 space-y-2 hover:border-emerald-300 transition-all shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">prepare_discovery</span>
@@ -406,7 +406,7 @@ export default function DocsPage(): React.JSX.Element {
             </div>
             <div className="p-4 bg-white border border-[#EAE6DF] rounded-lg">
               <strong className="text-stone-900 block mb-1">Local State, Provider Privacy:</strong>
-              All generated artifacts, PRD revisions, and schemas remain saved on your local filesystem under your configured <code>stateDir</code>. Model inference goes exclusively to your chosen provider credentials.
+              All generated artifacts, PRD revisions, and schemas remain saved on your local filesystem under <code>~/.axwise/state/</code>. Model inference goes exclusively to your chosen provider credentials.
             </div>
             <div className="p-4 bg-white border border-[#EAE6DF] rounded-lg">
               <strong className="text-stone-900 block mb-1">Synthetic vs. Grounded Provenance:</strong>
