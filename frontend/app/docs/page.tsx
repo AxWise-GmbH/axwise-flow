@@ -213,17 +213,45 @@ export default function DocsPage(): React.JSX.Element {
           </div>
 
           <div className="space-y-6">
-            <div>
-              <h3 className="font-serif text-lg text-stone-900">Goose Assistant</h3>
-              <p className="text-xs text-stone-600 mt-1">Add to your Goose extensions configuration or run:</p>
+            {/* Codex Dedicated Quickstart */}
+            <div className="bg-stone-50 border border-stone-200 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-serif text-lg text-stone-900 font-medium">OpenAI Codex (CLI & Desktop)</h3>
+                <span className="text-[10px] font-mono uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">1-Line Setup</span>
+              </div>
+              <p className="text-xs text-stone-600">
+                Register AxWise directly in Codex with a single terminal command. Codex configures <code>~/.codex/config.toml</code> automatically:
+              </p>
               <CodeBlock 
                 language="bash"
-                code="goose configure"
+                code="codex mcp add axwise-local -- uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl axwise"
               />
+
+              <div className="pt-2 border-t border-stone-200 space-y-2">
+                <span className="text-[11px] font-semibold text-stone-800 uppercase tracking-wider font-mono">First Steps in Codex Chat:</span>
+                <p className="text-xs text-stone-600">Open Codex (<code>codex</code>) and run your first discovery workflow:</p>
+                <div className="space-y-2 text-xs">
+                  <div className="p-3 bg-white border border-stone-200 rounded-lg">
+                    <span className="font-mono text-emerald-700 font-semibold block text-[11px] mb-1">Option A: End-to-End Pipeline in One Shot</span>
+                    <p className="text-stone-700 font-mono text-[11px]">“Run axwise_local run_full_discovery for an autonomous solar-powered harbor cleaning boat”</p>
+                    <span className="text-stone-500 text-[10px] block mt-1">Executes framing, synthetic personas, interviews, analysis, and PRD in a single shot.</span>
+                  </div>
+                  <div className="p-3 bg-white border border-stone-200 rounded-lg">
+                    <span className="font-mono text-emerald-700 font-semibold block text-[11px] mb-1">Option B: Interactive Step-by-Step Flow</span>
+                    <ol className="list-decimal list-inside text-stone-600 space-y-1 font-mono text-[11px] pt-1">
+                      <li>“Call axwise_local prepare_discovery for [your idea]”</li>
+                      <li>“Generate synthetic personas for this discovery”</li>
+                      <li>“Simulate qualitative interviews across the cohort”</li>
+                      <li>“Analyze interviews to extract recurring needs and pains”</li>
+                      <li>“Create an evidence-linked PRD”</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div>
-              <h3 className="font-serif text-lg text-stone-900">Codex / Claude Desktop / Cursor</h3>
+              <h3 className="font-serif text-lg text-stone-900">Claude Desktop / Cursor / Windsurf</h3>
               <p className="text-xs text-stone-600 mt-1">Add the stdio MCP server definition to your client configuration file:</p>
               <CodeBlock 
                 language="json"
@@ -242,6 +270,15 @@ export default function DocsPage(): React.JSX.Element {
     }
   }
 }`}
+              />
+            </div>
+
+            <div>
+              <h3 className="font-serif text-lg text-stone-900">Goose Assistant</h3>
+              <p className="text-xs text-stone-600 mt-1">Add to your Goose extensions configuration or run:</p>
+              <CodeBlock 
+                language="bash"
+                code="goose configure"
               />
             </div>
 
