@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
+import { readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-if (Number(process.versions.node.split('.')[0]) < 22) {
-  process.stderr.write('AxWise requires Node.js 22 or newer.\n');
-  process.exit(1);
-}
-const wheel = fileURLToPath(new URL('../vendor/axwise_extension-0.3.0-py3-none-any.whl', import.meta.url));
+const vendorPath = fileURLToPath(new URL('../vendor/', import.meta.url));
+const wheelFile = readdirSync(vendorPath).find((f) => f.endsWith('.whl')) || 'axwise_extension-0.4.0-py3-none-any.whl';
+const wheel = fileURLToPath(new URL(`../vendor/${wheelFile}`, import.meta.url));
 // The exact wheel is bundled: npm never resolves a similarly named PyPI package.
 const child = spawn('uvx', ['--from', wheel, 'axwise', ...process.argv.slice(2)], {
   stdio: 'inherit', env: { ...process.env, AXWISE_NODE: process.execPath },

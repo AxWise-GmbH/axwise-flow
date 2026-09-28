@@ -25,23 +25,55 @@ Synthetic and supplied interview inputs retain their provenance. Outputs are mod
 
 ## Install from a release
 
-Version 0.3.0 is distributed as direct GitHub release files. These examples do not assume an npm or PyPI registry publication, account or namespace reservation. Choose either launcher; they contain the **same Python wheel and JavaScript runtime**.
+Version 0.4.0 is a pure-Python FastMCP extension. It eliminates the previous dual Node.js runtime requirement and PostgreSQL database dependencies, storing all artifacts in an embedded SQLite database (`~/.axwise/state/axwise.db`) and human-readable Markdown files.
 
-Prerequisites: Node.js 22 or newer; Python 3.11 or newer; [uv](https://docs.astral.sh/uv/getting-started/installation/) (`uvx` on PATH). uv can provision a supported Python. The npm launcher uses its own Node executable and uv supplies the Python environment. The uv launcher requires Node on PATH, or an absolute trusted executable path in `AXWISE_NODE`. Provider API usage is charged by your provider, not by this package.
+Prerequisites: Python 3.11 or newer; [uv](https://docs.astral.sh/uv/getting-started/installation/) (`uvx` on PATH) or `pip`. No Node.js and no database daemons required.
 
-### uv / uvx
+### uv / uvx (Recommended)
 
-```sh
-uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.3.0/axwise_extension-0.3.0-py3-none-any.whl axwise --config /absolute/path/axwise.json
-```
-
-### npm / npx
+Run directly without manual installation:
 
 ```sh
-npx --yes --package=https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.3.0/axwise-extension-0.3.0.tgz axwise --config /absolute/path/axwise.json
+uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl axwise
 ```
 
-Alternatively download the `.whl` or `.tgz` and use its absolute local path in place of the URL. Check it against the release's `SHA256SUMS` before installation. The npm archive has no lifecycle install scripts. The first launch may download Python dependencies through uv; warm launches reuse uv's cache. Neither launcher embeds API keys or silently installs Node or uv.
+Or install into your environment:
+
+```sh
+pip install https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl
+```
+
+### Codex Setup (`~/.codex/config.toml`)
+
+```toml
+[mcp_servers.axwise-local]
+command = "axwise"
+args = []
+```
+
+### Claude Code / Cursor / Windsurf (`mcpServers`)
+
+```json
+{
+  "mcpServers": {
+    "axwise": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl",
+        "axwise"
+      ]
+    }
+  }
+}
+```
+
+### Zero-Config Credentials & Dynamic Model Resolution
+
+AxWise Local automatically discovers your credentials from:
+- Environment variables: `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `ANTHROPIC_API_KEY`.
+- Local `.env` files or OS keychain (e.g. Goose / Codex credentials).
+- Dynamic model resolution automatically selects the latest frontier models (`gemini-flash-latest`, `gpt-6-sol`, `claude-sonnet-5`) and caches model capability lists in SQLite for 24 hours.
 
 ## Configure your own model and local scope
 

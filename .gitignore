@@ -18,6 +18,8 @@ backend/*.db
 # Node.js
 node_modules/
 frontend/node_modules/
+.pnpm-store/
+.codex/
 .next/
 .turbo/
 
