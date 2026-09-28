@@ -1,19 +1,4 @@
 {
-  "published": true,
-  "version": "0.3.0",
-  "tag": "axwise-extension-v0.3.0",
-  "artifacts": {
-    "npm": {
-      "filename": "axwise-extension-0.3.0.tgz",
-      "url": "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.3.0/axwise-extension-0.3.0.tgz",
-      "sha256": "a17caf788dd42e7979f281f2dce6aa3ec527ad6bd1b3a8c8a7f7b2d72c22fe20",
-      "bytes": 157987
-    },
-    "python": {
-      "filename": "axwise_extension-0.3.0-py3-none-any.whl",
-      "url": "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.3.0/axwise_extension-0.3.0-py3-none-any.whl",
-      "sha256": "d3c13786ce62de85a8e7dc6ef380c9cb0de61ca6b6477409133b579d36fe336f",
-      "bytes": 152383
-    }
-  }
+  "published": false,
+  "version": "0.4.0"
 }

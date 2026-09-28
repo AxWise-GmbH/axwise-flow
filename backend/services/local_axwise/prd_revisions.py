@@ -120,8 +120,19 @@ adding a contradictory obligation, weakened threshold or reordered priority.
 def apply_patch(value, parent, response, item_model):
     """Assemble a new candidate; never mutate the immutable parent artifact."""
     edits = edit_map(value, parent)
-    if not isinstance(response, dict) or set(response) != {"additions", "replacements"}:
+    if not isinstance(response, dict):
         raise RevisionError("INVALID_PRD_REVISION_PATCH")
+
+    # Normalize patch envelope: if additions or replacements are present, ensure both exist
+    # and strip any auxiliary fields (e.g. reasoning/metadata from model responses)
+    if "additions" in response or "replacements" in response:
+        response = {
+            "additions": response.get("additions", []),
+            "replacements": response.get("replacements", []),
+        }
+    elif set(response) != {"additions", "replacements"}:
+        raise RevisionError("INVALID_PRD_REVISION_PATCH")
+
     additions, replacements = response["additions"], response["replacements"]
     if not isinstance(additions, list) or len(additions) > 16 or not isinstance(replacements, list):
         raise RevisionError("INVALID_PRD_REVISION_PATCH")

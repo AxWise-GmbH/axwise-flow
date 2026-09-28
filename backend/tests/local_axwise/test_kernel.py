@@ -464,8 +464,9 @@ print('isolated')
         environment = {
             key: value
             for key, value in os.environ.items()
-            if key in {"PATH", "SYSTEMROOT", "LANG"}
+            if key in {"PATH", "SYSTEMROOT", "LANG", "PYDANTIC_DISABLE_PLUGINS"}
         }
+        environment["PYDANTIC_DISABLE_PLUGINS"] = "1"
         result = subprocess.run(
             [sys.executable, "-B", "-c", source],
             cwd=ROOT,

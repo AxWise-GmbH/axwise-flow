@@ -587,7 +587,7 @@ def _effective_input(tool: str, value: Any, host_evidence: Any):
         if len(contexts_by_reference) > 16:
             raise ValueError("saved analysis context exceeds selection limit")
         saved_context = [contexts_by_reference[key] for key in sorted(contexts_by_reference)]
-        if "hostContext" in value and value["hostContext"] != saved_context:
+        if "hostContext" in value and value["hostContext"] is not None and value["hostContext"] != saved_context:
             raise ValueError("analysis cannot replace its saved source context")
         if saved_context:
             value["hostContext"] = saved_context
