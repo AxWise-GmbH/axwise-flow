@@ -327,6 +327,8 @@ def _row_to_artifact(row: sqlite3.Row) -> dict[str, Any]:
             data = json.loads(json_path.read_text(encoding="utf-8"))
             if "reference" not in data:
                 data["reference"] = ref_dict
+            if "tool" not in data or not data["tool"]:
+                data["tool"] = row["tool"]
             return data
         except Exception:
             pass

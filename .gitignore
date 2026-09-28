@@ -108,6 +108,7 @@ temp/
 !/scripts/sophisticated-gems-benchmark.mjs
 !/scripts/benchmark-gemini-jev-batches.mjs
 !/scripts/e2e-matrix-benchmark.mjs
+!/scripts/benchmark-axwise-e2e.py
 !/scripts/run-local-reset-preview.mjs
 !/scripts/sync-local-desktop-utilities.mjs
 
