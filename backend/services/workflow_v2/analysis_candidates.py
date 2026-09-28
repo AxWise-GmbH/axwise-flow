@@ -160,6 +160,37 @@ def materialize_analysis(
                 }
             )
         )
+    # Ensure every participant has supported evidence or an explicit gap
+    covered_participants = {
+        (ref.document_id, ref.participant_id)
+        for finding in findings.values()
+        for ref in finding.participant_refs
+    } | {
+        (gap.participant_ref.document_id, gap.participant_ref.participant_id)
+        for gap in proposed.gaps
+        if gap.participant_ref is not None
+    }
+    all_gaps = list(proposed.gaps)
+    first_q = request.questions[0].id if request.questions else "q1"
+    for doc in source.documents:
+        for participant in doc.participants:
+            if participant.role != "participant":
+                continue
+            key = (doc.document_id, participant.participant_id)
+            if key not in covered_participants:
+                from backend.domain.workflow_v2.qualitative_analysis import AnalysisGapV1
+                all_gaps.append(
+                    AnalysisGapV1.model_validate({
+                        "code": "insufficient_evidence",
+                        "message": f"Participant {participant.participant_id} has no explicit findings attributed in this analysis turn.",
+                        "questionId": first_q,
+                        "participantRef": {
+                            "documentId": str(doc.document_id),
+                            "participantId": participant.participant_id,
+                        },
+                        "output": "jobs_pains",
+                    })
+                )
     analysis = build_qualitative_analysis(
         corpus=source,
         request=request,
@@ -169,7 +200,7 @@ def materialize_analysis(
         quotes=list(quotes.values()),
         findings=list(findings.values()),
         personas=personas,
-        gaps=list(proposed.gaps),
+        gaps=all_gaps,
         limitations=list(dict.fromkeys((*ANALYSIS_LIMITATIONS, *proposed.limitations))),
     )
     return validate_qualitative_analysis(

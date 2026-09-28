@@ -5,15 +5,18 @@ backend-path = ["packages/axwise-distribution"]
 
 [project]
 name = "axwise-extension"
-version = "0.3.0"
-description = "Scoped local product discovery and evidence-to-PRD MCP extension"
+version = "0.4.0"
+description = "Scoped local product discovery and evidence-to-PRD FastMCP extension"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 dependencies = [
   "annotated-types==0.8.0",
+  "httpx==0.28.1",
+  "mcp==1.25.0",
   "pydantic==2.13.4",
   "pydantic_core==2.46.4",
+  "python-dotenv==1.2.1",
   "typing-inspection==0.4.4",
   "typing_extensions==4.16.0",
 ]

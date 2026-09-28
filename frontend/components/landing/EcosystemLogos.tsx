@@ -93,7 +93,7 @@ export function EcosystemLogos(): React.JSX.Element {
       <div className="max-w-7xl mx-auto px-6 lg:px-16">
         
         {/* Accelerator & Innovation Program Badges */}
-        <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
+        <div className="text-center max-w-2xl mx-auto mb-10 space-y-4">
           <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">
             // ACCELERATORS &amp; ECOSYSTEM
           </span>
@@ -101,36 +101,36 @@ export function EcosystemLogos(): React.JSX.Element {
             Supported and incubated by
           </h2>
           <p className="text-stone-600 text-sm">
-            AxWise has been supported, incubated, and mentored by leading European startup programs and deep-tech innovation hubs.
+            AxWise has been supported, incubated, and backed by leading European startup accelerators and global technology innovation programs.
           </p>
+        </div>
 
-          <div className="pt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {ACCELERATORS.map((accel) => (
-              <a
-                key={accel.id}
-                href={accel.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3.5 bg-white border border-[#EAE6DF] rounded-xl p-4 hover:border-emerald-400 hover:shadow-sm transition-all text-left group"
-              >
-                <div className="h-10 w-24 flex-shrink-0 flex items-center justify-center">
-                  <img
-                    src={accel.logo}
-                    alt={accel.name}
-                    className="max-h-full max-w-full object-contain filter grayscale group-hover:grayscale-0 opacity-80 group-hover:opacity-100 transition-all duration-300"
-                  />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto mb-20">
+          {ACCELERATORS.map((accel) => (
+            <a
+              key={accel.id}
+              href={accel.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col justify-between items-center text-center bg-white border border-[#EAE6DF] rounded-xl p-5 hover:border-emerald-400 hover:shadow-md transition-all group"
+            >
+              <div className="h-12 w-full flex items-center justify-center mb-3">
+                <img
+                  src={accel.logo}
+                  alt={accel.name}
+                  className="max-h-full max-w-[150px] object-contain filter grayscale group-hover:grayscale-0 opacity-80 group-hover:opacity-100 transition-all duration-300"
+                />
+              </div>
+              <div className="pt-3 border-t border-stone-100 w-full space-y-1">
+                <div className="text-xs font-semibold text-stone-900 group-hover:text-emerald-700 transition-colors">
+                  {accel.name}
                 </div>
-                <div className="border-l border-[#EAE6DF] pl-3.5 min-w-0">
-                  <div className="text-xs font-semibold text-stone-900 group-hover:text-emerald-700 transition-colors truncate">
-                    {accel.name}
-                  </div>
-                  <div className="text-[10px] font-mono text-stone-500 mt-0.5 leading-snug">
-                    {accel.relationship}
-                  </div>
+                <div className="text-[11px] font-mono text-stone-500">
+                  {accel.relationship}
                 </div>
-              </a>
-            ))}
-          </div>
+              </div>
+            </a>
+          ))}
         </div>
 
         {/* Developer Community Marquee */}
