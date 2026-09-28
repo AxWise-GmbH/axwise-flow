@@ -2416,6 +2416,28 @@ export default function RedesignedHomePage(): React.JSX.Element {
                 <div className="flex items-center justify-between text-[11px] text-stone-400 mb-1.5">
                   <span className="flex items-center gap-1.5">
                     <TerminalIcon className="w-3 h-3 text-emerald-400" />
+                    Codex 1-Line Setup
+                  </span>
+                  <button
+                    onClick={() => handleCopy('codex mcp add axwise-local -- uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl axwise', 'codex-cli')}
+                    className="hover:text-white flex items-center gap-1 transition-colors"
+                  >
+                    {copiedCommand === 'codex-cli' ? (
+                      <span className="text-emerald-400 flex items-center gap-1"><Check className="w-3 h-3" /> Copied!</span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-stone-400 hover:text-stone-200"><Copy className="w-3 h-3" /> Copy</span>
+                    )}
+                  </button>
+                </div>
+                <pre className="p-3 bg-stone-950 border border-stone-800 rounded-lg text-stone-300 overflow-x-auto text-[11px] leading-relaxed selection:bg-emerald-900 selection:text-emerald-200">
+                  <code>codex mcp add axwise-local -- uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl axwise</code>
+                </pre>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between text-[11px] text-stone-400 mb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <TerminalIcon className="w-3 h-3 text-emerald-400" />
                     Launch directly with uvx (no install needed)
                   </span>
                   <button
