@@ -40,8 +40,29 @@ _QUICK_INFO_MIN_CONFIDENCE = 0.75
 _QUICK_INFO_MIN_MARGIN = 0.20
 
 
+def _resolve_typesafe_key() -> str:
+    key = os.getenv(_TYPESAFE_KEY_ENV, "").strip()
+    if not key:
+        from pathlib import Path
+        for candidate_path in (
+            Path(".env.local"),
+            Path(__file__).resolve().parents[5] / ".env.local",
+        ):
+            try:
+                if candidate_path.exists():
+                    for line in candidate_path.read_text().splitlines():
+                        if line.startswith("TYPESAFE_API_KEY="):
+                            found = line.split("=", 1)[1].strip()
+                            if found:
+                                os.environ[_TYPESAFE_KEY_ENV] = found
+                                return found
+            except Exception:
+                pass
+    return key
+
+
 def is_typesafe_available() -> bool:
-    return jev_request_enabled.get() and bool(os.getenv(_TYPESAFE_KEY_ENV, "").strip())
+    return jev_request_enabled.get() and bool(_resolve_typesafe_key())
 
 
 class PassageRelevanceDecision(BaseModel):

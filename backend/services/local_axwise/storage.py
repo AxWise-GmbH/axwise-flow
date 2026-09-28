@@ -71,6 +71,63 @@ def get_db_connection(state_dir: Optional[Path] = None) -> sqlite3.Connection:
     return conn
 
 
+def check_artifact_safety_with_jev(content: str, timeout_seconds: float = 1.5) -> dict[str, Any]:
+    """Fast Jev System-1 safety gate (<250ms) checking for leaked secrets before persistence."""
+    api_key = os.environ.get("TYPESAFE_API_KEY", "").strip()
+    if not api_key:
+        try:
+            from pathlib import Path
+            env_local = Path(".env.local")
+            if env_local.exists():
+                for line in env_local.read_text().splitlines():
+                    if line.startswith("TYPESAFE_API_KEY="):
+                        api_key = line.split("=", 1)[1].strip()
+                        break
+        except Exception:
+            pass
+
+    if not api_key or not content:
+        return {"evaluated": False, "reason": "unconfigured"}
+
+    try:
+        import urllib.request
+        import ssl
+        try:
+            import certifi
+            ctx = ssl.create_default_context(cafile=certifi.where())
+        except Exception:
+            ctx = ssl._create_unverified_context()
+
+        payload = {
+            "model": "jev-latest",
+            "state": {"snippet": content[:16_000]},
+            "questions": {
+                "contains_hardcoded_secrets": {
+                    "type": "noul",
+                    "instructions": "Does this text or code contain unmasked API keys, private passwords, bearer tokens, or secret credentials?",
+                }
+            },
+        }
+        req = urllib.request.Request(
+            "https://api.typesafe.ai/v1/systemone",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=timeout_seconds, context=ctx) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            ans = data.get("answers", {})
+            sec_noul = ans.get("contains_hardcoded_secrets", {}).get("noul", 0.0)
+            return {
+                "evaluated": True,
+                "passed": sec_noul < 0.8,
+                "contains_secrets": sec_noul >= 0.8,
+                "confidence": sec_noul,
+                "model": data.get("model", "jev-latest"),
+            }
+    except Exception as e:
+        return {"evaluated": False, "reason": str(e), "passed": True}
+
+
 def save_operation(
     tool: str,
     record: dict[str, Any],
@@ -83,6 +140,14 @@ def save_operation(
 
     operation_id = record.get("operationId") or str(uuid4())
     record["operationId"] = operation_id
+
+    # Fast Jev artifact safety check before hashing
+    markdown = record.get("markdown", "")
+    if markdown or "artifact" in record:
+        safety_text = markdown or json.dumps(record.get("artifact", {}))
+        safety_result = check_artifact_safety_with_jev(safety_text)
+        if safety_result.get("evaluated"):
+            record["artifactSafety"] = safety_result
 
     # Compute deterministic JSON and sha256
     # Remove transient sha256/reference if present to calculate clean hash
