@@ -1,10 +1,11 @@
 .git/
 .github/
 apps/
-frontend/
 packages/
 node_modules/
 **/node_modules/
+frontend/.next/
+frontend/node_modules/
 **/__pycache__/
 **/*.pyc
 backend/venv/

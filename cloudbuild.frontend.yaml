@@ -61,5 +61,5 @@ images:
   - "$_IMAGE_NAME"
 
 options:
-  logging: CLOUD_LOGGING_ONLY
+  logging: GCS_ONLY
   machineType: "E2_HIGHCPU_8"
