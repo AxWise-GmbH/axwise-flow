@@ -106,6 +106,7 @@ temp/
 !/scripts/benchmark-native-engineering-gems.mjs
 !/scripts/benchmark-jev-acceleration.mjs
 !/scripts/sophisticated-gems-benchmark.mjs
+!/scripts/benchmark-gemini-jev-batches.mjs
 !/scripts/run-local-reset-preview.mjs
 !/scripts/sync-local-desktop-utilities.mjs
 
