@@ -14,6 +14,7 @@ export const GOOSE_LANES = Object.freeze({
   RESEARCH: 'research',
   LOCAL_ENGINEERING: 'local_engineering',
   CONVERSATION: 'conversation',
+  MIXED: 'mixed',
 });
 
 export const THINKING_EFFORTS = Object.freeze({
@@ -31,6 +32,8 @@ const LANE_CRITERIA = Object.freeze({
     'Needs local files, repository inspection, code editing, terminal commands, scripts, or git workspace operations.',
   conversation:
     'Casual dialogue, advice, or stable conceptual knowledge that does not require local files, web searches, or specialized tools.',
+  mixed:
+    'A multifaceted request combining conceptual explanation or dialogue with code/file edits, terminal tasks, or research deliverables. Fulfill both aspects.',
 });
 
 /**

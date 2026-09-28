@@ -49,6 +49,8 @@ const laneCriteria = {
     'Needs local files, repository inspection, code editing, terminal commands, scripts, or git workspace operations.',
   conversation:
     'Casual dialogue, advice, or stable conceptual knowledge that does not require local files, web searches, or specialized tools.',
+  mixed:
+    'A multifaceted request combining conceptual explanation or dialogue with code/file edits, terminal tasks, or research deliverables. Fulfill both aspects.',
 };
 
 const rubric = 'message-disposition-v1';
