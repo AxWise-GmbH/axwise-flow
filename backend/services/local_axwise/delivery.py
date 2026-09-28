@@ -359,8 +359,12 @@ def _validate(candidate: DeliveryCandidate, context: dict[str, Any]) -> None:
         raise ValueError("milestones must cover every selected requirement")
     original = "\n".join(_strings({key: context[key] for key in ("brief", "requirements", "prdConstraints", "scope")}))
     for text in _strings(dump(candidate)):
-        if any(match.group() not in original for match in _COMMITMENT.finditer(text)):
-            raise ValueError("delivery cannot invent fixed dates or prices")
+        for match in _COMMITMENT.finditer(text):
+            m_str = match.group()
+            if m_str not in original:
+                nums = re.findall(r"\d[\d.,]*", m_str)
+                if not nums or not all(n in original for n in nums):
+                    raise ValueError("delivery cannot invent fixed dates or prices")
 
 
 def _markdown(artifact: dict[str, Any]) -> str:
