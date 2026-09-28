@@ -233,10 +233,8 @@ export default function DocsPage(): React.JSX.Element {
       "command": "uvx",
       "args": [
         "--from",
-        "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.3.0/axwise_extension-0.3.0-py3-none-any.whl",
-        "axwise",
-        "--config",
-        "/absolute/path/to/axwise.json"
+        "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl",
+        "axwise"
       ],
       "env": {
         "GEMINI_API_KEY": "your-api-key-here"
