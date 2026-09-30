@@ -1,0 +1,15 @@
+version: "1.0.0"
+title: "jev-use: Fast TypeSafe Computer Use"
+description: "Accelerated desktop and browser computer use with TypeSafe AI System-1 decision routing and Cua Driver."
+instructions: |
+  Execute desktop and browser computer-use workflows using the accelerated jev-use loop:
+  1. Perception: Inspect the target window with `cua-driver__get_window_state` or `cua-driver__list_windows`.
+  2. Candidate Action Extraction: Extract candidate interactive controls (buttons, links, inputs) into a bounded table of actions.
+  3. TypeSafe AI Decision: Evaluate the candidate table using TypeSafe AI System-1 (https://api.typesafe.ai/v1/systemone with TYPESAFE_API_KEY) via typed choice/noul questions in ~200ms instead of waiting for slow generative LLM turns.
+  4. Execution: Dispatch the exact winning action via `cua-driver__click`, `cua-driver__type_text`, `cua-driver__press_key`, or `cua-driver__hotkey`.
+  5. Verification: Read back the postcondition from fresh accessibility state.
+prompt: "Automate the requested computer use task using the fast jev-use decision loop."
+activities:
+  - "Open application and click target button using jev-use"
+  - "Fill form in browser using accelerated Cua Driver"
+  - "Navigate between desktop windows and verify outcome"

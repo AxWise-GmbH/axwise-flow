@@ -1,0 +1,67 @@
+{
+  "kind": "jev-use-vs-generative-benchmark",
+  "date": "2026-09-30T19:18:53.206Z",
+  "summary": {
+    "avgJevLatencyMs": 311,
+    "avgGenerativeLatencyMs": 1714,
+    "overallSpeedupMultiplier": 5.51,
+    "jevAccuracy": "3/3",
+    "generativeAccuracy": "3/3"
+  },
+  "scenarios": [
+    {
+      "scenario": "Orqanix Sidebar Navigation",
+      "expected": "act_6",
+      "jev": {
+        "choice": "act_6",
+        "correct": true,
+        "confidence": 1.0,
+        "latencyMs": 452,
+        "tokens": 786
+      },
+      "generative": {
+        "choice": "act_6",
+        "correct": true,
+        "latencyMs": 1230,
+        "tokens": 196
+      },
+      "speedup": 2.72
+    },
+    {
+      "scenario": "Web Authentication Form",
+      "expected": "act_4",
+      "jev": {
+        "choice": "act_4",
+        "correct": true,
+        "confidence": 1.0,
+        "latencyMs": 238,
+        "tokens": 692
+      },
+      "generative": {
+        "choice": "act_4",
+        "correct": true,
+        "latencyMs": 1966,
+        "tokens": 168
+      },
+      "speedup": 8.26
+    },
+    {
+      "scenario": "Intervals.icu Calendar Activity Selection",
+      "expected": "act_2",
+      "jev": {
+        "choice": "act_2",
+        "correct": true,
+        "confidence": 1.0,
+        "latencyMs": 244,
+        "tokens": 816
+      },
+      "generative": {
+        "choice": "act_2",
+        "correct": true,
+        "latencyMs": 1946,
+        "tokens": 221
+      },
+      "speedup": 7.98
+    }
+  ]
+}
