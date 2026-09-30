@@ -1,0 +1,2429 @@
+{
+  "schema": "orqanix.native-selection-ab-summary.v1",
+  "rawReportSha256": "8bb16c6f8d258bf4b951cbabd5525cd8ed30f9331a6c2cf697aa4f9c116a1038",
+  "method": "12 runs: 2 debug Rust binaries x 3 TypeScript coding tasks x 2 repeats. Counterbalanced build order. Same Electron app, runtime, natural task prompts, Gemini 3.8 Flash, default desktop reasoning effort, legacy loop, native on, Jev and Axwise off. Actual UI Settings and Send, fresh profiles and workspaces, autonomous mode, developer/todo and native tools, no Code Mode. Identical Goose-child filesystem confinement validated per row; Electron, network and IPC not confined by this added boundary. Setup and independent oracle/typecheck/regression-mutation checks excluded from Send-to-terminal time. No per-row retries. 360-second and 24-turn limits. Normal OAuth token read and validated by the parent before each row; it never enters Goose or tool process environments. Confined auth command returns an expiring local-only capability limited to 60 POST chat-completion requests. The parent relay substitutes the real OAuth header only for that endpoint and production authentication remains enforced. No credential file or generic proxy. Seven earlier UI setup attempts failed Keychain access before any model request and are preserved separately. Source hashes frozen before live calls. No direct comparisons with the previous 48-task matrix.",
+  "planned": 12,
+  "recorded": 6,
+  "arms": {
+    "baseline": {
+      "recorded": 3,
+      "passed": 1,
+      "cleanPasses": 1,
+      "actionBudgetExhaustions": 1,
+      "timeBudgetExhaustions": 0,
+      "behaviorPassed": 2,
+      "regressionDetectedOriginal": 2,
+      "meanAllSeconds": 112.76133333333333,
+      "medianAllSeconds": 91.438,
+      "meanSuccessfulSeconds": 77.194,
+      "nativeRows": 2,
+      "nativeCalls": 9,
+      "nativeNames": {
+        "hashline_edit": 8,
+        "safe_edit_and_test": 1
+      },
+      "nativeActions": {
+        "hashline_edit:read": 8,
+        "safe_edit_and_test:edit_and_test": 1
+      },
+      "toolErrors": 3,
+      "toolCounts": {
+        "edit": 8,
+        "hashline_edit": 8,
+        "safe_edit_and_test": 1,
+        "shell": 38,
+        "todo__todo_write": 6,
+        "tree": 4,
+        "write": 2
+      },
+      "modelRequests": 72,
+      "usage": {
+        "prompt_tokens": 1373653,
+        "completion_tokens": 10661,
+        "total_tokens": 1422860
+      }
+    },
+    "candidate": {
+      "recorded": 3,
+      "passed": 1,
+      "cleanPasses": 0,
+      "actionBudgetExhaustions": 3,
+      "timeBudgetExhaustions": 0,
+      "behaviorPassed": 2,
+      "regressionDetectedOriginal": 1,
+      "meanAllSeconds": 143.007,
+      "medianAllSeconds": 105.661,
+      "meanSuccessfulSeconds": 87.907,
+      "nativeRows": 3,
+      "nativeCalls": 39,
+      "nativeNames": {
+        "hashline_edit": 33,
+        "lsp_query": 3,
+        "safe_edit_and_test": 3
+      },
+      "nativeActions": {
+        "hashline_edit:edit": 3,
+        "hashline_edit:read": 30,
+        "lsp_query:diagnostics": 3,
+        "safe_edit_and_test:edit_and_test": 3
+      },
+      "toolErrors": 5,
+      "toolCounts": {
+        "hashline_edit": 33,
+        "lsp_query": 3,
+        "safe_edit_and_test": 3,
+        "shell": 25,
+        "todo__todo_write": 4,
+        "tree": 3,
+        "write": 1
+      },
+      "modelRequests": 75,
+      "usage": {
+        "prompt_tokens": 1519114,
+        "completion_tokens": 7755,
+        "total_tokens": 1584926
+      }
+    }
+  },
+  "pairs": [
+    {
+      "difficulty": "simple",
+      "repeat": 1,
+      "baselinePassed": false,
+      "candidatePassed": false,
+      "baselineSeconds": 169.652,
+      "candidateSeconds": 235.453,
+      "deltaSeconds": 65.80100000000002,
+      "changePercent": 38.78586754061255,
+      "bothPassed": false
+    },
+    {
+      "difficulty": "medium",
+      "repeat": 1,
+      "baselinePassed": true,
+      "candidatePassed": true,
+      "baselineSeconds": 77.194,
+      "candidateSeconds": 87.907,
+      "deltaSeconds": 10.712999999999994,
+      "changePercent": 13.878021607896972,
+      "bothPassed": true
+    },
+    {
+      "difficulty": "complex",
+      "repeat": 1,
+      "baselinePassed": false,
+      "candidatePassed": false,
+      "baselineSeconds": 91.438,
+      "candidateSeconds": 105.661,
+      "deltaSeconds": 14.222999999999999,
+      "changePercent": 15.554802161027137,
+      "bothPassed": false
+    }
+  ],
+  "rows": [
+    {
+      "key": "simple-r1-baseline",
+      "arm": "baseline",
+      "difficulty": "simple",
+      "repeat": 1,
+      "status": "completed",
+      "terminationReason": "terminal_response",
+      "passed": false,
+      "elapsedSeconds": 169.652,
+      "setupSeconds": 8.514,
+      "firstActivitySeconds": 4.827,
+      "behaviorPassed": false,
+      "typecheckPassed": true,
+      "publicTestsPassed": true,
+      "regressionPassed": true,
+      "regressionDetectedOriginal": true,
+      "behaviorFailures": [
+        {
+          "name": "positive zero",
+          "passed": false,
+          "error": "priceCents must be a nonnegative safe integer"
+        }
+      ],
+      "immutableFailures": [],
+      "unexpectedFiles": [],
+      "inventoryMatches": true,
+      "mounts": [
+        "scheduler",
+        "analyze",
+        "skills",
+        "tom",
+        "todo",
+        "desktop-utilities",
+        "native_engineering",
+        "Extension Manager",
+        "apps",
+        "developer",
+        "summon"
+      ],
+      "toolCount": 22,
+      "toolCounts": {
+        "hashline_edit": 6,
+        "safe_edit_and_test": 1,
+        "shell": 10,
+        "todo__todo_write": 2,
+        "tree": 2,
+        "write": 1
+      },
+      "nativeCalls": 7,
+      "nativeNames": {
+        "hashline_edit": 6,
+        "safe_edit_and_test": 1
+      },
+      "nativeActions": {
+        "hashline_edit:read": 6,
+        "safe_edit_and_test:edit_and_test": 1
+      },
+      "toolErrors": [
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "failed",
+          "error": true,
+          "elapsedMs": 10010
+        }
+      ],
+      "tools": [
+        {
+          "name": "todo__todo_write",
+          "short": "todo_write",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 13
+        },
+        {
+          "name": "tree",
+          "short": "tree",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 5
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 23
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 6
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 16
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 6
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 213
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 1286
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 115
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 88
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 36
+        },
+        {
+          "name": "safe_edit_and_test",
+          "short": "safe_edit_and_test",
+          "native": true,
+          "action": "edit_and_test",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 399
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 3191
+        },
+        {
+          "name": "write",
+          "short": "write",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 69
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 712
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 4958
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "failed",
+          "error": true,
+          "elapsedMs": 10010
+        },
+        {
+          "name": "tree",
+          "short": "tree",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 20
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 25
+        },
+        {
+          "name": "todo__todo_write",
+          "short": "todo_write",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 77
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 377
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 2727
+        }
+      ],
+      "policy": {
+        "requestsWithTools": 23,
+        "allMatch": true,
+        "versions": {
+          "none": 23
+        },
+        "legacyWritePreferences": {
+          "true": 23
+        }
+      },
+      "model": {
+        "requests": 24,
+        "identities": {
+          "verified": 24
+        },
+        "requested": [
+          "gemini-3.8-flash"
+        ],
+        "returned": [
+          "gemini-3.8-flash"
+        ],
+        "efforts": {
+          "unspecified": 24
+        },
+        "statusCounts": {
+          "completed": 24
+        },
+        "usageRequests": 24,
+        "usage": {
+          "prompt_tokens": 633615,
+          "completion_tokens": 4730,
+          "total_tokens": 661508
+        }
+      },
+      "pendingTelemetry": 0,
+      "boundary": {
+        "sha256": "945993df7627ed948f5a868c8176e33464909b2dfdb265098bddaa1a758f7dd7",
+        "checks": [
+          {
+            "name": "workspace read",
+            "passed": true
+          },
+          {
+            "name": "workspace write and remove",
+            "passed": true
+          },
+          {
+            "name": "profile write",
+            "passed": true
+          },
+          {
+            "name": "own temp write",
+            "passed": true
+          },
+          {
+            "name": "other temp read denied",
+            "passed": true
+          },
+          {
+            "name": "other temp write denied",
+            "passed": true
+          },
+          {
+            "name": "user directory listing denied",
+            "passed": true
+          },
+          {
+            "name": "child inherits restriction",
+            "passed": true
+          },
+          {
+            "name": "symlink read escape denied",
+            "passed": true
+          },
+          {
+            "name": "symlink write escape denied",
+            "passed": true
+          },
+          {
+            "name": "hardlink escape denied",
+            "passed": true
+          },
+          {
+            "name": "app binary readable",
+            "passed": true
+          },
+          {
+            "name": "app resources immutable",
+            "passed": true
+          }
+        ],
+        "description": "Goose backend and descendants cannot read/write unrelated user, volume or temp trees; app resources read-only; own synthetic workspace/profile/temp writable. Electron remains outside this added filesystem boundary. Network/IPC remain available; this is not complete process or network isolation."
+      },
+      "confinedAuthVerified": true,
+      "scopedRelay": {
+        "trial": "simple-r1-baseline",
+        "calls": 24,
+        "denied": 0
+      },
+      "error": null,
+      "authenticationRejected": false
+    },
+    {
+      "key": "simple-r1-candidate",
+      "arm": "candidate",
+      "difficulty": "simple",
+      "repeat": 1,
+      "status": "completed",
+      "terminationReason": "action_budget_exhausted",
+      "passed": false,
+      "elapsedSeconds": 235.453,
+      "setupSeconds": 3.934,
+      "firstActivitySeconds": 7.119,
+      "behaviorPassed": true,
+      "typecheckPassed": true,
+      "publicTestsPassed": true,
+      "regressionPassed": false,
+      "regressionDetectedOriginal": false,
+      "behaviorFailures": [],
+      "immutableFailures": [],
+      "unexpectedFiles": [],
+      "inventoryMatches": true,
+      "mounts": [
+        "summon",
+        "scheduler",
+        "developer",
+        "skills",
+        "analyze",
+        "native_engineering",
+        "Extension Manager",
+        "desktop-utilities",
+        "tom",
+        "apps",
+        "todo"
+      ],
+      "toolCount": 24,
+      "toolCounts": {
+        "hashline_edit": 6,
+        "lsp_query": 1,
+        "safe_edit_and_test": 1,
+        "shell": 14,
+        "todo__todo_write": 1,
+        "tree": 1
+      },
+      "nativeCalls": 8,
+      "nativeNames": {
+        "hashline_edit": 6,
+        "lsp_query": 1,
+        "safe_edit_and_test": 1
+      },
+      "nativeActions": {
+        "hashline_edit:read": 6,
+        "lsp_query:diagnostics": 1,
+        "safe_edit_and_test:edit_and_test": 1
+      },
+      "toolErrors": [
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "failed",
+          "error": true,
+          "elapsedMs": 4411
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "failed",
+          "error": true,
+          "elapsedMs": 186
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "failed",
+          "error": true,
+          "elapsedMs": 223
+        }
+      ],
+      "tools": [
+        {
+          "name": "todo__todo_write",
+          "short": "todo_write",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 18
+        },
+        {
+          "name": "tree",
+          "short": "tree",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 8
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 30
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 9
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 8
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "failed",
+          "error": true,
+          "elapsedMs": 4411
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 26
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 28
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 302
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 2611
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 126
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 154
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 150
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "failed",
+          "error": true,
+          "elapsedMs": 186
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "failed",
+          "error": true,
+          "elapsedMs": 223
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 243
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 196
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 592
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 890
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 401
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 222
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 16
+        },
+        {
+          "name": "safe_edit_and_test",
+          "short": "safe_edit_and_test",
+          "native": true,
+          "action": "edit_and_test",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 139
+        },
+        {
+          "name": "lsp_query",
+          "short": "lsp_query",
+          "native": true,
+          "action": "diagnostics",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 826
+        }
+      ],
+      "policy": {
+        "requestsWithTools": 24,
+        "allMatch": true,
+        "versions": {
+          "v1": 24
+        },
+        "legacyWritePreferences": {
+          "false": 24
+        }
+      },
+      "model": {
+        "requests": 25,
+        "identities": {
+          "verified": 25
+        },
+        "requested": [
+          "gemini-3.8-flash"
+        ],
+        "returned": [
+          "gemini-3.8-flash"
+        ],
+        "efforts": {
+          "unspecified": 25
+        },
+        "statusCounts": {
+          "cancelled": 1,
+          "completed": 24
+        },
+        "usageRequests": 25,
+        "usage": {
+          "prompt_tokens": 654322,
+          "completion_tokens": 1808,
+          "total_tokens": 698381
+        }
+      },
+      "pendingTelemetry": 0,
+      "boundary": {
+        "sha256": "619d18b0f656853abbb860393344fe7de4c0832d7aa36a550469243ab9c02b48",
+        "checks": [
+          {
+            "name": "workspace read",
+            "passed": true
+          },
+          {
+            "name": "workspace write and remove",
+            "passed": true
+          },
+          {
+            "name": "profile write",
+            "passed": true
+          },
+          {
+            "name": "own temp write",
+            "passed": true
+          },
+          {
+            "name": "other temp read denied",
+            "passed": true
+          },
+          {
+            "name": "other temp write denied",
+            "passed": true
+          },
+          {
+            "name": "user directory listing denied",
+            "passed": true
+          },
+          {
+            "name": "child inherits restriction",
+            "passed": true
+          },
+          {
+            "name": "symlink read escape denied",
+            "passed": true
+          },
+          {
+            "name": "symlink write escape denied",
+            "passed": true
+          },
+          {
+            "name": "hardlink escape denied",
+            "passed": true
+          },
+          {
+            "name": "app binary readable",
+            "passed": true
+          },
+          {
+            "name": "app resources immutable",
+            "passed": true
+          }
+        ],
+        "description": "Goose backend and descendants cannot read/write unrelated user, volume or temp trees; app resources read-only; own synthetic workspace/profile/temp writable. Electron remains outside this added filesystem boundary. Network/IPC remain available; this is not complete process or network isolation."
+      },
+      "confinedAuthVerified": true,
+      "scopedRelay": {
+        "trial": "simple-r1-candidate",
+        "calls": 25,
+        "denied": 0
+      },
+      "error": null,
+      "authenticationRejected": false
+    },
+    {
+      "key": "medium-r1-candidate",
+      "arm": "candidate",
+      "difficulty": "medium",
+      "repeat": 1,
+      "status": "completed",
+      "terminationReason": "action_budget_exhausted",
+      "passed": true,
+      "elapsedSeconds": 87.907,
+      "setupSeconds": 2.788,
+      "firstActivitySeconds": 5.509,
+      "behaviorPassed": true,
+      "typecheckPassed": true,
+      "publicTestsPassed": true,
+      "regressionPassed": true,
+      "regressionDetectedOriginal": true,
+      "behaviorFailures": [],
+      "immutableFailures": [],
+      "unexpectedFiles": [],
+      "inventoryMatches": true,
+      "mounts": [
+        "apps",
+        "native_engineering",
+        "summon",
+        "Extension Manager",
+        "scheduler",
+        "todo",
+        "analyze",
+        "skills",
+        "tom",
+        "desktop-utilities",
+        "developer"
+      ],
+      "toolCount": 24,
+      "toolCounts": {
+        "hashline_edit": 9,
+        "lsp_query": 2,
+        "safe_edit_and_test": 2,
+        "shell": 7,
+        "todo__todo_write": 2,
+        "tree": 1,
+        "write": 1
+      },
+      "nativeCalls": 13,
+      "nativeNames": {
+        "hashline_edit": 9,
+        "lsp_query": 2,
+        "safe_edit_and_test": 2
+      },
+      "nativeActions": {
+        "hashline_edit:read": 9,
+        "lsp_query:diagnostics": 2,
+        "safe_edit_and_test:edit_and_test": 2
+      },
+      "toolErrors": [
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "failed",
+          "error": true,
+          "elapsedMs": 2877
+        }
+      ],
+      "tools": [
+        {
+          "name": "todo__todo_write",
+          "short": "todo_write",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 15
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 6
+        },
+        {
+          "name": "tree",
+          "short": "tree",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 14
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 14
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 7
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 15
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 15
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 14
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 16
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 212
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 1397
+        },
+        {
+          "name": "todo__todo_write",
+          "short": "todo_write",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 28
+        },
+        {
+          "name": "safe_edit_and_test",
+          "short": "safe_edit_and_test",
+          "native": true,
+          "action": "edit_and_test",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 194
+        },
+        {
+          "name": "safe_edit_and_test",
+          "short": "safe_edit_and_test",
+          "native": true,
+          "action": "edit_and_test",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 153
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 1419
+        },
+        {
+          "name": "lsp_query",
+          "short": "lsp_query",
+          "native": true,
+          "action": "diagnostics",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 1085
+        },
+        {
+          "name": "lsp_query",
+          "short": "lsp_query",
+          "native": true,
+          "action": "diagnostics",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 451
+        },
+        {
+          "name": "write",
+          "short": "write",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 22
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 283
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 2133
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "failed",
+          "error": true,
+          "elapsedMs": 2877
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 51
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 48
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 211
+        }
+      ],
+      "policy": {
+        "requestsWithTools": 24,
+        "allMatch": true,
+        "versions": {
+          "v1": 24
+        },
+        "legacyWritePreferences": {
+          "false": 24
+        }
+      },
+      "model": {
+        "requests": 25,
+        "identities": {
+          "verified": 25
+        },
+        "requested": [
+          "gemini-3.8-flash"
+        ],
+        "returned": [
+          "gemini-3.8-flash"
+        ],
+        "efforts": {
+          "unspecified": 25
+        },
+        "statusCounts": {
+          "completed": 25
+        },
+        "usageRequests": 25,
+        "usage": {
+          "prompt_tokens": 453968,
+          "completion_tokens": 4176,
+          "total_tokens": 465551
+        }
+      },
+      "pendingTelemetry": 0,
+      "boundary": {
+        "sha256": "16bddec6550df0aab9bdcc87c833b68e4b3a6f4aeb97abf49547093e68a5a56a",
+        "checks": [
+          {
+            "name": "workspace read",
+            "passed": true
+          },
+          {
+            "name": "workspace write and remove",
+            "passed": true
+          },
+          {
+            "name": "profile write",
+            "passed": true
+          },
+          {
+            "name": "own temp write",
+            "passed": true
+          },
+          {
+            "name": "other temp read denied",
+            "passed": true
+          },
+          {
+            "name": "other temp write denied",
+            "passed": true
+          },
+          {
+            "name": "user directory listing denied",
+            "passed": true
+          },
+          {
+            "name": "child inherits restriction",
+            "passed": true
+          },
+          {
+            "name": "symlink read escape denied",
+            "passed": true
+          },
+          {
+            "name": "symlink write escape denied",
+            "passed": true
+          },
+          {
+            "name": "hardlink escape denied",
+            "passed": true
+          },
+          {
+            "name": "app binary readable",
+            "passed": true
+          },
+          {
+            "name": "app resources immutable",
+            "passed": true
+          }
+        ],
+        "description": "Goose backend and descendants cannot read/write unrelated user, volume or temp trees; app resources read-only; own synthetic workspace/profile/temp writable. Electron remains outside this added filesystem boundary. Network/IPC remain available; this is not complete process or network isolation."
+      },
+      "confinedAuthVerified": true,
+      "scopedRelay": {
+        "trial": "medium-r1-candidate",
+        "calls": 25,
+        "denied": 0
+      },
+      "error": null,
+      "authenticationRejected": false
+    },
+    {
+      "key": "medium-r1-baseline",
+      "arm": "baseline",
+      "difficulty": "medium",
+      "repeat": 1,
+      "status": "completed",
+      "terminationReason": "terminal_response",
+      "passed": true,
+      "elapsedSeconds": 77.194,
+      "setupSeconds": 2.899,
+      "firstActivitySeconds": 6.93,
+      "behaviorPassed": true,
+      "typecheckPassed": true,
+      "publicTestsPassed": true,
+      "regressionPassed": true,
+      "regressionDetectedOriginal": true,
+      "behaviorFailures": [],
+      "immutableFailures": [],
+      "unexpectedFiles": [],
+      "inventoryMatches": true,
+      "mounts": [
+        "native_engineering",
+        "desktop-utilities",
+        "todo",
+        "scheduler",
+        "apps",
+        "Extension Manager",
+        "summon",
+        "skills",
+        "tom",
+        "developer",
+        "analyze"
+      ],
+      "toolCount": 21,
+      "toolCounts": {
+        "edit": 2,
+        "hashline_edit": 2,
+        "shell": 12,
+        "todo__todo_write": 3,
+        "tree": 1,
+        "write": 1
+      },
+      "nativeCalls": 2,
+      "nativeNames": {
+        "hashline_edit": 2
+      },
+      "nativeActions": {
+        "hashline_edit:read": 2
+      },
+      "toolErrors": [
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "failed",
+          "error": true,
+          "elapsedMs": 2515
+        }
+      ],
+      "tools": [
+        {
+          "name": "todo__todo_write",
+          "short": "todo_write",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 44
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 120
+        },
+        {
+          "name": "tree",
+          "short": "tree",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 12
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 68
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 40
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 174
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 944
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "failed",
+          "error": true,
+          "elapsedMs": 2515
+        },
+        {
+          "name": "todo__todo_write",
+          "short": "todo_write",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 17
+        },
+        {
+          "name": "edit",
+          "short": "edit",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 15
+        },
+        {
+          "name": "edit",
+          "short": "edit",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 1
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 163
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 1131
+        },
+        {
+          "name": "write",
+          "short": "write",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 13
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 204
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 1734
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 15
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 16
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 1443
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 1468
+        },
+        {
+          "name": "todo__todo_write",
+          "short": "todo_write",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 22
+        }
+      ],
+      "policy": {
+        "requestsWithTools": 22,
+        "allMatch": true,
+        "versions": {
+          "none": 22
+        },
+        "legacyWritePreferences": {
+          "true": 22
+        }
+      },
+      "model": {
+        "requests": 23,
+        "identities": {
+          "verified": 23
+        },
+        "requested": [
+          "gemini-3.8-flash"
+        ],
+        "returned": [
+          "gemini-3.8-flash"
+        ],
+        "efforts": {
+          "unspecified": 23
+        },
+        "statusCounts": {
+          "completed": 23
+        },
+        "usageRequests": 23,
+        "usage": {
+          "prompt_tokens": 331934,
+          "completion_tokens": 4539,
+          "total_tokens": 342144
+        }
+      },
+      "pendingTelemetry": 0,
+      "boundary": {
+        "sha256": "be97d61f42ef68619d6178e7d64779ef0da88f05b53f8125534c33d77e4380fa",
+        "checks": [
+          {
+            "name": "workspace read",
+            "passed": true
+          },
+          {
+            "name": "workspace write and remove",
+            "passed": true
+          },
+          {
+            "name": "profile write",
+            "passed": true
+          },
+          {
+            "name": "own temp write",
+            "passed": true
+          },
+          {
+            "name": "other temp read denied",
+            "passed": true
+          },
+          {
+            "name": "other temp write denied",
+            "passed": true
+          },
+          {
+            "name": "user directory listing denied",
+            "passed": true
+          },
+          {
+            "name": "child inherits restriction",
+            "passed": true
+          },
+          {
+            "name": "symlink read escape denied",
+            "passed": true
+          },
+          {
+            "name": "symlink write escape denied",
+            "passed": true
+          },
+          {
+            "name": "hardlink escape denied",
+            "passed": true
+          },
+          {
+            "name": "app binary readable",
+            "passed": true
+          },
+          {
+            "name": "app resources immutable",
+            "passed": true
+          }
+        ],
+        "description": "Goose backend and descendants cannot read/write unrelated user, volume or temp trees; app resources read-only; own synthetic workspace/profile/temp writable. Electron remains outside this added filesystem boundary. Network/IPC remain available; this is not complete process or network isolation."
+      },
+      "confinedAuthVerified": true,
+      "scopedRelay": {
+        "trial": "medium-r1-baseline",
+        "calls": 23,
+        "denied": 0
+      },
+      "error": null,
+      "authenticationRejected": false
+    },
+    {
+      "key": "complex-r1-baseline",
+      "arm": "baseline",
+      "difficulty": "complex",
+      "repeat": 1,
+      "status": "completed",
+      "terminationReason": "action_budget_exhausted",
+      "passed": false,
+      "elapsedSeconds": 91.438,
+      "setupSeconds": 2.835,
+      "firstActivitySeconds": 5.675,
+      "behaviorPassed": true,
+      "typecheckPassed": true,
+      "publicTestsPassed": true,
+      "regressionPassed": false,
+      "regressionDetectedOriginal": false,
+      "behaviorFailures": [],
+      "immutableFailures": [],
+      "unexpectedFiles": [],
+      "inventoryMatches": true,
+      "mounts": [
+        "todo",
+        "apps",
+        "desktop-utilities",
+        "tom",
+        "analyze",
+        "developer",
+        "skills",
+        "native_engineering",
+        "scheduler",
+        "summon",
+        "Extension Manager"
+      ],
+      "toolCount": 24,
+      "toolCounts": {
+        "edit": 6,
+        "shell": 16,
+        "todo__todo_write": 1,
+        "tree": 1
+      },
+      "nativeCalls": 0,
+      "nativeNames": {},
+      "nativeActions": {},
+      "toolErrors": [
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "failed",
+          "error": true,
+          "elapsedMs": 4303
+        }
+      ],
+      "tools": [
+        {
+          "name": "todo__todo_write",
+          "short": "todo_write",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 17
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 51
+        },
+        {
+          "name": "tree",
+          "short": "tree",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 7
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 231
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 1787
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 50
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "failed",
+          "error": true,
+          "elapsedMs": 4303
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 37
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 30
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 64
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 56
+        },
+        {
+          "name": "edit",
+          "short": "edit",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 19
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 47
+        },
+        {
+          "name": "edit",
+          "short": "edit",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 17
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 23
+        },
+        {
+          "name": "edit",
+          "short": "edit",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 21
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 60
+        },
+        {
+          "name": "edit",
+          "short": "edit",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 15
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 34
+        },
+        {
+          "name": "edit",
+          "short": "edit",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 34
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 89
+        },
+        {
+          "name": "edit",
+          "short": "edit",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 27
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 66
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 1066
+        }
+      ],
+      "policy": {
+        "requestsWithTools": 24,
+        "allMatch": true,
+        "versions": {
+          "none": 24
+        },
+        "legacyWritePreferences": {
+          "true": 24
+        }
+      },
+      "model": {
+        "requests": 25,
+        "identities": {
+          "verified": 25
+        },
+        "requested": [
+          "gemini-3.8-flash"
+        ],
+        "returned": [
+          "gemini-3.8-flash"
+        ],
+        "efforts": {
+          "unspecified": 25
+        },
+        "statusCounts": {
+          "completed": 25
+        },
+        "usageRequests": 25,
+        "usage": {
+          "prompt_tokens": 408104,
+          "completion_tokens": 1392,
+          "total_tokens": 419208
+        }
+      },
+      "pendingTelemetry": 0,
+      "boundary": {
+        "sha256": "2b529687f1107564d8a01066d173c04329ea71e16cbbcab3124e641db651af9f",
+        "checks": [
+          {
+            "name": "workspace read",
+            "passed": true
+          },
+          {
+            "name": "workspace write and remove",
+            "passed": true
+          },
+          {
+            "name": "profile write",
+            "passed": true
+          },
+          {
+            "name": "own temp write",
+            "passed": true
+          },
+          {
+            "name": "other temp read denied",
+            "passed": true
+          },
+          {
+            "name": "other temp write denied",
+            "passed": true
+          },
+          {
+            "name": "user directory listing denied",
+            "passed": true
+          },
+          {
+            "name": "child inherits restriction",
+            "passed": true
+          },
+          {
+            "name": "symlink read escape denied",
+            "passed": true
+          },
+          {
+            "name": "symlink write escape denied",
+            "passed": true
+          },
+          {
+            "name": "hardlink escape denied",
+            "passed": true
+          },
+          {
+            "name": "app binary readable",
+            "passed": true
+          },
+          {
+            "name": "app resources immutable",
+            "passed": true
+          }
+        ],
+        "description": "Goose backend and descendants cannot read/write unrelated user, volume or temp trees; app resources read-only; own synthetic workspace/profile/temp writable. Electron remains outside this added filesystem boundary. Network/IPC remain available; this is not complete process or network isolation."
+      },
+      "confinedAuthVerified": true,
+      "scopedRelay": {
+        "trial": "complex-r1-baseline",
+        "calls": 25,
+        "denied": 0
+      },
+      "error": null,
+      "authenticationRejected": false
+    },
+    {
+      "key": "complex-r1-candidate",
+      "arm": "candidate",
+      "difficulty": "complex",
+      "repeat": 1,
+      "status": "completed",
+      "terminationReason": "action_budget_exhausted",
+      "passed": false,
+      "elapsedSeconds": 105.661,
+      "setupSeconds": 3.325,
+      "firstActivitySeconds": 9.886,
+      "behaviorPassed": false,
+      "typecheckPassed": false,
+      "publicTestsPassed": false,
+      "regressionPassed": false,
+      "regressionDetectedOriginal": false,
+      "behaviorFailures": [
+        {
+          "name": "header and body propagation",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ {}\n- {\n-   'x-request-id': 't'\n- }\n"
+        },
+        {
+          "name": "Job requestId remains independent",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n    audit: 'job:job1',\n    name: 'send',\n    requestId: 'job1',\n-   trace: 'trace1'\n  }\n"
+        },
+        {
+          "name": "end-to-end \"trace\"",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n    body: {\n      payload: {\n        audit: 'job:different',\n        name: 'send',\n        requestId: 'different',\n-       trace: 'trace/worker'\n      },\n-     requestId: 'trace'\n    },\n    context: {\n      traceId: 'trace',\n      userId: 'u'\n    },\n+   headers: {},\n-   headers: {\n-     'x-request-id': 'trace'\n-   },\n    logs: {\n      requestId: 'trace',\n      userId: 'u'\n    }\n  }\n"
+        },
+        {
+          "name": "end-to-end \"\"",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n    body: {\n      payload: {\n        audit: 'job:different',\n        name: 'send',\n        requestId: 'different',\n-       trace: '/worker'\n      },\n-     requestId: ''\n    },\n    context: {\n      traceId: '',\n      userId: 'u'\n    },\n+   headers: {},\n-   headers: {\n-     'x-request-id': ''\n-   },\n    logs: {\n      requestId: '',\n      userId: 'u'\n    }\n  }\n"
+        },
+        {
+          "name": "end-to-end \"__proto__\"",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n    body: {\n      payload: {\n        audit: 'job:different',\n        name: 'send',\n        requestId: 'different',\n-       trace: '__proto__/worker'\n      },\n-     requestId: '__proto__'\n    },\n    context: {\n      traceId: '__proto__',\n      userId: 'u'\n    },\n+   headers: {},\n-   headers: {\n-     'x-request-id': '__proto__'\n-   },\n    logs: {\n      requestId: '__proto__',\n      userId: 'u'\n    }\n  }\n"
+        },
+        {
+          "name": "end-to-end \"x/y\"",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n    body: {\n      payload: {\n        audit: 'job:different',\n        name: 'send',\n        requestId: 'different',\n-       trace: 'x/y/worker'\n      },\n-     requestId: 'x/y'\n    },\n    context: {\n      traceId: 'x/y',\n      userId: 'u'\n    },\n+   headers: {},\n-   headers: {\n-     'x-request-id': 'x/y'\n-   },\n    logs: {\n      requestId: 'x/y',\n      userId: 'u'\n    }\n  }\n"
+        }
+      ],
+      "immutableFailures": [],
+      "unexpectedFiles": [],
+      "inventoryMatches": true,
+      "mounts": [
+        "apps",
+        "summon",
+        "todo",
+        "scheduler",
+        "Extension Manager",
+        "tom",
+        "native_engineering",
+        "desktop-utilities",
+        "developer",
+        "analyze",
+        "skills"
+      ],
+      "toolCount": 24,
+      "toolCounts": {
+        "hashline_edit": 18,
+        "shell": 4,
+        "todo__todo_write": 1,
+        "tree": 1
+      },
+      "nativeCalls": 18,
+      "nativeNames": {
+        "hashline_edit": 18
+      },
+      "nativeActions": {
+        "hashline_edit:edit": 3,
+        "hashline_edit:read": 15
+      },
+      "toolErrors": [
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "failed",
+          "error": true,
+          "elapsedMs": 7699
+        }
+      ],
+      "tools": [
+        {
+          "name": "todo__todo_write",
+          "short": "todo_write",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 11
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 19
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 268
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 1063
+        },
+        {
+          "name": "tree",
+          "short": "tree",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 9
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 16
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 13
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 15
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 13
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 19
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 16
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 18
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 16
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 15
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 13
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 32
+        },
+        {
+          "name": "shell",
+          "short": "shell",
+          "native": false,
+          "action": null,
+          "status": "failed",
+          "error": true,
+          "elapsedMs": 7699
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 41
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "edit",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 23
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 21
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "edit",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 25
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 88
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "edit",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 30
+        },
+        {
+          "name": "hashline_edit",
+          "short": "hashline_edit",
+          "native": true,
+          "action": "read",
+          "status": "completed",
+          "error": false,
+          "elapsedMs": 30
+        }
+      ],
+      "policy": {
+        "requestsWithTools": 24,
+        "allMatch": true,
+        "versions": {
+          "v1": 24
+        },
+        "legacyWritePreferences": {
+          "false": 24
+        }
+      },
+      "model": {
+        "requests": 25,
+        "identities": {
+          "verified": 25
+        },
+        "requested": [
+          "gemini-3.8-flash"
+        ],
+        "returned": [
+          "gemini-3.8-flash"
+        ],
+        "efforts": {
+          "unspecified": 25
+        },
+        "statusCounts": {
+          "completed": 25
+        },
+        "usageRequests": 25,
+        "usage": {
+          "prompt_tokens": 410824,
+          "completion_tokens": 1771,
+          "total_tokens": 420994
+        }
+      },
+      "pendingTelemetry": 0,
+      "boundary": {
+        "sha256": "5d315f31486c0bdb385346e92f405d473c0a8aa5a44324c07e4ff26cbb130514",
+        "checks": [
+          {
+            "name": "workspace read",
+            "passed": true
+          },
+          {
+            "name": "workspace write and remove",
+            "passed": true
+          },
+          {
+            "name": "profile write",
+            "passed": true
+          },
+          {
+            "name": "own temp write",
+            "passed": true
+          },
+          {
+            "name": "other temp read denied",
+            "passed": true
+          },
+          {
+            "name": "other temp write denied",
+            "passed": true
+          },
+          {
+            "name": "user directory listing denied",
+            "passed": true
+          },
+          {
+            "name": "child inherits restriction",
+            "passed": true
+          },
+          {
+            "name": "symlink read escape denied",
+            "passed": true
+          },
+          {
+            "name": "symlink write escape denied",
+            "passed": true
+          },
+          {
+            "name": "hardlink escape denied",
+            "passed": true
+          },
+          {
+            "name": "app binary readable",
+            "passed": true
+          },
+          {
+            "name": "app resources immutable",
+            "passed": true
+          }
+        ],
+        "description": "Goose backend and descendants cannot read/write unrelated user, volume or temp trees; app resources read-only; own synthetic workspace/profile/temp writable. Electron remains outside this added filesystem boundary. Network/IPC remain available; this is not complete process or network isolation."
+      },
+      "confinedAuthVerified": true,
+      "scopedRelay": {
+        "trial": "complex-r1-candidate",
+        "calls": 25,
+        "denied": 0
+      },
+      "error": null,
+      "authenticationRejected": false
+    }
+  ],
+  "limitations": [
+    "Two repeats per workload; exploratory, no statistical or general reliability claim.",
+    "Tasks are capped at 24 turns and 360 seconds. A terminal ACP response can still mean action-budget exhaustion, recorded separately.",
+    "All TypeScript synthetic tasks, debug builds, native on and Jev/Axwise off; legacy loop only.",
+    "Baseline and candidate bundle selection guidance, tool-description/configuration changes and the explicit-unlock fix; this does not isolate one code change.",
+    "Times include failed outcomes; comparisons of successful subsets select survivors. Setup and independent checks excluded.",
+    "Local scoped authentication adapter preserves real parent authentication but does not test production Keychain compatibility.",
+    "Provider token usage is final reported usage per HTTP request, including associated UI requests. Cache/provider load are uncontrolled."
+  ]
+}

@@ -79,11 +79,11 @@ try {
       if (args.length > 1) throw new Error('--preview accepts only an optional app executable; its profile is always isolated.');
       const profile = await mkdtemp(join(tmpdir(), 'orqanix-reset-preview-'));
       await writeFile(join(profile, 'settings.json'), JSON.stringify({
-        engineeringCapabilities: { ompEnabled: false, jevReviewEnabled: true },
+        engineeringCapabilities: { nativeGemsEnabled: false, jevReviewEnabled: true },
       }), { flag: 'wx', mode: 0o600 });
       desktopArgs = [args[0] || '/private/tmp/orqaly-goose-ux-233/ui/desktop/out/Orqanix-darwin-arm64/Orqanix.app/Contents/MacOS/Orqanix',
         `--user-data-dir=${profile}`];
-      console.log(`Isolated preview profile: ${profile}; OMP off, optional JEV on. Do not enable OMP in this local comparison.`);
+      console.log(`Isolated preview profile: ${profile}; Native engineering off, optional JEV on. Keep native engineering disabled in this local comparison.`);
     }
     child = mode === '--benchmark'
       ? spawn(process.execPath, [join(root, 'scripts/benchmark-goose-reset.mjs'), '--live', ...args], { env: childEnv, stdio: 'inherit' })

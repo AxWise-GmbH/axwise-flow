@@ -1,0 +1,30 @@
+{
+  "preflight": false,
+  "timeoutSeconds": 360,
+  "languageServers": {
+    "kind": "manifest-verified-entrypoints",
+    "manifestSha256": "e38d3f4f898efc9c1dd0a83659aff0cac1a0012a6159b33c643ffaee8440dd1a",
+    "versions": {
+      "pyright": "1.1.414",
+      "typescript": "5.9.3",
+      "typescript-language-server": "6.0.1"
+    },
+    "runtime": "/private/tmp/orqanix-efficiency-app-20260929/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime"
+  },
+  "bin/goose": "6e85d92ac6b38ec5ef8514de7e40d291b2d554e5ab56e7a59d8a730aac6cea2f",
+  "bin/goose-baseline": "ff80a98ec86c080d63894aaa15f419f20fae3b78967e211d33b1cd02f0f446a2",
+  "bin/goose-candidate": "0daf15f4e437d45101e0ed402ffa003d610ba6c4bddc6c4c03b95d85faeda605",
+  "orqaly-runtime/connector/src/cli.mjs": "9155c13abf6ebea1de8426e593f4f09d9f659af95bd251516908a8cc2354e564",
+  "orqaly-runtime/runtime-manifest.json": "e38d3f4f898efc9c1dd0a83659aff0cac1a0012a6159b33c643ffaee8440dd1a",
+  "benchmark-goose-efficiency.mjs": "aa056e76f75100e8861fcf84ca104454e680753b0d61fbdbf2fb5e7a4357fc3d",
+  "benchmark-orqanix-efficiency.mjs": "33205b1734e7ff928b4097bd140842571d5f02572a1d1fa70663da2876a2c8ed",
+  "benchmark-goose-reset.mjs": "382fc2bebb2912826c3234285067e050c9e3224b0c433267d340c0053ed47c92",
+  "benchmark-local-axwise.mjs": "98e57f620d5776e11b259201f3612b945a9cb9f08f575af38868f2cc130f3a4e",
+  "benchmark-native-engineering.mjs": "b05b60a2d2e21e8c74502f892a4d7eebc4d4eed99184425005970ef86930934d",
+  "lib/orqanix-efficiency-tasks.mjs": "cde46e999894298d2fdcb2af08b40f4192002471b49a3e9e6780ff6e4aa73d6c",
+  "lib/orqanix-selection-sandbox.mjs": "4ed8381b593405bf387f17b1e320cf9c2e22a79d7c5586482dcd13b5740977d7",
+  "lib/orqanix-specialist-sandbox.mjs": "41758dd153febf772d16114b4b44e2d7b97f0cc6c205cf1adf461d29122075f1",
+  "lib/orqanix-benchmark-relay.mjs": "df1cfed8cdf028f9449abdf93fe1535ae5506bdbe63c76d08270f28d80a18b3b",
+  "lib/orqanix-scoped-benchmark-relay.mjs": "aba5480368486ce42a8ae7dded4472f90d9ee1dd82dd86550bf50e93032fe0dd",
+  "providerTemplate": "a0c552781a6187465f066387838cc0495eede4e88f80a862bdc8930616439b4d"
+}

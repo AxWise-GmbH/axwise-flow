@@ -1,0 +1,46 @@
+{
+  "schema": "orqanix.efficiency-supplemental-audit.v1",
+  "note": "Post-run source inspection supplements the frozen correctness gate; it does not rewrite outcomes. Pattern scan is not proof of exhaustive secret detection.",
+  "contextDeclarations": [
+    {
+      "key": "complex-candidate",
+      "source": "export interface RequestContext { readonly traceId: string; readonly userId: string; }\nexport type ActiveContext = RequestContext;\n",
+      "sha256": "e11e5bd855a571dd320a0423faabfb8acef5a8fef4cd062475ea07ad208c9958",
+      "expectedShape": true
+    },
+    {
+      "key": "complex-default",
+      "source": "export interface RequestContext { readonly traceId: string; readonly userId: string; }\nexport type ActiveContext = RequestContext;\n",
+      "sha256": "e11e5bd855a571dd320a0423faabfb8acef5a8fef4cd062475ea07ad208c9958",
+      "expectedShape": true
+    },
+    {
+      "key": "complex-previous",
+      "source": "export interface RequestContext { readonly traceId: string; readonly userId: string; }\nexport type ActiveContext = RequestContext;\n",
+      "sha256": "e11e5bd855a571dd320a0423faabfb8acef5a8fef4cd062475ea07ad208c9958",
+      "expectedShape": true
+    },
+    {
+      "key": "large-default",
+      "source": "export interface RequestContext { readonly traceId: string; readonly userId: string; }\nexport type ActiveContext = RequestContext;\n",
+      "sha256": "e11e5bd855a571dd320a0423faabfb8acef5a8fef4cd062475ea07ad208c9958",
+      "expectedShape": true
+    },
+    {
+      "key": "large-candidate",
+      "source": "export interface RequestContext { readonly traceId: string; readonly userId: string; }\nexport type ActiveContext = RequestContext;\n",
+      "sha256": "e11e5bd855a571dd320a0423faabfb8acef5a8fef4cd062475ea07ad208c9958",
+      "expectedShape": true
+    },
+    {
+      "key": "large-previous",
+      "source": "export interface RequestContext { readonly traceId: string; readonly userId: string; }\nexport type ActiveContext = RequestContext;\n",
+      "sha256": "e11e5bd855a571dd320a0423faabfb8acef5a8fef4cd062475ea07ad208c9958",
+      "expectedShape": true
+    }
+  ],
+  "exportScan": {
+    "files": 245,
+    "possibleCredentialFiles": []
+  }
+}

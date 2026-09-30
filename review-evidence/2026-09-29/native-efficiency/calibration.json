@@ -1,0 +1,1035 @@
+{
+  "fingerprints": {
+    "lib/orqanix-efficiency-tasks.mjs": "cde46e999894298d2fdcb2af08b40f4192002471b49a3e9e6780ff6e4aa73d6c",
+    "lib/orqanix-selection-sandbox.mjs": "4ed8381b593405bf387f17b1e320cf9c2e22a79d7c5586482dcd13b5740977d7"
+  },
+  "passed": true,
+  "results": [
+    {
+      "difficulty": "simple",
+      "boundaryChecks": [
+        {
+          "name": "workspace read",
+          "passed": true
+        },
+        {
+          "name": "workspace write and remove",
+          "passed": true
+        },
+        {
+          "name": "profile write",
+          "passed": true
+        },
+        {
+          "name": "own temp write",
+          "passed": true
+        },
+        {
+          "name": "other temp read denied",
+          "passed": true
+        },
+        {
+          "name": "other temp write denied",
+          "passed": true
+        },
+        {
+          "name": "user directory listing denied",
+          "passed": true
+        },
+        {
+          "name": "child inherits restriction",
+          "passed": true
+        },
+        {
+          "name": "symlink read escape denied",
+          "passed": true
+        },
+        {
+          "name": "symlink write escape denied",
+          "passed": true
+        },
+        {
+          "name": "hardlink escape denied",
+          "passed": true
+        },
+        {
+          "name": "app binary readable",
+          "passed": true
+        },
+        {
+          "name": "app resources immutable",
+          "passed": true
+        }
+      ],
+      "broken": {
+        "passed": false,
+        "behavior": {
+          "passed": false,
+          "checks": [
+            {
+              "name": "zero quantity",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n\n1250 !== 0\n"
+            },
+            {
+              "name": "positive zero",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n\ntrue !== false\n"
+            },
+            {
+              "name": "invalid inputs",
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ undefined\n- 'RangeError'\n"
+            },
+            {
+              "name": "safe integer limits",
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ undefined\n- 'RangeError'\n"
+            },
+            {
+              "name": "input examples",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n\n1 !== 0\n"
+            },
+            {
+              "name": "floor discount",
+              "passed": true
+            },
+            {
+              "name": "defaults and full discount",
+              "passed": true
+            }
+          ]
+        },
+        "types": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "publicTests": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "TAP version 13\n# Subtest: ordinary invoice\nok 1 - ordinary invoice\n  ---\n  duration_ms: 0.318833\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 61.045416\n",
+          "stderr": ""
+        },
+        "regression": {
+          "passed": false,
+          "error": "MISSING_REGRESSION_TEST"
+        },
+        "originalMutation": null,
+        "immutableFailures": [],
+        "unexpectedFiles": []
+      },
+      "fixed": {
+        "passed": true,
+        "behavior": {
+          "passed": true,
+          "checks": [
+            {
+              "name": "zero quantity",
+              "passed": true
+            },
+            {
+              "name": "floor discount",
+              "passed": true
+            },
+            {
+              "name": "defaults and full discount",
+              "passed": true
+            },
+            {
+              "name": "positive zero",
+              "passed": true
+            },
+            {
+              "name": "invalid inputs",
+              "passed": true
+            },
+            {
+              "name": "safe integer limits",
+              "passed": true
+            },
+            {
+              "name": "input examples",
+              "passed": true
+            }
+          ]
+        },
+        "types": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "publicTests": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "TAP version 13\n# Subtest: ordinary invoice\nok 1 - ordinary invoice\n  ---\n  duration_ms: 0.322666\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 59.278334\n",
+          "stderr": ""
+        },
+        "regression": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "TAP version 13\n# Subtest: zero\nok 1 - zero\n  ---\n  duration_ms: 0.318583\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 58.122459\n",
+          "stderr": ""
+        },
+        "originalMutation": {
+          "detected": true,
+          "passed": false,
+          "exitCode": 1,
+          "signal": null,
+          "stdout": "TAP version 13\n# Subtest: zero\nnot ok 1 - zero\n  ---\n  duration_ms: 0.579416\n  type: 'test'\n  location: '/private/tmp/orqanix-efficiency-calibration-20260929/simple/fixture/workspace/tests/regression.test.mjs:2:45'\n  failureType: 'testCodeFailure'\n  error: |-\n    Expected values to be strictly equal:\n    \n    2 !== 0\n    \n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected: 0\n  actual: 2\n  operator: 'strictEqual'\n  stack: |-\n    TestContext.<anonymous> (file:///private/tmp/orqanix-efficiency-calibration-20260929/simple/fixture/workspace/tests/regression.test.mjs:2:68)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.start (node:internal/test_runner/test:944:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 60.1625\n",
+          "stderr": "Command failed: /usr/bin/sandbox-exec -f /private/tmp/orqanix-efficiency-calibration-20260929/simple/boundary.sb /private/tmp/orqanix-selection-ab-app-v4-20260929/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime/node/bin/node --experimental-strip-types --test tests/regression.test.mjs\n"
+        },
+        "immutableFailures": [],
+        "unexpectedFiles": []
+      },
+      "passed": true
+    },
+    {
+      "difficulty": "medium",
+      "boundaryChecks": [
+        {
+          "name": "workspace read",
+          "passed": true
+        },
+        {
+          "name": "workspace write and remove",
+          "passed": true
+        },
+        {
+          "name": "profile write",
+          "passed": true
+        },
+        {
+          "name": "own temp write",
+          "passed": true
+        },
+        {
+          "name": "other temp read denied",
+          "passed": true
+        },
+        {
+          "name": "other temp write denied",
+          "passed": true
+        },
+        {
+          "name": "user directory listing denied",
+          "passed": true
+        },
+        {
+          "name": "child inherits restriction",
+          "passed": true
+        },
+        {
+          "name": "symlink read escape denied",
+          "passed": true
+        },
+        {
+          "name": "symlink write escape denied",
+          "passed": true
+        },
+        {
+          "name": "hardlink escape denied",
+          "passed": true
+        },
+        {
+          "name": "app binary readable",
+          "passed": true
+        },
+        {
+          "name": "app resources immutable",
+          "passed": true
+        }
+      ],
+      "broken": {
+        "passed": false,
+        "behavior": {
+          "passed": false,
+          "checks": [
+            {
+              "name": "registration order",
+              "passed": true
+            },
+            {
+              "name": "success route 0",
+              "passed": true
+            },
+            {
+              "name": "success route 1",
+              "passed": true
+            },
+            {
+              "name": "success route 2",
+              "passed": true
+            },
+            {
+              "name": "success route 3",
+              "passed": true
+            },
+            {
+              "name": "success route 4",
+              "passed": true
+            },
+            {
+              "name": "forward failure route 0",
+              "passed": false,
+              "error": "account read"
+            },
+            {
+              "name": "forward failure route 1",
+              "passed": false,
+              "error": "account create"
+            },
+            {
+              "name": "forward failure route 3",
+              "passed": false,
+              "error": "order read"
+            },
+            {
+              "name": "forward failure route 4",
+              "passed": false,
+              "error": "order delete"
+            },
+            {
+              "name": "synchronous health preserved",
+              "passed": true
+            },
+            {
+              "name": "unrelated audit and helper still reject",
+              "passed": true
+            }
+          ]
+        },
+        "types": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "publicTests": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "TAP version 13\n# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.567417\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 62.244791\n",
+          "stderr": ""
+        },
+        "regression": {
+          "passed": false,
+          "error": "MISSING_REGRESSION_TEST"
+        },
+        "originalMutation": null,
+        "immutableFailures": [],
+        "unexpectedFiles": []
+      },
+      "fixed": {
+        "passed": true,
+        "behavior": {
+          "passed": true,
+          "checks": [
+            {
+              "name": "registration order",
+              "passed": true
+            },
+            {
+              "name": "success route 0",
+              "passed": true
+            },
+            {
+              "name": "success route 1",
+              "passed": true
+            },
+            {
+              "name": "success route 2",
+              "passed": true
+            },
+            {
+              "name": "success route 3",
+              "passed": true
+            },
+            {
+              "name": "success route 4",
+              "passed": true
+            },
+            {
+              "name": "forward failure route 0",
+              "passed": true
+            },
+            {
+              "name": "forward failure route 1",
+              "passed": true
+            },
+            {
+              "name": "forward failure route 3",
+              "passed": true
+            },
+            {
+              "name": "forward failure route 4",
+              "passed": true
+            },
+            {
+              "name": "synchronous health preserved",
+              "passed": true
+            },
+            {
+              "name": "unrelated audit and helper still reject",
+              "passed": true
+            }
+          ]
+        },
+        "types": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "publicTests": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "TAP version 13\n# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.347375\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 69.369\n",
+          "stderr": ""
+        },
+        "regression": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "TAP version 13\n# Subtest: forward\nok 1 - forward\n  ---\n  duration_ms: 0.380166\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 65.59825\n",
+          "stderr": ""
+        },
+        "originalMutation": {
+          "detected": true,
+          "passed": false,
+          "exitCode": 1,
+          "signal": null,
+          "stdout": "TAP version 13\n# Subtest: forward\nnot ok 1 - forward\n  ---\n  duration_ms: 0.355167\n  type: 'test'\n  location: '/private/tmp/orqanix-efficiency-calibration-20260929/medium/fixture/workspace/tests/regression.test.mjs:2:42'\n  failureType: 'testCodeFailure'\n  error: 'account read'\n  code: 'ERR_TEST_FAILURE'\n  stack: |-\n    Object.handler (file:///private/tmp/orqanix-efficiency-calibration-20260929/medium/fixture/workspace/src/routes/accounts.ts:4:24)\n    TestContext.<anonymous> (file:///private/tmp/orqanix-efficiency-calibration-20260929/medium/fixture/workspace/tests/regression.test.mjs:2:104)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.start (node:internal/test_runner/test:944:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 64.891084\n",
+          "stderr": "Command failed: /usr/bin/sandbox-exec -f /private/tmp/orqanix-efficiency-calibration-20260929/medium/boundary.sb /private/tmp/orqanix-selection-ab-app-v4-20260929/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime/node/bin/node --experimental-strip-types --test tests/regression.test.mjs\n"
+        },
+        "immutableFailures": [],
+        "unexpectedFiles": []
+      },
+      "passed": true
+    },
+    {
+      "difficulty": "complex",
+      "boundaryChecks": [
+        {
+          "name": "workspace read",
+          "passed": true
+        },
+        {
+          "name": "workspace write and remove",
+          "passed": true
+        },
+        {
+          "name": "profile write",
+          "passed": true
+        },
+        {
+          "name": "own temp write",
+          "passed": true
+        },
+        {
+          "name": "other temp read denied",
+          "passed": true
+        },
+        {
+          "name": "other temp write denied",
+          "passed": true
+        },
+        {
+          "name": "user directory listing denied",
+          "passed": true
+        },
+        {
+          "name": "child inherits restriction",
+          "passed": true
+        },
+        {
+          "name": "symlink read escape denied",
+          "passed": true
+        },
+        {
+          "name": "symlink write escape denied",
+          "passed": true
+        },
+        {
+          "name": "hardlink escape denied",
+          "passed": true
+        },
+        {
+          "name": "app binary readable",
+          "passed": true
+        },
+        {
+          "name": "app resources immutable",
+          "passed": true
+        }
+      ],
+      "broken": {
+        "passed": false,
+        "behavior": {
+          "passed": false,
+          "checks": [
+            {
+              "name": "new context shape",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n+   requestId: 'trace',\n-   traceId: 'trace',\n    userId: 'user'\n  }\n"
+            },
+            {
+              "name": "fork propagation and immutability",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n+   requestId: 'undefined/child',\n+   traceId: 'a',\n-   traceId: 'a/child',\n    userId: 'u'\n  }\n"
+            },
+            {
+              "name": "destructuring keeps wire names",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n-   requestId: 't',\n    userId: 'u'\n  }\n"
+            },
+            {
+              "name": "header and body propagation",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ {}\n- {\n-   'x-request-id': 't'\n- }\n"
+            },
+            {
+              "name": "Job requestId remains independent",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n    audit: 'job:job1',\n    name: 'send',\n    requestId: 'job1',\n-   trace: 'trace1'\n  }\n"
+            },
+            {
+              "name": "end-to-end \"trace\"",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n... Skipped lines\n\n  {\n    body: {\n      payload: {\n        audit: 'job:different',\n        name: 'send',\n...\n    context: {\n+     requestId: 'trace',\n-     traceId: 'trace',\n      userId: 'u'\n    },\n    headers: {\n      'x-request-id': 'trace'\n    },\n"
+            },
+            {
+              "name": "end-to-end \"\"",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n... Skipped lines\n\n  {\n    body: {\n      payload: {\n        audit: 'job:different',\n        name: 'send',\n...\n    context: {\n+     requestId: '',\n-     traceId: '',\n      userId: 'u'\n    },\n    headers: {\n      'x-request-id': ''\n    },\n"
+            },
+            {
+              "name": "end-to-end \"__proto__\"",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n... Skipped lines\n\n  {\n    body: {\n      payload: {\n        audit: 'job:different',\n        name: 'send',\n...\n    context: {\n+     requestId: '__proto__',\n-     traceId: '__proto__',\n      userId: 'u'\n    },\n    headers: {\n      'x-request-id': '__proto__'\n    },\n"
+            },
+            {
+              "name": "end-to-end \"x/y\"",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n... Skipped lines\n\n  {\n    body: {\n      payload: {\n        audit: 'job:different',\n        name: 'send',\n...\n    context: {\n+     requestId: 'x/y',\n-     traceId: 'x/y',\n      userId: 'u'\n    },\n    headers: {\n      'x-request-id': 'x/y'\n    },\n"
+            }
+          ]
+        },
+        "types": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "publicTests": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "TAP version 13\n# Subtest: wire identifier\nok 1 - wire identifier\n  ---\n  duration_ms: 0.338416\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 64.412375\n",
+          "stderr": ""
+        },
+        "regression": {
+          "passed": false,
+          "error": "MISSING_REGRESSION_TEST"
+        },
+        "originalMutation": null,
+        "immutableFailures": [],
+        "unexpectedFiles": []
+      },
+      "fixed": {
+        "passed": true,
+        "behavior": {
+          "passed": true,
+          "checks": [
+            {
+              "name": "new context shape",
+              "passed": true
+            },
+            {
+              "name": "fork propagation and immutability",
+              "passed": true
+            },
+            {
+              "name": "destructuring keeps wire names",
+              "passed": true
+            },
+            {
+              "name": "header and body propagation",
+              "passed": true
+            },
+            {
+              "name": "Job requestId remains independent",
+              "passed": true
+            },
+            {
+              "name": "end-to-end \"trace\"",
+              "passed": true
+            },
+            {
+              "name": "end-to-end \"\"",
+              "passed": true
+            },
+            {
+              "name": "end-to-end \"__proto__\"",
+              "passed": true
+            },
+            {
+              "name": "end-to-end \"x/y\"",
+              "passed": true
+            }
+          ]
+        },
+        "types": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "publicTests": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "TAP version 13\n# Subtest: wire identifier\nok 1 - wire identifier\n  ---\n  duration_ms: 0.319416\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 61.57475\n",
+          "stderr": ""
+        },
+        "regression": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "TAP version 13\n# Subtest: rename\nok 1 - rename\n  ---\n  duration_ms: 0.573333\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 57.595833\n",
+          "stderr": ""
+        },
+        "originalMutation": {
+          "detected": true,
+          "passed": false,
+          "exitCode": 1,
+          "signal": null,
+          "stdout": "TAP version 13\n# Subtest: rename\nnot ok 1 - rename\n  ---\n  duration_ms: 1.364583\n  type: 'test'\n  location: '/private/tmp/orqanix-efficiency-calibration-20260929/complex/fixture/workspace/tests/regression.test.mjs:2:57'\n  failureType: 'testCodeFailure'\n  error: |-\n    Expected values to be strictly deep-equal:\n    + actual - expected\n    \n      {\n    +   requestId: 'a',\n    -   traceId: 'a',\n        userId: 'u'\n      }\n    \n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected:\n    traceId: 'a'\n    userId: 'u'\n  actual:\n    requestId: 'a'\n    userId: 'u'\n  operator: 'deepStrictEqual'\n  stack: |-\n    TestContext.<anonymous> (file:///private/tmp/orqanix-efficiency-calibration-20260929/complex/fixture/workspace/tests/regression.test.mjs:2:82)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.start (node:internal/test_runner/test:944:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 60.179625\n",
+          "stderr": "Command failed: /usr/bin/sandbox-exec -f /private/tmp/orqanix-efficiency-calibration-20260929/complex/boundary.sb /private/tmp/orqanix-selection-ab-app-v4-20260929/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime/node/bin/node --experimental-strip-types --test tests/regression.test.mjs\n"
+        },
+        "immutableFailures": [],
+        "unexpectedFiles": []
+      },
+      "passed": true
+    },
+    {
+      "difficulty": "large",
+      "boundaryChecks": [
+        {
+          "name": "workspace read",
+          "passed": true
+        },
+        {
+          "name": "workspace write and remove",
+          "passed": true
+        },
+        {
+          "name": "profile write",
+          "passed": true
+        },
+        {
+          "name": "own temp write",
+          "passed": true
+        },
+        {
+          "name": "other temp read denied",
+          "passed": true
+        },
+        {
+          "name": "other temp write denied",
+          "passed": true
+        },
+        {
+          "name": "user directory listing denied",
+          "passed": true
+        },
+        {
+          "name": "child inherits restriction",
+          "passed": true
+        },
+        {
+          "name": "symlink read escape denied",
+          "passed": true
+        },
+        {
+          "name": "symlink write escape denied",
+          "passed": true
+        },
+        {
+          "name": "hardlink escape denied",
+          "passed": true
+        },
+        {
+          "name": "app binary readable",
+          "passed": true
+        },
+        {
+          "name": "app resources immutable",
+          "passed": true
+        }
+      ],
+      "broken": {
+        "passed": false,
+        "behavior": {
+          "passed": false,
+          "checks": [
+            {
+              "name": "new context shape",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n+   requestId: 'trace',\n-   traceId: 'trace',\n    userId: 'user'\n  }\n"
+            },
+            {
+              "name": "fork propagation and immutability",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n+   requestId: 'undefined/child',\n+   traceId: 'a',\n-   traceId: 'a/child',\n    userId: 'u'\n  }\n"
+            },
+            {
+              "name": "destructuring keeps wire names",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n-   requestId: 't',\n    userId: 'u'\n  }\n"
+            },
+            {
+              "name": "header and body propagation",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ {}\n- {\n-   'x-request-id': 't'\n- }\n"
+            },
+            {
+              "name": "Job requestId remains independent",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n    audit: 'job:job1',\n    name: 'send',\n    requestId: 'job1',\n-   trace: 'trace1'\n  }\n"
+            },
+            {
+              "name": "end-to-end \"trace\"",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n... Skipped lines\n\n  {\n    body: {\n      payload: {\n        audit: 'job:different',\n        name: 'send',\n...\n    context: {\n+     requestId: 'trace',\n-     traceId: 'trace',\n      userId: 'u'\n    },\n    headers: {\n      'x-request-id': 'trace'\n    },\n"
+            },
+            {
+              "name": "end-to-end \"\"",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n... Skipped lines\n\n  {\n    body: {\n      payload: {\n        audit: 'job:different',\n        name: 'send',\n...\n    context: {\n+     requestId: '',\n-     traceId: '',\n      userId: 'u'\n    },\n    headers: {\n      'x-request-id': ''\n    },\n"
+            },
+            {
+              "name": "end-to-end \"__proto__\"",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n... Skipped lines\n\n  {\n    body: {\n      payload: {\n        audit: 'job:different',\n        name: 'send',\n...\n    context: {\n+     requestId: '__proto__',\n-     traceId: '__proto__',\n      userId: 'u'\n    },\n    headers: {\n      'x-request-id': '__proto__'\n    },\n"
+            },
+            {
+              "name": "end-to-end \"x/y\"",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n... Skipped lines\n\n  {\n    body: {\n      payload: {\n        audit: 'job:different',\n        name: 'send',\n...\n    context: {\n+     requestId: 'x/y',\n-     traceId: 'x/y',\n      userId: 'u'\n    },\n    headers: {\n      'x-request-id': 'x/y'\n    },\n"
+            },
+            {
+              "name": "plugin propagation t",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n    {\n-     requestId: 't',\n      tag: 'plugin0',\n      user: 'u'\n    },\n    {\n-     requestId: 't',\n      tag: 'plugin1',\n      user: 'u'\n    },\n    {\n-     requestId: 't',\n      tag: 'plugin2',\n      user: 'u'\n    },\n    {\n-     requestId: 't',\n      tag: 'plugin3',\n      user: 'u'\n    },\n    {\n-     requestId: 't',\n      tag: 'plugin4',\n      user: 'u'\n    },\n    {\n-     requestId: 't',\n      tag: 'plugin5',\n      user: 'u'\n    },\n    {\n-     requestId: 't',\n      tag: 'plugin6',\n      user: 'u'\n    },\n    {\n-     requestId: 't',\n      tag: 'plugin7',\n      user: 'u'\n    }\n  ]\n"
+            },
+            {
+              "name": "plugin propagation ",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n    {\n-     requestId: '',\n      tag: 'plugin0',\n      user: 'u'\n    },\n    {\n-     requestId: '',\n      tag: 'plugin1',\n      user: 'u'\n    },\n    {\n-     requestId: '',\n      tag: 'plugin2',\n      user: 'u'\n    },\n    {\n-     requestId: '',\n      tag: 'plugin3',\n      user: 'u'\n    },\n    {\n-     requestId: '',\n      tag: 'plugin4',\n      user: 'u'\n    },\n    {\n-     requestId: '',\n      tag: 'plugin5',\n      user: 'u'\n    },\n    {\n-     requestId: '',\n      tag: 'plugin6',\n      user: 'u'\n    },\n    {\n-     requestId: '',\n      tag: 'plugin7',\n      user: 'u'\n    }\n  ]\n"
+            },
+            {
+              "name": "plugin propagation __proto__",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n    {\n-     requestId: '__proto__',\n      tag: 'plugin0',\n      user: 'u'\n    },\n    {\n-     requestId: '__proto__',\n      tag: 'plugin1',\n      user: 'u'\n    },\n    {\n-     requestId: '__proto__',\n      tag: 'plugin2',\n      user: 'u'\n    },\n    {\n-     requestId: '__proto__',\n      tag: 'plugin3',\n      user: 'u'\n    },\n    {\n-     requestId: '__proto__',\n      tag: 'plugin4',\n      user: 'u'\n    },\n    {\n-     requestId: '__proto__',\n      tag: 'plugin5',\n      user: 'u'\n    },\n    {\n-     requestId: '__proto__',\n      tag: 'plugin6',\n      user: 'u'\n    },\n    {\n-     requestId: '__proto__',\n      tag: 'plugin7',\n      user: 'u'\n    }\n  ]\n"
+            },
+            {
+              "name": "unrelated catalog 0",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 1",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 2",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 3",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 4",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 5",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 6",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 7",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 8",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 9",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 10",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 11",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 12",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 13",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 14",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 15",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 16",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 17",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 18",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 19",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 20",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 21",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 22",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 23",
+              "passed": true
+            }
+          ]
+        },
+        "types": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "publicTests": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "TAP version 13\n# Subtest: wire identifier\nok 1 - wire identifier\n  ---\n  duration_ms: 0.3235\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 62.237792\n",
+          "stderr": ""
+        },
+        "regression": {
+          "passed": false,
+          "error": "MISSING_REGRESSION_TEST"
+        },
+        "originalMutation": null,
+        "immutableFailures": [],
+        "unexpectedFiles": []
+      },
+      "fixed": {
+        "passed": true,
+        "behavior": {
+          "passed": true,
+          "checks": [
+            {
+              "name": "new context shape",
+              "passed": true
+            },
+            {
+              "name": "fork propagation and immutability",
+              "passed": true
+            },
+            {
+              "name": "destructuring keeps wire names",
+              "passed": true
+            },
+            {
+              "name": "header and body propagation",
+              "passed": true
+            },
+            {
+              "name": "Job requestId remains independent",
+              "passed": true
+            },
+            {
+              "name": "end-to-end \"trace\"",
+              "passed": true
+            },
+            {
+              "name": "end-to-end \"\"",
+              "passed": true
+            },
+            {
+              "name": "end-to-end \"__proto__\"",
+              "passed": true
+            },
+            {
+              "name": "end-to-end \"x/y\"",
+              "passed": true
+            },
+            {
+              "name": "plugin propagation t",
+              "passed": true
+            },
+            {
+              "name": "plugin propagation ",
+              "passed": true
+            },
+            {
+              "name": "plugin propagation __proto__",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 0",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 1",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 2",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 3",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 4",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 5",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 6",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 7",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 8",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 9",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 10",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 11",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 12",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 13",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 14",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 15",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 16",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 17",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 18",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 19",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 20",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 21",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 22",
+              "passed": true
+            },
+            {
+              "name": "unrelated catalog 23",
+              "passed": true
+            }
+          ]
+        },
+        "types": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "publicTests": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "TAP version 13\n# Subtest: wire identifier\nok 1 - wire identifier\n  ---\n  duration_ms: 0.314375\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 59.723041\n",
+          "stderr": ""
+        },
+        "regression": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "TAP version 13\n# Subtest: plugin rename\nok 1 - plugin rename\n  ---\n  duration_ms: 0.310875\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 60.677\n",
+          "stderr": ""
+        },
+        "originalMutation": {
+          "detected": true,
+          "passed": false,
+          "exitCode": 1,
+          "signal": null,
+          "stdout": "TAP version 13\n# Subtest: plugin rename\nnot ok 1 - plugin rename\n  ---\n  duration_ms: 0.626125\n  type: 'test'\n  location: '/private/tmp/orqanix-efficiency-calibration-20260929/large/fixture/workspace/tests/regression.test.mjs:2:54'\n  failureType: 'testCodeFailure'\n  error: |-\n    Expected values to be strictly equal:\n    \n    undefined !== 't'\n    \n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected: 't'\n  operator: 'strictEqual'\n  stack: |-\n    TestContext.<anonymous> (file:///private/tmp/orqanix-efficiency-calibration-20260929/large/fixture/workspace/tests/regression.test.mjs:2:86)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.start (node:internal/test_runner/test:944:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 62.223375\n",
+          "stderr": "Command failed: /usr/bin/sandbox-exec -f /private/tmp/orqanix-efficiency-calibration-20260929/large/boundary.sb /private/tmp/orqanix-selection-ab-app-v4-20260929/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime/node/bin/node --experimental-strip-types --test tests/regression.test.mjs\n"
+        },
+        "immutableFailures": [],
+        "unexpectedFiles": []
+      },
+      "passed": true
+    }
+  ]
+}

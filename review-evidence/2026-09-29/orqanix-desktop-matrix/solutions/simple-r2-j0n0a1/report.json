@@ -1,0 +1,15 @@
+{
+  "summary": "Fixed lineTotal to validate that priceCents, quantity, and discountBps are non-negative safe integers (with discountBps within 0..10000), guard intermediate multiplications against exceeding Number.MAX_SAFE_INTEGER by throwing RangeError, handle zero quantity and full discount correctly without defaulting zero quantity to 1, and compute floor rounding on the discounted basis.",
+  "examples": [
+    {
+      "id": "zero",
+      "input": [1250, 0, 0],
+      "expected": 0
+    },
+    {
+      "id": "rounding",
+      "input": [199, 3, 1250],
+      "expected": 522
+    }
+  ]
+}

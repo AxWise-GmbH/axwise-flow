@@ -1,0 +1,47 @@
+{
+  "experiment": "Unified conditional guidance v5",
+  "performanceAccepted": false,
+  "qualityPassed": true,
+  "totalTimeReductionPercent": 13.9823084369608,
+  "tasks": {
+    "control": {
+      "default": 33.4015,
+      "candidate": 26.6215,
+      "candidateTimeChangePercent": -20.298489588790915
+    },
+    "ast": {
+      "default": 45.5615,
+      "candidate": 53.3575,
+      "candidateTimeChangePercent": 17.110937962973118
+    },
+    "lsp": {
+      "default": 108.5275,
+      "candidate": 81.29599999999999,
+      "candidateTimeChangePercent": -25.091797009974435
+    }
+  },
+  "modelRequests": {
+    "off": 160,
+    "on": 113
+  },
+  "semanticCalls": {
+    "ast": 1,
+    "lsp": 4,
+    "successfulRenamePlans": 0,
+    "plansApplied": 0
+  },
+  "findings": [
+    "AST successfully selected in one of two structural trials; neither simple trial used semantic tools.",
+    "LSP selected in both rename trials: one successful references request, two rename scope rejections, one rename call missing symbol/position.",
+    "Rename fixture has 42 TypeScript files, exceeding the existing 32-document scope bound.",
+    "The structural-task median was slower, so the predeclared per-task no-slower gate failed.",
+    "All 12 independent quality gates passed; no measured reliability superiority established."
+  ],
+  "disposition": "Experimental candidate retained; v4 original checkout and installed app unchanged. Do not promote v5 on these measurements.",
+  "nextChanges": [
+    "Keep AST optional when the required source context is already available.",
+    "Support larger bounded semantic scopes without reducing coverage or removing preimage/config guards.",
+    "Make conditional LSP arguments more discoverable and validate target identity before calling rename."
+  ],
+  "limitation": "Two repetitions per task and arm; historical v4 run is not a matched policy ablation."
+}

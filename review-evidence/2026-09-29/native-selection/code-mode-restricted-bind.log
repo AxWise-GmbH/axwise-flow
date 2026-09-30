@@ -1,0 +1,306 @@
+   Compiling allocator-api2 v0.2.21
+   Compiling log v0.4.34
+   Compiling zerotrie v0.2.5
+   Compiling potential_utf v0.1.6
+   Compiling tinystr v0.8.4
+   Compiling tokio v1.53.1
+   Compiling futures-util v0.3.34
+   Compiling aws-lc-rs v1.18.1
+   Compiling aws-lc-sys v0.45.0
+   Compiling num-bigint v0.4.8
+   Compiling icu_collections v2.1.1
+   Compiling icu_locale_core v2.3.0
+   Compiling rustls v0.23.43
+   Compiling hashbrown v0.17.1
+   Compiling tracing v0.1.44
+   Compiling hashbrown v0.14.5
+   Compiling debugid v0.8.0
+   Compiling resb v0.1.2
+   Compiling new_debug_unreachable v1.0.6
+   Compiling triomphe v0.1.16
+   Compiling bytes-str v0.2.8
+   Compiling compression-codecs v0.4.39
+   Compiling scoped-tls v1.0.1
+   Compiling indexmap v2.14.1
+   Compiling hstr v3.0.6
+   Compiling diplomat_core v0.14.0
+   Compiling better_scoped_tls v1.0.1
+   Compiling swc_visit v2.0.1
+   Compiling phf_shared v0.11.3
+   Compiling icu_provider v2.3.1
+   Compiling zoneinfo64 v0.2.1
+   Compiling swc_atoms v9.0.0
+   Compiling serde_json v1.0.151
+   Compiling icu_properties v2.1.2
+   Compiling icu_normalizer v2.1.1
+   Compiling icu_locale v2.1.1
+   Compiling timezone_provider v0.1.2
+   Compiling rustls-webpki v0.103.15
+   Compiling itertools v0.13.0
+   Compiling siphasher v0.3.11
+   Compiling which v6.0.3
+   Compiling futures-executor v0.3.34
+   Compiling icu_calendar v2.1.1
+   Compiling idna_adapter v1.2.1
+   Compiling schemars v1.2.2
+   Compiling idna v1.1.0
+   Compiling phf v0.11.3
+   Compiling diplomat v0.14.0
+   Compiling termcolor v1.4.1
+   Compiling url v2.5.8
+   Compiling publicsuffix v2.3.0
+   Compiling bindgen v0.72.1
+   Compiling hashbrown v0.12.3
+   Compiling similar v2.7.0
+   Compiling biome_text_size v0.3.1
+   Compiling serde_bytes v0.11.19
+   Compiling swc_sourcemap v9.3.4
+   Compiling sptr v0.3.2
+   Compiling hipstr v0.6.0
+   Compiling cookie_store v0.22.1
+   Compiling tokio-util v0.7.19
+   Compiling tokio-stream v0.1.19
+   Compiling deno_error v0.7.1
+   Compiling async-compression v0.4.44
+   Compiling h2 v0.4.19
+   Compiling tower v0.5.3
+   Compiling swc_common v17.0.1
+   Compiling prost-derive v0.14.4
+   Compiling tower-http v0.6.11
+   Compiling ecow v0.2.6
+   Compiling psm v0.1.32
+   Compiling tokio-rustls v0.26.4
+   Compiling rustls-platform-verifier v0.7.0
+   Compiling capacity_builder v0.5.0
+   Compiling memoffset v0.8.0
+   Compiling biome_text_edit v0.3.1
+   Compiling rustc-hash v1.1.0
+   Compiling countme v3.0.1
+   Compiling stacker v0.1.25
+   Compiling smartstring v1.0.1
+   Compiling indexmap v1.9.3
+   Compiling biome_rowan v0.3.1
+   Compiling process-wrap v9.1.0
+   Compiling temporal_rs v0.1.2
+   Compiling prost v0.14.4
+   Compiling swc_ecma_ast v18.0.0
+   Compiling tungstenite v0.29.0
+   Compiling chrono v0.4.45
+   Compiling gimli v0.32.3
+   Compiling temporal_capi v0.1.2
+   Compiling tokio-tungstenite v0.29.0
+   Compiling hyper v1.11.1
+   Compiling v8-goose v145.0.2
+   Compiling schemars v0.8.22
+   Compiling object v0.37.3
+   Compiling futures v0.3.34
+   Compiling axum-core v0.5.6
+   Compiling hyper-util v0.1.20
+   Compiling addr2line v0.25.1
+   Compiling bumpalo v3.20.3
+   Compiling ryu-js v1.0.3
+   Compiling unicode-width v0.1.14
+   Compiling rustc-demangle v0.1.28
+   Compiling biome_console v0.3.1
+   Compiling bpaf v0.9.27
+   Compiling biome_diagnostics_categories v0.3.1
+   Compiling par-core v2.0.0
+   Compiling hyper-rustls v0.27.9
+   Compiling axum v0.8.9
+   Compiling reqwest v0.13.4
+   Compiling deno_ops v0.257.0
+   Compiling hyper-timeout v0.5.2
+   Compiling deno_path_util v0.6.4
+   Compiling opentelemetry v0.31.0
+   Compiling backtrace v0.3.76
+   Compiling sourcemap v9.3.2
+   Compiling biome_diagnostics v0.3.1
+   Compiling v8 v145.0.0 (/private/tmp/orqaly-goose-verified-fixes/vendor/v8)
+   Compiling serde_v8 v0.290.0
+   Compiling wasm_dep_analyzer v0.4.0
+   Compiling deno_unsync v0.4.4
+   Compiling tonic v0.14.6
+   Compiling data-url v0.3.2
+   Compiling monch v0.5.0
+   Compiling deno_core v0.381.1
+   Compiling deno_semver v0.9.1
+   Compiling deno_media_type v0.3.0
+   Compiling swc_ecma_parser v27.0.7
+   Compiling swc_ecma_visit v18.0.1
+   Compiling opentelemetry_sdk v0.31.0
+   Compiling reqwest v0.12.28
+   Compiling drop_bomb v0.1.5
+   Compiling biome_parser v0.3.1
+   Compiling tonic-prost v0.14.6
+   Compiling swc_config v3.1.2
+   Compiling opentelemetry-http v0.31.0
+   Compiling castaway v0.2.4
+   Compiling rmcp-macros v3.2.0
+   Compiling oauth2 v5.0.0
+   Compiling opentelemetry-proto v0.31.0
+   Compiling swc_ecma_utils v24.0.0
+   Compiling biome_json_syntax v0.3.1
+   Compiling sse-stream v0.2.6
+   Compiling biome_js_unicode_table v0.3.1
+   Compiling unicode-bom v2.0.3
+   Compiling rmcp v3.2.0
+   Compiling biome_json_factory v0.3.1
+   Compiling opentelemetry-otlp v0.31.1
+   Compiling rmcp v1.8.0
+   Compiling swc_ecma_transforms_base v30.0.1
+   Compiling swc_ecma_lexer v26.0.0
+   Compiling compact_str v0.7.1
+   Compiling swc_allocator v4.0.1
+   Compiling deno_terminal v0.2.3
+   Compiling text_lines v0.6.0
+   Compiling syn v2.0.119
+   Compiling pathdiff v0.2.3
+   Compiling deno_maybe_sync v0.14.0
+   Compiling ascii v1.1.0
+   Compiling deno_package_json v0.29.0
+   Compiling swc_ecma_loader v17.0.0
+   Compiling swc_ecma_codegen v20.0.2
+   Compiling swc_ecma_transforms_classes v30.0.0
+   Compiling swc_ecma_transforms_react v33.0.0
+   Compiling swc_ecma_transforms_proposal v30.0.0
+   Compiling biome_json_parser v0.3.1
+   Compiling globset v0.4.20
+   Compiling swc_ecma_transforms_typescript v33.0.0
+   Compiling biome_js_syntax v0.3.1
+   Compiling swc_macros_common v1.0.1
+   Compiling keyring v3.6.3
+   Compiling yansi v1.0.1
+   Compiling diff v0.1.13
+   Compiling lazy-regex v3.6.1
+   Compiling pretty_assertions v1.4.1
+   Compiling serde_with v3.22.0
+   Compiling pctx_type_check_runtime v0.1.3
+   Compiling ignore v0.4.33
+   Compiling pest_generator v2.9.0
+   Compiling dprint-swc-ext v0.26.1
+   Compiling deno_ast v0.52.0
+   Compiling sqlx-core v0.9.0
+   Compiling biome_js_factory v0.3.1
+   Compiling pctx_config v0.1.5
+   Compiling biome_deserialize v0.3.1
+   Compiling libsqlite3-sys v0.37.0
+   Compiling deno_lockfile v0.32.2
+   Compiling zopfli v0.8.3
+   Compiling import_map v0.24.0
+   Compiling jsonc-parser v0.27.1
+   Compiling num-rational v0.4.2
+   Compiling dashmap v5.5.3
+   Compiling atoi v2.0.0
+   Compiling hashbrown v0.16.1
+   Compiling cache_control v0.2.0
+   Compiling base64 v0.21.7
+   Compiling path-clean v0.1.0
+   Compiling base32 v0.5.1
+   Compiling num-modular v0.6.5
+   Compiling futures-concurrency v7.7.1
+   Compiling deno_cache_dir v0.26.3
+   Compiling hashlink v0.11.1
+   Compiling pctx_code_execution_runtime v0.2.2
+   Compiling num-order v1.2.0
+   Compiling node_resolver v0.65.0
+   Compiling zip v8.6.0
+   Compiling pctx_registry v0.1.3
+   Compiling num v0.4.3
+   Compiling sqlx-sqlite v0.9.0
+   Compiling deno_config v0.77.0
+   Compiling deno_npm v0.42.3
+   Compiling goose-provider-types v0.1.0-alpha.8 (/private/tmp/orqaly-goose-verified-fixes/crates/goose-provider-types)
+   Compiling agent-client-protocol-schema v1.5.0
+   Compiling biome_formatter v0.3.1
+   Compiling pest_derive v2.9.0
+   Compiling dissimilar v1.0.9
+   Compiling twox-hash v2.1.0
+   Compiling async-once-cell v0.5.4
+   Compiling exr v1.74.2
+   Compiling deno_resolver v0.58.0
+   Compiling biome_js_formatter v0.3.1
+   Compiling sqlx-macros-core v0.9.0
+   Compiling tracing-subscriber v0.3.23
+   Compiling handlebars v6.4.4
+   Compiling fraction v0.17.0
+   Compiling biome_js_parser v0.3.1
+   Compiling pctx_deno_transpiler v0.1.1
+   Compiling fancy-regex v0.18.0
+   Compiling tree-sitter v0.26.13
+   Compiling tree-sitter-rust v0.24.2
+   Compiling tree-sitter-typescript v0.23.2
+   Compiling tree-sitter-java v0.23.5
+   Compiling tree-sitter-python v0.25.0
+   Compiling tree-sitter-go v0.25.0
+   Compiling sys-info v0.9.1
+   Compiling tree-sitter-ruby v0.23.1
+   Compiling tree-sitter-swift v0.7.3
+   Compiling blake3 v1.8.7
+   Compiling tree-sitter-javascript v0.25.0
+   Compiling tree-sitter-kotlin-ng v1.1.0
+   Compiling utoipa-gen v5.5.0
+   Compiling jsonschema-value v0.52.1
+   Compiling lopdf v0.44.0
+   Compiling tracing-appender v0.2.5
+   Compiling goose-providers v0.1.0-alpha.8 (/private/tmp/orqaly-goose-verified-fixes/crates/goose-providers)
+   Compiling agent-client-protocol v2.0.0 (https://github.com/agentclientprotocol/rust-sdk?rev=c97a5203d3392f7f231514d84eea014f9f43e6fb#c97a5203)
+   Compiling umya-spreadsheet v3.1.0
+   Compiling deadpool v0.12.3
+   Compiling referencing v0.52.1
+   Compiling pctx_codegen v0.3.3 (/private/tmp/orqaly-goose-verified-fixes/vendor/pctx_codegen)
+   Compiling utoipa v5.5.0
+   Compiling image v0.24.9
+   Compiling sqlx-macros v0.9.0
+   Compiling docx-rs v0.4.22
+   Compiling fancy-regex v0.19.0
+   Compiling fancy-regex v0.17.0
+   Compiling assert-json-diff v2.0.2
+   Compiling simple_asn1 v0.6.4
+   Compiling tracing-futures v0.2.5
+   Compiling serde_yaml v0.9.34+deprecated
+   Compiling tiktoken-rs v0.12.0
+   Compiling jsonschema v0.52.1
+   Compiling goose-test-support v1.50.0 (/private/tmp/orqaly-goose-verified-fixes/crates/goose-test-support)
+   Compiling jsonwebtoken v11.0.0
+   Compiling tokio-cron-scheduler v0.15.1
+   Compiling serial_test v4.0.1
+   Compiling agent-client-protocol-http v2.0.0 (https://github.com/agentclientprotocol/rust-sdk?rev=c97a5203d3392f7f231514d84eea014f9f43e6fb#c97a5203)
+   Compiling goose-agent v0.1.0-alpha.8 (/private/tmp/orqaly-goose-verified-fixes/crates/goose-agent)
+   Compiling wiremock v0.6.5
+   Compiling sqlx v0.9.0
+   Compiling goose-mcp v1.50.0 (/private/tmp/orqaly-goose-verified-fixes/crates/goose-mcp)
+   Compiling goose-sdk-types v0.1.0-alpha.8 (/private/tmp/orqaly-goose-verified-fixes/crates/goose-sdk-types)
+   Compiling opentelemetry_sdk v0.32.1
+   Compiling webbrowser v1.2.4
+   Compiling insta v1.48.0
+   Compiling goose-download-manager v0.1.0-alpha.8 (/private/tmp/orqaly-goose-verified-fixes/crates/goose-download-manager)
+   Compiling goose-context-management v0.1.0-alpha.8 (/private/tmp/orqaly-goose-verified-fixes/crates/goose-context-management)
+   Compiling pctx_executor v0.2.2
+   Compiling pctx_code_mode v0.5.0
+   Compiling goose v1.50.0 (/private/tmp/orqaly-goose-verified-fixes/crates/goose)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2m 18s
+     Running unittests src/lib.rs (target/debug/deps/goose-dc0f876643bb25b0)
+
+running 6 tests
+test agents::platform_extensions::code_execution::tests::code_mode_preserves_types_for_self_referential_schema ... ok
+test agents::state_machine::tests::prompt_skill_lifecycle::code_mode_capability_directory_reaches_state_machine_and_tracks_unmount ... FAILED
+test agents::extension_manager::tests::test_mcp_app_tools_identified_for_code_mode_exclusion ... ok
+test agents::extension_manager::tests::code_mode_preserves_host_native_policy_without_disclosing_hidden_remote_instructions ... ok
+test agents::extension_manager::tests::code_mode_capability_directory_is_compact_mounted_metadata_only ... ok
+test agents::reply_parts::tests::code_mode_capability_directory_reaches_legacy_prompt_without_full_policy ... ok
+
+failures:
+
+---- agents::state_machine::tests::prompt_skill_lifecycle::code_mode_capability_directory_reaches_state_machine_and_tracks_unmount stdout ----
+
+thread 'agents::state_machine::tests::prompt_skill_lifecycle::code_mode_capability_directory_reaches_state_machine_and_tracks_unmount' (78236593) panicked at /Users/admin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wiremock-0.6.5/src/mock_server/builder.rs:107:46:
+Failed to bind an OS port for a mock server.: Os { code: 1, kind: PermissionDenied, message: "Operation not permitted" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    agents::state_machine::tests::prompt_skill_lifecycle::code_mode_capability_directory_reaches_state_machine_and_tracks_unmount
+
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 2247 filtered out; finished in 0.06s
+
+error: test failed, to rerun pass `-p goose --lib`

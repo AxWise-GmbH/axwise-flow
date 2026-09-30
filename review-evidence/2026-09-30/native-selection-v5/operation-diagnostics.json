@@ -1,0 +1,219 @@
+{
+  "operations": [
+    {
+      "run": "control-candidate-1",
+      "name": "safe_edit_and_test",
+      "action": null,
+      "preset": null,
+      "symbolSupplied": false,
+      "positionSupplied": false,
+      "planApplied": false,
+      "batchFiles": 0,
+      "receiptStatus": "verified",
+      "verified": true,
+      "code": null,
+      "observedIntervalMs": 114
+    },
+    {
+      "run": "ast-candidate-1",
+      "name": "safe_edit_and_test",
+      "action": null,
+      "preset": null,
+      "symbolSupplied": false,
+      "positionSupplied": false,
+      "planApplied": false,
+      "batchFiles": 2,
+      "receiptStatus": "verified",
+      "verified": true,
+      "code": null,
+      "observedIntervalMs": 178
+    },
+    {
+      "run": "lsp-candidate-1",
+      "name": "lsp_query",
+      "action": "rename",
+      "preset": null,
+      "symbolSupplied": true,
+      "positionSupplied": false,
+      "planApplied": false,
+      "batchFiles": 0,
+      "receiptStatus": "unavailable",
+      "verified": null,
+      "code": "invalid_scope",
+      "observedIntervalMs": 14
+    },
+    {
+      "run": "lsp-candidate-1",
+      "name": "safe_edit_and_test",
+      "action": null,
+      "preset": null,
+      "symbolSupplied": false,
+      "positionSupplied": false,
+      "planApplied": false,
+      "batchFiles": 14,
+      "receiptStatus": "verified",
+      "verified": true,
+      "code": null,
+      "observedIntervalMs": 127
+    },
+    {
+      "run": "ast-candidate-2",
+      "name": "ast_search",
+      "action": null,
+      "preset": "calls",
+      "symbolSupplied": false,
+      "positionSupplied": false,
+      "planApplied": false,
+      "batchFiles": 0,
+      "receiptStatus": "completed",
+      "verified": null,
+      "code": null,
+      "observedIntervalMs": 21
+    },
+    {
+      "run": "ast-candidate-2",
+      "name": "safe_edit_and_test",
+      "action": null,
+      "preset": null,
+      "symbolSupplied": false,
+      "positionSupplied": false,
+      "planApplied": false,
+      "batchFiles": 2,
+      "receiptStatus": "verified",
+      "verified": true,
+      "code": null,
+      "observedIntervalMs": 124
+    },
+    {
+      "run": "lsp-candidate-2",
+      "name": "lsp_query",
+      "action": "rename",
+      "preset": null,
+      "symbolSupplied": false,
+      "positionSupplied": false,
+      "planApplied": false,
+      "batchFiles": 0,
+      "receiptStatus": "unavailable",
+      "verified": null,
+      "code": "invalid_position",
+      "observedIntervalMs": 27
+    },
+    {
+      "run": "lsp-candidate-2",
+      "name": "lsp_query",
+      "action": "rename",
+      "preset": null,
+      "symbolSupplied": true,
+      "positionSupplied": false,
+      "planApplied": false,
+      "batchFiles": 0,
+      "receiptStatus": "unavailable",
+      "verified": null,
+      "code": "invalid_scope",
+      "observedIntervalMs": 28
+    },
+    {
+      "run": "lsp-candidate-2",
+      "name": "lsp_query",
+      "action": "references",
+      "preset": null,
+      "symbolSupplied": true,
+      "positionSupplied": false,
+      "planApplied": false,
+      "batchFiles": 0,
+      "receiptStatus": "completed",
+      "verified": null,
+      "code": null,
+      "observedIntervalMs": 416
+    },
+    {
+      "run": "lsp-candidate-2",
+      "name": "safe_edit_and_test",
+      "action": null,
+      "preset": null,
+      "symbolSupplied": false,
+      "positionSupplied": false,
+      "planApplied": false,
+      "batchFiles": 14,
+      "receiptStatus": "verified",
+      "verified": true,
+      "code": null,
+      "observedIntervalMs": 174
+    }
+  ],
+  "promptVerification": [
+    {
+      "key": "control-default-1",
+      "agentRequests": 15,
+      "nativePolicyMatchesExpected": true,
+      "ordinaryEditingGuidancePresent": true
+    },
+    {
+      "key": "control-candidate-1",
+      "agentRequests": 11,
+      "nativePolicyMatchesExpected": true,
+      "ordinaryEditingGuidancePresent": true
+    },
+    {
+      "key": "ast-candidate-1",
+      "agentRequests": 15,
+      "nativePolicyMatchesExpected": true,
+      "ordinaryEditingGuidancePresent": true
+    },
+    {
+      "key": "ast-default-1",
+      "agentRequests": 17,
+      "nativePolicyMatchesExpected": true,
+      "ordinaryEditingGuidancePresent": true
+    },
+    {
+      "key": "lsp-default-1",
+      "agentRequests": 39,
+      "nativePolicyMatchesExpected": true,
+      "ordinaryEditingGuidancePresent": true
+    },
+    {
+      "key": "lsp-candidate-1",
+      "agentRequests": 20,
+      "nativePolicyMatchesExpected": true,
+      "ordinaryEditingGuidancePresent": true
+    },
+    {
+      "key": "control-candidate-2",
+      "agentRequests": 17,
+      "nativePolicyMatchesExpected": true,
+      "ordinaryEditingGuidancePresent": true
+    },
+    {
+      "key": "control-default-2",
+      "agentRequests": 17,
+      "nativePolicyMatchesExpected": true,
+      "ordinaryEditingGuidancePresent": true
+    },
+    {
+      "key": "ast-default-2",
+      "agentRequests": 20,
+      "nativePolicyMatchesExpected": true,
+      "ordinaryEditingGuidancePresent": true
+    },
+    {
+      "key": "ast-candidate-2",
+      "agentRequests": 21,
+      "nativePolicyMatchesExpected": true,
+      "ordinaryEditingGuidancePresent": true
+    },
+    {
+      "key": "lsp-candidate-2",
+      "agentRequests": 23,
+      "nativePolicyMatchesExpected": true,
+      "ordinaryEditingGuidancePresent": true
+    },
+    {
+      "key": "lsp-default-2",
+      "agentRequests": 46,
+      "nativePolicyMatchesExpected": true,
+      "ordinaryEditingGuidancePresent": true
+    }
+  ],
+  "interpretation": "Call adoption is separate from successful receipts. ACP completed status can contain an unavailable native receipt. Intervals are observations, not a causal profiling result."
+}

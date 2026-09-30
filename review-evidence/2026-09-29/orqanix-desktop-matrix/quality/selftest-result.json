@@ -1,0 +1,2151 @@
+{
+  "schema": "orqanix.signed-zero-synthetic-selftest.v1",
+  "designation": "Synthetic validation of the frozen POST-INSPECTION diagnostic; no benchmark candidates inspected or executed.",
+  "startedAt": "2026-09-29T12:27:31.834Z",
+  "completedAt": "2026-09-29T12:27:37.700Z",
+  "passed": true,
+  "summary": {
+    "validations": 11,
+    "passedValidations": 11,
+    "correctFixturePassedCases": 17,
+    "correctFixtureFailedCases": 0,
+    "rejectingMutantFailedMinusZeroCases": 8,
+    "rejectingMutantPassedControlCases": 9,
+    "benchmarkCandidatesReadOrExecuted": 0
+  },
+  "frozenProbeSha256": "130ce40093349c5fd0d523bd774508cf90c06e36f48b0b98321657917ea1b026",
+  "frozenProtocolSha256": "a48f87cbcedae72527ed17bf4534156733f2f1f310a56d1c72414c6dbeb788fa",
+  "frozenManifestSha256": "7706029012271e5cc5a68ca8ded703ae41393695aada1c41a135557eab16fde3",
+  "selftestSha256": "ccaa10941d25d4d5dbba2bf6b27191b8ea339d04c13ea52a95031d98fea50af2",
+  "checkerSha256": "9b955c561c51eb900d5cc5d9fa9aa44abce6cc256aea336cfffe763eb241ed4f",
+  "workerSha256": "6578796f9640ee490ab28e06c1da5b7e0c44d906aa6fedac33f98989c0873a2b",
+  "extractedExecutorSha256": "aef78c07c4554fae8acdb75cf8e4ef27565afddfff3894d01ea3613af3774624",
+  "nodePath": "/private/tmp/orqanix-native-desktop-benchmark-20260929/Orqanix Benchmark-darwin-arm64/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime/node/bin/node",
+  "nodeSha256": "18e387c90ab8a8400183e8bdd396376e1e875b91b4c874b894dcade7b35bf572",
+  "limits": {
+    "sourceBytes": 131072,
+    "inputBytes": 4194304,
+    "outputBytes": 262144,
+    "vmTimeoutMs": 1500,
+    "processTimeoutMs": 4000,
+    "heapMiB": 96
+  },
+  "limitations": [
+    "Synthetic fixture success validates these exact diagnostic cases, not every possible contract behavior.",
+    "The VM is not an OS security sandbox; frozen shared-intrinsics limitations still apply."
+  ],
+  "records": [
+    {
+      "name": "correct-simple",
+      "passed": true,
+      "assertionFailure": null,
+      "elapsedMs": 36,
+      "fixtureSourceHashes": {
+        "src/pricing.mjs": "e1dc3598ef6acb0bc760d6b1cb9cd9116f0ef89443abc55834b291afa6af0300"
+      },
+      "actual": [
+        {
+          "id": "simple-price-minus-zero",
+          "group": "signed_zero_price",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "-0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "-0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-price-plus-zero",
+          "group": "signed_zero_price",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-quantity-minus-zero",
+          "group": "signed_zero_quantity",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "-0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "-0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-quantity-plus-zero",
+          "group": "signed_zero_quantity",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-discount-minus-zero",
+          "group": "signed_zero_discount",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-discount-plus-zero",
+          "group": "signed_zero_discount",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-discount-omitted",
+          "group": "omitted_discount_default",
+          "variant": "omitted_default",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-price-minus-zero-default",
+          "group": "omitted_discount_default",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "-0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "-0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-price-plus-zero-default",
+          "group": "omitted_discount_default",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-quantity-minus-zero-default",
+          "group": "omitted_discount_default",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "-0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "-0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-quantity-plus-zero-default",
+          "group": "omitted_discount_default",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "rejecting-simple",
+      "passed": true,
+      "assertionFailure": null,
+      "elapsedMs": 34,
+      "fixtureSourceHashes": {
+        "src/pricing.mjs": "f67d9fa77a5d747c0c92a927f46877799c94ce48cde94bbe4d1a944a619c2282"
+      },
+      "actual": [
+        {
+          "id": "simple-price-minus-zero",
+          "group": "signed_zero_price",
+          "variant": "minus_zero",
+          "passed": false,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": false,
+              "failure": "UNEXPECTED_ERROR",
+              "inputUnchanged": true,
+              "valueMatches": false,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "throw",
+                "errorName": "RangeError"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": false,
+              "failure": "UNEXPECTED_ERROR",
+              "inputUnchanged": true,
+              "valueMatches": false,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "throw",
+                "errorName": "RangeError"
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-price-plus-zero",
+          "group": "signed_zero_price",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-quantity-minus-zero",
+          "group": "signed_zero_quantity",
+          "variant": "minus_zero",
+          "passed": false,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": false,
+              "failure": "UNEXPECTED_ERROR",
+              "inputUnchanged": true,
+              "valueMatches": false,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "throw",
+                "errorName": "RangeError"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": false,
+              "failure": "UNEXPECTED_ERROR",
+              "inputUnchanged": true,
+              "valueMatches": false,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "throw",
+                "errorName": "RangeError"
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-quantity-plus-zero",
+          "group": "signed_zero_quantity",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-discount-minus-zero",
+          "group": "signed_zero_discount",
+          "variant": "minus_zero",
+          "passed": false,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": false,
+              "failure": "UNEXPECTED_ERROR",
+              "inputUnchanged": true,
+              "valueMatches": false,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "throw",
+                "errorName": "RangeError"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": false,
+              "failure": "UNEXPECTED_ERROR",
+              "inputUnchanged": true,
+              "valueMatches": false,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "throw",
+                "errorName": "RangeError"
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-discount-plus-zero",
+          "group": "signed_zero_discount",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-discount-omitted",
+          "group": "omitted_discount_default",
+          "variant": "omitted_default",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-price-minus-zero-default",
+          "group": "omitted_discount_default",
+          "variant": "minus_zero",
+          "passed": false,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": false,
+              "failure": "UNEXPECTED_ERROR",
+              "inputUnchanged": true,
+              "valueMatches": false,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "throw",
+                "errorName": "RangeError"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": false,
+              "failure": "UNEXPECTED_ERROR",
+              "inputUnchanged": true,
+              "valueMatches": false,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "throw",
+                "errorName": "RangeError"
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-price-plus-zero-default",
+          "group": "omitted_discount_default",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-quantity-minus-zero-default",
+          "group": "omitted_discount_default",
+          "variant": "minus_zero",
+          "passed": false,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": false,
+              "failure": "UNEXPECTED_ERROR",
+              "inputUnchanged": true,
+              "valueMatches": false,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "throw",
+                "errorName": "RangeError"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": false,
+              "failure": "UNEXPECTED_ERROR",
+              "inputUnchanged": true,
+              "valueMatches": false,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "throw",
+                "errorName": "RangeError"
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-quantity-plus-zero-default",
+          "group": "omitted_discount_default",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "correct-complex",
+      "passed": true,
+      "assertionFailure": null,
+      "elapsedMs": 40,
+      "fixtureSourceHashes": {
+        "src/inventory.mjs": "d1874066f24bb4ed149da028affc00e70413d3048e4d2c6731ff42cf5a9af330",
+        "src/orders.mjs": "4730ab49d7826c2315f31c8b15758e36cc3e2850de80ac3e09e23649333a6ca0"
+      },
+      "actual": [
+        {
+          "id": "complex-reserve-impossible-unit-minus-zero",
+          "group": "signed_zero_stock_insufficient",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": true,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "-0"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": true,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "-0"
+              }
+            }
+          ]
+        },
+        {
+          "id": "complex-reserve-impossible-unit-plus-zero",
+          "group": "signed_zero_stock_insufficient",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": true,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "+0"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": true,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "+0"
+              }
+            }
+          ]
+        },
+        {
+          "id": "complex-reserve-empty-lines-minus-zero",
+          "group": "signed_zero_stock_invalid_lines",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": true,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "-0"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": true,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "-0"
+              }
+            }
+          ]
+        },
+        {
+          "id": "complex-reserve-empty-lines-plus-zero",
+          "group": "signed_zero_stock_invalid_lines",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": true,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "+0"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": true,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "+0"
+              }
+            }
+          ]
+        },
+        {
+          "id": "complex-fulfill-empty-orders-minus-zero",
+          "group": "signed_zero_stock_empty_orders",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "-0"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "-0"
+              }
+            }
+          ]
+        },
+        {
+          "id": "complex-fulfill-empty-orders-plus-zero",
+          "group": "signed_zero_stock_empty_orders",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "+0"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "+0"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "rejecting-complex",
+      "passed": true,
+      "assertionFailure": null,
+      "elapsedMs": 37,
+      "fixtureSourceHashes": {
+        "src/inventory.mjs": "ade4741106243e2c7bc048d4b24222fe2cdf006ad521804a6a3eec6d4c6b4c56",
+        "src/orders.mjs": "4730ab49d7826c2315f31c8b15758e36cc3e2850de80ac3e09e23649333a6ca0"
+      },
+      "actual": [
+        {
+          "id": "complex-reserve-impossible-unit-minus-zero",
+          "group": "signed_zero_stock_insufficient",
+          "variant": "minus_zero",
+          "passed": false,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": false,
+              "failure": "UNEXPECTED_ERROR",
+              "inputUnchanged": true,
+              "valueMatches": false,
+              "remainingCopy": false,
+              "observed": {
+                "outcome": "throw",
+                "errorName": "TypeError"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": false,
+              "failure": "UNEXPECTED_ERROR",
+              "inputUnchanged": true,
+              "valueMatches": false,
+              "remainingCopy": false,
+              "observed": {
+                "outcome": "throw",
+                "errorName": "TypeError"
+              }
+            }
+          ]
+        },
+        {
+          "id": "complex-reserve-impossible-unit-plus-zero",
+          "group": "signed_zero_stock_insufficient",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": true,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "+0"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": true,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "+0"
+              }
+            }
+          ]
+        },
+        {
+          "id": "complex-reserve-empty-lines-minus-zero",
+          "group": "signed_zero_stock_invalid_lines",
+          "variant": "minus_zero",
+          "passed": false,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": false,
+              "failure": "UNEXPECTED_ERROR",
+              "inputUnchanged": true,
+              "valueMatches": false,
+              "remainingCopy": false,
+              "observed": {
+                "outcome": "throw",
+                "errorName": "TypeError"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": false,
+              "failure": "UNEXPECTED_ERROR",
+              "inputUnchanged": true,
+              "valueMatches": false,
+              "remainingCopy": false,
+              "observed": {
+                "outcome": "throw",
+                "errorName": "TypeError"
+              }
+            }
+          ]
+        },
+        {
+          "id": "complex-reserve-empty-lines-plus-zero",
+          "group": "signed_zero_stock_invalid_lines",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": true,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "+0"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": true,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "+0"
+              }
+            }
+          ]
+        },
+        {
+          "id": "complex-fulfill-empty-orders-minus-zero",
+          "group": "signed_zero_stock_empty_orders",
+          "variant": "minus_zero",
+          "passed": false,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": false,
+              "failure": "UNEXPECTED_ERROR",
+              "inputUnchanged": true,
+              "valueMatches": false,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "throw",
+                "errorName": "TypeError"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": false,
+              "failure": "UNEXPECTED_ERROR",
+              "inputUnchanged": true,
+              "valueMatches": false,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "throw",
+                "errorName": "TypeError"
+              }
+            }
+          ]
+        },
+        {
+          "id": "complex-fulfill-empty-orders-plus-zero",
+          "group": "signed_zero_stock_empty_orders",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "+0"
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "object",
+                "numericResult": null,
+                "stockZero": "+0"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "normalizing-returned-zero-is-accepted",
+      "passed": true,
+      "assertionFailure": null,
+      "elapsedMs": 38,
+      "fixtureSourceHashes": {
+        "src/pricing.mjs": "feb98b7f9500d966bf4dddea61d584a1c265c5e17bbeb8acecb23a3910cdba5c"
+      },
+      "actual": [
+        {
+          "id": "simple-price-minus-zero",
+          "group": "signed_zero_price",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-price-plus-zero",
+          "group": "signed_zero_price",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-quantity-minus-zero",
+          "group": "signed_zero_quantity",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-quantity-plus-zero",
+          "group": "signed_zero_quantity",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-discount-minus-zero",
+          "group": "signed_zero_discount",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-discount-plus-zero",
+          "group": "signed_zero_discount",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-discount-omitted",
+          "group": "omitted_discount_default",
+          "variant": "omitted_default",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-price-minus-zero-default",
+          "group": "omitted_discount_default",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-price-plus-zero-default",
+          "group": "omitted_discount_default",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-quantity-minus-zero-default",
+          "group": "omitted_discount_default",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-quantity-plus-zero-default",
+          "group": "omitted_discount_default",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "static-builtin-import-is-blocked",
+      "passed": true,
+      "assertionFailure": null,
+      "elapsedMs": 34,
+      "fixtureSourceHashes": {
+        "src/pricing.mjs": "714e7a24ab8ac1720f9cfea8a2cb60efeb7bc3376d368a5ff88dce80de698aeb"
+      },
+      "actual": {
+        "error": "IMPORT_NOT_ALLOWED"
+      }
+    },
+    {
+      "name": "unprovided-relative-import-is-blocked",
+      "passed": true,
+      "assertionFailure": null,
+      "elapsedMs": 35,
+      "fixtureSourceHashes": {
+        "src/pricing.mjs": "12fdf92165f7980011463ad530fdd13fa91508f79be04814fa6d3bbff3df5f10"
+      },
+      "actual": {
+        "error": "IMPORT_NOT_ALLOWED"
+      }
+    },
+    {
+      "name": "dynamic-import-is-blocked",
+      "passed": true,
+      "assertionFailure": null,
+      "elapsedMs": 34,
+      "fixtureSourceHashes": {
+        "src/pricing.mjs": "dfe028992ae6601a5612861cae8ea8f22fb8e1e07b0c64d3b40af53aa59a2226"
+      },
+      "actual": {
+        "error": "IMPORT_NOT_ALLOWED"
+      }
+    },
+    {
+      "name": "dynamic-import-error-keeps-vm-realm",
+      "passed": true,
+      "assertionFailure": null,
+      "elapsedMs": 35,
+      "fixtureSourceHashes": {
+        "src/pricing.mjs": "4d1230fe68c9eae2e3ed5224b0bec05e345ec48ef0dcb1652253af1305b463d7"
+      },
+      "actual": [
+        {
+          "id": "simple-price-minus-zero",
+          "group": "signed_zero_price",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "-0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "-0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-price-plus-zero",
+          "group": "signed_zero_price",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-quantity-minus-zero",
+          "group": "signed_zero_quantity",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "-0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "-0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-quantity-plus-zero",
+          "group": "signed_zero_quantity",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-discount-minus-zero",
+          "group": "signed_zero_discount",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-discount-plus-zero",
+          "group": "signed_zero_discount",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-discount-omitted",
+          "group": "omitted_discount_default",
+          "variant": "omitted_default",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": 597,
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-price-minus-zero-default",
+          "group": "omitted_discount_default",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "-0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "-0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-price-plus-zero-default",
+          "group": "omitted_discount_default",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-quantity-minus-zero-default",
+          "group": "omitted_discount_default",
+          "variant": "minus_zero",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "-0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "-0",
+                "stockZero": null
+              }
+            }
+          ]
+        },
+        {
+          "id": "simple-quantity-plus-zero-default",
+          "group": "omitted_discount_default",
+          "variant": "plus_zero_control",
+          "passed": true,
+          "invocations": [
+            {
+              "repeat": 1,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "failure": null,
+              "inputUnchanged": true,
+              "valueMatches": true,
+              "remainingCopy": null,
+              "observed": {
+                "outcome": "return",
+                "valueType": "number",
+                "numericResult": "+0",
+                "stockZero": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "synchronous-loop-hits-vm-timeout",
+      "passed": true,
+      "assertionFailure": null,
+      "elapsedMs": 1537,
+      "fixtureSourceHashes": {
+        "src/pricing.mjs": "9890f86df44d5d60ca142e0f9fe48eac24495b2deaecc9ebc02ac2498bb19074"
+      },
+      "actual": {
+        "error": "VM_TIMEOUT"
+      }
+    },
+    {
+      "name": "outer-error-getter-hits-process-timeout",
+      "passed": true,
+      "assertionFailure": null,
+      "elapsedMs": 4003,
+      "fixtureSourceHashes": {
+        "src/pricing.mjs": "3217a040c644d67de348bae87f5779ab10a4c2934a6fa4b4fc713d00ed4e9e97"
+      },
+      "actual": {
+        "error": "PROCESS_TIMEOUT"
+      }
+    }
+  ]
+}

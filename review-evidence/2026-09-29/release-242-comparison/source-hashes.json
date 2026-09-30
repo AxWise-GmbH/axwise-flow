@@ -1,0 +1,13 @@
+{
+  "scripts/benchmark-release242-native.mjs": "2aa8e16d468da5b520ea8146cb5e56e4041282037e042c975a75d0663514398b",
+  "scripts/lib/orqanix-release242-relay.mjs": "53686a1608e4d03e2022f890a7a20209192dcd4d6e0791156c507e5c5c6d097e",
+  "scripts/lib/orqanix-release242-scoped-relay.mjs": "fb5c248078a8c9620be7d467b4f3dfb3a50a050120e96c7644dcad72efc2f9bf",
+  "scripts/lib/orqanix-efficiency-tasks.mjs": "cde46e999894298d2fdcb2af08b40f4192002471b49a3e9e6780ff6e4aa73d6c",
+  "scripts/lib/orqanix-selection-sandbox.mjs": "4ed8381b593405bf387f17b1e320cf9c2e22a79d7c5586482dcd13b5740977d7",
+  "scripts/lib/orqanix-specialist-sandbox.mjs": "41758dd153febf772d16114b4b44e2d7b97f0cc6c205cf1adf461d29122075f1",
+  "apps/orqaly/server/workflow-v2/goose-provider-http.js": "5b4b80c746f7ca2c45bbcdac997dc9a68c3b7937dfe054c644787b74db0cc8dd",
+  "review-evidence/2026-09-29/release-242-comparison/prompts/candidate.mjs": "1e63f21400c5c78bcaaa52288cce569671b2d043cafb1ba20df6fb965ef868d0",
+  "review-evidence/2026-09-29/release-242-comparison/prompts/candidate.ts": "8bbea05ec27bdd26ac7e574663c92bd98ef94f898b510115c6130bcf624819f3",
+  "review-evidence/2026-09-29/release-242-comparison/prompts/release.mjs": "c21576c52923f51d6e9eae6679eccea6f7cbb9c9fd336709d5977dae886ab24f",
+  "review-evidence/2026-09-29/release-242-comparison/prompts/release.ts": "83ff4073d0dd855597170c40a1e22c23235cfa2f24903f667adcb10ad92f89fa"
+}

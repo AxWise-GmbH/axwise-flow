@@ -1,0 +1,23 @@
+{
+  "summary": "Validates that priceCents, quantity, and discountBps are nonnegative safe integers with discountBps within 0..10000, rejects unsafe intermediate products with RangeError, correctly returns zero for zero quantity or full discount, and calculates discounted totals using integer basis-point arithmetic truncated with Math.floor.",
+  "examples": [
+    {
+      "id": "zero",
+      "input": [
+        1250,
+        0,
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "id": "rounding",
+      "input": [
+        199,
+        3,
+        1250
+      ],
+      "expected": 522
+    }
+  ]
+}

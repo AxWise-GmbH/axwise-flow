@@ -1,0 +1,12 @@
+   Compiling goose v1.50.0 (/private/tmp/orqaly-goose-verified-fixes/crates/goose)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 01s
+     Running tests/native_engineering_integration.rs (target/debug/deps/native_engineering_integration-2aa1d4cbe4e6d25e)
+
+running 4 tests
+test host_mount_and_remove_control_inventory_and_dispatch ... ok
+test both_loops_refresh_native_guidance_after_mount_remove_and_session_resume ... ok
+test both_primary_loops_execute_native_ast_read_edit_and_test_with_approval ... ok
+test both_primary_loops_deny_and_cancel_without_edit_or_process ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+

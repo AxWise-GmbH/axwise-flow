@@ -1,0 +1,14 @@
+{
+  "crates/goose/src/agents/platform_extensions/native_engineering/journal.rs": null,
+  "crates/goose/src/agents/platform_extensions/native_engineering/selection.md": "381f06ed2c4b1033d4867ea46d26eea49e88587a2c181f7c4f977197dbaa1c26",
+  "crates/goose/src/agents/platform_extensions/native_engineering/README.md": "25922dbdb855ae21776fc5ea4cd04232fbd4d6ef180a36d29392dc07fd2dcfc9",
+  "crates/goose/src/agents/platform_extensions/native_engineering/mod.rs": "4b56fd275db6a306a572662452a00660de8ec419711772eb089e8b2d52a28310",
+  "crates/goose/src/agents/platform_extensions/native_engineering/project.rs": null,
+  "crates/goose/src/agents/platform_extensions/native_engineering/state.rs": "17630438ced901c289144ebcc87d78a32bdd71a8526eb3d8db3fcba43dcf8ed5",
+  "crates/goose/src/agents/platform_extensions/native_engineering/ast.rs": "2893a35deed7cb4eafac1259ad3a8ea45803263a2fd3d26abf3994346247d9fb",
+  "crates/goose/src/agents/platform_extensions/native_engineering/lsp.rs": "2deddc82a0197b6eb70023b89e22c2677442c50b722a22af816afa9bb19d5e14",
+  "crates/goose/src/agents/platform_extensions/native_engineering/edits.rs": "961ef706590229093e14897a7aa87eab962d3e8a0c9d217801aff0981b7a80c1",
+  "crates/goose/src/agents/extension_manager.rs": "3ee572008b875d4afe0dd31225769898a3c0520c2a7ac3fd888486d6de6c784a",
+  "crates/goose/tests/native_engineering_integration.rs": "93dd83f6dee8e3cbcddddea927ebe88d08130ac917e860a2e00d23399ea73355",
+  "goose-self-test.yaml": "209ddcc2a8c3c11b733b56ccbeb657084cee54763eaee6d349934fbb5262042b"
+}

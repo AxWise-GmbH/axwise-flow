@@ -1,0 +1,7 @@
+/private/tmp/axwise-review-config-venv/lib/python3.11/site-packages/pydantic_settings/sources/utils.py:47: IncompleteFieldDefinitionWarning: Field 'lifespan' has an incomplete definition: its annotation contains an unresolved forward reference, so settings sources may fail to correctly resolve its value. Call `model_rebuild()` on the model where the field is defined, once all the referenced types are defined.
+  warnings.warn(
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.078s
+
+OK

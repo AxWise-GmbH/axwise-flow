@@ -1,0 +1,41 @@
+{
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "modelRequests": 41,
+  "nativeToolCalls": {
+    "todo__todo_write": 5,
+    "shell": 4,
+    "tree": 2,
+    "write": 8,
+    "ast_search": 3,
+    "lsp_query": 5,
+    "edit": 1,
+    "hashline_edit": 5,
+    "safe_edit_and_test": 7
+  },
+  "verification": {
+    "terminal": true,
+    "model": true,
+    "capability": true,
+    "astFunctions": true,
+    "astCalls": true,
+    "ambiguity": true,
+    "qualifiedReferences": true,
+    "renamePlan": true,
+    "renameApply": true,
+    "batchApply": false,
+    "batchRollback": true,
+    "singleRollback": true,
+    "staleSingle": true,
+    "staleBatch": true,
+    "noHostDiscovery": false
+  },
+  "cleanRecipePass": false,
+  "limitations": [
+    "Unnecessary Python/Node version probe remained.",
+    "Successful generic files batch omitted; first recipe and deterministic test cover it.",
+    "One synthetic bogus snapshot was correctly rejected before a true stale-preimage exercise."
+  ]
+}

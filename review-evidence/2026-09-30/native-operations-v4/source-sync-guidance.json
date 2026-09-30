@@ -1,0 +1,8 @@
+{
+  "files": [
+    "crates/goose/src/agents/platform_extensions/native_engineering/selection.md",
+    "goose-self-test.yaml"
+  ],
+  "verified": true,
+  "purpose": "Avoid redundant host-server discovery; updated before timing."
+}

@@ -492,7 +492,7 @@ describe('authenticated Goose provider transport', () => {
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytes);
     expect(JSON.parse(fetchImpl.mock.calls[0][1].body).stream_options).toEqual({ include_usage: true });
   });
-  it('accepts OMP store false but never forwards a persistence request upstream', async () => {
+  it('accepts store false but never forwards a persistence request upstream', async () => {
     const f = await fixture();
     const response = await f.call('/chat/completions', {
       ...requestBody(),
@@ -506,7 +506,7 @@ describe('authenticated Goose provider transport', () => {
     expect(sent.reasoning_effort).toBe('high');
     expect(sent.max_completion_tokens).toBe(64_000);
   });
-  it('rejects a non-boolean OMP persistence preference before upstream spend', async () => {
+  it('rejects a non-boolean persistence preference before upstream spend', async () => {
     const f = await fixture();
     expect((await f.call('/chat/completions', { ...requestBody(), store: 'false' })).status).toBe(400);
     expect(f.fetchImpl).not.toHaveBeenCalled();

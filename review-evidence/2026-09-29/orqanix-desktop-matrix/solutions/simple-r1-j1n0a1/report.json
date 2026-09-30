@@ -1,0 +1,15 @@
+{
+  "summary": "Fixed lineTotal to validate that priceCents, quantity, and discountBps are safe nonnegative integers with discountBps within 0..10000, check for intermediate multiplication overflows, and compute the discounted line total with Math.floor.",
+  "examples": [
+    {
+      "id": "zero",
+      "input": [1250, 0, 0],
+      "expected": 0
+    },
+    {
+      "id": "rounding",
+      "input": [199, 3, 1250],
+      "expected": 522
+    }
+  ]
+}

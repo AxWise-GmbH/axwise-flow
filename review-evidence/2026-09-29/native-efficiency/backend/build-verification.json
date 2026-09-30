@@ -1,0 +1,61 @@
+{
+  "source": [
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/edits.rs",
+      "originalMatches": true,
+      "stagingMatches": true
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/selection.md",
+      "originalMatches": true,
+      "stagingMatches": true
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/README.md",
+      "originalMatches": true,
+      "stagingMatches": true
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/mod.rs",
+      "originalMatches": true,
+      "stagingMatches": true
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/developer/mod.rs",
+      "originalMatches": true,
+      "stagingMatches": true
+    },
+    {
+      "path": "crates/goose/src/agents/extension_manager.rs",
+      "originalMatches": true,
+      "stagingMatches": true
+    },
+    {
+      "path": "crates/goose/tests/native_engineering_integration.rs",
+      "originalMatches": true,
+      "stagingMatches": true
+    },
+    {
+      "path": "goose-self-test.yaml",
+      "originalMatches": true,
+      "stagingMatches": true
+    }
+  ],
+  "binaries": [
+    {
+      "path": "/private/tmp/orqanix-efficiency-build-20260929/goose",
+      "expected": "0daf15f4e437d45101e0ed402ffa003d610ba6c4bddc6c4c03b95d85faeda605",
+      "matches": true
+    },
+    {
+      "path": "/private/tmp/orqanix-efficiency-app-20260929/Orqanix Benchmark.app/Contents/Resources/bin/goose-candidate",
+      "expected": "0daf15f4e437d45101e0ed402ffa003d610ba6c4bddc6c4c03b95d85faeda605",
+      "matches": true
+    },
+    {
+      "path": "/private/tmp/orqanix-efficiency-app-20260929/Orqanix Benchmark.app/Contents/Resources/bin/goose-baseline",
+      "expected": "ff80a98ec86c080d63894aaa15f419f20fae3b78967e211d33b1cd02f0f446a2",
+      "matches": true
+    }
+  ]
+}

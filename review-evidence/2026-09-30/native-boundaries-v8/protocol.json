@@ -1,0 +1,30 @@
+{
+  "frozenAt": "2026-09-30T10:10:47.369885+00:00",
+  "candidate": "Native extension 1.5.3 / v8: line boundaries preserved by default, exact-text opt-in, one coherent batch and checks, optional AST/LSP; no OMP",
+  "comparison": "Same rebuilt Rust release binary with nativeGemsEnabled off/on in actual Electron desktop",
+  "trials": 12,
+  "repetitionsPerTaskArm": 2,
+  "tasks": [
+    "simple label fix",
+    "structural handler repair",
+    "cross-file rename"
+  ],
+  "model": "gemini-3.8-flash",
+  "otherFlags": {
+    "jev": false,
+    "axwise": false,
+    "codeMode": false
+  },
+  "timing": "Actual Electron Send to clean terminal; setup and independent grading excluded",
+  "quality": "Independent behavior/type/regression/mutation/protected-file and clean-termination gates",
+  "acceptance": "Both arms pass all quality gates; mode-on total time and every task median no slower",
+  "hypothesis": "Whole-line boundary normalization eliminates newline-join formatting repair cycles observed in v7; model workflow is still variable and no speed gain is assumed",
+  "driver": "scripts/benchmark-orqanix-workflow-v7.mjs, unchanged from prior 12 trials",
+  "cookieKeychain": "test-only mock cookie Keychain equally in both disposable desktop profiles; real parent OAuth remains normal approved Keychain; TLS fingerprint verification unchanged",
+  "limitations": [
+    "Two repetitions screen regressions; no statistical equivalence or universal speed/quality claims.",
+    "Guidance is advisory; no task classifier or deferred tool schemas.",
+    "All failures and outliers retained; historical v4 time reduction is not a guaranteed result.",
+    "Installed Orqanix app unchanged."
+  ]
+}

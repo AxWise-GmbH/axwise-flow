@@ -1,0 +1,15 @@
+{
+  "summary": "Updated lineTotal to validate safe integer bounds for all inputs, prevent unsafe intermediate arithmetic overflows, correctly handle zero quantity and full discount returning zero, and calculate line totals using integer arithmetic with Math.floor.",
+  "examples": [
+    {
+      "id": "zero",
+      "input": [1250, 0, 0],
+      "expected": 0
+    },
+    {
+      "id": "rounding",
+      "input": [199, 3, 1250],
+      "expected": 522
+    }
+  ]
+}

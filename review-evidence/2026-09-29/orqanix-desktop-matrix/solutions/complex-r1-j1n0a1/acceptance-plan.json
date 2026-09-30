@@ -1,0 +1,167 @@
+{
+  "summary": "Evidence-backed acceptance plan for warehouse order allocation covering atomic reservation, expedited priority handling, idempotent order identifiers, and immutable input handling.",
+  "requirements": [
+    {
+      "id": "atomic_reservation",
+      "description": "All lines of an order must be reserved atomically in aggregate, combining repeated SKUs and either fulfilling all lines or leaving stock unchanged.",
+      "sources": [
+        {
+          "id": "E1",
+          "quote": "Reserve all lines of an order together or reserve nothing; repeated SKU lines must be added together before checking stock."
+        }
+      ],
+      "acceptance": {
+        "given": "an initial stock object and an order with multiple or repeated SKU lines",
+        "when": "reservation is attempted for the order",
+        "then": "all repeated SKU lines are aggregated, and stock is only deducted if all requested SKU quantities are available; otherwise stock remains unchanged"
+      }
+    },
+    {
+      "id": "expedited_first",
+      "description": "Orders with expedited priority must be allocated stock prior to normal priority orders, preserving arrival order within each priority group.",
+      "sources": [
+        {
+          "id": "E2",
+          "quote": "Expedited orders get stock before normal orders; preserve arrival order within each priority."
+        }
+      ],
+      "acceptance": {
+        "given": "a set of orders containing both expedited and normal priorities",
+        "when": "fulfilling orders against available stock",
+        "then": "expedited orders are evaluated first in their original arrival order, followed by normal orders in their original arrival order"
+      }
+    },
+    {
+      "id": "idempotent_ids",
+      "description": "Order IDs are idempotent; only the first occurrence of an order ID is processed, and subsequent duplicate IDs are ignored entirely.",
+      "sources": [
+        {
+          "id": "E3",
+          "quote": "An order ID is idempotent: process only its first occurrence and ignore later duplicates."
+        }
+      ],
+      "acceptance": {
+        "given": "a batch of orders containing duplicate order identifiers",
+        "when": "fulfilling orders",
+        "then": "the first occurrence claims the identifier and any subsequent order sharing that identifier is ignored entirely"
+      }
+    },
+    {
+      "id": "invalid_immutable",
+      "description": "Orders with invalid lines or invalid metadata are rejected without modifying stock, and caller input data structures are never mutated.",
+      "sources": [
+        {
+          "id": "E4",
+          "quote": "Invalid order lines must be rejected without changing stock, and callers must retain their original input objects."
+        }
+      ],
+      "acceptance": {
+        "given": "orders with invalid lines or invalid priorities and caller stock inputs",
+        "when": "validation or reservation runs",
+        "then": "invalid orders or lines are rejected without stock deduction, and input stock and order objects remain unmutated"
+      }
+    }
+  ],
+  "assumptions": [
+    "Stock is provided as a plain JavaScript object mapping non-empty SKU string identifiers to non-negative safe integers.",
+    "Order lines are supplied as a non-empty array of objects with non-empty string SKU identifiers and positive safe-integer quantities.",
+    "Orders require a non-empty string ID and a priority of either 'expedited' or 'normal'.",
+    "Duplicate order IDs are ignored on subsequent occurrences even if the first occurrence was rejected for invalid priority.",
+    "Invalid order rejections are recorded in input order first, followed by reservation failures in order processing sequence."
+  ],
+  "scenarios": [
+    {
+      "id": "priority_and_atomicity",
+      "input": {
+        "stock": { "a": 3, "b": 1 },
+        "orders": [
+          {
+            "id": "normal",
+            "priority": "normal",
+            "lines": [{ "sku": "a", "quantity": 2 }]
+          },
+          {
+            "id": "fast",
+            "priority": "expedited",
+            "lines": [
+              { "sku": "a", "quantity": 2 },
+              { "sku": "b", "quantity": 1 }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "acceptedIds": ["fast"],
+        "rejected": [
+          { "id": "normal", "reason": "insufficient_stock" }
+        ],
+        "remaining": { "a": 1, "b": 0 }
+      }
+    },
+    {
+      "id": "idempotency_and_invalid_priority",
+      "input": {
+        "stock": { "sku1": 5 },
+        "orders": [
+          {
+            "id": "ord-invalid",
+            "priority": "urgent",
+            "lines": [{ "sku": "sku1", "quantity": 1 }]
+          },
+          {
+            "id": "ord-invalid",
+            "priority": "expedited",
+            "lines": [{ "sku": "sku1", "quantity": 1 }]
+          },
+          {
+            "id": "ord-valid",
+            "priority": "normal",
+            "lines": [{ "sku": "sku1", "quantity": 2 }]
+          },
+          {
+            "id": "ord-valid",
+            "priority": "normal",
+            "lines": [{ "sku": "sku1", "quantity": 2 }]
+          }
+        ]
+      },
+      "expected": {
+        "acceptedIds": ["ord-valid"],
+        "rejected": [
+          { "id": "ord-invalid", "reason": "invalid_order" }
+        ],
+        "remaining": { "sku1": 3 }
+      }
+    },
+    {
+      "id": "repeated_lines_and_invalid_lines",
+      "input": {
+        "stock": { "x": 10, "y": 5 },
+        "orders": [
+          {
+            "id": "o-repeat",
+            "priority": "expedited",
+            "lines": [
+              { "sku": "x", "quantity": 4 },
+              { "sku": "x", "quantity": 3 }
+            ]
+          },
+          {
+            "id": "o-bad-line",
+            "priority": "normal",
+            "lines": [
+              { "sku": "y", "quantity": 0 }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "acceptedIds": ["o-repeat"],
+        "rejected": [
+          { "id": "o-bad-line", "reason": "invalid_lines" }
+        ],
+        "remaining": { "x": 3, "y": 5 }
+      }
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "status": "stopped_before_model_inference",
+  "rows": [
+    {
+      "key": "simple-r1-baseline",
+      "elapsedMs": 944,
+      "uiStopReason": "end_turn",
+      "modelRequests": 0,
+      "toolCalls": 0,
+      "error": "KEYRING_UNAVAILABLE",
+      "boundaryChecks": 13
+    },
+    {
+      "key": "simple-r1-candidate",
+      "elapsedMs": 1052,
+      "uiStopReason": "end_turn",
+      "modelRequests": 0,
+      "toolCalls": 0,
+      "error": "KEYRING_UNAVAILABLE",
+      "boundaryChecks": 13
+    },
+    {
+      "key": "medium-r1-candidate",
+      "elapsedMs": 945,
+      "uiStopReason": "end_turn",
+      "modelRequests": 0,
+      "toolCalls": 0,
+      "error": "KEYRING_UNAVAILABLE",
+      "boundaryChecks": 13
+    },
+    {
+      "key": "medium-r1-baseline",
+      "elapsedMs": 946,
+      "uiStopReason": "end_turn",
+      "modelRequests": 0,
+      "toolCalls": 0,
+      "error": "KEYRING_UNAVAILABLE",
+      "boundaryChecks": 13
+    },
+    {
+      "key": "complex-r1-baseline",
+      "elapsedMs": 951,
+      "uiStopReason": "end_turn",
+      "modelRequests": 0,
+      "toolCalls": 0,
+      "error": "KEYRING_UNAVAILABLE",
+      "boundaryChecks": 13
+    },
+    {
+      "key": "complex-r1-candidate",
+      "elapsedMs": 947,
+      "uiStopReason": "end_turn",
+      "modelRequests": 0,
+      "toolCalls": 0,
+      "error": "KEYRING_UNAVAILABLE",
+      "boundaryChecks": 13
+    },
+    {
+      "key": "simple-r2-candidate",
+      "elapsedMs": 1045,
+      "uiStopReason": "end_turn",
+      "modelRequests": 0,
+      "toolCalls": 0,
+      "error": "KEYRING_UNAVAILABLE",
+      "boundaryChecks": 13
+    }
+  ],
+  "stoppedBeforeKey": "simple-r2-baseline",
+  "rawReportSha256": "8f748eef362ae66af1d218d2a0e74d590c919ee419d096dcafcd486991ce2bad"
+}

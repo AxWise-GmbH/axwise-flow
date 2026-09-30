@@ -5,7 +5,6 @@ import { createServer } from 'node:http';
 import { sha256Hex } from '../../lib/workflow-v2/canonical.js';
 import { createEngineeringReviewService, ENGINEERING_REVIEW_MAX_BYTES } from './engineering-review-service.js';
 import { createGooseProviderRouter } from './goose-provider-http.js';
-import { evaluateWithJev } from '../../../../packages/omp-mcp-server/src/omp-client.mjs';
 
 const auth = { userId: 'user-owner' };
 const markdown = 'Preserve Retry-After; handle malformed input.';
@@ -204,13 +203,25 @@ describe('desktop engineering review route', () => {
     const limited = await routeFixture({ rateLimiter: (_req, res) => res.status(429).end() });
     expect((await limited.call()).status).toBe(429); expect(limited.commandService.session).not.toHaveBeenCalled();
   });
-  it('accepts real OMP client receipt validation end to end through the authenticated router', async () => {
+  it('returns an authenticated HTTP receipt bound to the submitted evidence and owned research', async () => {
     const f = await routeFixture();
     const command = request();
-    const receipt = await evaluateWithJev({ config: { apiBaseUrl: f.base, conversationId: command.conversationId, accountHash: sha256Hex(auth.userId) },
-      request: command, tokenProvider: async () => 'desktop-fixture-token' });
-    expect(receipt).toMatchObject({ taskId: command.taskId, inputHash: command.inputHash, evidenceHash: sha256Hex(JSON.stringify(command.evidence)), review: { status: 'passed', model: 'jev-1.13.0', advisory: true } });
-    expect(f.desktopWorkService.read).toHaveBeenCalledOnce(); expect(f.fetchImpl).toHaveBeenCalledOnce();
+    const response = await f.call(command, { 'X-Orqaly-Account-Hash': sha256Hex(auth.userId) });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    const receipt = await response.json();
+    expect(receipt).toMatchObject({ taskId: command.taskId, conversationId: command.conversationId,
+      inputHash: command.inputHash, evidenceHash: sha256Hex(JSON.stringify(command.evidence)), researchReferences: command.researchReferences,
+      review: { status: 'passed', reason: 'advisory_review', model: 'jev-1.13.0', advisory: true, qualityScore: 0.9, readyProbability: 0.9 } });
+    expect(receipt.review.evaluatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(f.commandService.session).toHaveBeenCalledOnce();
+    expect(f.commandService.session).toHaveBeenCalledWith(auth);
+    expect(f.desktopWorkService.read).toHaveBeenCalledOnce();
+    expect(f.desktopWorkService.read).toHaveBeenCalledWith(auth, { conversationId: reference.conversationId, requestId: reference.requestId });
+    expect(f.fetchImpl).toHaveBeenCalledOnce();
+    expect(JSON.parse(f.fetchImpl.mock.calls[0][1].body).state.evidence).toEqual(command.evidence);
+    expect(JSON.stringify(receipt)).not.toContain('server-fixture-key');
   });
   it('returns a fail-closed receipt for legacy evidence and rejects mixed legacy/current payloads', async () => {
     const f = await routeFixture();

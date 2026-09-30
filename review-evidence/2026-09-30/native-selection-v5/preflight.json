@@ -1,0 +1,16 @@
+{
+  "rows": [
+    {
+      "key": "control-default-1",
+      "status": "preflight_ready",
+      "modelRequests": 0,
+      "pending": 0
+    },
+    {
+      "key": "control-candidate-1",
+      "status": "preflight_ready",
+      "modelRequests": 0,
+      "pending": 0
+    }
+  ]
+}

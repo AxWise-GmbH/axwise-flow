@@ -1,0 +1,17 @@
+[
+  {
+    "file": "ui/desktop/scripts/axwise-python-lock.json",
+    "before": "271f992b8f8d493ec6ba4ce3d5f0c327b4db4665b00f55eac3519509d389f05f",
+    "after": "b5f47bc80624962e4f30b48cbf29a4b52935126903904b01d2eea17c6c190eb7"
+  },
+  {
+    "file": "ui/desktop/scripts/prepare-local-axwise.mjs",
+    "before": "e709aa70fa79682d9afa814996fee7984a10f8246674e6fe9bcfd96f83baa3e4",
+    "after": "ba5dee332646bc802faa87dea1a4f59bbdf8a4976161134983bcb777e502e1ba"
+  },
+  {
+    "file": "ui/desktop/scripts/prepare-local-axwise.test.mjs",
+    "before": "76aea26f52f5fa08ffe3e5f7f6b7270cdede4779a0f125e0e4a8948de2b2b5ed",
+    "after": "705df4b655fe5f301bd5f5cb3fd121061d91bf8548868b88468b2cb4d7572b48"
+  }
+]

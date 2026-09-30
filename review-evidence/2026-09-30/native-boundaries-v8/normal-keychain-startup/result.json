@@ -1,0 +1,13 @@
+{
+  "kind": "post-benchmark-startup-only",
+  "status": "harness_or_app_error",
+  "error": "RENDERER_UNAVAILABLE",
+  "modelRequests": 0,
+  "mockCookieKeychain": false,
+  "cookieKeyLoadStarted": 1,
+  "tcpConnectEvents": 0,
+  "sslConnectEvents": 0,
+  "diagnosis": "Chromium cookie-key load waits before TCP/TLS. Normal startup of the newly ad-hoc-signed test bundle has not been cleared by the earlier v7 approval. No inference or Send; does not change twelve task timings. Keychain/dialog state was not inspected; do not assert that a password is missing.",
+  "benchmarkStartup": "Disposable profiles used the same test-only mock cookie Keychain switch in both arms; real parent OAuth used normal approved Keychain and TLS pinning was unchanged.",
+  "installedAppChanged": false
+}

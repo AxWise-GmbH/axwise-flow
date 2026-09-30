@@ -26,7 +26,7 @@ export const AgentEvaluationExecuteSchema = z.object({
   arm: z.enum(['orqanix', 'vanilla']),
 }).strict().superRefine((command, context) => {
   if (command.category === 'coding' && command.arm !== 'vanilla')
-    context.addIssue({ code: 'custom', path: ['arm'], message: 'coding Orqanix runs use the OMP fixture' });
+    context.addIssue({ code: 'custom', path: ['arm'], message: 'coding Orqanix runs are unavailable through this endpoint' });
 });
 
 export const AgentEvaluationJudgeSchema = z.object({

@@ -1,0 +1,13 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.04s
+     Running unittests src/lib.rs (target/debug/deps/goose-07c34eaceba84da0)
+
+running 6 tests
+test agents::extension_manager::tests::test_mcp_app_tools_identified_for_code_mode_exclusion ... ok
+test agents::platform_extensions::code_execution::tests::code_mode_preserves_types_for_self_referential_schema ... ok
+test agents::extension_manager::tests::code_mode_preserves_host_native_policy_without_disclosing_hidden_remote_instructions ... ok
+test agents::extension_manager::tests::code_mode_capability_directory_is_compact_mounted_metadata_only ... ok
+test agents::reply_parts::tests::code_mode_capability_directory_reaches_legacy_prompt_without_full_policy ... ok
+test agents::state_machine::tests::prompt_skill_lifecycle::code_mode_capability_directory_reaches_state_machine_and_tracks_unmount ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 2266 filtered out; finished in 0.49s
+

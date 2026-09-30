@@ -24,10 +24,6 @@ frontend/tsconfig.tsbuildinfo
 .axwise-flow-private
 gmailmcp
 packages
-!packages
-packages/*
-!packages/omp-mcp-server
-!packages/omp-mcp-server/**
 
 # Screenshots and docs (not needed in containers)
 screenshots

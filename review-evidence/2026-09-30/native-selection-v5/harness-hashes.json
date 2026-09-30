@@ -1,0 +1,10 @@
+{
+  "benchmark-orqanix-operations.mjs": "72a84ba74975609105ea2fafac10ae8b2fe0daee10881e00d0acc878d4530523",
+  "summarize-orqanix-operations.mjs": "df2c250e912774e835d64bdb78b46af2fc4782a5f001865355e6700de01cf1f7",
+  "verify-orqanix-operations.mjs": "5f47a122ba0d15c73e8c605e647772a3f96431e2e673d459a3695ce202a09ef5",
+  "lib/orqanix-semantic-tasks.mjs": "4fe70ecd367ad60d683dc179666f9b6b3f9864262d3eeee0cd3846bd3aa8e7e3",
+  "lib/orqanix-selection-sandbox.mjs": "4ed8381b593405bf387f17b1e320cf9c2e22a79d7c5586482dcd13b5740977d7",
+  "lib/orqanix-specialist-sandbox.mjs": "41758dd153febf772d16114b4b44e2d7b97f0cc6c205cf1adf461d29122075f1",
+  "lib/orqanix-benchmark-relay.mjs": "df1cfed8cdf028f9449abdf93fe1535ae5506bdbe63c76d08270f28d80a18b3b",
+  "lib/orqanix-semantic-scoped-relay.mjs": "b500e6a5802b536daf4c25557541a13c8bf184f536989a3606632290cef49153"
+}

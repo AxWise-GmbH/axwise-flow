@@ -1,0 +1,13 @@
+file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-specialist-sandbox.mjs:17
+const fail = (code, checks) => { const error = new Error(code); error.code = code; if(checks)error.checks = checks; throw error; };
+                                               ^
+
+Error: APP_SIGNATURE_VERIFICATION_FAILED
+    at fail (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-specialist-sandbox.mjs:17:48)
+    at generateProfile (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-specialist-sandbox.mjs:60:142)
+    at async preflight (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-selection-sandbox.mjs:11:14)
+    at async file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/self-test-native-semantic.mjs:18:16 {
+  code: 'APP_SIGNATURE_VERIFICATION_FAILED'
+}
+
+Node.js v26.10.0

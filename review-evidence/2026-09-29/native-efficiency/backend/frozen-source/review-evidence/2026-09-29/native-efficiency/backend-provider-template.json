@@ -1,0 +1,35 @@
+{
+  "name": "orqaly",
+  "engine": "openai",
+  "display_name": "Orqanix",
+  "description": "Gemini model transport; Goose controls the conversation and tools.",
+  "api_key_env": "",
+  "base_url": "http://127.0.0.1:0",
+  "base_path": "desktop/v1/chat/completions",
+  "models": [
+    {
+      "name": "orqaly-gemini",
+      "context_limit": 1048576,
+      "supports_vision": true,
+      "image_history_policy": "current_user_turn"
+    }
+  ],
+  "dynamic_models": false,
+  "supports_streaming": true,
+  "requires_auth": true,
+  "preserves_thinking": true,
+  "timeout_seconds": 200,
+  "headers": {},
+  "auth": {
+    "command": "/private/tmp/orqanix-efficiency-app-20260929/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime/node/bin/node",
+    "args": [
+      "/private/tmp/orqanix-efficiency-app-20260929/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime/connector/src/cli.mjs",
+      "token",
+      "--config",
+      "/private/tmp/orqanix-efficiency-app-20260929/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime/connector/production.config.example.json"
+    ],
+    "cwd": "/private/tmp/orqanix-efficiency-app-20260929/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime/connector",
+    "refresh_interval": 300,
+    "timeout_seconds": 60
+  }
+}

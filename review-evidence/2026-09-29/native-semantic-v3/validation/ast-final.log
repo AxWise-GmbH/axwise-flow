@@ -1,0 +1,19 @@
+    Blocking waiting for file lock on build directory
+   Compiling goose v1.50.0 (/private/tmp/orqaly-goose-verified-fixes/crates/goose)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 43s
+     Running unittests src/lib.rs (target/debug/deps/goose-74791959b85261c3)
+
+running 10 tests
+test agents::platform_extensions::native_engineering::ast::tests::bounded_search_reports_partial_results ... ok
+test agents::platform_extensions::native_engineering::ast::tests::javascript_search_matches_syntax_and_not_comments_or_strings ... ok
+test agents::platform_extensions::native_engineering::ast::tests::oversized_file_is_explicitly_rejected ... ok
+test agents::platform_extensions::native_engineering::ast::tests::directory_search_respects_ignore_rules_and_restricts_language ... ok
+test agents::platform_extensions::native_engineering::ast::tests::cancelled_search_never_returns_completed ... ok
+test agents::platform_extensions::native_engineering::ast::tests::python_capture_handles_multiline_structure_and_unicode_bytes ... ok
+test agents::platform_extensions::native_engineering::ast::tests::invalid_query_missing_language_and_limits_fail_explicitly ... ok
+test agents::platform_extensions::native_engineering::ast::tests::preset_filters_before_result_limit_and_rejects_conflicting_query_modes ... ok
+test agents::platform_extensions::native_engineering::ast::tests::preset_names_filter_syntax_and_return_lsp_compatible_unicode_positions ... ok
+test agents::platform_extensions::native_engineering::ast::tests::presets_compile_for_every_supported_grammar ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 2235 filtered out; finished in 1.03s
+

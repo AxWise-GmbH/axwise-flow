@@ -1,0 +1,5 @@
+{"event":"recipe_progress","modelRequests":10}
+{"event":"recipe_progress","modelRequests":21}
+{"event":"recipe_progress","modelRequests":32}
+{"event":"recipe_progress","modelRequests":39}
+{"event":"recipe_exit","code":0,"signal":null,"timedOut":false,"modelRequests":42}

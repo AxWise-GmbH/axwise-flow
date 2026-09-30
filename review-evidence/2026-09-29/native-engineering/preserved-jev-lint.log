@@ -1,0 +1,17 @@
+✔ Jev lint rulesets define typed noul questions with explicit instructions (0.384708ms)
+✔ evaluateLintWithJev handles unconfigured API key gracefully (0.123667ms)
+✔ evaluateLintWithJev passes clean code when Jev returns zero risk (0.154ms)
+✔ evaluateLintWithJev catches hardcoded secrets and syntax errors (0.094458ms)
+✔ formatJevVerdictMarkdown formats passing verdict with latency and no violations (0.080334ms)
+✔ formatJevVerdictMarkdown formats failing verdict with violations and confidence (0.051417ms)
+✔ formatJevVerdictMarkdown formats skipped verdict with reason and missing latency gracefully (0.039625ms)
+✔ formatJevVerdictMarkdown handles empty or non-object verdict gracefully (0.038666ms)
+✔ formatJevVerdictMarkdown integrates with evaluateLintWithJev output (0.111625ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 39.595792

@@ -13,12 +13,6 @@ from dotenv import load_dotenv
 from backend.services.local_axwise.schema_cleaner import inline_local_refs, provider_schema
 from backend.services.local_axwise.storage import get_cached_model, set_cached_model
 
-# Load environment files
-load_dotenv(".env")
-load_dotenv(Path.home() / ".env")
-load_dotenv(Path.home() / ".axwise" / ".env")
-
-
 class ProviderError(Exception):
     pass
 
@@ -28,6 +22,11 @@ def discover_local_credentials() -> dict[str, str]:
     Auto-discover LLM API keys from environment, .env files,
     macOS Keychain (Goose secrets), and local Codex auth.
     """
+    # Only zero-config discovery reads dotenv files. Importing the provider or
+    # using an explicit configuration must not load unrelated credentials.
+    load_dotenv(".env")
+    load_dotenv(Path.home() / ".env")
+    load_dotenv(Path.home() / ".axwise" / ".env")
     found: dict[str, str] = {}
 
     # 1. Environment variables
@@ -149,18 +148,26 @@ class ModelProvider:
         model: Optional[str] = None,
         provider_type: Optional[str] = None,
         timeout_seconds: float = 90.0,
+        api_key_env: Optional[str] = None,
+        discover_credentials: bool = True,
+        state_dir: Optional[Path] = None,
     ):
         self.timeout_seconds = timeout_seconds
+        self.state_dir = state_dir
+        self.api_key_env = api_key_env
 
         # 1. Discover local credentials
-        discovered_creds = discover_local_credentials()
+        discovered_creds = discover_local_credentials() if discover_credentials and not api_key_env else {}
 
         env_provider = os.environ.get("AXWISE_PROVIDER")
         gemini_key = discovered_creds.get("GEMINI_API_KEY") or discovered_creds.get("GOOGLE_API_KEY")
         openai_key = discovered_creds.get("OPENAI_API_KEY")
         anthropic_key = discovered_creds.get("ANTHROPIC_API_KEY")
 
-        explicit_key = api_key or os.environ.get("AXWISE_API_KEY")
+        # A named key is authoritative, including when missing. Never borrow a
+        # credential from a different configured/discovered provider.
+        explicit_key = api_key or (os.environ.get(api_key_env) if api_key_env else os.environ.get("AXWISE_API_KEY"))
+        explicit_key = explicit_key.strip() if explicit_key else None
 
         if provider_type or env_provider:
             self.provider_type = (provider_type or env_provider).lower()
@@ -178,27 +185,24 @@ class ModelProvider:
             self.api_key = explicit_key or gemini_key
             self.base_url = base_url or os.environ.get("AXWISE_BASE_URL") or "https://generativelanguage.googleapis.com/v1beta/openai"
             fallback_default = "gemini-flash-latest"
-            env_override = os.environ.get("GEMINI_MODEL") or os.environ.get("AXWISE_MODEL")
+            env_override = os.environ.get("AXWISE_MODEL") or os.environ.get("GEMINI_MODEL")
 
         elif self.provider_type in ("openai", "openai-compatible"):
             self.provider_type = "openai"
             self.api_key = explicit_key or openai_key
             self.base_url = base_url or os.environ.get("AXWISE_BASE_URL") or "https://api.openai.com/v1"
             fallback_default = "gpt-6-sol"
-            env_override = os.environ.get("OPENAI_MODEL") or os.environ.get("AXWISE_MODEL")
+            env_override = os.environ.get("AXWISE_MODEL") or os.environ.get("OPENAI_MODEL")
 
         elif self.provider_type in ("anthropic", "claude"):
             self.provider_type = "anthropic"
             self.api_key = explicit_key or anthropic_key
             self.base_url = base_url or os.environ.get("AXWISE_BASE_URL") or "https://api.anthropic.com/v1"
             fallback_default = "claude-sonnet-5"
-            env_override = os.environ.get("ANTHROPIC_MODEL") or os.environ.get("AXWISE_MODEL")
+            env_override = os.environ.get("AXWISE_MODEL") or os.environ.get("ANTHROPIC_MODEL")
 
         else:
-            self.api_key = explicit_key or gemini_key or openai_key
-            self.base_url = base_url or "https://generativelanguage.googleapis.com/v1beta/openai"
-            fallback_default = "gemini-flash-latest"
-            env_override = os.environ.get("AXWISE_MODEL")
+            raise ProviderError("Unsupported AXWISE_PROVIDER; use gemini, openai, openai-compatible, or anthropic.")
 
         # 3. Model Resolution: Explicit override -> 24h SQLite Cache -> /models auto-discovery -> Fallback
         if model or env_override:
@@ -208,7 +212,10 @@ class ModelProvider:
 
     def _resolve_dynamic_model(self, fallback: str) -> str:
         # Check SQLite 24h cache first
-        cached = get_cached_model(self.provider_type, max_age_hours=24.0)
+        # Endpoint-local listings must not poison another compatible provider's
+        # model selection; credentials themselves are never part of this key.
+        cache_key = f"{self.provider_type}:{self.base_url.rstrip('/')}"
+        cached = get_cached_model(cache_key, max_age_hours=24.0, state_dir=self.state_dir)
         if cached:
             return cached
 
@@ -219,7 +226,7 @@ class ModelProvider:
                 if available:
                     chosen = select_best_model_from_list(self.provider_type, available)
                     if chosen:
-                        set_cached_model(self.provider_type, chosen, available)
+                        set_cached_model(cache_key, chosen, available, state_dir=self.state_dir)
                         return chosen
             except Exception:
                 pass
@@ -234,6 +241,8 @@ class ModelProvider:
         max_output_tokens: int = 4096,
     ) -> tuple[str, dict[str, Any]]:
         if not self.api_key:
+            if self.api_key_env:
+                raise ProviderError(f"Configured credential environment variable {self.api_key_env} is missing or empty.")
             raise ProviderError(
                 f"No API key configured for {self.provider_type}. Please set GEMINI_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY."
             )

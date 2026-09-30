@@ -1,105 +1,210 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
+import assert from "node:assert/strict";
+import test from "node:test";
 import {
-  GOOSE_LANES,
   triageTurnIntentWithJev,
   evaluateArtifactSafetyWithJev,
-} from '../src/jev-loop-router.mjs';
+} from "../src/jev-loop-router.mjs";
 
-test('GOOSE_LANES defines all primary handling lanes', () => {
-  assert.equal(GOOSE_LANES.QUICK_INFO, 'quick_info');
-  assert.equal(GOOSE_LANES.RESEARCH, 'research');
-  assert.equal(GOOSE_LANES.LOCAL_ENGINEERING, 'local_engineering');
-  assert.equal(GOOSE_LANES.CONVERSATION, 'conversation');
+const routeBody = () => ({
+  model: "jev-1.13.0",
+  answers: {
+    route: {
+      type: "choice",
+      choice: "quick_info",
+      confidence: 0.96,
+      probabilities: {
+        quick_info: 0.96,
+        research: 0.01,
+        local_engineering: 0.01,
+        conversation: 0.01,
+        mixed: 0.01,
+      },
+    },
+    thinking_effort: {
+      type: "choice",
+      choice: "off",
+      confidence: 0.96,
+      probabilities: { off: 0.96, low: 0.03, high: 0.01 },
+    },
+  },
 });
-
-test('triageTurnIntentWithJev handles unconfigured API key gracefully without throwing', async () => {
-  const result = await triageTurnIntentWithJev({
-    message: 'What is the weather in Berlin today?',
-    apiKey: '',
+const safetyBody = () => ({
+  model: "jev-1.13.0",
+  answers: {
+    contains_hardcoded_secrets: { type: "noul", noul: 0.03 },
+    is_production_ready: { type: "noul", noul: 0.95 },
+  },
+});
+const invoke = (body) =>
+  triageTurnIntentWithJev({
+    message: "Weather?",
+    apiKey: "fake",
+    fetchImpl: async () => Response.json(body),
+  });
+const safety = (body) =>
+  evaluateArtifactSafetyWithJev({
+    content: "dummy document",
+    apiKey: "fake",
+    fetchImpl: async () => Response.json(body),
   });
 
-  assert.equal(result.evaluated, false);
-  assert.equal(result.reason, 'MISSING_API_KEY');
-  assert.equal(result.route, GOOSE_LANES.CONVERSATION);
+test("explicit empty key never falls back to environment or calls network", async () => {
+  const original = process.env.TYPESAFE_API_KEY;
+  process.env.TYPESAFE_API_KEY = "dummy-env-key";
+  try {
+    const fetchImpl = () => {
+      throw new Error("must not call");
+    };
+    assert.equal(
+      (await triageTurnIntentWithJev({ message: "hi", apiKey: "", fetchImpl }))
+        .route,
+      "uncertain",
+    );
+    assert.deepEqual(
+      await evaluateArtifactSafetyWithJev({
+        content: "hello",
+        apiKey: "",
+        fetchImpl,
+      }),
+      {
+        evaluated: false,
+        status: "not_evaluated",
+        passed: null,
+        reason: "MISSING_API_KEY",
+        violations: [],
+      },
+    );
+  } finally {
+    if (original === undefined) delete process.env.TYPESAFE_API_KEY;
+    else process.env.TYPESAFE_API_KEY = original;
+  }
 });
-
-test('triageTurnIntentWithJev parses valid Jev choice response correctly', async () => {
-  const mockFetch = async () => ({
-    ok: true,
-    json: async () => ({
-      model: 'jev-1.13.0',
+test("valid routing and safety responses retain real model/probability evidence", async () => {
+  assert.equal((await invoke(routeBody())).route, "quick_info");
+  const good = await safety(safetyBody());
+  assert.equal(good.passed, true);
+  assert.equal(good.model, "jev-1.13.0");
+  const bad = safetyBody();
+  bad.answers.contains_hardcoded_secrets.noul = 0.98;
+  assert.equal((await safety(bad)).passed, false);
+  const notReady = safetyBody();
+  notReady.answers.is_production_ready.noul = 0.1;
+  assert.equal((await safety(notReady)).passed, false);
+});
+test("invalid route/effort enums and probability evidence are not evaluated", async () => {
+  const edits = [
+    (b) => {
+      b.answers.route.choice = "exec";
+    },
+    (b) => {
+      delete b.answers.thinking_effort;
+    },
+    (b) => {
+      b.answers.thinking_effort.choice = "maximum";
+    },
+    (b) => {
+      delete b.answers.route.confidence;
+    },
+    (b) => {
+      b.answers.route.confidence = 2;
+    },
+    (b) => {
+      b.answers.route.probabilities.mixed = 1;
+    },
+    (b) => {
+      b.answers.route.probabilities.mixed = -1;
+    },
+    (b) => {
+      b.answers.route.choice = "research";
+    },
+    (b) => {
+      b.model = "";
+    },
+  ];
+  for (const edit of edits) {
+    const body = routeBody();
+    edit(body);
+    assert.equal((await invoke(body)).evaluated, false);
+  }
+});
+test("low confidence remains uncertain", async () => {
+  const body = routeBody();
+  body.answers.route.confidence = 0.5;
+  assert.equal((await invoke(body)).route, "uncertain");
+});
+test("missing, malformed, or oversized safety evidence never passes", async () => {
+  for (const body of [
+    {},
+    { model: "jev-1", answers: {} },
+    {
+      model: "jev-1",
       answers: {
-        route: {
-          type: 'choice',
-          choice: 'quick_info',
-          confidence: 0.96,
-          probabilities: {
-            quick_info: 0.96,
-            research: 0.02,
-            local_engineering: 0.01,
-            conversation: 0.01,
+        ...safetyBody().answers,
+        contains_hardcoded_secrets: { type: "noul", noul: "0" },
+      },
+    },
+  ]) {
+    const value = await safety(body);
+    assert.equal(value.passed, null);
+    assert.equal(value.evaluated, false);
+  }
+  const value = await evaluateArtifactSafetyWithJev({
+    content: "x".repeat(24001),
+    apiKey: "fake",
+    fetchImpl: () => {
+      throw new Error("must not send a prefix");
+    },
+  });
+  assert.equal(value.reason, "CONTENT_TOO_LARGE");
+});
+for (const [name, method, input] of [
+  ["triage", triageTurnIntentWithJev, { message: "hi" }],
+  ["safety", evaluateArtifactSafetyWithJev, { content: "hello" }],
+]) {
+  test(`${name} bounds a hanging body even when the transport ignores abort`, async () => {
+    let signal;
+    const start = performance.now();
+    const value = await method({
+      ...input,
+      apiKey: "fake",
+      timeoutMs: 10,
+      fetchImpl: async (_url, options) => {
+        signal = options.signal;
+        return { ok: true, text: () => new Promise(() => {}) };
+      },
+    });
+    assert.equal(value.reason, "TIMEOUT");
+    assert.equal(value.evaluated, false);
+    assert.equal(signal.aborted, true);
+    assert.ok(performance.now() - start < 300);
+  });
+  test(`${name} respects cancellation and invalid/oversized response bodies`, async () => {
+    const controller = new AbortController();
+    controller.abort();
+    assert.equal(
+      (
+        await method({
+          ...input,
+          apiKey: "fake",
+          signal: controller.signal,
+          fetchImpl: () => {
+            throw new Error("no call");
           },
-        },
-      },
-    }),
+        })
+      ).reason,
+      "CANCELLED",
+    );
+    for (const body of ["{bad", "x".repeat(16001)]) {
+      assert.equal(
+        (
+          await method({
+            ...input,
+            apiKey: "fake",
+            fetchImpl: async () => new Response(body),
+          })
+        ).reason,
+        "INVALID_JEV_RESPONSE",
+      );
+    }
   });
-
-  const result = await triageTurnIntentWithJev({
-    message: 'Check EUR to USD exchange rate',
-    apiKey: 'mock-key',
-    fetchImpl: mockFetch,
-  });
-
-  assert.equal(result.evaluated, true);
-  assert.equal(result.route, 'quick_info');
-  assert.equal(result.confidence, 0.96);
-  assert.equal(result.model, 'jev-1.13.0');
-});
-
-test('evaluateArtifactSafetyWithJev detects secrets and passes clean documents', async () => {
-  // Test clean document
-  const mockCleanFetch = async () => ({
-    ok: true,
-    json: async () => ({
-      model: 'jev-1.13.0',
-      answers: {
-        contains_hardcoded_secrets: { type: 'noul', noul: 0.03 },
-        is_production_ready: { type: 'noul', noul: 0.95 },
-      },
-    }),
-  });
-
-  const cleanResult = await evaluateArtifactSafetyWithJev({
-    content: '# Project Discovery Plan\n\nObjective: Explore market size for solar harvesters.',
-    apiKey: 'mock-key',
-    fetchImpl: mockCleanFetch,
-  });
-
-  assert.equal(cleanResult.evaluated, true);
-  assert.equal(cleanResult.passed, true);
-  assert.equal(cleanResult.violations.length, 0);
-
-  // Test secret leakage
-  const mockSecretFetch = async () => ({
-    ok: true,
-    json: async () => ({
-      model: 'jev-1.13.0',
-      answers: {
-        contains_hardcoded_secrets: { type: 'noul', noul: 0.98 },
-        is_production_ready: { type: 'noul', noul: 0.10 },
-      },
-    }),
-  });
-
-  const leakResult = await evaluateArtifactSafetyWithJev({
-    content: 'const PRIVATE_KEY = "sk-live-009988776655443322";',
-    apiKey: 'mock-key',
-    fetchImpl: mockSecretFetch,
-  });
-
-  assert.equal(leakResult.evaluated, true);
-  assert.equal(leakResult.passed, false);
-  assert.equal(leakResult.violations.length, 1);
-  assert.equal(leakResult.violations[0].rule, 'contains_hardcoded_secrets');
-});
+}

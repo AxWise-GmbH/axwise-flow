@@ -1,0 +1,2 @@
+$ node scripts/i18n-check.js && node scripts/i18n-validate-locale.js
+i18n locale validation passed for de, es, fr, hi, id, it, ja, ko, ms, pt, ru, tr, vi, zh-CN, zh-TW (1655 messages).

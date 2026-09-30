@@ -1,0 +1,355 @@
+{
+  "schema": "orqanix.actual-desktop-native-operations.v1",
+  "startedAt": "2026-09-30T08:05:03.370Z",
+  "fingerprint": {
+    "executableSha256": "7aaad5436abdad24ae5bce6934959321e47ab9c2dfd357c8c9065b04e7f6388a",
+    "repetitions": 2,
+    "timeoutSeconds": 600,
+    "preflight": false,
+    "accountHash": "34528d0777aad85a3368ba892fc9f03a6b4474aae8cbe6cecd1003b8689833ff",
+    "jevTransport": "deployed_endpoint",
+    "goose-provider-http.js": "5b4b80c746f7ca2c45bbcdac997dc9a68c3b7937dfe054c644787b74db0cc8dd",
+    "desktop-decision-service.js": "529396657474ea30b56d5f74984d55c5630a51282ab79f3071deb2fc344d794b",
+    "engineering-review-service.js": "3f09d1cffba4bd04b86405f6cb1029423e17351ede88c9eafcc906e75da3b7ee",
+    "app.asar": "42f87d9997fd691f73d4c9153bb02269a4f155b1e28933769193d1500d01ae8a",
+    "bin/goose": "6e85d92ac6b38ec5ef8514de7e40d291b2d554e5ab56e7a59d8a730aac6cea2f",
+    "bin/goose-baseline": "10c5e5b7b37c17f962e5b316103efdd26dbcb5e880717732f36d882e54882bae",
+    "bin/goose-candidate": "10c5e5b7b37c17f962e5b316103efdd26dbcb5e880717732f36d882e54882bae",
+    "bin/selection-ab-build.json": "2a5f47bb525f01062c89c4da50ba0d62ea645dfce8c0e88ae807ea45f8c8f79d",
+    "bin/orqanix-goose-benchmark-build.json": "4d1d389d91dea61029f6de7693a7330ba9a2fd59cdcc90ff14da6332a59604e6",
+    "orqaly-runtime/runtime-manifest.json": "e38d3f4f898efc9c1dd0a83659aff0cac1a0012a6159b33c643ffaee8440dd1a",
+    "orqaly-runtime/connector/src/cli.mjs": "9155c13abf6ebea1de8426e593f4f09d9f659af95bd251516908a8cc2354e564",
+    "orqaly-runtime/connector/production.config.example.json": "aedca9e1e55efe5b1cd8f785bd815efc2d33348b5feb6c50cb15b952f79640df",
+    "axwise-runtime/runtime-manifest.json": "6832e0745d538d4dc0eb93cd693517a9ed6ed2802b59251352f4702390696b8c",
+    "benchmark-orqanix-operations.mjs": "72a84ba74975609105ea2fafac10ae8b2fe0daee10881e00d0acc878d4530523",
+    "lib/orqanix-semantic-tasks.mjs": "4fe70ecd367ad60d683dc179666f9b6b3f9864262d3eeee0cd3846bd3aa8e7e3",
+    "lib/orqanix-selection-sandbox.mjs": "4ed8381b593405bf387f17b1e320cf9c2e22a79d7c5586482dcd13b5740977d7",
+    "lib/orqanix-specialist-sandbox.mjs": "41758dd153febf772d16114b4b44e2d7b97f0cc6c205cf1adf461d29122075f1",
+    "lib/orqanix-benchmark-relay.mjs": "df1cfed8cdf028f9449abdf93fe1535ae5506bdbe63c76d08270f28d80a18b3b",
+    "lib/orqanix-semantic-scoped-relay.mjs": "b500e6a5802b536daf4c25557541a13c8bf184f536989a3606632290cef49153"
+  },
+  "schedule": [
+    {
+      "key": "control-default-1",
+      "difficulty": "control",
+      "arm": "default",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": false,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "control-candidate-1",
+      "difficulty": "control",
+      "arm": "candidate",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": true,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "ast-candidate-1",
+      "difficulty": "ast",
+      "arm": "candidate",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": true,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "ast-default-1",
+      "difficulty": "ast",
+      "arm": "default",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": false,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "lsp-default-1",
+      "difficulty": "lsp",
+      "arm": "default",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": false,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "lsp-candidate-1",
+      "difficulty": "lsp",
+      "arm": "candidate",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": true,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "control-candidate-2",
+      "difficulty": "control",
+      "arm": "candidate",
+      "repeat": 2,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": true,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "control-default-2",
+      "difficulty": "control",
+      "arm": "default",
+      "repeat": 2,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": false,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "ast-default-2",
+      "difficulty": "ast",
+      "arm": "default",
+      "repeat": 2,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": false,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "ast-candidate-2",
+      "difficulty": "ast",
+      "arm": "candidate",
+      "repeat": 2,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": true,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "lsp-candidate-2",
+      "difficulty": "lsp",
+      "arm": "candidate",
+      "repeat": 2,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": true,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "lsp-default-2",
+      "difficulty": "lsp",
+      "arm": "default",
+      "repeat": 2,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": false,
+        "axwiseLocalEnabled": false
+      }
+    }
+  ],
+  "rows": [
+    {
+      "key": "control-default-1",
+      "difficulty": "control",
+      "arm": "default",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": false,
+        "axwiseLocalEnabled": false
+      },
+      "startedAt": "2026-09-30T08:05:04.335Z",
+      "directory": "/private/tmp/orqanix-native-v7-live-20260930/control-default-1",
+      "workspace": "/private/tmp/orqanix-native-v7-live-20260930/control-default-1/fixture/workspace",
+      "decisions": [],
+      "confinedAuthVerified": true,
+      "boundary": {
+        "sha256": "d9872621d40217f3ddd5d27af3281a396a4f7bd8f51c99cc5712dc726bd55308",
+        "checks": [
+          {
+            "name": "workspace read",
+            "passed": true
+          },
+          {
+            "name": "workspace write and remove",
+            "passed": true
+          },
+          {
+            "name": "profile write",
+            "passed": true
+          },
+          {
+            "name": "own temp write",
+            "passed": true
+          },
+          {
+            "name": "other temp read denied",
+            "passed": true
+          },
+          {
+            "name": "other temp write denied",
+            "passed": true
+          },
+          {
+            "name": "user directory listing denied",
+            "passed": true
+          },
+          {
+            "name": "child inherits restriction",
+            "passed": true
+          },
+          {
+            "name": "symlink read escape denied",
+            "passed": true
+          },
+          {
+            "name": "symlink write escape denied",
+            "passed": true
+          },
+          {
+            "name": "hardlink escape denied",
+            "passed": true
+          },
+          {
+            "name": "app binary readable",
+            "passed": true
+          },
+          {
+            "name": "app resources immutable",
+            "passed": true
+          }
+        ],
+        "description": "Goose backend and descendants cannot read/write unrelated user, volume or temp trees; app resources read-only; own synthetic workspace/profile/temp writable. Electron remains outside this added filesystem boundary. Network/IPC remain available; this is not complete process or network isolation."
+      },
+      "status": "harness_or_app_error",
+      "error": "RENDERER_UNAVAILABLE",
+      "tools": [],
+      "pendingApprovals": [],
+      "telemetry": {
+        "trial": "control-default-1",
+        "provenance": {
+          "schemaVersion": "orqanix.benchmark-relay.v2",
+          "model": "gemini-3.8-flash",
+          "authMethod": "packaged_authenticated_session_endpoint",
+          "oauthClientId": "nhI2YnrzeTP2mk2X",
+          "issuer": "https://clerk.orqanix.com",
+          "authenticatedApiOrigin": "https://orqaly-v2-api-preview-161074549006.europe-west4.run.app",
+          "connectorConfigSha256": "aedca9e1e55efe5b1cd8f785bd815efc2d33348b5feb6c50cb15b952f79640df",
+          "authCacheMs": 5000,
+          "providerRouter": "apps/orqaly/server/workflow-v2/goose-provider-http.js",
+          "jevMethod": "forwarded_authenticated_packaged_endpoint",
+          "jevProviderHttpVisible": false,
+          "jevFallbackOnError": false,
+          "legacyCloudAxwiseRoutes": false,
+          "chatAttribution": "axwise_specialist_artifact response-format marker; remaining chat requests primary"
+        },
+        "records": [],
+        "modelRequests": [],
+        "jevRequests": [],
+        "jevProviderRequests": [],
+        "pending": 0,
+        "primaryHttpAttempts": 0,
+        "axwiseHttpAttempts": 0,
+        "jevHttpAttempts": 0
+      },
+      "scopedRelay": {
+        "trial": "control-default-1",
+        "calls": 0,
+        "denied": 0
+      },
+      "oracle": {
+        "passed": false,
+        "behavior": {
+          "passed": false,
+          "checks": [
+            {
+              "name": "label [\"draft\",true]",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ '[ ] draft'\n- '[x] draft'\n"
+            },
+            {
+              "name": "label [\"draft\",false]",
+              "passed": true
+            },
+            {
+              "name": "label [\"\",true]",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n\n'[ ] ' !== '[x] '\n"
+            },
+            {
+              "name": "label [\"\",false]",
+              "passed": true
+            },
+            {
+              "name": "label [\"  x  \",true]",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ '[ ]   x  '\n- '[x]   x  '\n"
+            },
+            {
+              "name": "label [\"  x  \",false]",
+              "passed": true
+            },
+            {
+              "name": "label [\"😀\",true]",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n\n'[ ] 😀' !== '[x] 😀'\n"
+            },
+            {
+              "name": "label [\"😀\",false]",
+              "passed": true
+            },
+            {
+              "name": "label [\"[x]\",true]",
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ '[ ] [x]'\n- '[x] [x]'\n"
+            },
+            {
+              "name": "label [\"[x]\",false]",
+              "passed": true
+            }
+          ]
+        },
+        "types": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "publicTests": {
+          "passed": true,
+          "exitCode": 0,
+          "stdout": "TAP version 13\n# Subtest: incomplete task\nok 1 - incomplete task\n  ---\n  duration_ms: 0.275292\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 56.401375\n",
+          "stderr": ""
+        },
+        "regression": {
+          "passed": false,
+          "error": "MISSING_REGRESSION_TEST"
+        },
+        "originalMutation": null,
+        "immutableFailures": [],
+        "unexpectedFiles": []
+      },
+      "actualToolInventory": [],
+      "inventoryMatches": false,
+      "termination": "harness_or_app_error",
+      "semanticToolsUsed": [],
+      "passed": false
+    }
+  ],
+  "method": "12 actual-desktop trials, SAME rebuilt release binary in both arms, native off/on: simple label fix, structural handler repair and cross-file rename, twice per arm, counterbalanced. Same frozen Electron UI/prompt and verified Gemini 3.8 Flash with default effort; legacy loop; Jev/Axwise/Code Mode off; cold semantic servers and fresh fixtures/profiles. Natural prompts never mandate tool adoption. Send-to-clean-terminal timing includes tools, checks and OAuth refresh, excludes setup and independent grading. 600-second/120-request budget, all failures/outliers retained. Backend filesystem confinement; Electron/network/IPC not fully isolated. Parent credentials never enter Goose. Acceptance requires both arms correct with mutation/regression/protected-file gates, candidate total and every task median no slower; semantic adoption is diagnostic only. Two repetitions screen regressions; they cannot establish statistical equivalence or universal reliability. Historical shipped-2.4.2 measurements are reference only, not a matched release comparison. Frozen before inference."
+}

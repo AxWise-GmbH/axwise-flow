@@ -1,0 +1,30 @@
+{
+  "calibrations": [
+    {
+      "directory": "/private/tmp/orqanix-matrix-preflight-01",
+      "purpose": "Actual app startup and UI flags; no inference"
+    },
+    {
+      "directory": "/private/tmp/orqanix-matrix-calibration-01",
+      "purpose": "Discovered split ACP tool identity metadata; interrupted before operations"
+    },
+    {
+      "directory": "/private/tmp/orqanix-matrix-calibration-02",
+      "purpose": "Two successful code runs; deployed Jev endpoint HTTP400, permission policy still rejected some harmless commands"
+    },
+    {
+      "directory": "/private/tmp/orqanix-matrix-main-20260929",
+      "purpose": "Diagnostic batch stopped after three completions and one interrupted row; corrected semicolon read commands, git diff path syntax, and read-only tool discovery"
+    },
+    {
+      "directory": "/private/tmp/orqanix-matrix-final-20260929",
+      "purpose": "Four code-correct diagnostic rows retained; command allow-list still rejected a harmless git log option. Batch stopped between rows."
+    },
+    {
+      "directory": "/private/tmp/orqanix-matrix-os-sandbox-preflight",
+      "purpose": "No inference. OS write sandbox correctly denied oracle writes but prevented normal macOS keychain sign-in; app exited, stale harness cleanup terminated."
+    }
+  ],
+  "selectedMatrix": "/private/tmp/orqanix-matrix-autonomous-20260929",
+  "rule": "All prior diagnostic attempts are retained separately. The final matrix uses autonomous Goose mode on isolated synthetic fixtures with all tools recorded, no benchmark command allow-list, and independent input-integrity and correctness checks. Only rows under its frozen fingerprint enter the comparison."
+}

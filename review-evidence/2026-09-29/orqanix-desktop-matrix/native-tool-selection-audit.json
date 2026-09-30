@@ -1,0 +1,423 @@
+{
+  "schema": "orqanix.native-selection-audit.v1",
+  "method": "Read-only source and recorded-action audit. No commands from recordings executed, no app or model launched, no provider requests made. Original frozen benchmark unchanged. No full upstream system-prompt bodies were retained by the recorder; prompt-delivery conclusions use code tracing, not a verbatim prompt capture. Causal effect of policy changes is untested.",
+  "rawSourceSha256": "83f1766f158bf8f582011fdbc5bc297663900696ada5e6490c25c36de375b9d7",
+  "curatedSourceSha256": "f438e6a8bfde0d7575c4e36cae7b2476132e3b8b0489fe4fb1acac16853181b1",
+  "sourceHashes": {
+    "crates/goose/src/agents/platform_extensions/developer/mod.rs": "73b27264675f2746c8ae16b93921cc1c33630c4678b70c90e330bd8737a4e079",
+    "crates/goose/src/agents/platform_extensions/native_engineering/mod.rs": "e63766a7b4c2df12a348841e389057e19a838a29131f623bead0d8a96bacc3a5",
+    "crates/goose/src/agents/platform_extensions/native_engineering/ast.rs": "fe1b9db3d0b0241b22b2c5bffdcc83d0c8e66156827107233385a6066c56d2c7",
+    "crates/goose/src/agents/platform_extensions/native_engineering/lsp.rs": "43d2d3477870d26e5416a3df9e687c416e6c9ca6fb0d6401ce02d35dfc210073",
+    "crates/goose/src/agents/platform_extensions/native_engineering/edits.rs": "e7703dd78cdfc33ccf772d461c695237714f74f9b330f0215ae8b9fef00809a0",
+    "crates/goose/src/agents/reply_parts.rs": "b83dc4cc9917479a06d165cff86ced1cf29b3df404ab6d646df2ec08feaf36b3",
+    "crates/goose/src/agents/state_machine/ops_toolcalling.rs": "7e406a9ffe994cf26f84d496cbd7e46bcf51fbcfb461145395ebd0963bf28a07",
+    "ui/desktop/src/orqaly/replyQuestionPrompt.ts": "8b0688044985e58fb5376b357f408779fefed7a490a453189c968170a412f4f6"
+  },
+  "totals": {
+    "nativeEnabledRows": 24,
+    "upstreamRequestsWithTools": 493,
+    "upstreamRequestsWithAllFourNativeTools": 493,
+    "ordinaryExistingSourceWrites": 29,
+    "ordinaryNewDocumentWrites": 24,
+    "rowsWithNativeReadThenOrdinarySourceWrite": 4,
+    "sourceWritesAfterNativeRead": 6
+  },
+  "rows": [
+    {
+      "key": "simple-r1-j1n1a1",
+      "difficulty": "simple",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "shell": 10,
+        "write": 2
+      },
+      "upstreamRequestsWithTools": 15,
+      "upstreamRequestsWithAllFourNativeTools": 15,
+      "ordinaryExistingSourceWrites": 1,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "simple-r1-j0n1a1",
+      "difficulty": "simple",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "shell": 19,
+        "write": 2
+      },
+      "upstreamRequestsWithTools": 25,
+      "upstreamRequestsWithAllFourNativeTools": 25,
+      "ordinaryExistingSourceWrites": 1,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "simple-r1-j1n1a0",
+      "difficulty": "simple",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "tree": 1,
+        "hashline_edit": 3,
+        "safe_edit_and_test": 1,
+        "shell": 5,
+        "write": 1
+      },
+      "upstreamRequestsWithTools": 14,
+      "upstreamRequestsWithAllFourNativeTools": 14,
+      "ordinaryExistingSourceWrites": 0,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "simple-r1-j0n1a0",
+      "difficulty": "simple",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "shell": 9,
+        "tree": 1,
+        "write": 2
+      },
+      "upstreamRequestsWithTools": 15,
+      "upstreamRequestsWithAllFourNativeTools": 15,
+      "ordinaryExistingSourceWrites": 1,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "medium-r1-j0n1a1",
+      "difficulty": "medium",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "shell": 20,
+        "write": 2
+      },
+      "upstreamRequestsWithTools": 25,
+      "upstreamRequestsWithAllFourNativeTools": 25,
+      "ordinaryExistingSourceWrites": 1,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "medium-r1-j1n1a1",
+      "difficulty": "medium",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "shell": 14,
+        "write": 2
+      },
+      "upstreamRequestsWithTools": 19,
+      "upstreamRequestsWithAllFourNativeTools": 19,
+      "ordinaryExistingSourceWrites": 1,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "medium-r1-j0n1a0",
+      "difficulty": "medium",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "shell": 17,
+        "tree": 1,
+        "write": 2
+      },
+      "upstreamRequestsWithTools": 23,
+      "upstreamRequestsWithAllFourNativeTools": 23,
+      "ordinaryExistingSourceWrites": 1,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "medium-r1-j1n1a0",
+      "difficulty": "medium",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "hashline_edit": 5,
+        "tree": 1,
+        "shell": 7,
+        "write": 2
+      },
+      "upstreamRequestsWithTools": 18,
+      "upstreamRequestsWithAllFourNativeTools": 18,
+      "ordinaryExistingSourceWrites": 1,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": [
+        {
+          "path": "src/triage.mjs",
+          "readToolId": "call_51468",
+          "writeToolId": "call_151173"
+        }
+      ]
+    },
+    {
+      "key": "complex-r1-j1n1a0",
+      "difficulty": "complex",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "hashline_edit": 7,
+        "tree": 1,
+        "shell": 8,
+        "write": 3
+      },
+      "upstreamRequestsWithTools": 22,
+      "upstreamRequestsWithAllFourNativeTools": 22,
+      "ordinaryExistingSourceWrites": 2,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": [
+        {
+          "path": "src/inventory.mjs",
+          "readToolId": "call_24434",
+          "writeToolId": "call_191987"
+        },
+        {
+          "path": "src/orders.mjs",
+          "readToolId": "call_135846",
+          "writeToolId": "call_163542"
+        }
+      ]
+    },
+    {
+      "key": "complex-r1-j0n1a0",
+      "difficulty": "complex",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "tree": 1,
+        "shell": 13,
+        "write": 3
+      },
+      "upstreamRequestsWithTools": 20,
+      "upstreamRequestsWithAllFourNativeTools": 20,
+      "ordinaryExistingSourceWrites": 2,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "complex-r1-j1n1a1",
+      "difficulty": "complex",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "tree": 1,
+        "shell": 13,
+        "write": 3
+      },
+      "upstreamRequestsWithTools": 20,
+      "upstreamRequestsWithAllFourNativeTools": 20,
+      "ordinaryExistingSourceWrites": 2,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "complex-r1-j0n1a1",
+      "difficulty": "complex",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "tree": 1,
+        "shell": 10,
+        "write": 4
+      },
+      "upstreamRequestsWithTools": 18,
+      "upstreamRequestsWithAllFourNativeTools": 18,
+      "ordinaryExistingSourceWrites": 3,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "simple-r2-j0n1a0",
+      "difficulty": "simple",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "shell": 17,
+        "hashline_edit": 1,
+        "safe_edit_and_test": 1,
+        "write": 1
+      },
+      "upstreamRequestsWithTools": 23,
+      "upstreamRequestsWithAllFourNativeTools": 23,
+      "ordinaryExistingSourceWrites": 0,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "simple-r2-j1n1a0",
+      "difficulty": "simple",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "tree": 1,
+        "shell": 15,
+        "hashline_edit": 1,
+        "safe_edit_and_test": 1,
+        "write": 1
+      },
+      "upstreamRequestsWithTools": 22,
+      "upstreamRequestsWithAllFourNativeTools": 22,
+      "ordinaryExistingSourceWrites": 0,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "simple-r2-j0n1a1",
+      "difficulty": "simple",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "shell": 14,
+        "hashline_edit": 1,
+        "safe_edit_and_test": 1,
+        "write": 1
+      },
+      "upstreamRequestsWithTools": 20,
+      "upstreamRequestsWithAllFourNativeTools": 20,
+      "ordinaryExistingSourceWrites": 0,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "simple-r2-j1n1a1",
+      "difficulty": "simple",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "shell": 14,
+        "write": 2
+      },
+      "upstreamRequestsWithTools": 19,
+      "upstreamRequestsWithAllFourNativeTools": 19,
+      "ordinaryExistingSourceWrites": 1,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "medium-r2-j1n1a0",
+      "difficulty": "medium",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "shell": 15,
+        "write": 2
+      },
+      "upstreamRequestsWithTools": 20,
+      "upstreamRequestsWithAllFourNativeTools": 20,
+      "ordinaryExistingSourceWrites": 1,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "medium-r2-j0n1a0",
+      "difficulty": "medium",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "tree": 1,
+        "hashline_edit": 6,
+        "shell": 8,
+        "write": 2
+      },
+      "upstreamRequestsWithTools": 20,
+      "upstreamRequestsWithAllFourNativeTools": 20,
+      "ordinaryExistingSourceWrites": 1,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": [
+        {
+          "path": "src/triage.mjs",
+          "readToolId": "call_131790",
+          "writeToolId": "call_198154"
+        }
+      ]
+    },
+    {
+      "key": "medium-r2-j1n1a1",
+      "difficulty": "medium",
+      "toolCalls": {
+        "todo__todo_write": 3,
+        "shell": 16,
+        "write": 2
+      },
+      "upstreamRequestsWithTools": 22,
+      "upstreamRequestsWithAllFourNativeTools": 22,
+      "ordinaryExistingSourceWrites": 1,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "medium-r2-j0n1a1",
+      "difficulty": "medium",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "tree": 1,
+        "shell": 15,
+        "write": 2
+      },
+      "upstreamRequestsWithTools": 21,
+      "upstreamRequestsWithAllFourNativeTools": 21,
+      "ordinaryExistingSourceWrites": 1,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "complex-r2-j0n1a1",
+      "difficulty": "complex",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "tree": 1,
+        "shell": 17,
+        "write": 3
+      },
+      "upstreamRequestsWithTools": 24,
+      "upstreamRequestsWithAllFourNativeTools": 24,
+      "ordinaryExistingSourceWrites": 2,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "complex-r2-j1n1a1",
+      "difficulty": "complex",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "shell": 13,
+        "write": 3
+      },
+      "upstreamRequestsWithTools": 19,
+      "upstreamRequestsWithAllFourNativeTools": 19,
+      "ordinaryExistingSourceWrites": 2,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "complex-r2-j0n1a0",
+      "difficulty": "complex",
+      "toolCalls": {
+        "todo__todo_write": 2,
+        "tree": 1,
+        "shell": 17,
+        "write": 3
+      },
+      "upstreamRequestsWithTools": 24,
+      "upstreamRequestsWithAllFourNativeTools": 24,
+      "ordinaryExistingSourceWrites": 2,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": []
+    },
+    {
+      "key": "complex-r2-j1n1a0",
+      "difficulty": "complex",
+      "toolCalls": {
+        "todo__todo_write": 3,
+        "hashline_edit": 6,
+        "tree": 1,
+        "shell": 11,
+        "write": 3
+      },
+      "upstreamRequestsWithTools": 25,
+      "upstreamRequestsWithAllFourNativeTools": 25,
+      "ordinaryExistingSourceWrites": 2,
+      "ordinaryNewDocumentWrites": 1,
+      "successfulNativeReadThenOrdinarySourceWrite": [
+        {
+          "path": "src/inventory.mjs",
+          "readToolId": "call_140295",
+          "writeToolId": "call_317910"
+        },
+        {
+          "path": "src/orders.mjs",
+          "readToolId": "call_219872",
+          "writeToolId": "call_202857"
+        }
+      ]
+    }
+  ]
+}

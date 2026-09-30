@@ -1,0 +1,19 @@
+{
+  "schema": "orqanix.native-integration-v6-build.v1",
+  "profile": "release",
+  "features": [
+    "rustls-tls"
+  ],
+  "codeMode": false,
+  "releaseEligible": false,
+  "baselineSha256": "fc0362cabcf40e2615d98baad6ecf7724d589a500c7621aacc32caf8ba56ab96",
+  "candidateSha256": "fc0362cabcf40e2615d98baad6ecf7724d589a500c7621aacc32caf8ba56ab96",
+  "arms": {
+    "default": "same rebuilt Goose binary, native off",
+    "candidate": "same rebuilt Goose binary, native AST/LSP selection v6 on"
+  },
+  "otherFlags": {
+    "jev": false,
+    "axwise": false
+  }
+}

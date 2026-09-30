@@ -1,0 +1,14 @@
+[
+  {
+    "key": "simple-default",
+    "status": "harness_or_app_error",
+    "error": "RENDERER_UNAVAILABLE",
+    "modelRequests": 0
+  },
+  {
+    "key": "simple-default",
+    "status": "harness_or_app_error",
+    "error": "RENDERER_UNAVAILABLE",
+    "modelRequests": 0
+  }
+]

@@ -1,0 +1,220 @@
+{
+  "kind": "paired-live-public-fastmcp-python-engine",
+  "model": "gemini-3.8-flash",
+  "budget": {
+    "maximum": 60,
+    "reserved": 52
+  },
+  "benchmarkCorrection": {
+    "reason": "Temporarily expose the normally resolved key to the unmodified Jev transport during review only; remove before storage.",
+    "excludedOperations": 6,
+    "sunkGeminiRequests": 11,
+    "initialCap": 40,
+    "correctedCap": 60
+  },
+  "summary": {
+    "discovery-standard-jev-off": {
+      "arms": {
+        "baseline": {
+          "attempts": 3,
+          "completed": 3,
+          "validSuccesses": 0,
+          "structurallyValidCompletions": 3,
+          "fileIntegrityPasses": 0,
+          "medianCompletedMs": 8546.679249964654,
+          "medianValidMs": null,
+          "geminiRequests": 3
+        },
+        "fixed": {
+          "attempts": 3,
+          "completed": 3,
+          "validSuccesses": 3,
+          "structurallyValidCompletions": 3,
+          "fileIntegrityPasses": 3,
+          "medianCompletedMs": 7982.248791027814,
+          "medianValidMs": 7982.248791027814,
+          "geminiRequests": 3
+        }
+      },
+      "validPairedSpeedups": [],
+      "speedupConclusion": "No valid paired successes; speedup is not established."
+    },
+    "discovery-deep-jev-off": {
+      "arms": {
+        "baseline": {
+          "attempts": 3,
+          "completed": 2,
+          "validSuccesses": 0,
+          "structurallyValidCompletions": 0,
+          "fileIntegrityPasses": 0,
+          "medianCompletedMs": 13286.13489610143,
+          "medianValidMs": null,
+          "geminiRequests": 5
+        },
+        "fixed": {
+          "attempts": 3,
+          "completed": 3,
+          "validSuccesses": 3,
+          "structurallyValidCompletions": 3,
+          "fileIntegrityPasses": 3,
+          "medianCompletedMs": 15157.8062500339,
+          "medianValidMs": 15157.8062500339,
+          "geminiRequests": 6
+        }
+      },
+      "validPairedSpeedups": [],
+      "speedupConclusion": "No valid paired successes; speedup is not established."
+    },
+    "discovery-deep-jev-on": {
+      "arms": {
+        "baseline": {
+          "attempts": 3,
+          "completed": 3,
+          "validSuccesses": 0,
+          "structurallyValidCompletions": 0,
+          "fileIntegrityPasses": 0,
+          "medianCompletedMs": 13509.879583027214,
+          "medianValidMs": null,
+          "geminiRequests": 6
+        },
+        "fixed": {
+          "attempts": 3,
+          "completed": 3,
+          "validSuccesses": 3,
+          "structurallyValidCompletions": 3,
+          "fileIntegrityPasses": 3,
+          "medianCompletedMs": 15852.002041880041,
+          "medianValidMs": 15852.002041880041,
+          "geminiRequests": 6
+        }
+      },
+      "validPairedSpeedups": [],
+      "speedupConclusion": "No valid paired successes; speedup is not established."
+    },
+    "simulation-deep-two-participants": {
+      "arms": {
+        "baseline": {
+          "attempts": 3,
+          "completed": 0,
+          "validSuccesses": 0,
+          "structurallyValidCompletions": 0,
+          "fileIntegrityPasses": 0,
+          "medianCompletedMs": null,
+          "medianValidMs": null,
+          "geminiRequests": 6
+        },
+        "fixed": {
+          "attempts": 3,
+          "completed": 3,
+          "validSuccesses": 3,
+          "structurallyValidCompletions": 3,
+          "fileIntegrityPasses": 3,
+          "medianCompletedMs": 5797.201666980982,
+          "medianValidMs": 5797.201666980982,
+          "geminiRequests": 6
+        }
+      },
+      "validPairedSpeedups": [],
+      "speedupConclusion": "No valid paired successes; speedup is not established."
+    }
+  },
+  "serviceReceipts": {
+    "eligibleGemini": {
+      "calls": 41,
+      "statuses": {
+        "200": 40,
+        "503": 1
+      },
+      "returnedModels": [
+        "gemini-3.8-flash"
+      ],
+      "successfulHttpDurationMs": {
+        "min": 3498.6335828434676,
+        "median": 5911.520187975839,
+        "max": 10050.68570910953
+      },
+      "reportedTokens": {
+        "prompt_tokens": 38934,
+        "completion_tokens": 16919,
+        "total_tokens": 88105
+      }
+    },
+    "eligibleJev": {
+      "calls": 6,
+      "statuses": {
+        "200": 6
+      },
+      "returnedModels": [
+        "jev-1.13.0"
+      ],
+      "successfulHttpDurationMs": {
+        "min": 546.688208123669,
+        "median": 567.0109164202586,
+        "max": 697.5915841758251
+      },
+      "reportedTokens": {
+        "prompt_tokens": null,
+        "completion_tokens": null,
+        "total_tokens": null
+      },
+      "tokenUsageNote": "TypeSafe did not report these token fields; null means unknown, not zero usage."
+    },
+    "includingExcludedGemini": {
+      "calls": 52,
+      "statuses": {
+        "200": 50,
+        "403": 1,
+        "503": 1
+      },
+      "returnedModels": [
+        "gemini-3.8-flash"
+      ],
+      "successfulHttpDurationMs": {
+        "min": 3498.6335828434676,
+        "median": 6049.097937415354,
+        "max": 10213.48425000906
+      },
+      "reportedTokens": {
+        "prompt_tokens": 52183,
+        "completion_tokens": 21170,
+        "total_tokens": 114212
+      }
+    }
+  },
+  "fixedJevFlagComparison": {
+    "offMedianMs": 15157.8062500339,
+    "onMedianMs": 15852.002041880041,
+    "onMinusOffMs": 694.1957918461412,
+    "onVersusOffRatio": 1.0457979063985323,
+    "actualFastPathPasses": 0,
+    "jevReviewResults": [
+      {
+        "status": "not_evaluated",
+        "reason": "uncertain",
+        "advisory": true,
+        "reviewed_sha256": "2011b6a0186b6d96f0f06da636dd320d407545a712388805a661e859ad75ba6c",
+        "decision": null
+      },
+      {
+        "status": "not_evaluated",
+        "reason": "uncertain",
+        "advisory": true,
+        "reviewed_sha256": "5775a5a1a0453c02334ca73340ee05747bf8b1ab0c8ed9e5ddefc967267e63e2",
+        "decision": null
+      },
+      {
+        "status": "not_evaluated",
+        "reason": "uncertain",
+        "advisory": true,
+        "reviewed_sha256": "527c56fe8a0e218fb67299e1785497b21bfbe164c9dbfe7c8e8f176d8b435511",
+        "decision": null
+      }
+    ],
+    "interpretation": "No observed review acceleration: Jev returned uncertain and all fixed flag-on runs used two Gemini calls. Three samples per flag, no significance or broad speedup claim."
+  },
+  "fixedSnapshotMatchesOriginalRuntime": {
+    "matches": true,
+    "differentFiles": []
+  },
+  "auditSelfTest": "Offline synthetic receipt fixtures confirm actual Jev binding can pass without new persisted metadata; wrong reviewed digest fails."
+}

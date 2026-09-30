@@ -1,0 +1,21 @@
+✔ fixed 3.8 Flash/high contract, eight counterbalanced turns and bounded CLI options (0.857583ms)
+✔ resume retains failed rows and subtracts prior paid calls, but rejects changed contract or runtime (0.778958ms)
+✔ recovered transient HTTP errors preserve identity verification while missing or wrong successful identities fail (0.103625ms)
+✔ CLI exit status fails unaccepted or unfinished runs and fingerprints the actual permission policy (0.178417ms)
+✔ permission policy bounds files, argv, digest and treatment, rejecting shell escapes (0.32225ms)
+✔ canonical metadata survives ACP labels and permissions use trusted original tool name (0.225458ms)
+✔ child environment excludes Google credential and fixes loop/provider identity (0.073333ms)
+✔ offline proxy refuses inference and unauthorized calls without any upstream access (15.499666ms)
+✔ live proxy preserves fixed provider identity, normalizes sampling fields and enforces total HTTP budget with fake transport (5.834834ms)
+✔ unsupported provider configuration and wrong returned model abort the active run immediately (4.977583ms)
+✔ completed transport alone cannot pass native treatment evidence (0.558958ms)
+✔ recorder extracts native structured receipts and original canonical names (0.12425ms)
+✔ independent acceptance detects original bug and missing regression, accepts actual correction (701.265791ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 778.904792

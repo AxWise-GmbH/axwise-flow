@@ -1,0 +1,19 @@
+{
+  "schema": "orqanix.native-efficiency-build.v1",
+  "profile": "debug",
+  "version": "1.50.0",
+  "features": [
+    "rustls-tls"
+  ],
+  "codeMode": false,
+  "releaseEligible": false,
+  "baselineSha256": "ff80a98ec86c080d63894aaa15f419f20fae3b78967e211d33b1cd02f0f446a2",
+  "candidateSha256": "0daf15f4e437d45101e0ed402ffa003d610ba6c4bddc6c4c03b95d85faeda605",
+  "arms": {
+    "default": "old binary, native off",
+    "previous": "old binary, native on",
+    "candidate": "optimized binary, native on"
+  },
+  "packagedBaselineSha256": "ff80a98ec86c080d63894aaa15f419f20fae3b78967e211d33b1cd02f0f446a2",
+  "packagedCandidateSha256": "0daf15f4e437d45101e0ed402ffa003d610ba6c4bddc6c4c03b95d85faeda605"
+}

@@ -1,0 +1,472 @@
+{
+  "schema": "orqanix.performance-review.v1",
+  "date": "2026-09-29",
+  "reportSha256": "3c1bccb30d822f4ee4c3693d670ce3b5eeb2800b1fb019b7f5d9e0ae9c80926a",
+  "sourceMatchesFinalV3": {
+    "crates/goose/src/agents/platform_extensions/native_engineering/ast.rs": true,
+    "crates/goose/src/agents/platform_extensions/native_engineering/lsp.rs": true,
+    "crates/goose/src/agents/platform_extensions/native_engineering/mod.rs": true,
+    "crates/goose/src/agents/platform_extensions/native_engineering/selection.md": true,
+    "crates/goose/src/agents/platform_extensions/native_engineering/README.md": true,
+    "crates/goose/src/agents/platform_extensions/developer/mod.rs": true,
+    "crates/goose/tests/native_engineering_integration.rs": true,
+    "goose-self-test.yaml": true,
+    "crates/goose/src/agents/extension_manager.rs": true,
+    "crates/goose/tests/fixtures/native_lsp_server.mjs": true
+  },
+  "rows": [
+    {
+      "key": "control-default-1",
+      "arm": "default",
+      "task": "control",
+      "seconds": 23.004,
+      "passed": true,
+      "originalMutationDetected": true,
+      "requests": 12,
+      "promptTokens": 86810,
+      "tools": {
+        "todo__todo_write": 2,
+        "shell": 6,
+        "edit": 1,
+        "write": 1
+      },
+      "guardedOutput": {
+        "inputJsonBytes": 0,
+        "outputTextBytes": 0,
+        "lineAnchors": 0,
+        "lineAnchorCharacters": 0,
+        "fileHashCharacters": 0
+      },
+      "commandCounts": {
+        "shellCommandsContainingTestFlag": 1,
+        "shellCommandsContainingTypecheck": 1
+      },
+      "toolIntervalsMs": {
+        "todo__todo_write": 21,
+        "shell": 1891,
+        "edit": 4,
+        "write": 12
+      },
+      "sendToAcpRequestMs": 194,
+      "inventorySize": 22
+    },
+    {
+      "key": "control-candidate-1",
+      "arm": "candidate",
+      "task": "control",
+      "seconds": 33.719,
+      "passed": true,
+      "originalMutationDetected": true,
+      "requests": 17,
+      "promptTokens": 203216,
+      "tools": {
+        "todo__todo_write": 2,
+        "hashline_edit:read": 5,
+        "tree": 2,
+        "hashline_edit:edit": 1,
+        "write": 1,
+        "shell": 4
+      },
+      "guardedOutput": {
+        "inputJsonBytes": 669,
+        "outputTextBytes": 6917,
+        "lineAnchors": 30,
+        "lineAnchorCharacters": 1985,
+        "fileHashCharacters": 512
+      },
+      "commandCounts": {
+        "shellCommandsContainingTestFlag": 1,
+        "shellCommandsContainingTypecheck": 1
+      },
+      "toolIntervalsMs": {
+        "todo__todo_write": 35,
+        "hashline_edit": 86,
+        "tree": 23,
+        "write": 1,
+        "shell": 2484
+      },
+      "sendToAcpRequestMs": 169,
+      "inventorySize": 26
+    },
+    {
+      "key": "ast-candidate-1",
+      "arm": "candidate",
+      "task": "ast",
+      "seconds": 70.373,
+      "passed": true,
+      "originalMutationDetected": true,
+      "requests": 20,
+      "promptTokens": 456212,
+      "tools": {
+        "todo__todo_write": 2,
+        "tree": 1,
+        "hashline_edit:read_many": 3,
+        "shell": 8,
+        "ast_search": 1,
+        "hashline_edit:edit": 2,
+        "write": 1
+      },
+      "guardedOutput": {
+        "inputJsonBytes": 2796,
+        "outputTextBytes": 20228,
+        "lineAnchors": 102,
+        "lineAnchorCharacters": 6758,
+        "fileHashCharacters": 960
+      },
+      "commandCounts": {
+        "shellCommandsContainingTestFlag": 3,
+        "shellCommandsContainingTypecheck": 3
+      },
+      "toolIntervalsMs": {
+        "todo__todo_write": 47,
+        "tree": 12,
+        "hashline_edit": 117,
+        "shell": 3710,
+        "ast_search": 24,
+        "write": 22
+      },
+      "sendToAcpRequestMs": 200,
+      "inventorySize": 26
+    },
+    {
+      "key": "ast-default-1",
+      "arm": "default",
+      "task": "ast",
+      "seconds": 64.037,
+      "passed": true,
+      "originalMutationDetected": true,
+      "requests": 22,
+      "promptTokens": 272253,
+      "tools": {
+        "todo__todo_write": 2,
+        "shell": 15,
+        "edit": 2,
+        "write": 1
+      },
+      "guardedOutput": {
+        "inputJsonBytes": 0,
+        "outputTextBytes": 0,
+        "lineAnchors": 0,
+        "lineAnchorCharacters": 0,
+        "fileHashCharacters": 0
+      },
+      "commandCounts": {
+        "shellCommandsContainingTestFlag": 3,
+        "shellCommandsContainingTypecheck": 4
+      },
+      "toolIntervalsMs": {
+        "todo__todo_write": 27,
+        "shell": 6057,
+        "edit": 11,
+        "write": 15
+      },
+      "sendToAcpRequestMs": 188,
+      "inventorySize": 22
+    },
+    {
+      "key": "lsp-default-1",
+      "arm": "default",
+      "task": "lsp",
+      "seconds": 117.833,
+      "passed": true,
+      "originalMutationDetected": true,
+      "requests": 44,
+      "promptTokens": 1072253,
+      "tools": {
+        "todo__todo_write": 2,
+        "shell": 25,
+        "edit": 14,
+        "write": 1
+      },
+      "guardedOutput": {
+        "inputJsonBytes": 0,
+        "outputTextBytes": 0,
+        "lineAnchors": 0,
+        "lineAnchorCharacters": 0,
+        "fileHashCharacters": 0
+      },
+      "commandCounts": {
+        "shellCommandsContainingTestFlag": 4,
+        "shellCommandsContainingTypecheck": 4
+      },
+      "toolIntervalsMs": {
+        "todo__todo_write": 39,
+        "shell": 10463,
+        "edit": 240,
+        "write": 20
+      },
+      "sendToAcpRequestMs": 206,
+      "inventorySize": 22
+    },
+    {
+      "key": "lsp-candidate-1",
+      "arm": "candidate",
+      "task": "lsp",
+      "seconds": 176.292,
+      "passed": true,
+      "originalMutationDetected": true,
+      "requests": 58,
+      "promptTokens": 2495746,
+      "tools": {
+        "todo__todo_write": 2,
+        "hashline_edit:read": 11,
+        "shell": 19,
+        "hashline_edit:read_many": 4,
+        "tree": 1,
+        "lsp_query": 4,
+        "hashline_edit:edit": 14,
+        "write": 1
+      },
+      "guardedOutput": {
+        "inputJsonBytes": 8102,
+        "outputTextBytes": 46798,
+        "lineAnchors": 149,
+        "lineAnchorCharacters": 9840,
+        "fileHashCharacters": 5056
+      },
+      "commandCounts": {
+        "shellCommandsContainingTestFlag": 4,
+        "shellCommandsContainingTypecheck": 4
+      },
+      "toolIntervalsMs": {
+        "todo__todo_write": 60,
+        "hashline_edit": 963,
+        "shell": 7635,
+        "tree": 26,
+        "lsp_query": 553,
+        "write": 59
+      },
+      "sendToAcpRequestMs": 205,
+      "inventorySize": 26
+    },
+    {
+      "key": "control-candidate-2",
+      "arm": "candidate",
+      "task": "control",
+      "seconds": 28.56,
+      "passed": true,
+      "originalMutationDetected": true,
+      "requests": 14,
+      "promptTokens": 177494,
+      "tools": {
+        "todo__todo_write": 2,
+        "hashline_edit:read": 2,
+        "tree": 1,
+        "hashline_edit:read_many": 1,
+        "write": 1,
+        "safe_edit_and_test": 1,
+        "shell": 4
+      },
+      "guardedOutput": {
+        "inputJsonBytes": 759,
+        "outputTextBytes": 10966,
+        "lineAnchors": 49,
+        "lineAnchorCharacters": 3247,
+        "fileHashCharacters": 640
+      },
+      "commandCounts": {
+        "shellCommandsContainingTestFlag": 1,
+        "shellCommandsContainingTypecheck": 1
+      },
+      "toolIntervalsMs": {
+        "todo__todo_write": 41,
+        "hashline_edit": 35,
+        "tree": 6,
+        "write": 17,
+        "safe_edit_and_test": 121,
+        "shell": 2520
+      },
+      "sendToAcpRequestMs": 184,
+      "inventorySize": 26
+    },
+    {
+      "key": "control-default-2",
+      "arm": "default",
+      "task": "control",
+      "seconds": 30.367,
+      "passed": true,
+      "originalMutationDetected": true,
+      "requests": 16,
+      "promptTokens": 125446,
+      "tools": {
+        "todo__todo_write": 2,
+        "shell": 10,
+        "write": 2
+      },
+      "guardedOutput": {
+        "inputJsonBytes": 0,
+        "outputTextBytes": 0,
+        "lineAnchors": 0,
+        "lineAnchorCharacters": 0,
+        "fileHashCharacters": 0
+      },
+      "commandCounts": {
+        "shellCommandsContainingTestFlag": 2,
+        "shellCommandsContainingTypecheck": 2
+      },
+      "toolIntervalsMs": {
+        "todo__todo_write": 33,
+        "shell": 2320,
+        "write": 15
+      },
+      "sendToAcpRequestMs": 176,
+      "inventorySize": 22
+    },
+    {
+      "key": "ast-default-2",
+      "arm": "default",
+      "task": "ast",
+      "seconds": 52.197,
+      "passed": true,
+      "originalMutationDetected": true,
+      "requests": 23,
+      "promptTokens": 235861,
+      "tools": {
+        "todo__todo_write": 2,
+        "shell": 16,
+        "write": 3
+      },
+      "guardedOutput": {
+        "inputJsonBytes": 0,
+        "outputTextBytes": 0,
+        "lineAnchors": 0,
+        "lineAnchorCharacters": 0,
+        "fileHashCharacters": 0
+      },
+      "commandCounts": {
+        "shellCommandsContainingTestFlag": 3,
+        "shellCommandsContainingTypecheck": 3
+      },
+      "toolIntervalsMs": {
+        "todo__todo_write": 32,
+        "shell": 3823,
+        "write": 31
+      },
+      "sendToAcpRequestMs": 212,
+      "inventorySize": 22
+    },
+    {
+      "key": "ast-candidate-2",
+      "arm": "candidate",
+      "task": "ast",
+      "seconds": 76.704,
+      "passed": true,
+      "originalMutationDetected": true,
+      "requests": 24,
+      "promptTokens": 622321,
+      "tools": {
+        "todo__todo_write": 2,
+        "hashline_edit:read": 3,
+        "tree": 1,
+        "hashline_edit:read_many": 2,
+        "shell": 11,
+        "hashline_edit:edit": 2,
+        "write": 1
+      },
+      "guardedOutput": {
+        "inputJsonBytes": 2430,
+        "outputTextBytes": 46146,
+        "lineAnchors": 289,
+        "lineAnchorCharacters": 19366,
+        "fileHashCharacters": 960
+      },
+      "commandCounts": {
+        "shellCommandsContainingTestFlag": 4,
+        "shellCommandsContainingTypecheck": 4
+      },
+      "toolIntervalsMs": {
+        "todo__todo_write": 66,
+        "hashline_edit": 132,
+        "tree": 13,
+        "shell": 6221,
+        "write": 20
+      },
+      "sendToAcpRequestMs": 208,
+      "inventorySize": 26
+    },
+    {
+      "key": "lsp-candidate-2",
+      "arm": "candidate",
+      "task": "lsp",
+      "seconds": 153.838,
+      "passed": true,
+      "originalMutationDetected": true,
+      "requests": 50,
+      "promptTokens": 2039871,
+      "tools": {
+        "todo__todo_write": 2,
+        "hashline_edit:read": 10,
+        "shell": 13,
+        "tree": 1,
+        "hashline_edit:read_many": 3,
+        "lsp_query": 4,
+        "hashline_edit:edit": 14,
+        "write": 1
+      },
+      "guardedOutput": {
+        "inputJsonBytes": 8031,
+        "outputTextBytes": 46214,
+        "lineAnchors": 148,
+        "lineAnchorCharacters": 9774,
+        "fileHashCharacters": 4992
+      },
+      "commandCounts": {
+        "shellCommandsContainingTestFlag": 4,
+        "shellCommandsContainingTypecheck": 4
+      },
+      "toolIntervalsMs": {
+        "todo__todo_write": 56,
+        "hashline_edit": 1153,
+        "shell": 6697,
+        "tree": 6,
+        "lsp_query": 624,
+        "write": 69
+      },
+      "sendToAcpRequestMs": 163,
+      "inventorySize": 26
+    },
+    {
+      "key": "lsp-default-2",
+      "arm": "default",
+      "task": "lsp",
+      "seconds": 99.74,
+      "passed": true,
+      "originalMutationDetected": true,
+      "requests": 42,
+      "promptTokens": 899084,
+      "tools": {
+        "todo__todo_write": 2,
+        "shell": 22,
+        "tree": 1,
+        "edit": 14,
+        "write": 1
+      },
+      "guardedOutput": {
+        "inputJsonBytes": 0,
+        "outputTextBytes": 0,
+        "lineAnchors": 0,
+        "lineAnchorCharacters": 0,
+        "fileHashCharacters": 0
+      },
+      "commandCounts": {
+        "shellCommandsContainingTestFlag": 4,
+        "shellCommandsContainingTypecheck": 4
+      },
+      "toolIntervalsMs": {
+        "todo__todo_write": 36,
+        "shell": 6625,
+        "tree": 12,
+        "edit": 211,
+        "write": 23
+      },
+      "sendToAcpRequestMs": 195,
+      "inventorySize": 22
+    }
+  ],
+  "notes": [
+    "Read-only reanalysis of existing trials; no new inference or timing runs.",
+    "Guarded output counts actual text bytes; anchor counts count characters, not tokenizer tokens or billing.",
+    "Command counts are lexical counts of shell tool arguments, not independent assertions of execution.",
+    "Tool intervals can overlap; do not sum them as a causal wall-time decomposition."
+  ]
+}

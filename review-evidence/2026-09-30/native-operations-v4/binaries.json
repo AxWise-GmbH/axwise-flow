@@ -1,0 +1,19 @@
+{
+  "schema": "orqanix.native-operations-v4-build.v1",
+  "profile": "release",
+  "features": [
+    "rustls-tls"
+  ],
+  "codeMode": false,
+  "releaseEligible": false,
+  "baselineSha256": "3b1437b939081668c93b0e5451c28b2c7aebc63e2a645e84edbb2fec411e6198",
+  "candidateSha256": "3b1437b939081668c93b0e5451c28b2c7aebc63e2a645e84edbb2fec411e6198",
+  "arms": {
+    "default": "same rebuilt Goose binary, native off",
+    "candidate": "same rebuilt Goose binary, native operations v4 on"
+  },
+  "otherFlags": {
+    "jev": false,
+    "axwise": false
+  }
+}

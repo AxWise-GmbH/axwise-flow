@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 from pathlib import Path
 import sys
 
@@ -22,12 +21,12 @@ def main(argv=None):
     if str(kernel_root) not in sys.path:
         sys.path.insert(0, str(kernel_root))
 
-    if options.config:
-        os.environ["AXWISE_CONFIG"] = options.config
-    if options.state_dir:
-        os.environ["AXWISE_STATE_DIR"] = options.state_dir
-
-    from backend.services.local_axwise.fastmcp_server import mcp
+    from backend.services.local_axwise.configuration import ConfigurationError
+    from backend.services.local_axwise.fastmcp_server import configure_runtime, mcp
+    try:
+        configure_runtime(options.config, state_dir=options.state_dir)
+    except ConfigurationError as error:
+        parser.error(str(error))
     mcp.run(transport=options.transport)
 
 

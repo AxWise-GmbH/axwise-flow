@@ -1,0 +1,12 @@
+{
+  "v7DeveloperInstructionsExactlyMatchV4": true,
+  "originalCheckoutDeveloperInstructionsAlreadyMatchV4": true,
+  "previousV6p1TimedBuildHadDifferentDeveloperInstructions": true,
+  "benchmarkValidity": "Timed apps use verified frozen source and binary manifests; their provenance checks validate those sources, not every file in the original checkout. Original-source sync receipts covered the listed owned files only.",
+  "hashes": {
+    "v4": "2b2bf632feedc8e99a1e651b2d2f39cb105a6d55cfbefc30e3753a777661edb1",
+    "v6.1-timed": "25335e85a3db7ff0a787a4b84758fc933dc84b4493bbf8229a305e16ad57a8f4",
+    "v7": "2b2bf632feedc8e99a1e651b2d2f39cb105a6d55cfbefc30e3753a777661edb1",
+    "original-before-v7": "2b2bf632feedc8e99a1e651b2d2f39cb105a6d55cfbefc30e3753a777661edb1"
+  }
+}

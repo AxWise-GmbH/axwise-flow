@@ -1,0 +1,113 @@
+{
+  "candidate": "Experimental v7, native extension 1.5.2; not installed Orqanix 2.4.2",
+  "historical21Percent": {
+    "candidate": "experimental v4 Rust build",
+    "defaultSeconds": 388.75399999999996,
+    "candidateSeconds": 306.607,
+    "nativeToolCalls": {
+      "ast": 0,
+      "lsp": 0
+    },
+    "meaning": "Mode-on improvement in that 12-run batch; cannot attribute to AST/LSP or OMP, or promise repeatability."
+  },
+  "implementation": "v4 ordinary developer instructions plus optional native/batch guidance, retaining v6.1 real AST/LSP/guarded batch edits and recovery; no OMP",
+  "comparison": "Same rebuilt desktop package, nativeGemsEnabled off vs on; Gemini 3.8 Flash, Jev/Axwise/Code Mode off; two repeats per task and arm",
+  "tasks": {
+    "control": {
+      "default": 36.6695,
+      "candidate": 36.775999999999996,
+      "candidateTimeChangePercent": 0.2904321029738588
+    },
+    "ast": {
+      "default": 66.56899999999999,
+      "candidate": 92.9415,
+      "candidateTimeChangePercent": 39.61678859529214
+    },
+    "lsp": {
+      "default": 140.308,
+      "candidate": 113.8185,
+      "candidateTimeChangePercent": -18.879536448384982
+    }
+  },
+  "totals": {
+    "default": {
+      "count": 6,
+      "passed": 6,
+      "totalSeconds": 487.093,
+      "medianSeconds": 66.56899999999999,
+      "requests": 167,
+      "inputTokens": 2987631
+    },
+    "candidate": {
+      "count": 6,
+      "passed": 6,
+      "totalSeconds": 487.072,
+      "medianSeconds": 90.13550000000001,
+      "requests": 169,
+      "inputTokens": 4158030
+    }
+  },
+  "all12QualityPassed": true,
+  "provenancePassed": true,
+  "performanceAccepted": false,
+  "interpretation": "No aggregate speedup reproduced: 487.093 seconds off vs 487.072 on. Per-task no-slower gate failed. Two repeats do not establish general equivalence, superiority, or quality improvement.",
+  "traceFindings": {
+    "astSearchMilliseconds": [
+      23,
+      22
+    ],
+    "slowStructuralTrial": {
+      "key": "ast-candidate-2",
+      "safeEditTests": 13,
+      "allSafeEditTestsPassed": true,
+      "providerRequests": 48,
+      "newlineOmissionsBeforeFollowingLine": 16,
+      "explanation": "Exact-text replacements without trailing newline join the next line. Snapshots show Goose repeatedly moving/fixing these joined boundaries, rereading and rechecking after each passing change. This is an editing-contract/workflow gap; AST execution is not the direct latency bottleneck."
+    },
+    "rename": "First candidate used real LSP, reviewed and applied a 14-file plan after one correctly rejected STALE_SCOPE attempt following test-file creation. Second candidate used only ordinary developer tools. The combined rename speedup cannot be credited entirely to LSP.",
+    "diagnostics": "Two optional diagnostics calls in first structural candidate, 444/402 ms; no diagnostic timeouts.",
+    "requests": {
+      "off": 167,
+      "on": 169
+    }
+  },
+  "remainingWork": [
+    "Make whole-line edit boundaries reliable, preserving the appropriate LF/CRLF unless exact joining is requested; cover middle-file, deletion and EOF behavior with tests.",
+    "Reduce avoidable inference/read/check cycles by applying one complete coherent batch; skip unchanged-context reinspection without suppressing validation after real edits.",
+    "Use AST/LSP for concrete structural or binding questions; simple tasks should keep ordinary tool workflow. Current mode is advisory, with all four schemas advertised, not automatic task classification."
+  ],
+  "distribution": {
+    "sourceSyncedAndVerified": {
+      "frozenFiles": 708,
+      "mismatches": [],
+      "allMatch": true
+    },
+    "rustReleaseBuilt": true,
+    "installedAppChanged": false,
+    "featureFlagRemainsOptional": true,
+    "releaseEligible": false
+  },
+  "startup": "Initial package failed before Send/model calls while Chromium cookie encryption key load awaited Keychain. Preserved separately. Disposable benchmark profiles used the official Electron mock-cookie-Keychain switch equally in both arms; real parent OAuth and TLS fingerprint validation unchanged. This is not a product fix.",
+  "evidence": {
+    "report": "report.json",
+    "summary": "summary.json",
+    "verification": "verification.json",
+    "operations": "operation-diagnostics.json",
+    "originalFailure": "startup-failed-attempt/",
+    "sourceSync": "source-sync.json"
+  },
+  "limitations": [
+    "Two repetitions per task/arm; exploratory, not statistical equivalence.",
+    "Equal weighting of three tasks is not a typical daily workload.",
+    "Historical v4 and current v7 batches are not a matched release-vs-release causal comparison.",
+    "No automatic task classifier or dynamically hidden tool schemas implemented."
+  ],
+  "postBenchmarkStartupCheck": {
+    "check": "normal Keychain startup after user approval",
+    "status": "preflight_ready",
+    "modelRequests": 0,
+    "mockCookieKeychain": false,
+    "noTaskInference": true,
+    "meaning": "Normal ad-hoc v7 app startup now works after local Keychain access approval. Earlier 12 task timings remain unchanged and used identical test-only cookie Keychain handling in both arms."
+  }
+}

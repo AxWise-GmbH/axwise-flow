@@ -1,0 +1,124 @@
+{
+  "summary": "Evidence-backed acceptance plan for warehouse order allocation covering atomic reservation, priority processing, idempotent order IDs, and immutable handling of invalid orders.",
+  "requirements": [
+    {
+      "id": "atomic_reservation",
+      "description": "All lines in an order must be reserved atomically. Repeated SKUs across lines are summed prior to stock evaluation; if any SKU has insufficient stock, none are allocated.",
+      "sources": [
+        {
+          "id": "E1",
+          "quote": "Reserve all lines of an order together or reserve nothing; repeated SKU lines must be added together before checking stock."
+        }
+      ],
+      "acceptance": {
+        "given": "Current warehouse stock and an order containing multiple line items, including potential duplicate SKUs",
+        "when": "The order reservation is evaluated against stock",
+        "then": "Either all required quantities are deducted together if stock is sufficient, or stock remains untouched and insufficient_stock is returned"
+      }
+    },
+    {
+      "id": "expedited_first",
+      "description": "Expedited orders take precedence over normal orders regardless of arrival order, while orders within the same priority level preserve their relative input sequence.",
+      "sources": [
+        {
+          "id": "E2",
+          "quote": "Expedited orders get stock before normal orders; preserve arrival order within each priority."
+        }
+      ],
+      "acceptance": {
+        "given": "A list of orders with mixed expedited and normal priorities",
+        "when": "fulfillOrders allocates stock across orders",
+        "then": "All valid expedited orders are fulfilled in arrival order first, followed by valid normal orders in arrival order"
+      }
+    },
+    {
+      "id": "idempotent_ids",
+      "description": "Each order ID is processed once based on its first occurrence; any subsequent orders sharing the same ID are completely ignored.",
+      "sources": [
+        {
+          "id": "E3",
+          "quote": "An order ID is idempotent: process only its first occurrence and ignore later duplicates."
+        }
+      ],
+      "acceptance": {
+        "given": "An order sequence containing duplicate order IDs",
+        "when": "Orders are ingested and evaluated for fulfillment",
+        "then": "The first occurrence claims the ID and only that occurrence is evaluated or rejected, while later occurrences are ignored entirely"
+      }
+    },
+    {
+      "id": "invalid_immutable",
+      "description": "Orders with invalid lines or invalid metadata are rejected without modifying stock, and caller input objects remain unmutated.",
+      "sources": [
+        {
+          "id": "E4",
+          "quote": "Invalid order lines must be rejected without changing stock, and callers must retain their original input objects."
+        }
+      ],
+      "acceptance": {
+        "given": "Input stock and orders containing invalid lines, malformed structures, or unfulfillable quantities",
+        "when": "Allocation or reservation functions run",
+        "then": "Failure reasons are recorded, stock is unchanged, and all input objects and arrays remain strictly unmutated"
+      }
+    }
+  ],
+  "assumptions": [
+    "Stock is represented as a plain object mapping nonempty string SKU keys to nonnegative safe-integer stock counts.",
+    "Order priorities are strictly 'expedited' or 'normal'; other priority values result in invalid_order rejections.",
+    "Orders with missing or invalid IDs are rejected with id: null and reason: 'invalid_order'.",
+    "Repeated line items for the same SKU within an order that overflow safe integers fail with reason: 'invalid_lines'."
+  ],
+  "scenarios": [
+    {
+      "id": "priority_and_atomicity",
+      "input": {
+        "stock": { "a": 3, "b": 1 },
+        "orders": [
+          { "id": "normal", "priority": "normal", "lines": [{ "sku": "a", "quantity": 2 }] },
+          { "id": "fast", "priority": "expedited", "lines": [{ "sku": "a", "quantity": 2 }, { "sku": "b", "quantity": 1 }] }
+        ]
+      },
+      "expected": {
+        "acceptedIds": ["fast"],
+        "rejected": [
+          { "id": "normal", "reason": "insufficient_stock" }
+        ],
+        "remaining": { "a": 1, "b": 0 }
+      }
+    },
+    {
+      "id": "idempotent_duplicate_orders",
+      "input": {
+        "stock": { "sku1": 5 },
+        "orders": [
+          { "id": "dup1", "priority": "normal", "lines": [{ "sku": "sku1", "quantity": 3 }] },
+          { "id": "dup1", "priority": "expedited", "lines": [{ "sku": "sku1", "quantity": 3 }] }
+        ]
+      },
+      "expected": {
+        "acceptedIds": ["dup1"],
+        "rejected": [],
+        "remaining": { "sku1": 2 }
+      }
+    },
+    {
+      "id": "invalid_order_and_immutability",
+      "input": {
+        "stock": { "x": 10 },
+        "orders": [
+          { "id": "bad_prio", "priority": "urgent", "lines": [{ "sku": "x", "quantity": 1 }] },
+          { "priority": "normal", "lines": [{ "sku": "x", "quantity": 1 }] },
+          { "id": "valid_norm", "priority": "normal", "lines": [{ "sku": "x", "quantity": 4 }] }
+        ]
+      },
+      "expected": {
+        "acceptedIds": ["valid_norm"],
+        "rejected": [
+          { "id": "bad_prio", "reason": "invalid_order" },
+          { "id": null, "reason": "invalid_order" }
+        ],
+        "remaining": { "x": 6 }
+      }
+    }
+  ]
+}

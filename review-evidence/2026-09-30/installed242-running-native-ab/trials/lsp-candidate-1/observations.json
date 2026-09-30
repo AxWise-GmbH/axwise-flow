@@ -1,0 +1,4007 @@
+{
+  "schema": "running242-readonly-session-observer.v1",
+  "key": "lsp-candidate-1",
+  "startedAtMs": 1790772330254,
+  "observedAtMs": 1790772775209,
+  "sessions": [
+    {
+      "id": "20260930_8",
+      "working_dir": "/private/tmp/orqanix-installed242-live-20260930/lsp-candidate-1/fixture/workspace",
+      "created_at": "2026-09-30 12:45:41",
+      "updated_at": "2026-09-30 12:52:04",
+      "provider_name": "orqaly",
+      "model_config_json": "{\"model_name\":\"orqaly-gemini\",\"temperature\":null,\"max_tokens\":65536,\"toolshim\":false,\"toolshim_model\":null,\"request_params\":{\"thinking_effort\":\"low\"}}",
+      "goose_mode": "smart_approve",
+      "input_tokens": 52525,
+      "output_tokens": 1105,
+      "accumulated_input_tokens": 1638323,
+      "accumulated_output_tokens": 4561,
+      "accumulated_cost": 0.3114286499999999,
+      "mounts": [
+        "autovisualiser",
+        "chatrecall",
+        "tom",
+        "goose Docs",
+        "skills",
+        "desktop-utilities",
+        "Chrome DevTools",
+        "apps",
+        "analyze",
+        "Extension Manager",
+        "todo",
+        "memory",
+        "summon",
+        "developer",
+        "orqanix-engineering"
+      ]
+    }
+  ],
+  "messages": [
+    {
+      "id": 18751,
+      "message_id": "msg_c0be4db4-9fbc-48f6-9890-64c380e3a117",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772346,
+      "timestamp": "2026-09-30 12:45:46",
+      "tokens": null,
+      "content": [
+        {
+          "type": "text",
+          "text": "--- Resource: orqaly://conversation/20260930_8/desktop-routing ---\n{\"kind\":\"orqaly.desktop-routing.v1\",\"guidance\":\"Desktop capabilities are tools, not a mandatory workflow or action permission. Choose available tools to serve the current user request and respect local approvals. Read tool results before deciding whether to answer or continue; a tool cannot finish the conversation for you. Follow-ups such as \\\"go deeper\\\" or \\\"more detail\\\" refer to the latest unambiguous conversational subject. A previous specialist task does not override a later topic change. Depth words, an attached project or the word \\\"research\\\" alone do not justify specialist delegation. If several subjects plausibly fit, ask which one the user means before choosing tools. If no conversational subject is available, ask what topic they mean; do not inspect a project to invent a subject. When the user explicitly returns to earlier work, reuse its exact saved artifact reference only if available in the conversation; never guess missing references. For follow-ups, reuse the latest unambiguous user-supplied location, dates and other constraints. Do not carry stale filters into unrelated requests. Ask only for missing or ambiguous details. Preserve source links and distinguish verified findings from incomplete or failed retrieval. If retrieval fails, you may try another relevant permitted query or tool within a modest time and call budget; report any remaining uncertainty instead of inventing results.\\n\\nOptional native engineering tools are available for requested repository work:\\n- Choose ordinary local tools or native engineering tools according to the task; delegation is not required for inspection, edits, builds or tests.\\n  - `ast_search`, `hashline_edit`, `lsp_query` and `safe_edit_and_test`.\\n- JEV review is disabled by the user for this conversation. Treat disabled_by_user as not_evaluated.\\n- Local tool approvals and sandboxing remain in effect.\",\"conversationId\":\"20260930_8\"}\n---\n",
+          "annotations": {
+            "audience": [
+              "assistant"
+            ]
+          }
+        },
+        {
+          "type": "text",
+          "text": "Rename the RequestContext field requestId to traceId throughout its definition and all consumers under src. This is a source-level API rename: do not keep a requestId compatibility member on RequestContext. Update context construction, aliases, destructuring and propagation so a trace identifier reaches every stage. Keep all public function names and signatures apart from that context field, existing wire/output keys named requestId, and the unrelated Job.requestId and audit requestId variables unchanged. Keep the current output values and non-mutation behavior, including forkContext suffixes. Add regression tests in tests/regression.test.mjs for end-to-end propagation and the unrelated Job identifier; run the tests and type check. Start from the app entry point and trace the relevant references as needed. Also preserve traceSummary in src/plugins/index.ts and all of its consumers. The modules under src/catalog have their own unrelated RequestContext types and requestId fields; preserve those APIs and values.\nRead README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results."
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772346652
+    },
+    {
+      "id": 18752,
+      "message_id": "msg_f54ff724-15d2-4c07-aac9-bd6dd64e2f9f",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772346,
+      "timestamp": "2026-09-30 12:45:46",
+      "tokens": null,
+      "content": [
+        {
+          "type": "text",
+          "text": "<turn-context>\n<current-time>2026-09-30 14:45:00 +02:00</current-time>\n<working-directory>/private/tmp/orqanix-installed242-live-20260930/lsp-candidate-1/fixture/workspace</working-directory>\n\nCurrent tasks and notes:\nFor a multi-step task, immediately update your todo with all explicit and implicit requirements. Do not create a todo for simple Q&A, a one-step answer, a live weather/currency lookup, or a narrow current-fact check such as local headlines, opening hours, a score, schedule, or service status.\n\n</turn-context>"
+        }
+      ],
+      "metadata": {
+        "userVisible": false,
+        "agentVisible": true,
+        "turnContext": true
+      },
+      "firstObservedAtMs": 1790772346906
+    },
+    {
+      "id": 18753,
+      "message_id": "ewS9aq6RGv6d28oPn7z2oQg",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772351,
+      "timestamp": "2026-09-30 12:48:12",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_692255",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "todo__todo_write",
+              "arguments": {
+                "content": "- [ ] Read README.md for workspace contract and instructions\n- [ ] Inspect codebase under src/ to locate RequestContext definition, app entry point, and consumers\n- [ ] Identify unrelated requestId occurrences to preserve (wire/output keys named requestId, Job.requestId, audit requestId variables, src/catalog RequestContext/requestId, traceSummary)\n- [ ] Rename RequestContext field requestId -> traceId in definition and all consumers under src/ (no compatibility member on RequestContext)\n- [ ] Update context construction, aliases, destructuring, propagation, forkContext suffixes\n- [ ] Add regression tests in tests/regression.test.mjs for end-to-end propagation and unrelated Job identifier\n- [ ] Run type check and tests\n- [ ] Verify all requirements and report actual test results"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "todo"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 19370,
+          "outputTokens": 181,
+          "totalTokens": 19943,
+          "cost": 0.01520625,
+          "costSource": "estimated",
+          "elapsedMs": 4390,
+          "timeToFirstTokenMs": 4390
+        }
+      },
+      "firstObservedAtMs": 1790772492386
+    },
+    {
+      "id": 18754,
+      "message_id": "msg_7dfcb030-ef0a-41f0-b416-fa9988925ec5",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772351,
+      "timestamp": "2026-09-30 12:48:12",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_692255",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Updated (789 chars)"
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772492386
+    },
+    {
+      "id": 18755,
+      "message_id": "DQW9aorvAdvnvdIPwNGM0A8",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772494,
+      "timestamp": "2026-09-30 12:48:14",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_663194",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "ls -la"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 19965,
+          "outputTokens": 16,
+          "totalTokens": 20053,
+          "cacheReadTokens": 16114,
+          "cost": 0.0041568,
+          "costSource": "estimated",
+          "elapsedMs": 1698,
+          "timeToFirstTokenMs": 1698
+        }
+      },
+      "firstObservedAtMs": 1790772494177
+    },
+    {
+      "id": 18756,
+      "message_id": "msg_a56f3a06-579a-4c44-8749-ae833e8b74c7",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772494,
+      "timestamp": "2026-09-30 12:48:14",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_663194",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "total 24\ndrwx------@  8 admin  wheel   256 Sep 30 14:14 .\ndrwx------@  3 admin  wheel    96 Sep 30 14:14 ..\ndrwxr-xr-x@ 12 admin  wheel   384 Sep 30 14:14 .git\n-rw-------@  1 admin  wheel  2303 Sep 30 14:14 README.md\n-rw-------@  1 admin  wheel    33 Sep 30 14:14 package.json\ndrwxr-xr-x@ 13 admin  wheel   416 Sep 30 14:14 src\ndrwxr-xr-x@  3 admin  wheel    96 Sep 30 14:14 tests\n-rw-------@  1 admin  wheel   233 Sep 30 14:14 tsconfig.json",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "total 24\ndrwx------@  8 admin  wheel   256 Sep 30 14:14 .\ndrwx------@  3 admin  wheel    96 Sep 30 14:14 ..\ndrwxr-xr-x@ 12 admin  wheel   384 Sep 30 14:14 .git\n-rw-------@  1 admin  wheel  2303 Sep 30 14:14 README.md\n-rw-------@  1 admin  wheel    33 Sep 30 14:14 package.json\ndrwxr-xr-x@ 13 admin  wheel   416 Sep 30 14:14 src\ndrwxr-xr-x@  3 admin  wheel    96 Sep 30 14:14 tests\n-rw-------@  1 admin  wheel   233 Sep 30 14:14 tsconfig.json",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772494178
+    },
+    {
+      "id": 18757,
+      "message_id": "DgW9av79HdKFxN8P7aXzsQs",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772496,
+      "timestamp": "2026-09-30 12:48:16",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_620968",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "cat README.md"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 20285,
+          "outputTokens": 17,
+          "totalTokens": 20323,
+          "cacheReadTokens": 16110,
+          "cost": 0.00440325,
+          "costSource": "estimated",
+          "elapsedMs": 2703,
+          "timeToFirstTokenMs": 2703
+        }
+      },
+      "firstObservedAtMs": 1790772497007
+    },
+    {
+      "id": 18758,
+      "message_id": "msg_b0adaee4-f6ae-4f0d-8ad8-c0d0021dab68",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772496,
+      "timestamp": "2026-09-30 12:48:16",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_620968",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "# Rename a context field across a larger ambiguous reference graph\n\nRename the RequestContext field requestId to traceId throughout its definition and all consumers under src. This is a source-level API rename: do not keep a requestId compatibility member on RequestContext. Update context construction, aliases, destructuring and propagation so a trace identifier reaches every stage. Keep all public function names and signatures apart from that context field, existing wire/output keys named requestId, and the unrelated Job.requestId and audit requestId variables unchanged. Keep the current output values and non-mutation behavior, including forkContext suffixes. Add regression tests in tests/regression.test.mjs for end-to-end propagation and the unrelated Job identifier; run the tests and type check. Start from the app entry point and trace the relevant references as needed. Also preserve traceSummary in src/plugins/index.ts and all of its consumers. The modules under src/catalog have their own unrelated RequestContext types and requestId fields; preserve those APIs and values.\nRead README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results.\n\nPermitted changes: src/context.ts, src/context-factory.ts, src/logging.ts, src/middleware.ts, src/jobs.ts, src/response.ts, src/worker.ts, src/app.ts, src/plugins/plugin0.ts, src/plugins/plugin1.ts, src/plugins/plugin2.ts, src/plugins/plugin3.ts, src/plugins/plugin4.ts, src/plugins/plugin5.ts, src/plugins/plugin6.ts, src/plugins/plugin7.ts and tests/regression.test.mjs (create it). All other files are immutable inputs. Keep the implementation in its current modules.\n\nTests: node --experimental-strip-types --test tests/*.test.mjs\nType check: node \"/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json\nDependencies and language servers are already supplied by the app. This workspace is an initialized Git repository; do not change Git metadata.",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "# Rename a context field across a larger ambiguous reference graph\n\nRename the RequestContext field requestId to traceId throughout its definition and all consumers under src. This is a source-level API rename: do not keep a requestId compatibility member on RequestContext. Update context construction, aliases, destructuring and propagation so a trace identifier reaches every stage. Keep all public function names and signatures apart from that context field, existing wire/output keys named requestId, and the unrelated Job.requestId and audit requestId variables unchanged. Keep the current output values and non-mutation behavior, including forkContext suffixes. Add regression tests in tests/regression.test.mjs for end-to-end propagation and the unrelated Job identifier; run the tests and type check. Start from the app entry point and trace the relevant references as needed. Also preserve traceSummary in src/plugins/index.ts and all of its consumers. The modules under src/catalog have their own unrelated RequestContext types and requestId fields; preserve those APIs and values.\nRead README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results.\n\nPermitted changes: src/context.ts, src/context-factory.ts, src/logging.ts, src/middleware.ts, src/jobs.ts, src/response.ts, src/worker.ts, src/app.ts, src/plugins/plugin0.ts, src/plugins/plugin1.ts, src/plugins/plugin2.ts, src/plugins/plugin3.ts, src/plugins/plugin4.ts, src/plugins/plugin5.ts, src/plugins/plugin6.ts, src/plugins/plugin7.ts and tests/regression.test.mjs (create it). All other files are immutable inputs. Keep the implementation in its current modules.\n\nTests: node --experimental-strip-types --test tests/*.test.mjs\nType check: node \"/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json\nDependencies and language servers are already supplied by the app. This workspace is an initialized Git repository; do not change Git metadata.",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772497007
+    },
+    {
+      "id": 18759,
+      "message_id": "EQW9avTkE7OgxN8P9o-L8Q4",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772498,
+      "timestamp": "2026-09-30 12:48:19",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_854448",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "node --experimental-strip-types --test tests/*.test.mjs"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 20876,
+          "outputTokens": 28,
+          "totalTokens": 21202,
+          "cacheReadTokens": 16110,
+          "cost": 0.00488775,
+          "costSource": "estimated",
+          "elapsedMs": 2174,
+          "timeToFirstTokenMs": 2174
+        }
+      },
+      "firstObservedAtMs": 1790772499331
+    },
+    {
+      "id": 18760,
+      "message_id": "msg_69b164ea-4d1e-4839-85eb-d05aaa90a41f",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772498,
+      "timestamp": "2026-09-30 12:48:19",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_854448",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "TAP version 13\n# Subtest: wire identifier\nok 1 - wire identifier\n  ---\n  duration_ms: 0.333417\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 81.11575",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "TAP version 13\n# Subtest: wire identifier\nok 1 - wire identifier\n  ---\n  duration_ms: 0.333417\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 81.11575",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772499331
+    },
+    {
+      "id": 18761,
+      "message_id": "EwW9asGWI9avvdIP8PDPuA0",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772500,
+      "timestamp": "2026-09-30 12:48:21",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_620378",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "node \"/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 21313,
+          "outputTokens": 86,
+          "totalTokens": 21407,
+          "cacheReadTokens": 16108,
+          "cost": 0.00543435,
+          "costSource": "estimated",
+          "elapsedMs": 1577,
+          "timeToFirstTokenMs": 1577
+        }
+      },
+      "firstObservedAtMs": 1790772501395
+    },
+    {
+      "id": 18762,
+      "message_id": "msg_31dd5226-83d6-4f72-ad3d-feb88a7168a2",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772500,
+      "timestamp": "2026-09-30 12:48:21",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_620378",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "(no output)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772501395
+    },
+    {
+      "id": 18763,
+      "message_id": "FQW9asHnKbXQvdIPlbCqgAQ",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772502,
+      "timestamp": "2026-09-30 12:48:22",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_806543",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "cat tests/*.test.mjs"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 21422,
+          "outputTokens": 20,
+          "totalTokens": 21463,
+          "cacheReadTokens": 16102,
+          "cost": 0.005272649999999999,
+          "costSource": "estimated",
+          "elapsedMs": 1576,
+          "timeToFirstTokenMs": 1576
+        }
+      },
+      "firstObservedAtMs": 1790772502936
+    },
+    {
+      "id": 18764,
+      "message_id": "msg_d761ab59-fe14-4592-bc2c-7c9f1315a426",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772502,
+      "timestamp": "2026-09-30 12:48:22",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_806543",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "import assert from 'node:assert/strict';\nimport {test} from 'node:test';\nimport {handle} from '../src/app.ts';\ntest('wire identifier',()=>assert.equal(handle('t','u',{requestId:'j',name:'test'}).body.requestId,'t'));",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "import assert from 'node:assert/strict';\nimport {test} from 'node:test';\nimport {handle} from '../src/app.ts';\ntest('wire identifier',()=>assert.equal(handle('t','u',{requestId:'j',name:'test'}).body.requestId,'t'));",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772502936
+    },
+    {
+      "id": 18765,
+      "message_id": "FwW9arftEJ7uxs0PqPymyAw",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772505,
+      "timestamp": "2026-09-30 12:48:25",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_654650",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "find src -type f"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 21540,
+          "outputTokens": 18,
+          "totalTokens": 21687,
+          "cacheReadTokens": 16097,
+          "cost": 0.005357025,
+          "costSource": "estimated",
+          "elapsedMs": 2402,
+          "timeToFirstTokenMs": 2402
+        }
+      },
+      "firstObservedAtMs": 1790772505515
+    },
+    {
+      "id": 18766,
+      "message_id": "msg_59a6d99c-0ab1-4ff7-bce1-30f63151b194",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772505,
+      "timestamp": "2026-09-30 12:48:25",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_654650",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "src/middleware.ts\nsrc/context-factory.ts\nsrc/plugins/plugin1.ts\nsrc/plugins/plugin5.ts\nsrc/plugins/plugin4.ts\nsrc/plugins/plugin0.ts\nsrc/plugins/plugin7.ts\nsrc/plugins/plugin3.ts\nsrc/plugins/plugin2.ts\nsrc/plugins/plugin6.ts\nsrc/plugins/index.ts\nsrc/app.ts\nsrc/catalog/record10.ts\nsrc/catalog/record5.ts\nsrc/catalog/record14.ts\nsrc/catalog/record20.ts\nsrc/catalog/record1.ts\nsrc/catalog/record15.ts\nsrc/catalog/record21.ts\nsrc/catalog/record0.ts\nsrc/catalog/record11.ts\nsrc/catalog/record4.ts\nsrc/catalog/record9.ts\nsrc/catalog/record18.ts\nsrc/catalog/record19.ts\nsrc/catalog/record8.ts\nsrc/catalog/record16.ts\nsrc/catalog/record22.ts\nsrc/catalog/record3.ts\nsrc/catalog/record12.ts\nsrc/catalog/record7.ts\nsrc/catalog/record13.ts\nsrc/catalog/record6.ts\nsrc/catalog/record17.ts\nsrc/catalog/record23.ts\nsrc/catalog/record2.ts\nsrc/context.ts\nsrc/jobs.ts\nsrc/response.ts\nsrc/job-types.ts\nsrc/worker.ts\nsrc/logging.ts",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "src/middleware.ts\nsrc/context-factory.ts\nsrc/plugins/plugin1.ts\nsrc/plugins/plugin5.ts\nsrc/plugins/plugin4.ts\nsrc/plugins/plugin0.ts\nsrc/plugins/plugin7.ts\nsrc/plugins/plugin3.ts\nsrc/plugins/plugin2.ts\nsrc/plugins/plugin6.ts\nsrc/plugins/index.ts\nsrc/app.ts\nsrc/catalog/record10.ts\nsrc/catalog/record5.ts\nsrc/catalog/record14.ts\nsrc/catalog/record20.ts\nsrc/catalog/record1.ts\nsrc/catalog/record15.ts\nsrc/catalog/record21.ts\nsrc/catalog/record0.ts\nsrc/catalog/record11.ts\nsrc/catalog/record4.ts\nsrc/catalog/record9.ts\nsrc/catalog/record18.ts\nsrc/catalog/record19.ts\nsrc/catalog/record8.ts\nsrc/catalog/record16.ts\nsrc/catalog/record22.ts\nsrc/catalog/record3.ts\nsrc/catalog/record12.ts\nsrc/catalog/record7.ts\nsrc/catalog/record13.ts\nsrc/catalog/record6.ts\nsrc/catalog/record17.ts\nsrc/catalog/record23.ts\nsrc/catalog/record2.ts\nsrc/context.ts\nsrc/jobs.ts\nsrc/response.ts\nsrc/job-types.ts\nsrc/worker.ts\nsrc/logging.ts",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772505515
+    },
+    {
+      "id": 18767,
+      "message_id": "GQW9atG9KpSc28oPnIre2AY",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772507,
+      "timestamp": "2026-09-30 12:48:27",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_714770",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "head -n 100 src/context.ts src/context-factory.ts src/job-types.ts src/plugins/index.ts"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 22065,
+          "outputTokens": 46,
+          "totalTokens": 22309,
+          "cacheReadTokens": 16096,
+          "cost": 0.00585645,
+          "costSource": "estimated",
+          "elapsedMs": 2308,
+          "timeToFirstTokenMs": 2308
+        }
+      },
+      "firstObservedAtMs": 1790772507837
+    },
+    {
+      "id": 18768,
+      "message_id": "msg_68e9ff46-75ab-4aba-a1fc-44b3c8627f7b",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772507,
+      "timestamp": "2026-09-30 12:48:27",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_714770",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "==> src/context.ts <==\nexport interface RequestContext { readonly requestId: string; readonly userId: string; }\nexport type ActiveContext = RequestContext;\n\n==> src/context-factory.ts <==\nimport type {RequestContext} from './context.ts';\nexport function createContext(value: string, userId: string): RequestContext {return {requestId:value,userId};}\nexport function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\n\n==> src/job-types.ts <==\nexport interface Job {requestId: string; name: string;}\nexport function auditLabel(requestId: string) {return 'job:'+requestId;}\n\n==> src/plugins/index.ts <==\nimport {plugin0} from './plugin0.ts';\nimport {plugin1} from './plugin1.ts';\nimport {plugin2} from './plugin2.ts';\nimport {plugin3} from './plugin3.ts';\nimport {plugin4} from './plugin4.ts';\nimport {plugin5} from './plugin5.ts';\nimport {plugin6} from './plugin6.ts';\nimport {plugin7} from './plugin7.ts';\nimport type {RequestContext} from '../context.ts';\nexport function traceSummary(context:RequestContext) {return [plugin0(context),plugin1(context),plugin2(context),plugin3(context),plugin4(context),plugin5(context),plugin6(context),plugin7(context),];}",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "==> src/context.ts <==\nexport interface RequestContext { readonly requestId: string; readonly userId: string; }\nexport type ActiveContext = RequestContext;\n\n==> src/context-factory.ts <==\nimport type {RequestContext} from './context.ts';\nexport function createContext(value: string, userId: string): RequestContext {return {requestId:value,userId};}\nexport function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\n\n==> src/job-types.ts <==\nexport interface Job {requestId: string; name: string;}\nexport function auditLabel(requestId: string) {return 'job:'+requestId;}\n\n==> src/plugins/index.ts <==\nimport {plugin0} from './plugin0.ts';\nimport {plugin1} from './plugin1.ts';\nimport {plugin2} from './plugin2.ts';\nimport {plugin3} from './plugin3.ts';\nimport {plugin4} from './plugin4.ts';\nimport {plugin5} from './plugin5.ts';\nimport {plugin6} from './plugin6.ts';\nimport {plugin7} from './plugin7.ts';\nimport type {RequestContext} from '../context.ts';\nexport function traceSummary(context:RequestContext) {return [plugin0(context),plugin1(context),plugin2(context),plugin3(context),plugin4(context),plugin5(context),plugin6(context),plugin7(context),];}",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772507837
+    },
+    {
+      "id": 18769,
+      "message_id": "HAW9ap6-A5aKvdIP5LqbuAk",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772510,
+      "timestamp": "2026-09-30 12:48:30",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_397813",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "head -n 100 src/plugins/plugin*.ts"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 22662,
+          "outputTokens": 27,
+          "totalTokens": 22978,
+          "cacheReadTokens": 20121,
+          "cost": 0.003516075,
+          "costSource": "estimated",
+          "elapsedMs": 3344,
+          "timeToFirstTokenMs": 3344
+        }
+      },
+      "firstObservedAtMs": 1790772511188
+    },
+    {
+      "id": 18770,
+      "message_id": "msg_0d7a6c7a-a287-4c1e-9c23-e8af723bde2d",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772510,
+      "timestamp": "2026-09-30 12:48:30",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_397813",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "==> src/plugins/plugin0.ts <==\nimport type {ActiveContext as Context} from '../context.ts';\nexport function plugin0(context: Context) {return {requestId:context.requestId,tag:'plugin0',user:context.userId};}\n\n==> src/plugins/plugin1.ts <==\nimport type {ActiveContext as Context} from '../context.ts';\nexport function plugin1(context: Context) {return {requestId:context.requestId,tag:'plugin1',user:context.userId};}\n\n==> src/plugins/plugin2.ts <==\nimport type {ActiveContext as Context} from '../context.ts';\nexport function plugin2(context: Context) {return {requestId:context.requestId,tag:'plugin2',user:context.userId};}\n\n==> src/plugins/plugin3.ts <==\nimport type {ActiveContext as Context} from '../context.ts';\nexport function plugin3(context: Context) {return {requestId:context.requestId,tag:'plugin3',user:context.userId};}\n\n==> src/plugins/plugin4.ts <==\nimport type {ActiveContext as Context} from '../context.ts';\nexport function plugin4(context: Context) {return {requestId:context.requestId,tag:'plugin4',user:context.userId};}\n\n==> src/plugins/plugin5.ts <==\nimport type {ActiveContext as Context} from '../context.ts';\nexport function plugin5(context: Context) {return {requestId:context.requestId,tag:'plugin5',user:context.userId};}\n\n==> src/plugins/plugin6.ts <==\nimport type {ActiveContext as Context} from '../context.ts';\nexport function plugin6(context: Context) {return {requestId:context.requestId,tag:'plugin6',user:context.userId};}\n\n==> src/plugins/plugin7.ts <==\nimport type {ActiveContext as Context} from '../context.ts';\nexport function plugin7(context: Context) {return {requestId:context.requestId,tag:'plugin7',user:context.userId};}",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "==> src/plugins/plugin0.ts <==\nimport type {ActiveContext as Context} from '../context.ts';\nexport function plugin0(context: Context) {return {requestId:context.requestId,tag:'plugin0',user:context.userId};}\n\n==> src/plugins/plugin1.ts <==\nimport type {ActiveContext as Context} from '../context.ts';\nexport function plugin1(context: Context) {return {requestId:context.requestId,tag:'plugin1',user:context.userId};}\n\n==> src/plugins/plugin2.ts <==\nimport type {ActiveContext as Context} from '../context.ts';\nexport function plugin2(context: Context) {return {requestId:context.requestId,tag:'plugin2',user:context.userId};}\n\n==> src/plugins/plugin3.ts <==\nimport type {ActiveContext as Context} from '../context.ts';\nexport function plugin3(context: Context) {return {requestId:context.requestId,tag:'plugin3',user:context.userId};}\n\n==> src/plugins/plugin4.ts <==\nimport type {ActiveContext as Context} from '../context.ts';\nexport function plugin4(context: Context) {return {requestId:context.requestId,tag:'plugin4',user:context.userId};}\n\n==> src/plugins/plugin5.ts <==\nimport type {ActiveContext as Context} from '../context.ts';\nexport function plugin5(context: Context) {return {requestId:context.requestId,tag:'plugin5',user:context.userId};}\n\n==> src/plugins/plugin6.ts <==\nimport type {ActiveContext as Context} from '../context.ts';\nexport function plugin6(context: Context) {return {requestId:context.requestId,tag:'plugin6',user:context.userId};}\n\n==> src/plugins/plugin7.ts <==\nimport type {ActiveContext as Context} from '../context.ts';\nexport function plugin7(context: Context) {return {requestId:context.requestId,tag:'plugin7',user:context.userId};}",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772511188
+    },
+    {
+      "id": 18771,
+      "message_id": "HwW9atGUGYyvvdIPj5S-OQ",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772520,
+      "timestamp": "2026-09-30 12:48:40",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_702378",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "head -n 100 src/logging.ts src/middleware.ts src/jobs.ts src/response.ts src/worker.ts src/app.ts"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 23460,
+          "outputTokens": 50,
+          "totalTokens": 23842,
+          "cacheReadTokens": 20124,
+          "cost": 0.0041988,
+          "costSource": "estimated",
+          "elapsedMs": 9833,
+          "timeToFirstTokenMs": 9833
+        }
+      },
+      "firstObservedAtMs": 1790772521015
+    },
+    {
+      "id": 18772,
+      "message_id": "msg_f96374c0-f8bc-4ae2-a929-fa65c9e0744d",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772520,
+      "timestamp": "2026-09-30 12:48:40",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_702378",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "==> src/logging.ts <==\nimport type {ActiveContext as Context} from './context.ts';\nexport function logFields(context: Context) {const {requestId,userId}=context;return {requestId,userId};}\n\n==> src/middleware.ts <==\nimport type {RequestContext} from './context.ts';\nexport function headers(context: RequestContext) {return {'x-request-id':context.requestId};}\n\n==> src/jobs.ts <==\nimport type {RequestContext} from './context.ts';\nimport {auditLabel} from './job-types.ts';\nimport type {Job} from './job-types.ts';\nexport function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.requestId,audit:auditLabel(job.requestId),name:job.name};}\n\n==> src/response.ts <==\nimport type {ActiveContext} from './context.ts';\nexport function response(context: ActiveContext, payload: unknown) {return {requestId:context.requestId,payload};}\n\n==> src/worker.ts <==\nimport {forkContext} from './context-factory.ts';\nimport type {RequestContext} from './context.ts';\nimport type {Job} from './job-types.ts';\nimport {describeJob} from './jobs.ts';\nexport function work(context: RequestContext, job: Job) {const child=forkContext(context,'worker');return describeJob(job,child);}\n\n==> src/app.ts <==\nimport {createContext} from './context-factory.ts';\nimport {headers} from './middleware.ts';\nimport {logFields} from './logging.ts';\nimport {response} from './response.ts';\nimport {work} from './worker.ts';\nimport type {Job} from './job-types.ts';\nexport function handle(trace: string,user: string,job: Job) {const context=createContext(trace,user);return {context,headers:headers(context),logs:logFields(context),body:response(context,work(context,job))};}",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "==> src/logging.ts <==\nimport type {ActiveContext as Context} from './context.ts';\nexport function logFields(context: Context) {const {requestId,userId}=context;return {requestId,userId};}\n\n==> src/middleware.ts <==\nimport type {RequestContext} from './context.ts';\nexport function headers(context: RequestContext) {return {'x-request-id':context.requestId};}\n\n==> src/jobs.ts <==\nimport type {RequestContext} from './context.ts';\nimport {auditLabel} from './job-types.ts';\nimport type {Job} from './job-types.ts';\nexport function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.requestId,audit:auditLabel(job.requestId),name:job.name};}\n\n==> src/response.ts <==\nimport type {ActiveContext} from './context.ts';\nexport function response(context: ActiveContext, payload: unknown) {return {requestId:context.requestId,payload};}\n\n==> src/worker.ts <==\nimport {forkContext} from './context-factory.ts';\nimport type {RequestContext} from './context.ts';\nimport type {Job} from './job-types.ts';\nimport {describeJob} from './jobs.ts';\nexport function work(context: RequestContext, job: Job) {const child=forkContext(context,'worker');return describeJob(job,child);}\n\n==> src/app.ts <==\nimport {createContext} from './context-factory.ts';\nimport {headers} from './middleware.ts';\nimport {logFields} from './logging.ts';\nimport {response} from './response.ts';\nimport {work} from './worker.ts';\nimport type {Job} from './job-types.ts';\nexport function handle(trace: string,user: string,job: Job) {const context=createContext(trace,user);return {context,headers:headers(context),logs:logFields(context),body:response(context,work(context,job))};}",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772521015
+    },
+    {
+      "id": 18773,
+      "message_id": "KQW9asjDEqnvxs0P6OCwgAk",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772534,
+      "timestamp": "2026-09-30 12:48:54",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_622334",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "head -n 20 src/catalog/record0.ts src/catalog/record1.ts"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 24331,
+          "outputTokens": 35,
+          "totalTokens": 24382,
+          "cacheReadTokens": 20129,
+          "cost": 0.004792425,
+          "costSource": "estimated",
+          "elapsedMs": 13666,
+          "timeToFirstTokenMs": 13666
+        }
+      },
+      "firstObservedAtMs": 1790772534713
+    },
+    {
+      "id": 18774,
+      "message_id": "msg_964dd6a1-d2dd-483c-9738-06e28b1f81ed",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772534,
+      "timestamp": "2026-09-30 12:48:54",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_622334",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "==> src/catalog/record0.ts <==\n// Independent catalog contract; unrelated to request processing.\nexport interface RequestContext {requestId:string;category:string;}\nexport function record0(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record0:'+requestId};}\nexport function audit0(requestId:string) {return 'audit0:'+requestId;}\nexport const example=\"context.requestId\";\n\n==> src/catalog/record1.ts <==\n// Independent catalog contract; unrelated to request processing.\nexport interface RequestContext {requestId:string;category:string;}\nexport function record1(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record1:'+requestId};}\nexport function audit1(requestId:string) {return 'audit1:'+requestId;}\nexport const example=\"context.requestId\";",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "==> src/catalog/record0.ts <==\n// Independent catalog contract; unrelated to request processing.\nexport interface RequestContext {requestId:string;category:string;}\nexport function record0(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record0:'+requestId};}\nexport function audit0(requestId:string) {return 'audit0:'+requestId;}\nexport const example=\"context.requestId\";\n\n==> src/catalog/record1.ts <==\n// Independent catalog contract; unrelated to request processing.\nexport interface RequestContext {requestId:string;category:string;}\nexport function record1(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record1:'+requestId};}\nexport function audit1(requestId:string) {return 'audit1:'+requestId;}\nexport const example=\"context.requestId\";",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772534713
+    },
+    {
+      "id": 18775,
+      "message_id": "NwW9as5ur-_GzQ-RpatA",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772536,
+      "timestamp": "2026-09-30 12:48:56",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_571748",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "grep -rn \"requestId\" src/ --exclude-dir=catalog"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 24592,
+          "outputTokens": 27,
+          "totalTokens": 24867,
+          "cacheReadTokens": 20124,
+          "cost": 0.00496155,
+          "costSource": "estimated",
+          "elapsedMs": 2037,
+          "timeToFirstTokenMs": 2037
+        }
+      },
+      "firstObservedAtMs": 1790772536781
+    },
+    {
+      "id": 18776,
+      "message_id": "msg_816a2b45-e66c-480a-8eb5-46fbae9e3f25",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772536,
+      "timestamp": "2026-09-30 12:48:56",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_571748",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "src/middleware.ts:2:export function headers(context: RequestContext) {return {'x-request-id':context.requestId};}\nsrc/context-factory.ts:2:export function createContext(value: string, userId: string): RequestContext {return {requestId:value,userId};}\nsrc/context-factory.ts:3:export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\nsrc/plugins/plugin1.ts:2:export function plugin1(context: Context) {return {requestId:context.requestId,tag:'plugin1',user:context.userId};}\nsrc/plugins/plugin5.ts:2:export function plugin5(context: Context) {return {requestId:context.requestId,tag:'plugin5',user:context.userId};}\nsrc/plugins/plugin4.ts:2:export function plugin4(context: Context) {return {requestId:context.requestId,tag:'plugin4',user:context.userId};}\nsrc/plugins/plugin0.ts:2:export function plugin0(context: Context) {return {requestId:context.requestId,tag:'plugin0',user:context.userId};}\nsrc/plugins/plugin7.ts:2:export function plugin7(context: Context) {return {requestId:context.requestId,tag:'plugin7',user:context.userId};}\nsrc/plugins/plugin3.ts:2:export function plugin3(context: Context) {return {requestId:context.requestId,tag:'plugin3',user:context.userId};}\nsrc/plugins/plugin2.ts:2:export function plugin2(context: Context) {return {requestId:context.requestId,tag:'plugin2',user:context.userId};}\nsrc/plugins/plugin6.ts:2:export function plugin6(context: Context) {return {requestId:context.requestId,tag:'plugin6',user:context.userId};}\nsrc/context.ts:1:export interface RequestContext { readonly requestId: string; readonly userId: string; }\nsrc/jobs.ts:4:export function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.requestId,audit:auditLabel(job.requestId),name:job.name};}\nsrc/response.ts:2:export function response(context: ActiveContext, payload: unknown) {return {requestId:context.requestId,payload};}\nsrc/job-types.ts:1:export interface Job {requestId: string; name: string;}\nsrc/job-types.ts:2:export function auditLabel(requestId: string) {return 'job:'+requestId;}\nsrc/logging.ts:2:export function logFields(context: Context) {const {requestId,userId}=context;return {requestId,userId};}",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "src/middleware.ts:2:export function headers(context: RequestContext) {return {'x-request-id':context.requestId};}\nsrc/context-factory.ts:2:export function createContext(value: string, userId: string): RequestContext {return {requestId:value,userId};}\nsrc/context-factory.ts:3:export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\nsrc/plugins/plugin1.ts:2:export function plugin1(context: Context) {return {requestId:context.requestId,tag:'plugin1',user:context.userId};}\nsrc/plugins/plugin5.ts:2:export function plugin5(context: Context) {return {requestId:context.requestId,tag:'plugin5',user:context.userId};}\nsrc/plugins/plugin4.ts:2:export function plugin4(context: Context) {return {requestId:context.requestId,tag:'plugin4',user:context.userId};}\nsrc/plugins/plugin0.ts:2:export function plugin0(context: Context) {return {requestId:context.requestId,tag:'plugin0',user:context.userId};}\nsrc/plugins/plugin7.ts:2:export function plugin7(context: Context) {return {requestId:context.requestId,tag:'plugin7',user:context.userId};}\nsrc/plugins/plugin3.ts:2:export function plugin3(context: Context) {return {requestId:context.requestId,tag:'plugin3',user:context.userId};}\nsrc/plugins/plugin2.ts:2:export function plugin2(context: Context) {return {requestId:context.requestId,tag:'plugin2',user:context.userId};}\nsrc/plugins/plugin6.ts:2:export function plugin6(context: Context) {return {requestId:context.requestId,tag:'plugin6',user:context.userId};}\nsrc/context.ts:1:export interface RequestContext { readonly requestId: string; readonly userId: string; }\nsrc/jobs.ts:4:export function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.requestId,audit:auditLabel(job.requestId),name:job.name};}\nsrc/response.ts:2:export function response(context: ActiveContext, payload: unknown) {return {requestId:context.requestId,payload};}\nsrc/job-types.ts:1:export interface Job {requestId: string; name: string;}\nsrc/job-types.ts:2:export function auditLabel(requestId: string) {return 'job:'+requestId;}\nsrc/logging.ts:2:export function logFields(context: Context) {const {requestId,userId}=context;return {requestId,userId};}",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772536781
+    },
+    {
+      "id": 18777,
+      "message_id": "OQW9atH2A9zhxN8PhuiU2Aw",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772537,
+      "timestamp": "2026-09-30 12:48:58",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_820598",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "grep -rn \"context\" src/ --exclude-dir=catalog"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 25520,
+          "outputTokens": 27,
+          "totalTokens": 25584,
+          "cacheReadTokens": 20129,
+          "cost": 0.005654175,
+          "costSource": "estimated",
+          "elapsedMs": 1349,
+          "timeToFirstTokenMs": 1349
+        }
+      },
+      "firstObservedAtMs": 1790772538074
+    },
+    {
+      "id": 18778,
+      "message_id": "msg_4ed20050-9f3f-4afe-8c2b-36ae745e3a17",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772537,
+      "timestamp": "2026-09-30 12:48:58",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_820598",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "src/middleware.ts:1:import type {RequestContext} from './context.ts';\nsrc/middleware.ts:2:export function headers(context: RequestContext) {return {'x-request-id':context.requestId};}\nsrc/context-factory.ts:1:import type {RequestContext} from './context.ts';\nsrc/context-factory.ts:3:export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\nsrc/plugins/plugin1.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin1.ts:2:export function plugin1(context: Context) {return {requestId:context.requestId,tag:'plugin1',user:context.userId};}\nsrc/plugins/plugin5.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin5.ts:2:export function plugin5(context: Context) {return {requestId:context.requestId,tag:'plugin5',user:context.userId};}\nsrc/plugins/plugin4.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin4.ts:2:export function plugin4(context: Context) {return {requestId:context.requestId,tag:'plugin4',user:context.userId};}\nsrc/plugins/plugin0.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin0.ts:2:export function plugin0(context: Context) {return {requestId:context.requestId,tag:'plugin0',user:context.userId};}\nsrc/plugins/plugin7.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin7.ts:2:export function plugin7(context: Context) {return {requestId:context.requestId,tag:'plugin7',user:context.userId};}\nsrc/plugins/plugin3.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin3.ts:2:export function plugin3(context: Context) {return {requestId:context.requestId,tag:'plugin3',user:context.userId};}\nsrc/plugins/plugin2.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin2.ts:2:export function plugin2(context: Context) {return {requestId:context.requestId,tag:'plugin2',user:context.userId};}\nsrc/plugins/plugin6.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin6.ts:2:export function plugin6(context: Context) {return {requestId:context.requestId,tag:'plugin6',user:context.userId};}\nsrc/plugins/index.ts:9:import type {RequestContext} from '../context.ts';\nsrc/plugins/index.ts:10:export function traceSummary(context:RequestContext) {return [plugin0(context),plugin1(context),plugin2(context),plugin3(context),plugin4(context),plugin5(context),plugin6(context),plugin7(context),];}\nsrc/app.ts:1:import {createContext} from './context-factory.ts';\nsrc/app.ts:7:export function handle(trace: string,user: string,job: Job) {const context=createContext(trace,user);return {context,headers:headers(context),logs:logFields(context),body:response(context,work(context,job))};}\nsrc/jobs.ts:1:import type {RequestContext} from './context.ts';\nsrc/jobs.ts:4:export function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.requestId,audit:auditLabel(job.requestId),name:job.name};}\nsrc/response.ts:1:import type {ActiveContext} from './context.ts';\nsrc/response.ts:2:export function response(context: ActiveContext, payload: unknown) {return {requestId:context.requestId,payload};}\nsrc/worker.ts:1:import {forkContext} from './context-factory.ts';\nsrc/worker.ts:2:import type {RequestContext} from './context.ts';\nsrc/worker.ts:5:export function work(context: RequestContext, job: Job) {const child=forkContext(context,'worker');return describeJob(job,child);}\nsrc/logging.ts:1:import type {ActiveContext as Context} from './context.ts';\nsrc/logging.ts:2:export function logFields(context: Context) {const {requestId,userId}=context;return {requestId,userId};}",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "src/middleware.ts:1:import type {RequestContext} from './context.ts';\nsrc/middleware.ts:2:export function headers(context: RequestContext) {return {'x-request-id':context.requestId};}\nsrc/context-factory.ts:1:import type {RequestContext} from './context.ts';\nsrc/context-factory.ts:3:export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\nsrc/plugins/plugin1.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin1.ts:2:export function plugin1(context: Context) {return {requestId:context.requestId,tag:'plugin1',user:context.userId};}\nsrc/plugins/plugin5.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin5.ts:2:export function plugin5(context: Context) {return {requestId:context.requestId,tag:'plugin5',user:context.userId};}\nsrc/plugins/plugin4.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin4.ts:2:export function plugin4(context: Context) {return {requestId:context.requestId,tag:'plugin4',user:context.userId};}\nsrc/plugins/plugin0.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin0.ts:2:export function plugin0(context: Context) {return {requestId:context.requestId,tag:'plugin0',user:context.userId};}\nsrc/plugins/plugin7.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin7.ts:2:export function plugin7(context: Context) {return {requestId:context.requestId,tag:'plugin7',user:context.userId};}\nsrc/plugins/plugin3.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin3.ts:2:export function plugin3(context: Context) {return {requestId:context.requestId,tag:'plugin3',user:context.userId};}\nsrc/plugins/plugin2.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin2.ts:2:export function plugin2(context: Context) {return {requestId:context.requestId,tag:'plugin2',user:context.userId};}\nsrc/plugins/plugin6.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin6.ts:2:export function plugin6(context: Context) {return {requestId:context.requestId,tag:'plugin6',user:context.userId};}\nsrc/plugins/index.ts:9:import type {RequestContext} from '../context.ts';\nsrc/plugins/index.ts:10:export function traceSummary(context:RequestContext) {return [plugin0(context),plugin1(context),plugin2(context),plugin3(context),plugin4(context),plugin5(context),plugin6(context),plugin7(context),];}\nsrc/app.ts:1:import {createContext} from './context-factory.ts';\nsrc/app.ts:7:export function handle(trace: string,user: string,job: Job) {const context=createContext(trace,user);return {context,headers:headers(context),logs:logFields(context),body:response(context,work(context,job))};}\nsrc/jobs.ts:1:import type {RequestContext} from './context.ts';\nsrc/jobs.ts:4:export function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.requestId,audit:auditLabel(job.requestId),name:job.name};}\nsrc/response.ts:1:import type {ActiveContext} from './context.ts';\nsrc/response.ts:2:export function response(context: ActiveContext, payload: unknown) {return {requestId:context.requestId,payload};}\nsrc/worker.ts:1:import {forkContext} from './context-factory.ts';\nsrc/worker.ts:2:import type {RequestContext} from './context.ts';\nsrc/worker.ts:5:export function work(context: RequestContext, job: Job) {const child=forkContext(context,'worker');return describeJob(job,child);}\nsrc/logging.ts:1:import type {ActiveContext as Context} from './context.ts';\nsrc/logging.ts:2:export function logFields(context: Context) {const {requestId,userId}=context;return {requestId,userId};}",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772538074
+    },
+    {
+      "id": 18779,
+      "message_id": "OgW9auKPHf34xN8Pz8DJkQk",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772548,
+      "timestamp": "2026-09-30 12:49:08",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_724794",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "grep -rn \"traceSummary\" ."
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 26700,
+          "outputTokens": 21,
+          "totalTokens": 29285,
+          "cacheReadTokens": 24165,
+          "cost": 0.003792375,
+          "costSource": "estimated",
+          "elapsedMs": 10048,
+          "timeToFirstTokenMs": 10048
+        }
+      },
+      "firstObservedAtMs": 1790772548191
+    },
+    {
+      "id": 18780,
+      "message_id": "msg_86741576-fac5-403a-bb23-cb8ef6eaeac6",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772548,
+      "timestamp": "2026-09-30 12:49:08",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_724794",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "./README.md:3:Rename the RequestContext field requestId to traceId throughout its definition and all consumers under src. This is a source-level API rename: do not keep a requestId compatibility member on RequestContext. Update context construction, aliases, destructuring and propagation so a trace identifier reaches every stage. Keep all public function names and signatures apart from that context field, existing wire/output keys named requestId, and the unrelated Job.requestId and audit requestId variables unchanged. Keep the current output values and non-mutation behavior, including forkContext suffixes. Add regression tests in tests/regression.test.mjs for end-to-end propagation and the unrelated Job identifier; run the tests and type check. Start from the app entry point and trace the relevant references as needed. Also preserve traceSummary in src/plugins/index.ts and all of its consumers. The modules under src/catalog have their own unrelated RequestContext types and requestId fields; preserve those APIs and values.\n./src/plugins/index.ts:10:export function traceSummary(context:RequestContext) {return [plugin0(context),plugin1(context),plugin2(context),plugin3(context),plugin4(context),plugin5(context),plugin6(context),plugin7(context),];}",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "./README.md:3:Rename the RequestContext field requestId to traceId throughout its definition and all consumers under src. This is a source-level API rename: do not keep a requestId compatibility member on RequestContext. Update context construction, aliases, destructuring and propagation so a trace identifier reaches every stage. Keep all public function names and signatures apart from that context field, existing wire/output keys named requestId, and the unrelated Job.requestId and audit requestId variables unchanged. Keep the current output values and non-mutation behavior, including forkContext suffixes. Add regression tests in tests/regression.test.mjs for end-to-end propagation and the unrelated Job identifier; run the tests and type check. Start from the app entry point and trace the relevant references as needed. Also preserve traceSummary in src/plugins/index.ts and all of its consumers. The modules under src/catalog have their own unrelated RequestContext types and requestId fields; preserve those APIs and values.\n./src/plugins/index.ts:10:export function traceSummary(context:RequestContext) {return [plugin0(context),plugin1(context),plugin2(context),plugin3(context),plugin4(context),plugin5(context),plugin6(context),plugin7(context),];}",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772548191
+    },
+    {
+      "id": 18781,
+      "message_id": "RAW9arKMJdavvdIP8PDPuA0",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772549,
+      "timestamp": "2026-09-30 12:49:09",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_654515",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "grep -rn \"plugin\" src/ --exclude-dir=plugins"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 29562,
+          "outputTokens": 27,
+          "totalTokens": 29626,
+          "cacheReadTokens": 24196,
+          "cost": 0.00594045,
+          "costSource": "estimated",
+          "elapsedMs": 1599,
+          "timeToFirstTokenMs": 1599
+        }
+      },
+      "firstObservedAtMs": 1790772549739
+    },
+    {
+      "id": 18782,
+      "message_id": "msg_452ab7e7-d2c6-456c-b4c9-7b836c457122",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772549,
+      "timestamp": "2026-09-30 12:49:09",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_654515",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "(no output)\n\nCommand exited with code 1",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "",
+                "stderr": "",
+                "exit_code": 1
+              },
+              "isError": true
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772549739
+    },
+    {
+      "id": 18783,
+      "message_id": "RgW9aoS-C7LPvdIP8Or4-Ag",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772551,
+      "timestamp": "2026-09-30 12:49:11",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_682320",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "grep -rn \"plugin\" tests/"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 29648,
+          "outputTokens": 21,
+          "totalTokens": 29677,
+          "cacheReadTokens": 24189,
+          "cost": 0.005987175,
+          "costSource": "estimated",
+          "elapsedMs": 1421,
+          "timeToFirstTokenMs": 1421
+        }
+      },
+      "firstObservedAtMs": 1790772551305
+    },
+    {
+      "id": 18784,
+      "message_id": "msg_104b192b-5346-4273-b983-8cd2f3678ec1",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772551,
+      "timestamp": "2026-09-30 12:49:11",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_682320",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "(no output)\n\nCommand exited with code 1",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "",
+                "stderr": "",
+                "exit_code": 1
+              },
+              "isError": true
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772551305
+    },
+    {
+      "id": 18785,
+      "message_id": "RwW9au6VKKqjxN8PmMn5oAk",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772552,
+      "timestamp": "2026-09-30 12:49:12",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_863535",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "ls -la tests/"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 29699,
+          "outputTokens": 18,
+          "totalTokens": 29734,
+          "cacheReadTokens": 24181,
+          "cost": 0.006019575,
+          "costSource": "estimated",
+          "elapsedMs": 1573,
+          "timeToFirstTokenMs": 1573
+        }
+      },
+      "firstObservedAtMs": 1790772552864
+    },
+    {
+      "id": 18786,
+      "message_id": "msg_aebe7886-6872-47c1-aaa2-0850bc98cdd5",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772552,
+      "timestamp": "2026-09-30 12:49:12",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_863535",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "total 8\ndrwxr-xr-x@ 3 admin  wheel   96 Sep 30 14:14 .\ndrwx------@ 8 admin  wheel  256 Sep 30 14:14 ..\n-rw-------@ 1 admin  wheel  217 Sep 30 14:14 public.test.mjs",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "total 8\ndrwxr-xr-x@ 3 admin  wheel   96 Sep 30 14:14 .\ndrwx------@ 8 admin  wheel  256 Sep 30 14:14 ..\n-rw-------@ 1 admin  wheel  217 Sep 30 14:14 public.test.mjs",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772552864
+    },
+    {
+      "id": 18787,
+      "message_id": "SQW9avSHENn5xN8P-L_PuQo",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772558,
+      "timestamp": "2026-09-30 12:49:18",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_203955",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "cat tests/public.test.mjs"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 29830,
+          "outputTokens": 22,
+          "totalTokens": 29890,
+          "cacheReadTokens": 24175,
+          "cost": 0.006136875,
+          "costSource": "estimated",
+          "elapsedMs": 5798,
+          "timeToFirstTokenMs": 5798
+        }
+      },
+      "firstObservedAtMs": 1790772558831
+    },
+    {
+      "id": 18788,
+      "message_id": "msg_aadaede2-6d59-422c-83d7-72341b6117af",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772558,
+      "timestamp": "2026-09-30 12:49:18",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_203955",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "import assert from 'node:assert/strict';\nimport {test} from 'node:test';\nimport {handle} from '../src/app.ts';\ntest('wire identifier',()=>assert.equal(handle('t','u',{requestId:'j',name:'test'}).body.requestId,'t'));",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "import assert from 'node:assert/strict';\nimport {test} from 'node:test';\nimport {handle} from '../src/app.ts';\ntest('wire identifier',()=>assert.equal(handle('t','u',{requestId:'j',name:'test'}).body.requestId,'t'));",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772558831
+    },
+    {
+      "id": 18789,
+      "message_id": "TwW9apCaDoyvvdIPj5S-OQ",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772581,
+      "timestamp": "2026-09-30 12:49:41",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_643464",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "grep -rn \"RequestContext\" src/"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 29967,
+          "outputTokens": 21,
+          "totalTokens": 37039,
+          "cacheReadTokens": 24169,
+          "cost": 0.006239925,
+          "costSource": "estimated",
+          "elapsedMs": 22709,
+          "timeToFirstTokenMs": 22709
+        }
+      },
+      "firstObservedAtMs": 1790772581431
+    },
+    {
+      "id": 18790,
+      "message_id": "msg_05b9ffb2-539c-40a6-902c-5396a8e247b6",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772581,
+      "timestamp": "2026-09-30 12:49:41",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_643464",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "src/middleware.ts:1:import type {RequestContext} from './context.ts';\nsrc/middleware.ts:2:export function headers(context: RequestContext) {return {'x-request-id':context.requestId};}\nsrc/context-factory.ts:1:import type {RequestContext} from './context.ts';\nsrc/context-factory.ts:2:export function createContext(value: string, userId: string): RequestContext {return {requestId:value,userId};}\nsrc/context-factory.ts:3:export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\nsrc/plugins/index.ts:9:import type {RequestContext} from '../context.ts';\nsrc/plugins/index.ts:10:export function traceSummary(context:RequestContext) {return [plugin0(context),plugin1(context),plugin2(context),plugin3(context),plugin4(context),plugin5(context),plugin6(context),plugin7(context),];}\nsrc/catalog/record10.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record10.ts:3:export function record10(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record10:'+requestId};}\nsrc/catalog/record5.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record5.ts:3:export function record5(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record5:'+requestId};}\nsrc/catalog/record14.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record14.ts:3:export function record14(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record14:'+requestId};}\nsrc/catalog/record20.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record20.ts:3:export function record20(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record20:'+requestId};}\nsrc/catalog/record1.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record1.ts:3:export function record1(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record1:'+requestId};}\nsrc/catalog/record15.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record15.ts:3:export function record15(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record15:'+requestId};}\nsrc/catalog/record21.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record21.ts:3:export function record21(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record21:'+requestId};}\nsrc/catalog/record0.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record0.ts:3:export function record0(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record0:'+requestId};}\nsrc/catalog/record11.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record11.ts:3:export function record11(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record11:'+requestId};}\nsrc/catalog/record4.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record4.ts:3:export function record4(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record4:'+requestId};}\nsrc/catalog/record9.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record9.ts:3:export function record9(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record9:'+requestId};}\nsrc/catalog/record18.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record18.ts:3:export function record18(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record18:'+requestId};}\nsrc/catalog/record19.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record19.ts:3:export function record19(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record19:'+requestId};}\nsrc/catalog/record8.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record8.ts:3:export function record8(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record8:'+requestId};}\nsrc/catalog/record16.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record16.ts:3:export function record16(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record16:'+requestId};}\nsrc/catalog/record22.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record22.ts:3:export function record22(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record22:'+requestId};}\nsrc/catalog/record3.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record3.ts:3:export function record3(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record3:'+requestId};}\nsrc/catalog/record12.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record12.ts:3:export function record12(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record12:'+requestId};}\nsrc/catalog/record7.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record7.ts:3:export function record7(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record7:'+requestId};}\nsrc/catalog/record13.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record13.ts:3:export function record13(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record13:'+requestId};}\nsrc/catalog/record6.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record6.ts:3:export function record6(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record6:'+requestId};}\nsrc/catalog/record17.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record17.ts:3:export function record17(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record17:'+requestId};}\nsrc/catalog/record23.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record23.ts:3:export function record23(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record23:'+requestId};}\nsrc/catalog/record2.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record2.ts:3:export function record2(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record2:'+requestId};}\nsrc/context.ts:1:export interface RequestContext { readonly requestId: string; readonly userId: string; }\nsrc/context.ts:2:export type ActiveContext = RequestContext;\nsrc/jobs.ts:1:import type {RequestContext} from './context.ts';\nsrc/jobs.ts:4:export function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.requestId,audit:auditLabel(job.requestId),name:job.name};}\nsrc/worker.ts:2:import type {RequestContext} from './context.ts';\nsrc/worker.ts:5:export function work(context: RequestContext, job: Job) {const child=forkContext(context,'worker');return describeJob(job,child);}",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "src/middleware.ts:1:import type {RequestContext} from './context.ts';\nsrc/middleware.ts:2:export function headers(context: RequestContext) {return {'x-request-id':context.requestId};}\nsrc/context-factory.ts:1:import type {RequestContext} from './context.ts';\nsrc/context-factory.ts:2:export function createContext(value: string, userId: string): RequestContext {return {requestId:value,userId};}\nsrc/context-factory.ts:3:export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\nsrc/plugins/index.ts:9:import type {RequestContext} from '../context.ts';\nsrc/plugins/index.ts:10:export function traceSummary(context:RequestContext) {return [plugin0(context),plugin1(context),plugin2(context),plugin3(context),plugin4(context),plugin5(context),plugin6(context),plugin7(context),];}\nsrc/catalog/record10.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record10.ts:3:export function record10(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record10:'+requestId};}\nsrc/catalog/record5.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record5.ts:3:export function record5(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record5:'+requestId};}\nsrc/catalog/record14.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record14.ts:3:export function record14(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record14:'+requestId};}\nsrc/catalog/record20.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record20.ts:3:export function record20(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record20:'+requestId};}\nsrc/catalog/record1.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record1.ts:3:export function record1(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record1:'+requestId};}\nsrc/catalog/record15.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record15.ts:3:export function record15(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record15:'+requestId};}\nsrc/catalog/record21.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record21.ts:3:export function record21(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record21:'+requestId};}\nsrc/catalog/record0.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record0.ts:3:export function record0(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record0:'+requestId};}\nsrc/catalog/record11.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record11.ts:3:export function record11(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record11:'+requestId};}\nsrc/catalog/record4.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record4.ts:3:export function record4(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record4:'+requestId};}\nsrc/catalog/record9.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record9.ts:3:export function record9(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record9:'+requestId};}\nsrc/catalog/record18.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record18.ts:3:export function record18(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record18:'+requestId};}\nsrc/catalog/record19.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record19.ts:3:export function record19(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record19:'+requestId};}\nsrc/catalog/record8.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record8.ts:3:export function record8(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record8:'+requestId};}\nsrc/catalog/record16.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record16.ts:3:export function record16(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record16:'+requestId};}\nsrc/catalog/record22.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record22.ts:3:export function record22(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record22:'+requestId};}\nsrc/catalog/record3.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record3.ts:3:export function record3(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record3:'+requestId};}\nsrc/catalog/record12.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record12.ts:3:export function record12(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record12:'+requestId};}\nsrc/catalog/record7.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record7.ts:3:export function record7(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record7:'+requestId};}\nsrc/catalog/record13.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record13.ts:3:export function record13(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record13:'+requestId};}\nsrc/catalog/record6.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record6.ts:3:export function record6(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record6:'+requestId};}\nsrc/catalog/record17.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record17.ts:3:export function record17(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record17:'+requestId};}\nsrc/catalog/record23.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record23.ts:3:export function record23(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record23:'+requestId};}\nsrc/catalog/record2.ts:2:export interface RequestContext {requestId:string;category:string;}\nsrc/catalog/record2.ts:3:export function record2(context:RequestContext) {const {requestId,category}=context;return {requestId,category,label:'record2:'+requestId};}\nsrc/context.ts:1:export interface RequestContext { readonly requestId: string; readonly userId: string; }\nsrc/context.ts:2:export type ActiveContext = RequestContext;\nsrc/jobs.ts:1:import type {RequestContext} from './context.ts';\nsrc/jobs.ts:4:export function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.requestId,audit:auditLabel(job.requestId),name:job.name};}\nsrc/worker.ts:2:import type {RequestContext} from './context.ts';\nsrc/worker.ts:5:export function work(context: RequestContext, job: Job) {const child=forkContext(context,'worker');return describeJob(job,child);}",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772581431
+    },
+    {
+      "id": 18791,
+      "message_id": "ZQW9atfHN7-FxN8PpqPZqQc",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772584,
+      "timestamp": "2026-09-30 12:49:44",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_782862",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "grep -rn \"ActiveContext\" src/"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 39201,
+          "outputTokens": 22,
+          "totalTokens": 39233,
+          "cacheReadTokens": 28300,
+          "cost": 0.01038075,
+          "costSource": "estimated",
+          "elapsedMs": 3529,
+          "timeToFirstTokenMs": 3529
+        }
+      },
+      "firstObservedAtMs": 1790772585083
+    },
+    {
+      "id": 18792,
+      "message_id": "msg_d55c7aef-0792-40af-b8ee-a812b1e312e7",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772584,
+      "timestamp": "2026-09-30 12:49:44",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_782862",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "src/plugins/plugin1.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin5.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin4.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin0.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin7.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin3.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin2.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin6.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/context.ts:2:export type ActiveContext = RequestContext;\nsrc/response.ts:1:import type {ActiveContext} from './context.ts';\nsrc/response.ts:2:export function response(context: ActiveContext, payload: unknown) {return {requestId:context.requestId,payload};}\nsrc/logging.ts:1:import type {ActiveContext as Context} from './context.ts';",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "src/plugins/plugin1.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin5.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin4.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin0.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin7.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin3.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin2.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/plugins/plugin6.ts:1:import type {ActiveContext as Context} from '../context.ts';\nsrc/context.ts:2:export type ActiveContext = RequestContext;\nsrc/response.ts:1:import type {ActiveContext} from './context.ts';\nsrc/response.ts:2:export function response(context: ActiveContext, payload: unknown) {return {requestId:context.requestId,payload};}\nsrc/logging.ts:1:import type {ActiveContext as Context} from './context.ts';",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772585083
+    },
+    {
+      "id": 18793,
+      "message_id": "aQW9aqufGveIxN8P8pva4Qk",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772594,
+      "timestamp": "2026-09-30 12:49:54",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_699865",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "write",
+              "arguments": {
+                "path": "src/context.ts",
+                "content": "export interface RequestContext { readonly traceId: string; readonly userId: string; }\nexport type ActiveContext = RequestContext;\n"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 39546,
+          "outputTokens": 50,
+          "totalTokens": 42172,
+          "cacheReadTokens": 36381,
+          "cost": 0.005289825,
+          "costSource": "estimated",
+          "elapsedMs": 9909,
+          "timeToFirstTokenMs": 9909
+        }
+      },
+      "firstObservedAtMs": 1790772594990
+    },
+    {
+      "id": 18794,
+      "message_id": "msg_7f22ab3a-cb37-4f54-8dee-0e5021d0e305",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772594,
+      "timestamp": "2026-09-30 12:49:54",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_699865",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Wrote src/context.ts (2 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772594991
+    },
+    {
+      "id": 18795,
+      "message_id": "cwW9apfhGYS8vdIP3tvE2A0",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772596,
+      "timestamp": "2026-09-30 12:49:56",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_796377",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "write",
+              "arguments": {
+                "content": "import type {RequestContext} from './context.ts';\nexport function createContext(value: string, userId: string): RequestContext {return {traceId:value,userId};}\nexport function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, traceId: context.traceId+'/'+suffix};}\n",
+                "path": "src/context-factory.ts"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 42194,
+          "outputTokens": 97,
+          "totalTokens": 42304,
+          "cacheReadTokens": 36403,
+          "cost": 0.007437225,
+          "costSource": "estimated",
+          "elapsedMs": 1813,
+          "timeToFirstTokenMs": 1813
+        }
+      },
+      "firstObservedAtMs": 1790772596809
+    },
+    {
+      "id": 18796,
+      "message_id": "msg_371b7bdd-0302-4e29-9b87-be19934246a2",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772596,
+      "timestamp": "2026-09-30 12:49:56",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_796377",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Wrote src/context-factory.ts (3 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772596809
+    },
+    {
+      "id": 18797,
+      "message_id": "dQW9apeeDLWkvdIPmb_W-Q4",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772599,
+      "timestamp": "2026-09-30 12:49:59",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_758127",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "write",
+              "arguments": {
+                "path": "src/logging.ts",
+                "content": "import type {ActiveContext as Context} from './context.ts';\nexport function logFields(context: Context) {const {traceId: requestId,userId}=context;return {requestId,userId};}\n"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 42328,
+          "outputTokens": 67,
+          "totalTokens": 42406,
+          "cacheReadTokens": 36396,
+          "cost": 0.007429949999999999,
+          "costSource": "estimated",
+          "elapsedMs": 3249,
+          "timeToFirstTokenMs": 3249
+        }
+      },
+      "firstObservedAtMs": 1790772600203
+    },
+    {
+      "id": 18798,
+      "message_id": "msg_b4a8e70c-5fd6-4389-a5e5-db224cea34d7",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772599,
+      "timestamp": "2026-09-30 12:49:59",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_758127",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Wrote src/logging.ts (2 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772600203
+    },
+    {
+      "id": 18799,
+      "message_id": "eAW9atD_Iu7CvdIPpKLZmA4",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772602,
+      "timestamp": "2026-09-30 12:50:02",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_772129",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "write",
+              "arguments": {
+                "content": "import type {RequestContext} from './context.ts';\nexport function headers(context: RequestContext) {return {'x-request-id':context.traceId};}\n",
+                "path": "src/middleware.ts"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 42428,
+          "outputTokens": 60,
+          "totalTokens": 42499,
+          "cacheReadTokens": 36388,
+          "cost": 0.0074841000000000005,
+          "costSource": "estimated",
+          "elapsedMs": 2718,
+          "timeToFirstTokenMs": 2718
+        }
+      },
+      "firstObservedAtMs": 1790772602801
+    },
+    {
+      "id": 18800,
+      "message_id": "msg_77124c2d-ca62-44d8-b644-acfa693c8968",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772602,
+      "timestamp": "2026-09-30 12:50:02",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_772129",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Wrote src/middleware.ts (2 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772602801
+    },
+    {
+      "id": 18801,
+      "message_id": "ewW9asjGC4PfvdIPr92v-As",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772604,
+      "timestamp": "2026-09-30 12:50:04",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_844383",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "write",
+              "arguments": {
+                "content": "import type {RequestContext} from './context.ts';\nimport {auditLabel} from './job-types.ts';\nimport type {Job} from './job-types.ts';\nexport function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.traceId,audit:auditLabel(job.requestId),name:job.name};}\n",
+                "path": "src/jobs.ts"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 42521,
+          "outputTokens": 110,
+          "totalTokens": 42642,
+          "cacheReadTokens": 40423,
+          "cost": 0.005017725000000001,
+          "costSource": "estimated",
+          "elapsedMs": 1579,
+          "timeToFirstTokenMs": 1579
+        }
+      },
+      "firstObservedAtMs": 1790772604367
+    },
+    {
+      "id": 18802,
+      "message_id": "msg_3f6a895e-d16b-404b-924e-3df446feed27",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772604,
+      "timestamp": "2026-09-30 12:50:04",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_844383",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Wrote src/jobs.ts (4 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772604367
+    },
+    {
+      "id": 18803,
+      "message_id": "fAW9auuXMY7RxN8PxpHdiQk",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772605,
+      "timestamp": "2026-09-30 12:50:05",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_643565",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "write",
+              "arguments": {
+                "path": "src/response.ts",
+                "content": "import type {ActiveContext} from './context.ts';\nexport function response(context: ActiveContext, payload: unknown) {return {requestId:context.traceId,payload};}\n"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 42664,
+          "outputTokens": 63,
+          "totalTokens": 42738,
+          "cacheReadTokens": 40416,
+          "cost": 0.00495345,
+          "costSource": "estimated",
+          "elapsedMs": 1476,
+          "timeToFirstTokenMs": 1476
+        }
+      },
+      "firstObservedAtMs": 1790772605931
+    },
+    {
+      "id": 18804,
+      "message_id": "msg_197a22e7-9f66-4d16-963f-937dc67d61cc",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772605,
+      "timestamp": "2026-09-30 12:50:05",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_643565",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Wrote src/response.ts (2 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772605931
+    },
+    {
+      "id": 18805,
+      "message_id": "fgW9apHPEcnQ28oP64boyAk",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772607,
+      "timestamp": "2026-09-30 12:50:07",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_805697",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "write",
+              "arguments": {
+                "path": "src/plugins/plugin0.ts",
+                "content": "import type {ActiveContext as Context} from '../context.ts';\nexport function plugin0(context: Context) {return {requestId:context.traceId,tag:'plugin0',user:context.userId};}\n"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 42760,
+          "outputTokens": 73,
+          "totalTokens": 42859,
+          "cacheReadTokens": 40408,
+          "cost": 0.00506835,
+          "costSource": "estimated",
+          "elapsedMs": 1693,
+          "timeToFirstTokenMs": 1693
+        }
+      },
+      "firstObservedAtMs": 1790772607767
+    },
+    {
+      "id": 18806,
+      "message_id": "msg_e968c3f8-084d-4902-b280-210b1fb47c90",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772607,
+      "timestamp": "2026-09-30 12:50:07",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_805697",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Wrote src/plugins/plugin0.ts (2 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772607767
+    },
+    {
+      "id": 18807,
+      "message_id": "gAW9arRfq_290g_njPy4Aw",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772609,
+      "timestamp": "2026-09-30 12:50:09",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_746166",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "write",
+              "arguments": {
+                "content": "import type {ActiveContext as Context} from '../context.ts';\nexport function plugin1(context: Context) {return {requestId:context.traceId,tag:'plugin1',user:context.userId};}\n",
+                "path": "src/plugins/plugin1.ts"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 42884,
+          "outputTokens": 73,
+          "totalTokens": 42967,
+          "cacheReadTokens": 40400,
+          "cost": 0.00516675,
+          "costSource": "estimated",
+          "elapsedMs": 1773,
+          "timeToFirstTokenMs": 1773
+        }
+      },
+      "firstObservedAtMs": 1790772609344
+    },
+    {
+      "id": 18808,
+      "message_id": "msg_9d4de19d-992f-440d-b388-73c5d5b11795",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772609,
+      "timestamp": "2026-09-30 12:50:09",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_746166",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Wrote src/plugins/plugin1.ts (2 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772609344
+    },
+    {
+      "id": 18809,
+      "message_id": "gQW9aq2-L4-lvdIPs6_FkQM",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772613,
+      "timestamp": "2026-09-30 12:50:13",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_693109",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "write",
+              "arguments": {
+                "content": "import type {ActiveContext as Context} from '../context.ts';\nexport function plugin2(context: Context) {return {requestId:context.traceId,tag:'plugin2',user:context.userId};}\n",
+                "path": "src/plugins/plugin2.ts"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 42992,
+          "outputTokens": 73,
+          "totalTokens": 43072,
+          "cacheReadTokens": 40392,
+          "cost": 0.00525315,
+          "costSource": "estimated",
+          "elapsedMs": 3819,
+          "timeToFirstTokenMs": 3819
+        }
+      },
+      "firstObservedAtMs": 1790772613272
+    },
+    {
+      "id": 18810,
+      "message_id": "msg_d7005988-ba1c-4cc6-88be-f16400a9d025",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772613,
+      "timestamp": "2026-09-30 12:50:13",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_693109",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Wrote src/plugins/plugin2.ts (2 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772613272
+    },
+    {
+      "id": 18811,
+      "message_id": "hQW9ap_zK-bYxs0PzeT1yQk",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772614,
+      "timestamp": "2026-09-30 12:50:14",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_585533",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "write",
+              "arguments": {
+                "content": "import type {ActiveContext as Context} from '../context.ts';\nexport function plugin3(context: Context) {return {requestId:context.traceId,tag:'plugin3',user:context.userId};}\n",
+                "path": "src/plugins/plugin3.ts"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 43097,
+          "outputTokens": 73,
+          "totalTokens": 43177,
+          "cacheReadTokens": 40384,
+          "cost": 0.0053373,
+          "costSource": "estimated",
+          "elapsedMs": 1586,
+          "timeToFirstTokenMs": 1586
+        }
+      },
+      "firstObservedAtMs": 1790772614843
+    },
+    {
+      "id": 18812,
+      "message_id": "msg_b10570d1-4c40-4ccf-bfe5-c5da8d02b38f",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772614,
+      "timestamp": "2026-09-30 12:50:14",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_585533",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Wrote src/plugins/plugin3.ts (2 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772614844
+    },
+    {
+      "id": 18813,
+      "message_id": "hwW9aqCvEqiwxN8Pgf_PmAk",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772617,
+      "timestamp": "2026-09-30 12:50:17",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_727951",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "write",
+              "arguments": {
+                "content": "import type {ActiveContext as Context} from '../context.ts';\nexport function plugin4(context: Context) {return {requestId:context.traceId,tag:'plugin4',user:context.userId};}\n",
+                "path": "src/plugins/plugin4.ts"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 43202,
+          "outputTokens": 73,
+          "totalTokens": 43282,
+          "cacheReadTokens": 40376,
+          "cost": 0.0054214499999999995,
+          "costSource": "estimated",
+          "elapsedMs": 3118,
+          "timeToFirstTokenMs": 3118
+        }
+      },
+      "firstObservedAtMs": 1790772618003
+    },
+    {
+      "id": 18814,
+      "message_id": "msg_747d5f33-703d-43d3-9c7d-ba9d64fe1cba",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772617,
+      "timestamp": "2026-09-30 12:50:17",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_727951",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Wrote src/plugins/plugin4.ts (2 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772618003
+    },
+    {
+      "id": 18815,
+      "message_id": "igW9ataaFqKa28oPiJ2QAQ",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772623,
+      "timestamp": "2026-09-30 12:50:23",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_547579",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "write",
+              "arguments": {
+                "path": "src/plugins/plugin5.ts",
+                "content": "import type {ActiveContext as Context} from '../context.ts';\nexport function plugin5(context: Context) {return {requestId:context.traceId,tag:'plugin5',user:context.userId};}\n"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 43307,
+          "outputTokens": 73,
+          "totalTokens": 43387,
+          "cacheReadTokens": 40369,
+          "cost": 0.005504924999999999,
+          "costSource": "estimated",
+          "elapsedMs": 5104,
+          "timeToFirstTokenMs": 5104
+        }
+      },
+      "firstObservedAtMs": 1790772623232
+    },
+    {
+      "id": 18816,
+      "message_id": "msg_4cbfb34b-7d10-4f62-949b-cd78c683029f",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772623,
+      "timestamp": "2026-09-30 12:50:23",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_547579",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Wrote src/plugins/plugin5.ts (2 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772623232
+    },
+    {
+      "id": 18817,
+      "message_id": "jwW9aqHzK_C8xN8PkpmluA0",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772624,
+      "timestamp": "2026-09-30 12:50:24",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_738073",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "write",
+              "arguments": {
+                "path": "src/plugins/plugin6.ts",
+                "content": "import type {ActiveContext as Context} from '../context.ts';\nexport function plugin6(context: Context) {return {requestId:context.traceId,tag:'plugin6',user:context.userId};}\n"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 43412,
+          "outputTokens": 73,
+          "totalTokens": 43492,
+          "cacheReadTokens": 40361,
+          "cost": 0.005589075,
+          "costSource": "estimated",
+          "elapsedMs": 1849,
+          "timeToFirstTokenMs": 1849
+        }
+      },
+      "firstObservedAtMs": 1790772625063
+    },
+    {
+      "id": 18818,
+      "message_id": "msg_73062287-171f-428b-ae79-a8225785bd23",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772624,
+      "timestamp": "2026-09-30 12:50:24",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_738073",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Wrote src/plugins/plugin6.ts (2 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772625063
+    },
+    {
+      "id": 18819,
+      "message_id": "kQW9apXrHPj5xN8PrMuXkAw",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772627,
+      "timestamp": "2026-09-30 12:50:27",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_581786",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "write",
+              "arguments": {
+                "path": "src/plugins/plugin7.ts",
+                "content": "import type {ActiveContext as Context} from '../context.ts';\nexport function plugin7(context: Context) {return {requestId:context.traceId,tag:'plugin7',user:context.userId};}\n"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 43517,
+          "outputTokens": 73,
+          "totalTokens": 43597,
+          "cacheReadTokens": 40353,
+          "cost": 0.0056732250000000005,
+          "costSource": "estimated",
+          "elapsedMs": 2669,
+          "timeToFirstTokenMs": 2669
+        }
+      },
+      "firstObservedAtMs": 1790772627691
+    },
+    {
+      "id": 18820,
+      "message_id": "msg_85c5991b-cc91-4b48-8591-b5a65b6a134e",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772627,
+      "timestamp": "2026-09-30 12:50:27",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_581786",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Wrote src/plugins/plugin7.ts (2 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772627691
+    },
+    {
+      "id": 18821,
+      "message_id": "lAW9atDxBZSqxN8PgtWJyA0",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772631,
+      "timestamp": "2026-09-30 12:50:31",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_643980",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "git diff"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 43622,
+          "outputTokens": 15,
+          "totalTokens": 43651,
+          "cacheReadTokens": 40345,
+          "cost": 0.005539875,
+          "costSource": "estimated",
+          "elapsedMs": 4276,
+          "timeToFirstTokenMs": 4276
+        }
+      },
+      "firstObservedAtMs": 1790772632139
+    },
+    {
+      "id": 18822,
+      "message_id": "msg_5faadd5f-7459-47dd-9dca-8a3de833e694",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772631,
+      "timestamp": "2026-09-30 12:50:31",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_643980",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "diff --git a/src/context-factory.ts b/src/context-factory.ts\nindex 1314963..0b07d1a 100644\n--- a/src/context-factory.ts\n+++ b/src/context-factory.ts\n@@ -1,3 +1,3 @@\n import type {RequestContext} from './context.ts';\n-export function createContext(value: string, userId: string): RequestContext {return {requestId:value,userId};}\n-export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\n+export function createContext(value: string, userId: string): RequestContext {return {traceId:value,userId};}\n+export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, traceId: context.traceId+'/'+suffix};}\ndiff --git a/src/context.ts b/src/context.ts\nindex 7a4e504..f32334d 100644\n--- a/src/context.ts\n+++ b/src/context.ts\n@@ -1,2 +1,2 @@\n-export interface RequestContext { readonly requestId: string; readonly userId: string; }\n+export interface RequestContext { readonly traceId: string; readonly userId: string; }\n export type ActiveContext = RequestContext;\ndiff --git a/src/jobs.ts b/src/jobs.ts\nindex 2454907..6a2885a 100644\n--- a/src/jobs.ts\n+++ b/src/jobs.ts\n@@ -1,4 +1,4 @@\n import type {RequestContext} from './context.ts';\n import {auditLabel} from './job-types.ts';\n import type {Job} from './job-types.ts';\n-export function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.requestId,audit:auditLabel(job.requestId),name:job.name};}\n+export function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.traceId,audit:auditLabel(job.requestId),name:job.name};}\ndiff --git a/src/logging.ts b/src/logging.ts\nindex 5af62d2..b3262e7 100644\n--- a/src/logging.ts\n+++ b/src/logging.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from './context.ts';\n-export function logFields(context: Context) {const {requestId,userId}=context;return {requestId,userId};}\n+export function logFields(context: Context) {const {traceId: requestId,userId}=context;return {requestId,userId};}\ndiff --git a/src/middleware.ts b/src/middleware.ts\nindex b12c139..5a08c36 100644\n--- a/src/middleware.ts\n+++ b/src/middleware.ts\n@@ -1,2 +1,2 @@\n import type {RequestContext} from './context.ts';\n-export function headers(context: RequestContext) {return {'x-request-id':context.requestId};}\n+export function headers(context: RequestContext) {return {'x-request-id':context.traceId};}\ndiff --git a/src/plugins/plugin0.ts b/src/plugins/plugin0.ts\nindex 10de841..461eea3 100644\n--- a/src/plugins/plugin0.ts\n+++ b/src/plugins/plugin0.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from '../context.ts';\n-export function plugin0(context: Context) {return {requestId:context.requestId,tag:'plugin0',user:context.userId};}\n+export function plugin0(context: Context) {return {requestId:context.traceId,tag:'plugin0',user:context.userId};}\ndiff --git a/src/plugins/plugin1.ts b/src/plugins/plugin1.ts\nindex 74fafe6..082c58c 100644\n--- a/src/plugins/plugin1.ts\n+++ b/src/plugins/plugin1.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from '../context.ts';\n-export function plugin1(context: Context) {return {requestId:context.requestId,tag:'plugin1',user:context.userId};}\n+export function plugin1(context: Context) {return {requestId:context.traceId,tag:'plugin1',user:context.userId};}\ndiff --git a/src/plugins/plugin2.ts b/src/plugins/plugin2.ts\nindex 1ec1009..46e70ce 100644\n--- a/src/plugins/plugin2.ts\n+++ b/src/plugins/plugin2.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from '../context.ts';\n-export function plugin2(context: Context) {return {requestId:context.requestId,tag:'plugin2',user:context.userId};}\n+export function plugin2(context: Context) {return {requestId:context.traceId,tag:'plugin2',user:context.userId};}\ndiff --git a/src/plugins/plugin3.ts b/src/plugins/plugin3.ts\nindex 8e42602..d607bb8 100644\n--- a/src/plugins/plugin3.ts\n+++ b/src/plugins/plugin3.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from '../context.ts';\n-export function plugin3(context: Context) {return {requestId:context.requestId,tag:'plugin3',user:context.userId};}\n+export function plugin3(context: Context) {return {requestId:context.traceId,tag:'plugin3',user:context.userId};}\ndiff --git a/src/plugins/plugin4.ts b/src/plugins/plugin4.ts\nindex 6023364..99ccd08 100644\n--- a/src/plugins/plugin4.ts\n+++ b/src/plugins/plugin4.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from '../context.ts';\n-export function plugin4(context: Context) {return {requestId:context.requestId,tag:'plugin4',user:context.userId};}\n+export function plugin4(context: Context) {return {requestId:context.traceId,tag:'plugin4',user:context.userId};}\ndiff --git a/src/plugins/plugin5.ts b/src/plugins/plugin5.ts\nindex 97f3c73..01ec50e 100644\n--- a/src/plugins/plugin5.ts\n+++ b/src/plugins/plugin5.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from '../context.ts';\n-export function plugin5(context: Context) {return {requestId:context.requestId,tag:'plugin5',user:context.userId};}\n+export function plugin5(context: Context) {return {requestId:context.traceId,tag:'plugin5',user:context.userId};}\ndiff --git a/src/plugins/plugin6.ts b/src/plugins/plugin6.ts\nindex cffb4f7..df46aeb 100644\n--- a/src/plugins/plugin6.ts\n+++ b/src/plugins/plugin6.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from '../context.ts';\n-export function plugin6(context: Context) {return {requestId:context.requestId,tag:'plugin6',user:context.userId};}\n+export function plugin6(context: Context) {return {requestId:context.traceId,tag:'plugin6',user:context.userId};}\ndiff --git a/src/plugins/plugin7.ts b/src/plugins/plugin7.ts\nindex a0a861b..b0c7c20 100644\n--- a/src/plugins/plugin7.ts\n+++ b/src/plugins/plugin7.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from '../context.ts';\n-export function plugin7(context: Context) {return {requestId:context.requestId,tag:'plugin7',user:context.userId};}\n+export function plugin7(context: Context) {return {requestId:context.traceId,tag:'plugin7',user:context.userId};}\ndiff --git a/src/response.ts b/src/response.ts\nindex 31a7a42..4f1c53d 100644\n--- a/src/response.ts\n+++ b/src/response.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext} from './context.ts';\n-export function response(context: ActiveContext, payload: unknown) {return {requestId:context.requestId,payload};}\n+export function response(context: ActiveContext, payload: unknown) {return {requestId:context.traceId,payload};}",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "diff --git a/src/context-factory.ts b/src/context-factory.ts\nindex 1314963..0b07d1a 100644\n--- a/src/context-factory.ts\n+++ b/src/context-factory.ts\n@@ -1,3 +1,3 @@\n import type {RequestContext} from './context.ts';\n-export function createContext(value: string, userId: string): RequestContext {return {requestId:value,userId};}\n-export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\n+export function createContext(value: string, userId: string): RequestContext {return {traceId:value,userId};}\n+export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, traceId: context.traceId+'/'+suffix};}\ndiff --git a/src/context.ts b/src/context.ts\nindex 7a4e504..f32334d 100644\n--- a/src/context.ts\n+++ b/src/context.ts\n@@ -1,2 +1,2 @@\n-export interface RequestContext { readonly requestId: string; readonly userId: string; }\n+export interface RequestContext { readonly traceId: string; readonly userId: string; }\n export type ActiveContext = RequestContext;\ndiff --git a/src/jobs.ts b/src/jobs.ts\nindex 2454907..6a2885a 100644\n--- a/src/jobs.ts\n+++ b/src/jobs.ts\n@@ -1,4 +1,4 @@\n import type {RequestContext} from './context.ts';\n import {auditLabel} from './job-types.ts';\n import type {Job} from './job-types.ts';\n-export function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.requestId,audit:auditLabel(job.requestId),name:job.name};}\n+export function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.traceId,audit:auditLabel(job.requestId),name:job.name};}\ndiff --git a/src/logging.ts b/src/logging.ts\nindex 5af62d2..b3262e7 100644\n--- a/src/logging.ts\n+++ b/src/logging.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from './context.ts';\n-export function logFields(context: Context) {const {requestId,userId}=context;return {requestId,userId};}\n+export function logFields(context: Context) {const {traceId: requestId,userId}=context;return {requestId,userId};}\ndiff --git a/src/middleware.ts b/src/middleware.ts\nindex b12c139..5a08c36 100644\n--- a/src/middleware.ts\n+++ b/src/middleware.ts\n@@ -1,2 +1,2 @@\n import type {RequestContext} from './context.ts';\n-export function headers(context: RequestContext) {return {'x-request-id':context.requestId};}\n+export function headers(context: RequestContext) {return {'x-request-id':context.traceId};}\ndiff --git a/src/plugins/plugin0.ts b/src/plugins/plugin0.ts\nindex 10de841..461eea3 100644\n--- a/src/plugins/plugin0.ts\n+++ b/src/plugins/plugin0.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from '../context.ts';\n-export function plugin0(context: Context) {return {requestId:context.requestId,tag:'plugin0',user:context.userId};}\n+export function plugin0(context: Context) {return {requestId:context.traceId,tag:'plugin0',user:context.userId};}\ndiff --git a/src/plugins/plugin1.ts b/src/plugins/plugin1.ts\nindex 74fafe6..082c58c 100644\n--- a/src/plugins/plugin1.ts\n+++ b/src/plugins/plugin1.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from '../context.ts';\n-export function plugin1(context: Context) {return {requestId:context.requestId,tag:'plugin1',user:context.userId};}\n+export function plugin1(context: Context) {return {requestId:context.traceId,tag:'plugin1',user:context.userId};}\ndiff --git a/src/plugins/plugin2.ts b/src/plugins/plugin2.ts\nindex 1ec1009..46e70ce 100644\n--- a/src/plugins/plugin2.ts\n+++ b/src/plugins/plugin2.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from '../context.ts';\n-export function plugin2(context: Context) {return {requestId:context.requestId,tag:'plugin2',user:context.userId};}\n+export function plugin2(context: Context) {return {requestId:context.traceId,tag:'plugin2',user:context.userId};}\ndiff --git a/src/plugins/plugin3.ts b/src/plugins/plugin3.ts\nindex 8e42602..d607bb8 100644\n--- a/src/plugins/plugin3.ts\n+++ b/src/plugins/plugin3.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from '../context.ts';\n-export function plugin3(context: Context) {return {requestId:context.requestId,tag:'plugin3',user:context.userId};}\n+export function plugin3(context: Context) {return {requestId:context.traceId,tag:'plugin3',user:context.userId};}\ndiff --git a/src/plugins/plugin4.ts b/src/plugins/plugin4.ts\nindex 6023364..99ccd08 100644\n--- a/src/plugins/plugin4.ts\n+++ b/src/plugins/plugin4.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from '../context.ts';\n-export function plugin4(context: Context) {return {requestId:context.requestId,tag:'plugin4',user:context.userId};}\n+export function plugin4(context: Context) {return {requestId:context.traceId,tag:'plugin4',user:context.userId};}\ndiff --git a/src/plugins/plugin5.ts b/src/plugins/plugin5.ts\nindex 97f3c73..01ec50e 100644\n--- a/src/plugins/plugin5.ts\n+++ b/src/plugins/plugin5.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from '../context.ts';\n-export function plugin5(context: Context) {return {requestId:context.requestId,tag:'plugin5',user:context.userId};}\n+export function plugin5(context: Context) {return {requestId:context.traceId,tag:'plugin5',user:context.userId};}\ndiff --git a/src/plugins/plugin6.ts b/src/plugins/plugin6.ts\nindex cffb4f7..df46aeb 100644\n--- a/src/plugins/plugin6.ts\n+++ b/src/plugins/plugin6.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from '../context.ts';\n-export function plugin6(context: Context) {return {requestId:context.requestId,tag:'plugin6',user:context.userId};}\n+export function plugin6(context: Context) {return {requestId:context.traceId,tag:'plugin6',user:context.userId};}\ndiff --git a/src/plugins/plugin7.ts b/src/plugins/plugin7.ts\nindex a0a861b..b0c7c20 100644\n--- a/src/plugins/plugin7.ts\n+++ b/src/plugins/plugin7.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext as Context} from '../context.ts';\n-export function plugin7(context: Context) {return {requestId:context.requestId,tag:'plugin7',user:context.userId};}\n+export function plugin7(context: Context) {return {requestId:context.traceId,tag:'plugin7',user:context.userId};}\ndiff --git a/src/response.ts b/src/response.ts\nindex 31a7a42..4f1c53d 100644\n--- a/src/response.ts\n+++ b/src/response.ts\n@@ -1,2 +1,2 @@\n import type {ActiveContext} from './context.ts';\n-export function response(context: ActiveContext, payload: unknown) {return {requestId:context.requestId,payload};}\n+export function response(context: ActiveContext, payload: unknown) {return {requestId:context.traceId,payload};}",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772632139
+    },
+    {
+      "id": 18823,
+      "message_id": "mAW9au68Hc6c28oPq56huAI",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772634,
+      "timestamp": "2026-09-30 12:50:34",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_637567",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "node \"/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 45912,
+          "outputTokens": 86,
+          "totalTokens": 46011,
+          "cost": 0.0347565,
+          "costSource": "estimated",
+          "elapsedMs": 2226,
+          "timeToFirstTokenMs": 2226
+        }
+      },
+      "firstObservedAtMs": 1790772634768
+    },
+    {
+      "id": 18824,
+      "message_id": "msg_e0b107ee-70d2-4b9f-92c1-0b5030cfa48b",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772634,
+      "timestamp": "2026-09-30 12:50:34",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_637567",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "(no output)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772634768
+    },
+    {
+      "id": 18825,
+      "message_id": "mwW9aviiCK_vxs0PkaWrQA",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772639,
+      "timestamp": "2026-09-30 12:50:39",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_573342",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "node --experimental-strip-types --test tests/*.test.mjs"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 46026,
+          "outputTokens": 28,
+          "totalTokens": 46070,
+          "cacheReadTokens": 40360,
+          "cost": 0.0073815,
+          "costSource": "estimated",
+          "elapsedMs": 4627,
+          "timeToFirstTokenMs": 4627
+        }
+      },
+      "firstObservedAtMs": 1790772639494
+    },
+    {
+      "id": 18826,
+      "message_id": "msg_e66d1d65-ec75-410a-b19b-9a9bc8970545",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772639,
+      "timestamp": "2026-09-30 12:50:39",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_573342",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "TAP version 13\n# Subtest: wire identifier\nok 1 - wire identifier\n  ---\n  duration_ms: 0.361834\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 75.004791",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "TAP version 13\n# Subtest: wire identifier\nok 1 - wire identifier\n  ---\n  duration_ms: 0.361834\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 75.004791",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772639494
+    },
+    {
+      "id": 18827,
+      "message_id": "nwW9as_rOK_vxs0PkaWrQA",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772651,
+      "timestamp": "2026-09-30 12:50:51",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_734085",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "write",
+              "arguments": {
+                "content": "import assert from 'node:assert/strict';\nimport {test} from 'node:test';\nimport {handle} from '../src/app.ts';\nimport {createContext, forkContext} from '../src/context-factory.ts';\nimport {describeJob} from '../src/jobs.ts';\nimport {traceSummary} from '../src/plugins/index.ts';\nimport {record0} from '../src/catalog/record0.ts';\n\ntest('end-to-end propagation through app handle', () => {\n  const job = {requestId: 'job-xyz-789', name: 'data-sync'};\n  const result = handle('trace-abc-123', 'user-456', job);\n\n  // Context contains traceId and userId, and no requestId property\n  assert.equal(result.context.traceId, 'trace-abc-123');\n  assert.equal(result.context.userId, 'user-456');\n  assert.equal('requestId' in result.context, false);\n  assert.equal(result.context.requestId, undefined);\n\n  // Wire headers\n  assert.equal(result.headers['x-request-id'], 'trace-abc-123');\n\n  // Logs output preserves wire key requestId mapped to traceId\n  assert.equal(result.logs.requestId, 'trace-abc-123');\n  assert.equal(result.logs.userId, 'user-456');\n\n  // Response body preserves wire key requestId mapped to traceId\n  assert.equal(result.body.requestId, 'trace-abc-123');\n\n  // Payload reflects worker fork with suffix and propagation into describeJob\n  assert.equal(result.body.payload.trace, 'trace-abc-123/worker');\n\n  // Unrelated Job.requestId is preserved and not overwritten by traceId\n  assert.equal(result.body.payload.requestId, 'job-xyz-789');\n  assert.equal(result.body.payload.audit, 'job:job-xyz-789');\n  assert.equal(result.body.payload.name, 'data-sync');\n\n  // Original context non-mutation verification\n  assert.equal(result.context.traceId, 'trace-abc-123');\n});\n\ntest('context factory and non-mutation behavior', () => {\n  const ctx = createContext('root-trace', 'user-1');\n  assert.equal(ctx.traceId, 'root-trace');\n  assert.equal(ctx.userId, 'user-1');\n  assert.equal('requestId' in ctx, false);\n\n  const forked = forkContext(ctx, 'stage1');\n  assert.equal(forked.traceId, 'root-trace/stage1');\n  assert.equal(forked.userId, 'user-1');\n  assert.equal(ctx.traceId, 'root-trace');\n\n  const forked2 = forkContext(forked, 'stage2');\n  assert.equal(forked2.traceId, 'root-trace/stage1/stage2');\n  assert.equal(forked.traceId, 'root-trace/stage1');\n});\n\ntest('unrelated Job identifier in describeJob', () => {\n  const ctx = createContext('trace-test', 'user-2');\n  const job = {requestId: 'job-unique-id', name: 'index-task'};\n  const desc = describeJob(job, ctx);\n\n  assert.equal(desc.requestId, 'job-unique-id');\n  assert.equal(desc.trace, 'trace-test');\n  assert.equal(desc.audit, 'job:job-unique-id');\n  assert.equal(desc.name, 'index-task');\n});\n\ntest('traceSummary in plugins and its consumers', () => {\n  const ctx = createContext('summary-trace-001', 'user-summary');\n  const summary = traceSummary(ctx);\n\n  assert.equal(Array.isArray(summary), true);\n  assert.equal(summary.length, 8);\n  for (let i = 0; i < 8; i++) {\n    assert.equal(summary[i].requestId, 'summary-trace-001');\n    assert.equal(summary[i].tag, `plugin${i}`);\n    assert.equal(summary[i].user, 'user-summary');\n  }\n});\n\ntest('unrelated catalog RequestContext and requestId preserved', () => {\n  const catalogCtx = {requestId: 'cat-req-42', category: 'books'};\n  const res = record0(catalogCtx);\n  assert.equal(res.requestId, 'cat-req-42');\n  assert.equal(res.category, 'books');\n  assert.equal(res.label, 'record0:cat-req-42');\n});\n",
+                "path": "tests/regression.test.mjs"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 46182,
+          "outputTokens": 1134,
+          "totalTokens": 49700,
+          "cacheReadTokens": 40353,
+          "cost": 0.011650725,
+          "costSource": "estimated",
+          "elapsedMs": 12142,
+          "timeToFirstTokenMs": 12142
+        }
+      },
+      "firstObservedAtMs": 1790772651854
+    },
+    {
+      "id": 18828,
+      "message_id": "msg_77a460fa-8cd6-4ac7-9bb5-399ed191e6f2",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772651,
+      "timestamp": "2026-09-30 12:50:51",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_734085",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Created tests/regression.test.mjs (87 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772651854
+    },
+    {
+      "id": 18829,
+      "message_id": "rAW9aqSdEaDxxN8P_LKPmAs",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772654,
+      "timestamp": "2026-09-30 12:50:55",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_695533",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "node --experimental-strip-types --test tests/*.test.mjs"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 49725,
+          "outputTokens": 28,
+          "totalTokens": 49760,
+          "cacheReadTokens": 44427,
+          "cost": 0.007410524999999999,
+          "costSource": "estimated",
+          "elapsedMs": 3345,
+          "timeToFirstTokenMs": 3345
+        }
+      },
+      "firstObservedAtMs": 1790772655276
+    },
+    {
+      "id": 18830,
+      "message_id": "msg_25d04a3a-e296-4ab6-b6bf-edf5bf4d1172",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772654,
+      "timestamp": "2026-09-30 12:50:55",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_695533",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "TAP version 13\n# Subtest: wire identifier\nok 1 - wire identifier\n  ---\n  duration_ms: 0.441542\n  type: 'test'\n  ...\n# Subtest: end-to-end propagation through app handle\nok 2 - end-to-end propagation through app handle\n  ---\n  duration_ms: 0.438417\n  type: 'test'\n  ...\n# Subtest: context factory and non-mutation behavior\nok 3 - context factory and non-mutation behavior\n  ---\n  duration_ms: 0.060125\n  type: 'test'\n  ...\n# Subtest: unrelated Job identifier in describeJob\nok 4 - unrelated Job identifier in describeJob\n  ---\n  duration_ms: 0.046208\n  type: 'test'\n  ...\n# Subtest: traceSummary in plugins and its consumers\nok 5 - traceSummary in plugins and its consumers\n  ---\n  duration_ms: 0.080167\n  type: 'test'\n  ...\n# Subtest: unrelated catalog RequestContext and requestId preserved\nok 6 - unrelated catalog RequestContext and requestId preserved\n  ---\n  duration_ms: 0.046917\n  type: 'test'\n  ...\n1..6\n# tests 6\n# suites 0\n# pass 6\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 88.129541",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "TAP version 13\n# Subtest: wire identifier\nok 1 - wire identifier\n  ---\n  duration_ms: 0.441542\n  type: 'test'\n  ...\n# Subtest: end-to-end propagation through app handle\nok 2 - end-to-end propagation through app handle\n  ---\n  duration_ms: 0.438417\n  type: 'test'\n  ...\n# Subtest: context factory and non-mutation behavior\nok 3 - context factory and non-mutation behavior\n  ---\n  duration_ms: 0.060125\n  type: 'test'\n  ...\n# Subtest: unrelated Job identifier in describeJob\nok 4 - unrelated Job identifier in describeJob\n  ---\n  duration_ms: 0.046208\n  type: 'test'\n  ...\n# Subtest: traceSummary in plugins and its consumers\nok 5 - traceSummary in plugins and its consumers\n  ---\n  duration_ms: 0.080167\n  type: 'test'\n  ...\n# Subtest: unrelated catalog RequestContext and requestId preserved\nok 6 - unrelated catalog RequestContext and requestId preserved\n  ---\n  duration_ms: 0.046917\n  type: 'test'\n  ...\n1..6\n# tests 6\n# suites 0\n# pass 6\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 88.129541",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772655276
+    },
+    {
+      "id": 18831,
+      "message_id": "rwW9arjoJPL3xN8PmYTT6Qg",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772656,
+      "timestamp": "2026-09-30 12:50:57",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_593629",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "node \"/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 50134,
+          "outputTokens": 86,
+          "totalTokens": 50237,
+          "cacheReadTokens": 44423,
+          "cost": 0.007937475000000001,
+          "costSource": "estimated",
+          "elapsedMs": 1683,
+          "timeToFirstTokenMs": 1683
+        }
+      },
+      "firstObservedAtMs": 1790772657372
+    },
+    {
+      "id": 18832,
+      "message_id": "msg_81ababd0-5ddf-4c2b-926d-5548955682a0",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772656,
+      "timestamp": "2026-09-30 12:50:57",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_593629",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "(no output)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772657373
+    },
+    {
+      "id": 18833,
+      "message_id": "sQW9arCuNv34xN8Pz8DJkQk",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772659,
+      "timestamp": "2026-09-30 12:50:59",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_682506",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "git status"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 50252,
+          "outputTokens": 15,
+          "totalTokens": 50294,
+          "cacheReadTokens": 44416,
+          "cost": 0.00776445,
+          "costSource": "estimated",
+          "elapsedMs": 2061,
+          "timeToFirstTokenMs": 2061
+        }
+      },
+      "firstObservedAtMs": 1790772659477
+    },
+    {
+      "id": 18834,
+      "message_id": "msg_e00d33c8-d930-4d31-8343-0fe379f17ee9",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772659,
+      "timestamp": "2026-09-30 12:50:59",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_682506",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "On branch master\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   src/context-factory.ts\n\tmodified:   src/context.ts\n\tmodified:   src/jobs.ts\n\tmodified:   src/logging.ts\n\tmodified:   src/middleware.ts\n\tmodified:   src/plugins/plugin0.ts\n\tmodified:   src/plugins/plugin1.ts\n\tmodified:   src/plugins/plugin2.ts\n\tmodified:   src/plugins/plugin3.ts\n\tmodified:   src/plugins/plugin4.ts\n\tmodified:   src/plugins/plugin5.ts\n\tmodified:   src/plugins/plugin6.ts\n\tmodified:   src/plugins/plugin7.ts\n\tmodified:   src/response.ts\n\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n\ttests/regression.test.mjs\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "On branch master\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   src/context-factory.ts\n\tmodified:   src/context.ts\n\tmodified:   src/jobs.ts\n\tmodified:   src/logging.ts\n\tmodified:   src/middleware.ts\n\tmodified:   src/plugins/plugin0.ts\n\tmodified:   src/plugins/plugin1.ts\n\tmodified:   src/plugins/plugin2.ts\n\tmodified:   src/plugins/plugin3.ts\n\tmodified:   src/plugins/plugin4.ts\n\tmodified:   src/plugins/plugin5.ts\n\tmodified:   src/plugins/plugin6.ts\n\tmodified:   src/plugins/plugin7.ts\n\tmodified:   src/response.ts\n\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n\ttests/regression.test.mjs\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772659477
+    },
+    {
+      "id": 18835,
+      "message_id": "swW9ap-3O8TOvdIPpoyAkAs",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772664,
+      "timestamp": "2026-09-30 12:51:04",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_498544",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "node --experimental-strip-types --test tests/*.test.mjs"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 50573,
+          "outputTokens": 28,
+          "totalTokens": 51830,
+          "cacheReadTokens": 48448,
+          "cost": 0.0053323500000000005,
+          "costSource": "estimated",
+          "elapsedMs": 5175,
+          "timeToFirstTokenMs": 5175
+        }
+      },
+      "firstObservedAtMs": 1790772664991
+    },
+    {
+      "id": 18836,
+      "message_id": "msg_b323e921-f312-4001-ba2b-4ddd2566b9f5",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772664,
+      "timestamp": "2026-09-30 12:51:04",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_498544",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "TAP version 13\n# Subtest: wire identifier\nok 1 - wire identifier\n  ---\n  duration_ms: 0.692167\n  type: 'test'\n  ...\n# Subtest: end-to-end propagation through app handle\nok 2 - end-to-end propagation through app handle\n  ---\n  duration_ms: 0.759542\n  type: 'test'\n  ...\n# Subtest: context factory and non-mutation behavior\nok 3 - context factory and non-mutation behavior\n  ---\n  duration_ms: 0.112125\n  type: 'test'\n  ...\n# Subtest: unrelated Job identifier in describeJob\nok 4 - unrelated Job identifier in describeJob\n  ---\n  duration_ms: 0.469208\n  type: 'test'\n  ...\n# Subtest: traceSummary in plugins and its consumers\nok 5 - traceSummary in plugins and its consumers\n  ---\n  duration_ms: 0.099458\n  type: 'test'\n  ...\n# Subtest: unrelated catalog RequestContext and requestId preserved\nok 6 - unrelated catalog RequestContext and requestId preserved\n  ---\n  duration_ms: 0.05825\n  type: 'test'\n  ...\n1..6\n# tests 6\n# suites 0\n# pass 6\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 82.706625",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "TAP version 13\n# Subtest: wire identifier\nok 1 - wire identifier\n  ---\n  duration_ms: 0.692167\n  type: 'test'\n  ...\n# Subtest: end-to-end propagation through app handle\nok 2 - end-to-end propagation through app handle\n  ---\n  duration_ms: 0.759542\n  type: 'test'\n  ...\n# Subtest: context factory and non-mutation behavior\nok 3 - context factory and non-mutation behavior\n  ---\n  duration_ms: 0.112125\n  type: 'test'\n  ...\n# Subtest: unrelated Job identifier in describeJob\nok 4 - unrelated Job identifier in describeJob\n  ---\n  duration_ms: 0.469208\n  type: 'test'\n  ...\n# Subtest: traceSummary in plugins and its consumers\nok 5 - traceSummary in plugins and its consumers\n  ---\n  duration_ms: 0.099458\n  type: 'test'\n  ...\n# Subtest: unrelated catalog RequestContext and requestId preserved\nok 6 - unrelated catalog RequestContext and requestId preserved\n  ---\n  duration_ms: 0.05825\n  type: 'test'\n  ...\n1..6\n# tests 6\n# suites 0\n# pass 6\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 82.706625",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772664991
+    },
+    {
+      "id": 18837,
+      "message_id": "uQW9apriFsvlvdIPiLqtwQU",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772666,
+      "timestamp": "2026-09-30 12:51:07",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_401252",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "node \"/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 52203,
+          "outputTokens": 86,
+          "totalTokens": 52294,
+          "cacheReadTokens": 48461,
+          "cost": 0.006763575,
+          "costSource": "estimated",
+          "elapsedMs": 2182,
+          "timeToFirstTokenMs": 2182
+        }
+      },
+      "firstObservedAtMs": 1790772667620
+    },
+    {
+      "id": 18838,
+      "message_id": "msg_76d3e46c-dc4f-41cd-8bd6-d142b8210e0c",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772666,
+      "timestamp": "2026-09-30 12:51:07",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_401252",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "(no output)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772667620
+    },
+    {
+      "id": 18839,
+      "message_id": "uwW9arTiNcTOvdIPpoyAkAs",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772669,
+      "timestamp": "2026-09-30 12:51:53",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_760152",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "todo__todo_write",
+              "arguments": {
+                "content": "- [x] Read README.md for workspace contract and instructions\n- [x] Inspect codebase under src/ to locate RequestContext definition, app entry point, and consumers\n- [x] Identify unrelated requestId occurrences to preserve (wire/output keys named requestId, Job.requestId, audit requestId variables, src/catalog RequestContext/requestId, traceSummary)\n- [x] Rename RequestContext field requestId -> traceId in definition and all consumers under src/ (no compatibility member on RequestContext)\n- [x] Update context construction, aliases, destructuring and propagation, forkContext suffixes\n- [x] Add regression tests in tests/regression.test.mjs for end-to-end propagation and unrelated Job identifier\n- [x] Run type check and tests\n- [x] Verify all requirements and report actual test results"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "todo"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 52309,
+          "outputTokens": 189,
+          "totalTokens": 52503,
+          "cacheReadTokens": 48453,
+          "cost": 0.007234725,
+          "costSource": "estimated",
+          "elapsedMs": 2118,
+          "timeToFirstTokenMs": 2118
+        }
+      },
+      "firstObservedAtMs": 1790772713711
+    },
+    {
+      "id": 18840,
+      "message_id": "msg_7b1d3bb0-b4dc-4717-a269-8f006b05236f",
+      "session_id": "20260930_8",
+      "role": "user",
+      "created_timestamp": 1790772669,
+      "timestamp": "2026-09-30 12:51:53",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_760152",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Updated (792 chars)"
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790772713711
+    },
+    {
+      "id": 18841,
+      "message_id": "6gW9aoWVE9avvdIP8PDPuA0",
+      "session_id": "20260930_8",
+      "role": "assistant",
+      "created_timestamp": 1790772721,
+      "timestamp": "2026-09-30 12:52:04",
+      "tokens": null,
+      "content": [
+        {
+          "type": "text",
+          "text": "### Summary of Changes\n\n1. **Renamed `RequestContext` field `requestId` to `traceId` (`src/context.ts`)**:\n   - Updated `RequestContext` interface definition to `{ readonly traceId: string; readonly userId: string; }`.\n   - Removed `requestId` from `RequestContext` with no backwards-compatibility property.\n\n2. **Updated context construction and propagation (`src/context-factory.ts`)**:\n   - `createContext(value, userId)` now returns `{ traceId: value, userId }`.\n   - `forkContext(context, suffix)` now immutably returns `{ ...context, traceId: context.traceId + '/' + suffix }`.\n\n3. **Updated consumers under `src/`**:\n   - `src/middleware.ts`: `headers(context)` returns `{'x-request-id': context.traceId}`.\n   - `src/logging.ts`: destructures `traceId` from `context` and preserves output wire key `requestId` (`{ requestId: traceId, userId }`).\n   - `src/jobs.ts`: `describeJob(job, context)` reads `context.traceId` for `trace` and keeps unrelated `job.requestId` and `auditLabel(job.requestId)` intact.\n   - `src/response.ts`: returns `{ requestId: context.traceId, payload }`.\n   - `src/plugins/plugin0.ts` \u2013 `plugin7.ts`: updated each plugin to map `requestId: context.traceId`, preserving return object keys and compatibility with `traceSummary` in `src/plugins/index.ts`.\n\n4. **Preserved unrelated identifiers and modules**:\n   - `Job.requestId` and audit variables remain untouched.\n   - Wire and output keys named `requestId` remain unchanged.\n   - `src/catalog/*` independent `RequestContext` definitions and `requestId` usages were preserved unmodified.\n\n5. **Added Regression Tests (`tests/regression.test.mjs`)**:\n   - Tested end-to-end propagation through `handle(...)` from the app entry point.\n   - Verified that `result.context` has `traceId` and no `requestId` property.\n   - Verified that wire keys (`headers['x-request-id']`, `body.requestId`, `logs.requestId`) receive the trace identifier.\n   - Verified context non-mutation and suffix propagation across stages (`body.payload.trace === '.../worker'`).\n   - Verified unrelated `Job.requestId` is preserved and not overwritten.\n   - Verified `traceSummary` in `src/plugins/index.ts` across all 8 plugins.\n   - Verified independent `src/catalog` `RequestContext` and records.\n\n---\n\n### Verification and Test Results\n\n- **Type Check**:\n  ```bash\n  node \"/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json\n  ```\n  Result: **Passed** with 0 errors.\n\n- **Test Suite**:\n  ```bash\n  node --experimental-strip-types --test tests/*.test.mjs\n  ```\n  Result:\n  ```text\n  TAP version 13\n  # Subtest: wire identifier\n  ok 1 - wire identifier\n    ---\n    duration_ms: 0.692167\n    type: 'test'\n    ...\n  # Subtest: end-to-end propagation through app handle\n  ok 2 - end-to-end propagation through app handle\n    ---\n    duration_ms: 0.759542\n    type: 'test'\n    ...\n  # Subtest: context factory and non-mutation behavior\n  ok 3 - context factory and non-mutation behavior\n    ---\n    duration_ms: 0.112125\n    type: 'test'\n    ...\n  # Subtest: unrelated Job identifier in describeJob\n  ok 4 - unrelated Job identifier in describeJob\n    ---\n    duration_ms: 0.469208\n    type: 'test'\n    ...\n  # Subtest: traceSummary in plugins and its consumers\n  ok 5 - traceSummary in plugins and its consumers\n    ---\n    duration_ms: 0.099458\n    type: 'test'\n    ...\n  # Subtest: unrelated catalog RequestContext and requestId preserved\n  ok 6 - unrelated catalog RequestContext and requestId preserved\n    ---\n    duration_ms: 0.05825\n    type: 'test'\n    ...\n  1..6\n  # tests 6\n  # suites 0\n  # pass 6\n  # fail 0\n  # cancelled 0\n  # skipped 0\n  # todo 0\n  ```"
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 52525,
+          "outputTokens": 1105,
+          "totalTokens": 53640,
+          "cacheReadTokens": 48447,
+          "cost": 0.010835774999999999,
+          "costSource": "estimated",
+          "elapsedMs": 10874,
+          "timeToFirstTokenMs": 7672
+        }
+      },
+      "firstObservedAtMs": 1790772724763
+    }
+  ]
+}

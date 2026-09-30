@@ -1,0 +1,27 @@
+   Compiling goose v1.50.0 (/private/tmp/orqaly-goose-verified-fixes/crates/goose)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 04s
+     Running unittests src/lib.rs (target/debug/deps/goose-07c34eaceba84da0)
+
+running 6 tests
+test agents::extension_manager::tests::test_mcp_app_tools_identified_for_code_mode_exclusion ... ok
+test agents::platform_extensions::code_execution::tests::code_mode_preserves_types_for_self_referential_schema ... ok
+test agents::extension_manager::tests::code_mode_preserves_host_native_policy_without_disclosing_hidden_remote_instructions ... ok
+test agents::extension_manager::tests::code_mode_capability_directory_is_compact_mounted_metadata_only ... ok
+test agents::state_machine::tests::prompt_skill_lifecycle::code_mode_capability_directory_reaches_state_machine_and_tracks_unmount ... FAILED
+test agents::reply_parts::tests::code_mode_capability_directory_reaches_legacy_prompt_without_full_policy ... ok
+
+failures:
+
+---- agents::state_machine::tests::prompt_skill_lifecycle::code_mode_capability_directory_reaches_state_machine_and_tracks_unmount stdout ----
+
+thread 'agents::state_machine::tests::prompt_skill_lifecycle::code_mode_capability_directory_reaches_state_machine_and_tracks_unmount' (82703515) panicked at /Users/admin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wiremock-0.6.5/src/mock_server/builder.rs:107:46:
+Failed to bind an OS port for a mock server.: Os { code: 1, kind: PermissionDenied, message: "Operation not permitted" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    agents::state_machine::tests::prompt_skill_lifecycle::code_mode_capability_directory_reaches_state_machine_and_tracks_unmount
+
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 2278 filtered out; finished in 0.06s
+
+error: test failed, to rerun pass `-p goose --lib`

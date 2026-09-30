@@ -4,12 +4,14 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdtemp, writeFile, symlink, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { SCENARIOS, SAFETY, TRANSCRIPTS, parseOptions, assessTurn, readArtifacts, runTurns, runBenchmark, loadWorkspaceResource,
   authorizeFixtureMarkdownWrites, authorizeFixtureMarkdownReads, ConversationAcpClient } from './benchmark-axwise-conversation.mjs';
 import { loadTypescriptParser } from './benchmark-goose-reset.mjs';
 import { AXWISE_TOOL_CALLBACKS, expectedSpecialistInventory, benchmarkPermission,
   hasSpecialistInvocation, confirmedSpecialistExecution } from './benchmark-local-axwise.mjs';
 
+const typescriptPath = fileURLToPath(new URL('../frontend/node_modules/typescript/lib/typescript.js', import.meta.url));
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const clean = (overrides = {}) => ({ status: 'completed', markdown: 'A useful answer.', tools: [], permissionDenials: [], sourceUrls: [], ...overrides });
 const artifact = (tool = 'analyze_interviews', overrides = {}) => ({ path: `/isolated/${tool}.json`, valid: true,
@@ -127,7 +129,7 @@ test('full eight-tool inventory rejects missing, duplicated and unknown tools', 
 });
 
 test('all eight direct and Code Mode operations are permitted and classified without treating discovery as execution', () => {
-  const parser = loadTypescriptParser();
+  const parser = loadTypescriptParser(typescriptPath);
   for (const [callback, name] of AXWISE_TOOL_CALLBACKS) {
     const input = { code: `async function run(){ return await ${callback}({brief:"synthetic"}); }` };
     assert.equal(benchmarkPermission({ name, rawInput: { brief: 'synthetic' } }, '/tmp/fixture', parser), true, name);
@@ -145,7 +147,7 @@ test('all eight direct and Code Mode operations are permitted and classified wit
 
 test('fixture Markdown permissions allow new root files only and reserve bounded names and bytes', async () => {
   const root = await mkdtemp(join(tmpdir(), 'conversation-write-test-'));
-  const parser = loadTypescriptParser();
+  const parser = loadTypescriptParser(typescriptPath);
   const call = (path, content = '# Synthetic analysis', extra = {}) => ({ title: `write · ${path}`, rawInput: { path, content, ...extra } });
   try {
     await writeFile(join(root, 'README.md'), 'Original fixture');
@@ -171,7 +173,7 @@ test('fixture Markdown permissions allow new root files only and reserve bounded
 
 test('Code Mode Markdown writes retain static-call grammar and reject mixed unsafe operations', async () => {
   const root = await mkdtemp(join(tmpdir(), 'conversation-code-write-test-'));
-  const parser = loadTypescriptParser();
+  const parser = loadTypescriptParser(typescriptPath);
   const check = (code, reservations = new Map()) => authorizeFixtureMarkdownWrites({ name: 'execute_typescript', rawInput: { code } }, root, reservations, parser);
   try {
     assert.equal(await check('async function run(){ const result=await Developer.write({path:"analysis.md",content:"# Synthetic finding"}); return result; }'), true);
@@ -190,7 +192,7 @@ test('Code Mode Markdown writes retain static-call grammar and reject mixed unsa
 
 test('generated Markdown verification accepts only exact read commands for existing reserved fixture outputs', async () => {
   const root = await mkdtemp(join(tmpdir(), 'conversation-read-output-test-'));
-  const parser = loadTypescriptParser(), reservations = new Map();
+  const parser = loadTypescriptParser(typescriptPath), reservations = new Map();
   const check = (command, extra = {}) => authorizeFixtureMarkdownReads({ title: `shell · ${command}`, rawInput: { command, ...extra } }, root, reservations, parser);
   try {
     for (const filename of ['analysis.md', 'Interview Analysis.md']) {
@@ -225,7 +227,7 @@ test('generated Markdown verification accepts only exact read commands for exist
 
 test('Code Mode output checks retain strict callbacks and cannot add arbitrary reads or chained commands', async () => {
   const root = await mkdtemp(join(tmpdir(), 'conversation-code-read-test-'));
-  const parser = loadTypescriptParser(), reservations = new Map();
+  const parser = loadTypescriptParser(typescriptPath), reservations = new Map();
   const check = (code) => authorizeFixtureMarkdownReads({ name: 'execute_typescript', rawInput: { code } }, root, reservations, parser);
   try {
     await authorizeFixtureMarkdownWrites({ name: 'write', rawInput: { path: 'analysis.md', content: '# Synthetic findings' } }, root, reservations, parser);
@@ -246,7 +248,7 @@ test('native fixture-write approval does not fail a session, while routing failu
   try {
     const replies = [];
     const permissionClient = Object.assign(Object.create(ConversationAcpClient.prototype), {
-      workspace: root, parser: loadTypescriptParser(), fixtureWriteReservations: new Map(),
+      workspace: root, parser: loadTypescriptParser(typescriptPath), fixtureWriteReservations: new Map(),
       recorder: null, send: (response) => replies.push(response),
       fail: () => { throw new Error('Allowed fixture write must not fail session'); },
     });
@@ -280,16 +282,16 @@ test('native fixture-write approval does not fail a session, while routing failu
 });
 
 test('desktop guidance is loaded from actual TypeScript sources rather than duplicated benchmark text', async () => {
-  const parser = loadTypescriptParser();
+  const parser = loadTypescriptParser(typescriptPath);
   const root = await mkdtemp(join(tmpdir(), 'conversation-resource-test-'));
   try {
     const path = join(root, 'workspace.ts');
-    await writeFile(join(root, 'replyQuestionPrompt.ts'), 'export function engineeringInstruction(capabilities: { ompEnabled: boolean }) { return capabilities.ompEnabled ? "omp" : "native"; }');
-    await writeFile(path, 'import { engineeringInstruction } from "./replyQuestionPrompt"; export function workspacePromptResource(state: {sessionId: string}, capabilities: {ompEnabled: boolean}) { return { type: "resource", resource: { text: engineeringInstruction(capabilities), uri: state.sessionId } }; }');
+    await writeFile(join(root, 'replyQuestionPrompt.ts'), 'export function engineeringInstruction(capabilities: { nativeGemsEnabled: boolean }) { return capabilities.nativeGemsEnabled ? "native" : "disabled"; }');
+    await writeFile(path, 'import { engineeringInstruction } from "./replyQuestionPrompt"; export function workspacePromptResource(state: {sessionId: string}, capabilities: {nativeGemsEnabled: boolean}) { return { type: "resource", resource: { text: engineeringInstruction(capabilities), uri: state.sessionId } }; }');
     const loaded = await loadWorkspaceResource(path, parser);
-    assert.deepEqual(loaded.resourceFor('same'), { type: 'resource', resource: { text: 'native', uri: 'same' } });
+    assert.deepEqual(loaded.resourceFor('same'), { type: 'resource', resource: { text: 'disabled', uri: 'same' } });
     assert.match(loaded.sourceHashes.workspace, /^[a-f0-9]{64}$/);
-    await writeFile(path, 'import { engineeringInstruction } from "./replyQuestionPrompt"; import fs from "unapproved-module"; export function workspacePromptResource() { return [engineeringInstruction({ompEnabled: false}), fs]; }');
+    await writeFile(path, 'import { engineeringInstruction } from "./replyQuestionPrompt"; import fs from "unapproved-module"; export function workspacePromptResource() { return [engineeringInstruction({nativeGemsEnabled: false}), fs]; }');
     await assert.rejects(loadWorkspaceResource(path, parser), /WORKSPACE_IMPORT_NOT_ALLOWED/);
   } finally { await rm(root, { recursive: true, force: true }); }
 });

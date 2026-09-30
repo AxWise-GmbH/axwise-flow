@@ -1,0 +1,14 @@
+[
+  {
+    "script": "scripts/benchmark-native-engineering-gems.mjs",
+    "exitCode": 1,
+    "stdout": "",
+    "stderr": "This benchmark is retired. Inspect the plan with node scripts/benchmark-native-engineering.mjs; follow scripts/BENCHMARKS.md for native Goose --preflight or --live.\nNo model request, edit, test process, or benchmark measurement was performed.\n"
+  },
+  {
+    "script": "scripts/sophisticated-gems-benchmark.mjs",
+    "exitCode": 1,
+    "stdout": "",
+    "stderr": "This benchmark is retired. Inspect the plan with node scripts/benchmark-native-engineering.mjs; follow scripts/BENCHMARKS.md for native Goose --preflight or --live.\nNo model request, edit, test process, or benchmark measurement was performed.\n"
+  }
+]

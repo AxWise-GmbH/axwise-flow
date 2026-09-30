@@ -1,0 +1,112 @@
+--- a/crates/goose/src/agents/platform_extensions/developer/mod.rs
++++ b/crates/goose/src/agents/platform_extensions/developer/mod.rs
+@@ -39,7 +39,21 @@
+     image_tool: Arc<ImageTool>,
+ }
+ 
+-pub(crate) fn developer_instructions(_native_engineering: bool) -> &'static str {
++pub(crate) fn developer_instructions(native_engineering: bool) -> &'static str {
++    if native_engineering {
++        return indoc! {"
++            Use the developer extension to build software and operate a terminal.
++            Gather relevant context in as few iterations as possible, then make changes and verify.
++            Use tree when the workspace structure is unknown. For simple unique textual changes,
++            use ordinary shell search/read. Use write and edit to efficiently make changes for these
++            tasks and to create new files. Run commands and tests through shell as needed.
++
++            For structural discovery, symbol references and source-level renames, follow the
++            Native engineering selection policy before choosing textual search or manual edits.
++            Its conditional rules replace the generic search/edit preference for those operations.
++            Preserve the efficient ordinary workflow for tasks outside those conditions.
++        "};
++    }
+     if cfg!(windows) {
+         indoc! {"
+             Use the developer extension to build software and operate a terminal.
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/selection.md
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/selection.md
+@@ -1,8 +1,12 @@
+-Native engineering selection policy v4
++Native engineering selection policy v5
+ 
+-Use native operations when they replace work. Keep the ordinary developer workflow for simple textual changes; tools are not a checklist.
++Choose the operation needed by the task. Simple textual changes use ordinary search/edit; native tools are not a checklist. Apply these rules when the relevant language is supported:
+ 
+-- For a source-level symbol rename, prefer one `lsp_query` action=rename with path, symbol, new_name and the intended scope directory. It synchronizes every nonignored language file in a bounded scope, including unopened consumers, and returns a complete edit preview plus plan_id. Inspect public/wire keys, aliases and unrelated symbols. If the plan fits the request, apply it once with `safe_edit_and_test` plan_id and a relevant test/type-check command. Do not manually recreate the same edits or reread every proposed target. Scope coverage does not establish coverage outside that directory. Unsupported/oversized/unsafe plans require ordinary edits; never force a global text replacement.
+-- For custom multi-file changes, gather only needed context with `hashline_edit` read_many. Copy snapshot_id and compact line anchors into `safe_edit_and_test` files to apply the whole batch and check it once. Use hashline_edit edit_many when checks need a later step. All guards bind the full preimage internally. Reconcile stale changes; never bypass a guard. Use write for new files.
+-- Use `ast_search` presets (functions/classes/calls plus an exact name) for structural discovery obscured by comments/strings. AST matches syntax, not bindings. Use `lsp_query` references/definition with a declaration's qualified symbol for alias/shadowing questions; inspect ambiguity, partial results and pagination. Servers start on demand and are reused. For host-configured languages, call LSP directly: no shell prerequisite checks or searches of host bundles/server executables are needed. An unavailable response is sufficient evidence to fall back. Unsupported tools require bounded local alternatives, not installation or repeated retries.
+-- Add appropriate behavior/regression tests and run necessary checks after relevant changes. Reuse current results and successful checks while inputs are unchanged. Avoid routine semantic queries, duplicate reads or checks after success. Receipts prove only the checks that ran; unversioned diagnostics do not prove freshness. Respect normal scope and permissions. No OMP or separate model is involved.
++- Source-level cross-file rename: locate the declaration, then request `lsp_query` action=rename before manually editing consumers. Supply path, qualified symbol, new_name and a narrow scope. Inspect the complete preview for aliases, public/wire keys and unrelated symbols. If it satisfies the request, apply its plan_id once with `safe_edit_and_test` and relevant checks. Scope coverage is bounded; coverage outside it is unproven.
++- Structural discovery across source files, such as finding registered calls or function declarations: start with one scoped `ast_search` preset=functions/classes/calls, optionally with an exact name. Read its syntax context to distinguish unrelated receivers. AST excludes comment/string decoys but does not resolve bindings.
++- Questions about aliases or shadowed names: query LSP references/definition using path and a qualified declaration symbol. Resolve ambiguity and inspect partial results/pagination.
++- Custom batch edits: use `hashline_edit` read_many snapshots, then `safe_edit_and_test` files to apply and check the complete batch. Reconcile stale guards; never bypass them. Use ordinary write for new files.
++
++Example: rename a RequestContext member with `lsp_query {"action":"rename","path":"src/api.ts","symbol":"RequestContext.requestId","new_name":"traceId","scope":"src"}`, inspect the proposal, then apply its plan_id. Use actual workspace paths and constraints.
++
++Call configured servers directly; they start on demand and are reused. No prerequisite probes, host searches, installation or extra model. Unsupported/oversized/unsafe results use bounded ordinary alternatives. Preserve permissions and add behavior/regression tests. Reuse unchanged context and successful checks; avoid routine semantic queries and duplicate verification. Unversioned diagnostics do not prove freshness.
+--- a/crates/goose/tests/native_engineering_integration.rs
++++ b/crates/goose/tests/native_engineering_integration.rs
+@@ -89,10 +89,19 @@
+     assert_eq!(observations.len(), 1);
+     let (prompt, tools) = &observations[0];
+     assert_eq!(
+-        prompt.contains("Native engineering selection policy v4"),
++        prompt.contains("Native engineering selection policy v5"),
+         native
+     );
+     assert!(prompt.contains("Use write and edit to efficiently make changes"));
++    assert_eq!(
++        prompt.contains("Its conditional rules replace the generic search/edit preference"),
++        native
++    );
++    assert_eq!(prompt.contains("When you need to search, prefer"), !native);
++    if native {
++        assert!(prompt.contains("before manually editing consumers"));
++        assert!(prompt.contains("start with one scoped"));
++    }
+     assert_eq!(
+         prompt.contains("Host-configured LSP languages: python"),
+         native
+--- a/crates/goose/src/agents/extension_manager.rs
++++ b/crates/goose/src/agents/extension_manager.rs
+@@ -2833,7 +2833,7 @@
+             )
+             .await;
+         let (_, prompt) = manager.code_mode_capability_prompt().await.unwrap();
+-        assert!(prompt.contains("Native engineering selection policy v4"));
++        assert!(prompt.contains("Native engineering selection policy v5"));
+         assert!(!prompt.contains("Use write and edit to efficiently make changes"));
+         manager
+             .remove_extension("native_engineering")
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/README.md
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/README.md
+@@ -11,10 +11,10 @@
+ | --- | --- |
+ | `ast_search` | Runs a real Tree-sitter query against saved workspace files; returns captures, ranges, snippets and file hashes. Directory searches require a language and respect ignore rules. |
+ | `lsp_query` | Uses an installed stdio language server for symbols, definitions, references, hover or diagnostics. Positions are zero-based UTF-16, as specified by LSP. |
+-| `hashline_edit` | `action: "read"` returns the whole-file SHA-256 and per-line anchors. `action: "read_many"` gathers up to 16 independent snapshots, with a 256 KiB combined line-data limit and per-file errors/pagination. `action: "edit"` requires that digest and exact boundary anchors before applying ranges to one file. |
++| `hashline_edit` | `action: "read"` returns the whole-file SHA-256 and per-line anchors. `action: "read_many"` gathers up to 16 independent snapshots, with a 64 KiB combined line-data limit and per-file errors/pagination. `action: "edit"` requires that digest and exact boundary anchors before applying ranges to one file. |
+ | `safe_edit_and_test` | Applies the same guarded edit, runs literal `test_command` argv in the workspace, and returns the exit status and captured output. A failed, timed out or cancelled test rolls back only if the edited file still matches the tool's postimage. |
+ 
+-When this host-mounted extension is active, both Goose loops use selection policy v3.
++When this host-mounted extension is active, both Goose loops use selection policy v5.
+ The shared extension-info builder replaces the developer extension's blanket
+ write/edit preference with task-based native guidance; removing the extension
+ restores the original guidance on the next turn. AST serves structural search,
+@@ -103,7 +103,7 @@
+ 
+ ## Native operations v4
+ 
+-The host still mounts exactly four tools under the existing feature flag. Ordinary developer instructions are preserved. No OMP process or extra model performs these operations.
++The host still mounts exactly four tools under the existing feature flag. Efficient ordinary developer instructions remain available for simple changes; structural and semantic operations follow conditional policy v5. No OMP process or extra model performs these operations.
+ 
+ `lsp_query` adds read-only `action=rename` with `path`, `symbol` (or a position), `new_name`, and optional `scope` directory. Every nonignored language file in that bounded directory is synchronized before requesting the language server's WorkspaceEdit. The complete preview and opaque `plan_id` contain all proposed text edits. Up to 32 language files/8 MiB are supported; excessive enumeration, unsupported resource operations/annotations, out-of-scope edits, malformed/overlapping UTF-16 ranges and excessive previews fail explicitly. Scope coverage does not prove project coverage outside that directory. The model must inspect wire keys and request constraints; compiler/tests remain necessary. Server-initiated workspace/applyEdit stays rejected.
+ 
+@@ -112,3 +112,7 @@
+ `safe_edit_and_test` accepts exactly one of the existing single-file fields, a `files` batch, or a reviewed rename `plan_id`, plus explicit literal test_command argv. Plans are consumed once. Scope topology, ancestor configs/ignores and all captured inputs are rechecked. All target guards/ranges/unique paths are validated and locks acquired in stable order before publication. Tests run after the complete batch. Failure, timeout, cancellation or dropped futures roll back only files still equal to owned postimages; intervening changes are preserved with explicit receipts. Scope inputs are checked again after verification.
+ 
+ Multi-file publication is not a filesystem-wide atomic transaction. Advisory locks coordinate cooperating processes and cannot eliminate races with arbitrary external writers. Tests may change unowned files; rollback does not undo those effects. Commands retain normal permission handling and Unix process-tree containment.
++
++## Conditional selection policy v5
++
++The shared extension-info builder gives both agent loops the same native-aware developer guidance. Supported source-level cross-file renames request an LSP plan before manual consumer edits; structural searches start with a scoped AST preset; simple textual changes retain ordinary search/edit. One compact rename example makes arguments discoverable. These instructions guide model selection, not a deterministic guarantee. No tool names, schemas or backend semantics changed. Natural-prompt adoption and independent quality/time gates must be measured separately.

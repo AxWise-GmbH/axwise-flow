@@ -1,0 +1,7 @@
+{
+  "setupFailedBeforeSend": true,
+  "modelRequests": 0,
+  "includedInCodingTimings": false,
+  "reason": "No chat renderer; goose serve TLS readiness probes timed out before task submission",
+  "rawAttemptDirectory": "/private/tmp/orqanix-native-v7-live-20260930"
+}

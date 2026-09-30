@@ -1,0 +1,665 @@
+{
+  "schemaVersion": "native-engineering-benchmark.v1",
+  "startedAt": "2026-09-29T09:55:09.587Z",
+  "live": false,
+  "kind": "native-Goose-ACP-controlled-policy",
+  "tempRoot": "/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/native-engineering-bench-JLVOxw",
+  "model": {
+    "requested": "gemini-3.8-flash",
+    "requestedEffort": "high",
+    "providerEndpoint": "Google OpenAI-compatible API directly"
+  },
+  "plan": [
+    {
+      "id": "native-off_loop-0",
+      "native": false,
+      "loop": "0",
+      "repetition": 1
+    },
+    {
+      "id": "native-off_loop-1",
+      "native": false,
+      "loop": "1",
+      "repetition": 1
+    },
+    {
+      "id": "native-on_loop-0",
+      "native": true,
+      "loop": "0",
+      "repetition": 1
+    },
+    {
+      "id": "native-on_loop-1",
+      "native": true,
+      "loop": "1",
+      "repetition": 1
+    },
+    {
+      "id": "native-on_loop-1",
+      "native": true,
+      "loop": "1",
+      "repetition": 2
+    },
+    {
+      "id": "native-on_loop-0",
+      "native": true,
+      "loop": "0",
+      "repetition": 2
+    },
+    {
+      "id": "native-off_loop-1",
+      "native": false,
+      "loop": "1",
+      "repetition": 2
+    },
+    {
+      "id": "native-off_loop-0",
+      "native": false,
+      "loop": "0",
+      "repetition": 2
+    }
+  ],
+  "promptSha256": "d1650247ed9ac9b433c857c6f0d45f8e5133931457a92c37d6d3fb9f57e7c635",
+  "sourceSha256": "360c88975ecb017d0cb11c25b40543c24158d38c001bef9652add90bb36ad523",
+  "testSha256": "334964eac335c39df668b767d718742c80b284cff63cabb08636ca294626f048",
+  "binaries": {
+    "goose": {
+      "path": "/private/tmp/orqaly-goose-verified-fixes/target/debug/goose",
+      "sha256": "ff80a98ec86c080d63894aaa15f419f20fae3b78967e211d33b1cd02f0f446a2"
+    },
+    "node": {
+      "path": "/private/tmp/orqaly-goose-verified-fixes/ui/desktop/src/orqaly-runtime/node/bin/node",
+      "sha256": "18e387c90ab8a8400183e8bdd396376e1e875b91b4c874b894dcade7b35bf572"
+    }
+  },
+  "languageServers": {
+    "kind": "manifest-verified-entrypoints",
+    "manifestSha256": "28d871d65e73cd36c3dc1ee8510db079cf34539df9d48560e93bade1befb2815",
+    "versions": {
+      "pyright": "1.1.414",
+      "typescript": "5.9.3",
+      "typescript-language-server": "6.0.1"
+    },
+    "runtime": "/private/tmp/orqaly-goose-verified-fixes/ui/desktop/src/orqaly-runtime"
+  },
+  "offlineCalibration": {
+    "acceptance": {
+      "original": {
+        "functionBehavior": false,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": false,
+        "unrelatedDecoysPreserved": true,
+        "passed": false,
+        "sourceSha256": "360c88975ecb017d0cb11c25b40543c24158d38c001bef9652add90bb36ad523",
+        "testSha256": "334964eac335c39df668b767d718742c80b284cff63cabb08636ca294626f048"
+      },
+      "missingRegression": {
+        "functionBehavior": true,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": false,
+        "unrelatedDecoysPreserved": true,
+        "passed": false,
+        "sourceSha256": "e87ac1bf9671faca9b3d6446c4436dfb6bf4f90a973de39308036af74fe9cbc8",
+        "testSha256": "334964eac335c39df668b767d718742c80b284cff63cabb08636ca294626f048"
+      },
+      "corrected": {
+        "functionBehavior": true,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": true,
+        "unrelatedDecoysPreserved": true,
+        "passed": true,
+        "sourceSha256": "e87ac1bf9671faca9b3d6446c4436dfb6bf4f90a973de39308036af74fe9cbc8",
+        "testSha256": "e2de750941496196d61ead3009cd401d33a74791d682785de684d7ef39667779"
+      },
+      "passed": true
+    },
+    "permissionsPassed": true
+  },
+  "maxHttpCalls": 120,
+  "rows": [
+    {
+      "arm": "native-off_loop-0",
+      "native": false,
+      "loop": "0",
+      "repetition": 1,
+      "workspace": "/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/native-engineering-bench-JLVOxw/native-off_loop-0_rep-1/workspace",
+      "removedDefaultExtensions": [
+        "analyze",
+        "todo",
+        "extensionmanager",
+        "summon",
+        "skills",
+        "tom",
+        "apps"
+      ],
+      "effortConfig": [
+        {
+          "id": "model",
+          "name": "Model",
+          "category": "model",
+          "type": "select",
+          "currentValue": "gemini-3.8-flash",
+          "options": [
+            {
+              "value": "gemini-3.8-flash",
+              "name": "Gemini 3.8 Flash"
+            }
+          ]
+        },
+        {
+          "id": "thinking_effort",
+          "name": "Thinking effort",
+          "description": "Controls reasoning effort for models that support extended thinking.",
+          "category": "thought_level",
+          "type": "select",
+          "currentValue": "high",
+          "options": [
+            {
+              "value": "off",
+              "name": "off"
+            },
+            {
+              "value": "low",
+              "name": "low"
+            },
+            {
+              "value": "medium",
+              "name": "medium"
+            },
+            {
+              "value": "high",
+              "name": "high"
+            },
+            {
+              "value": "max",
+              "name": "max"
+            }
+          ]
+        }
+      ],
+      "inventory": {
+        "extensions": [
+          {
+            "key": "developer",
+            "name": "developer",
+            "type": "platform"
+          }
+        ],
+        "tools": [
+          {
+            "name": "edit",
+            "permission": "ask_before",
+            "schemaSha256": "051eb85cf85adbd37973d374cbf38218060f607ee36bf62b69a686762999d83b"
+          },
+          {
+            "name": "read_image",
+            "permission": "ask_before",
+            "schemaSha256": "0e25f3bd38b210a406a8d062f05b25ae6cf8394f024534e955f2ce8cac0dc83e"
+          },
+          {
+            "name": "shell",
+            "permission": "ask_before",
+            "schemaSha256": "dafa865264c86f99203d2fc4e54336c1a740571d02977c211c6655e82d452db4"
+          },
+          {
+            "name": "tree",
+            "permission": "ask_before",
+            "schemaSha256": "599803d9c440598ff3450529baefd8dae27c27e54d6a24488c1cc6d87a7639d6"
+          },
+          {
+            "name": "write",
+            "permission": "ask_before",
+            "schemaSha256": "10f258885753782b4716079793f4bcccc2f28b91d11d3ba929beb34913383535"
+          }
+        ],
+        "toolCount": 5,
+        "skillToolNames": []
+      },
+      "setupMs": 1597,
+      "status": "preflight_passed",
+      "stderr": "",
+      "primaryRequests": [],
+      "primaryHttpAttempts": 0,
+      "modelAndEffortVerified": false,
+      "accepted": false,
+      "harnessElapsedMs": 1600
+    },
+    {
+      "arm": "native-off_loop-1",
+      "native": false,
+      "loop": "1",
+      "repetition": 1,
+      "workspace": "/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/native-engineering-bench-JLVOxw/native-off_loop-1_rep-1/workspace",
+      "removedDefaultExtensions": [
+        "todo",
+        "extensionmanager",
+        "summon",
+        "apps",
+        "tom",
+        "analyze",
+        "skills"
+      ],
+      "effortConfig": [
+        {
+          "id": "model",
+          "name": "Model",
+          "category": "model",
+          "type": "select",
+          "currentValue": "gemini-3.8-flash",
+          "options": [
+            {
+              "value": "gemini-3.8-flash",
+              "name": "Gemini 3.8 Flash"
+            }
+          ]
+        },
+        {
+          "id": "thinking_effort",
+          "name": "Thinking effort",
+          "description": "Controls reasoning effort for models that support extended thinking.",
+          "category": "thought_level",
+          "type": "select",
+          "currentValue": "high",
+          "options": [
+            {
+              "value": "off",
+              "name": "off"
+            },
+            {
+              "value": "low",
+              "name": "low"
+            },
+            {
+              "value": "medium",
+              "name": "medium"
+            },
+            {
+              "value": "high",
+              "name": "high"
+            },
+            {
+              "value": "max",
+              "name": "max"
+            }
+          ]
+        }
+      ],
+      "inventory": {
+        "extensions": [
+          {
+            "key": "developer",
+            "name": "developer",
+            "type": "platform"
+          }
+        ],
+        "tools": [
+          {
+            "name": "edit",
+            "permission": "ask_before",
+            "schemaSha256": "051eb85cf85adbd37973d374cbf38218060f607ee36bf62b69a686762999d83b"
+          },
+          {
+            "name": "read_image",
+            "permission": "ask_before",
+            "schemaSha256": "0e25f3bd38b210a406a8d062f05b25ae6cf8394f024534e955f2ce8cac0dc83e"
+          },
+          {
+            "name": "shell",
+            "permission": "ask_before",
+            "schemaSha256": "dafa865264c86f99203d2fc4e54336c1a740571d02977c211c6655e82d452db4"
+          },
+          {
+            "name": "tree",
+            "permission": "ask_before",
+            "schemaSha256": "599803d9c440598ff3450529baefd8dae27c27e54d6a24488c1cc6d87a7639d6"
+          },
+          {
+            "name": "write",
+            "permission": "ask_before",
+            "schemaSha256": "10f258885753782b4716079793f4bcccc2f28b91d11d3ba929beb34913383535"
+          }
+        ],
+        "toolCount": 5,
+        "skillToolNames": []
+      },
+      "setupMs": 197,
+      "status": "preflight_passed",
+      "stderr": "",
+      "primaryRequests": [],
+      "primaryHttpAttempts": 0,
+      "modelAndEffortVerified": false,
+      "accepted": false,
+      "harnessElapsedMs": 200
+    },
+    {
+      "arm": "native-on_loop-0",
+      "native": true,
+      "loop": "0",
+      "repetition": 1,
+      "workspace": "/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/native-engineering-bench-JLVOxw/native-on_loop-0_rep-1/workspace",
+      "removedDefaultExtensions": [
+        "todo",
+        "extensionmanager",
+        "apps",
+        "analyze",
+        "summon",
+        "skills",
+        "tom"
+      ],
+      "effortConfig": [
+        {
+          "id": "model",
+          "name": "Model",
+          "category": "model",
+          "type": "select",
+          "currentValue": "gemini-3.8-flash",
+          "options": [
+            {
+              "value": "gemini-3.8-flash",
+              "name": "Gemini 3.8 Flash"
+            }
+          ]
+        },
+        {
+          "id": "thinking_effort",
+          "name": "Thinking effort",
+          "description": "Controls reasoning effort for models that support extended thinking.",
+          "category": "thought_level",
+          "type": "select",
+          "currentValue": "high",
+          "options": [
+            {
+              "value": "off",
+              "name": "off"
+            },
+            {
+              "value": "low",
+              "name": "low"
+            },
+            {
+              "value": "medium",
+              "name": "medium"
+            },
+            {
+              "value": "high",
+              "name": "high"
+            },
+            {
+              "value": "max",
+              "name": "max"
+            }
+          ]
+        }
+      ],
+      "inventory": {
+        "extensions": [
+          {
+            "key": "developer",
+            "name": "developer",
+            "type": "platform"
+          },
+          {
+            "key": "native_engineering",
+            "name": "native_engineering",
+            "type": "platform"
+          }
+        ],
+        "tools": [
+          {
+            "name": "ast_search",
+            "permission": "ask_before",
+            "schemaSha256": "586148a12f10a099f37c80b522df76fd22ca3d6b2c32773bd6eca6e93d72164d"
+          },
+          {
+            "name": "edit",
+            "permission": "ask_before",
+            "schemaSha256": "051eb85cf85adbd37973d374cbf38218060f607ee36bf62b69a686762999d83b"
+          },
+          {
+            "name": "hashline_edit",
+            "permission": "ask_before",
+            "schemaSha256": "00fb0babb34b66939f725a478ccfac6b7ed5659a0415d47e304d82430ef33a85"
+          },
+          {
+            "name": "lsp_query",
+            "permission": "ask_before",
+            "schemaSha256": "3521dc66e28bb669fb198f64f85eadb464a9f959407cc6ccdba425d5c4e5b8d6"
+          },
+          {
+            "name": "read_image",
+            "permission": "ask_before",
+            "schemaSha256": "0e25f3bd38b210a406a8d062f05b25ae6cf8394f024534e955f2ce8cac0dc83e"
+          },
+          {
+            "name": "safe_edit_and_test",
+            "permission": "ask_before",
+            "schemaSha256": "9421fcd04dee75c56f01e1c5d03ccf29d12f7e1dbd78aa2c8a02c03da20fc5e5"
+          },
+          {
+            "name": "shell",
+            "permission": "ask_before",
+            "schemaSha256": "dafa865264c86f99203d2fc4e54336c1a740571d02977c211c6655e82d452db4"
+          },
+          {
+            "name": "tree",
+            "permission": "ask_before",
+            "schemaSha256": "599803d9c440598ff3450529baefd8dae27c27e54d6a24488c1cc6d87a7639d6"
+          },
+          {
+            "name": "write",
+            "permission": "ask_before",
+            "schemaSha256": "10f258885753782b4716079793f4bcccc2f28b91d11d3ba929beb34913383535"
+          }
+        ],
+        "toolCount": 9,
+        "skillToolNames": []
+      },
+      "setupMs": 140,
+      "status": "preflight_passed",
+      "stderr": "",
+      "primaryRequests": [],
+      "primaryHttpAttempts": 0,
+      "modelAndEffortVerified": false,
+      "accepted": false,
+      "harnessElapsedMs": 142
+    },
+    {
+      "arm": "native-on_loop-1",
+      "native": true,
+      "loop": "1",
+      "repetition": 1,
+      "workspace": "/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/native-engineering-bench-JLVOxw/native-on_loop-1_rep-1/workspace",
+      "removedDefaultExtensions": [
+        "summon",
+        "extensionmanager",
+        "todo",
+        "analyze",
+        "tom",
+        "skills",
+        "apps"
+      ],
+      "effortConfig": [
+        {
+          "id": "model",
+          "name": "Model",
+          "category": "model",
+          "type": "select",
+          "currentValue": "gemini-3.8-flash",
+          "options": [
+            {
+              "value": "gemini-3.8-flash",
+              "name": "Gemini 3.8 Flash"
+            }
+          ]
+        },
+        {
+          "id": "thinking_effort",
+          "name": "Thinking effort",
+          "description": "Controls reasoning effort for models that support extended thinking.",
+          "category": "thought_level",
+          "type": "select",
+          "currentValue": "high",
+          "options": [
+            {
+              "value": "off",
+              "name": "off"
+            },
+            {
+              "value": "low",
+              "name": "low"
+            },
+            {
+              "value": "medium",
+              "name": "medium"
+            },
+            {
+              "value": "high",
+              "name": "high"
+            },
+            {
+              "value": "max",
+              "name": "max"
+            }
+          ]
+        }
+      ],
+      "inventory": {
+        "extensions": [
+          {
+            "key": "developer",
+            "name": "developer",
+            "type": "platform"
+          },
+          {
+            "key": "native_engineering",
+            "name": "native_engineering",
+            "type": "platform"
+          }
+        ],
+        "tools": [
+          {
+            "name": "ast_search",
+            "permission": "ask_before",
+            "schemaSha256": "586148a12f10a099f37c80b522df76fd22ca3d6b2c32773bd6eca6e93d72164d"
+          },
+          {
+            "name": "edit",
+            "permission": "ask_before",
+            "schemaSha256": "051eb85cf85adbd37973d374cbf38218060f607ee36bf62b69a686762999d83b"
+          },
+          {
+            "name": "hashline_edit",
+            "permission": "ask_before",
+            "schemaSha256": "00fb0babb34b66939f725a478ccfac6b7ed5659a0415d47e304d82430ef33a85"
+          },
+          {
+            "name": "lsp_query",
+            "permission": "ask_before",
+            "schemaSha256": "3521dc66e28bb669fb198f64f85eadb464a9f959407cc6ccdba425d5c4e5b8d6"
+          },
+          {
+            "name": "read_image",
+            "permission": "ask_before",
+            "schemaSha256": "0e25f3bd38b210a406a8d062f05b25ae6cf8394f024534e955f2ce8cac0dc83e"
+          },
+          {
+            "name": "safe_edit_and_test",
+            "permission": "ask_before",
+            "schemaSha256": "9421fcd04dee75c56f01e1c5d03ccf29d12f7e1dbd78aa2c8a02c03da20fc5e5"
+          },
+          {
+            "name": "shell",
+            "permission": "ask_before",
+            "schemaSha256": "dafa865264c86f99203d2fc4e54336c1a740571d02977c211c6655e82d452db4"
+          },
+          {
+            "name": "tree",
+            "permission": "ask_before",
+            "schemaSha256": "599803d9c440598ff3450529baefd8dae27c27e54d6a24488c1cc6d87a7639d6"
+          },
+          {
+            "name": "write",
+            "permission": "ask_before",
+            "schemaSha256": "10f258885753782b4716079793f4bcccc2f28b91d11d3ba929beb34913383535"
+          }
+        ],
+        "toolCount": 9,
+        "skillToolNames": []
+      },
+      "setupMs": 132,
+      "status": "preflight_passed",
+      "stderr": "",
+      "primaryRequests": [],
+      "primaryHttpAttempts": 0,
+      "modelAndEffortVerified": false,
+      "accepted": false,
+      "harnessElapsedMs": 135
+    }
+  ],
+  "limitations": [
+    "Two repetitions per feature/loop combination are exploratory, not statistical proof.",
+    "The identical conditional prompt enforces treatment use; this is not organic routing.",
+    "Local ACP exercises Goose backend, not Electron rendering.",
+    "Feature-off still includes developer tools; code_execution and delegated engines are absent.",
+    "Permissions constrain fixture files and argv; approved test code is not OS sandboxed.",
+    "Requested high effort and returned model/usage metadata are recorded; internal reasoning effort cannot be independently observed.",
+    "The direct Google proxy drops temperature, top_p and store consistently with production normalization; dropped key names are recorded."
+  ],
+  "finishedAt": "2026-09-29T09:55:11.668Z",
+  "summary": [
+    {
+      "arm": "native-off_loop-0",
+      "samples": 1,
+      "completed": 0,
+      "accepted": 0,
+      "primaryHttpAttempts": 0,
+      "meanAcceptedMs": null,
+      "minAcceptedMs": null,
+      "maxAcceptedMs": null
+    },
+    {
+      "arm": "native-off_loop-1",
+      "samples": 1,
+      "completed": 0,
+      "accepted": 0,
+      "primaryHttpAttempts": 0,
+      "meanAcceptedMs": null,
+      "minAcceptedMs": null,
+      "maxAcceptedMs": null
+    },
+    {
+      "arm": "native-on_loop-0",
+      "samples": 1,
+      "completed": 0,
+      "accepted": 0,
+      "primaryHttpAttempts": 0,
+      "meanAcceptedMs": null,
+      "minAcceptedMs": null,
+      "maxAcceptedMs": null
+    },
+    {
+      "arm": "native-on_loop-1",
+      "samples": 1,
+      "completed": 0,
+      "accepted": 0,
+      "primaryHttpAttempts": 0,
+      "meanAcceptedMs": null,
+      "minAcceptedMs": null,
+      "maxAcceptedMs": null
+    }
+  ],
+  "preflightPassed": true,
+  "permissionPolicySha256": "2508f4799592278ac88db4149bd3b956b88c114e86ea02d93356ebe1fb6ef630",
+  "postRunProvenance": [
+    {
+      "addedAt": "2026-09-29T10:07:59.570Z",
+      "field": "permissionPolicySha256",
+      "sourceFunctions": [
+        "allowedFile",
+        "boundedEdits",
+        "fixturePermission"
+      ],
+      "note": "Fingerprint added after capture from the unchanged permission function sources used for every recorded case. No permission policy or measured outcome was changed."
+    }
+  ]
+}

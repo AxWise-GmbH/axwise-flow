@@ -1,0 +1,12 @@
+{
+  "purpose": "Frozen execution source for the original 48-run coding matrix. Later recorder corrections do not retroactively change these runs. Runtime imports are relative to their original source paths.",
+  "capturedAt": "2026-09-29T12:09:32.488Z",
+  "hashes": {
+    "scripts/benchmark-orqanix-matrix.mjs": "14dad271f73dde4ff2884f18f3228c0303171b7982aa7c6f79607cea979bc675",
+    "scripts/lib/orqanix-benchmark-tasks.mjs": "061521b69c9a3b4bed770b139671a50d8b44346a5d2f3fd728d7322a00191a25",
+    "scripts/lib/orqanix-benchmark-relay.mjs": "43e6c0ffc58999270ccaad80c72ff5459c4a247fa9acc481b6f9e57d84f2cbf6",
+    "apps/orqaly/server/workflow-v2/goose-provider-http.js": "5b4b80c746f7ca2c45bbcdac997dc9a68c3b7937dfe054c644787b74db0cc8dd",
+    "apps/orqaly/server/workflow-v2/desktop-decision-service.js": "529396657474ea30b56d5f74984d55c5630a51282ab79f3071deb2fc344d794b",
+    "apps/orqaly/server/workflow-v2/engineering-review-service.js": "3f09d1cffba4bd04b86405f6cb1029423e17351ede88c9eafcc906e75da3b7ee"
+  }
+}

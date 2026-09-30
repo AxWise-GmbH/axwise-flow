@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fdf6e2"/>
+      <stop offset="100%" stop-color="#f3e5ab"/>
+    </radialGradient>
+    <linearGradient id="catBody" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffaa5a"/>
+      <stop offset="100%" stop-color="#e67e22"/>
+    </linearGradient>
+    <linearGradient id="catBelly" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fff5eb"/>
+      <stop offset="100%" stop-color="#fed7b2"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="200" cy="200" r="180" fill="url(#bgGrad)"/>
+
+  <!-- Tail -->
+  <path d="M 270 310 C 330 310, 360 250, 340 210 C 330 190, 310 200, 315 215 C 325 240, 305 285, 260 285" fill="none" stroke="#e67e22" stroke-width="24" stroke-linecap="round"/>
+
+  <!-- Body -->
+  <ellipse cx="200" cy="290" rx="85" ry="75" fill="url(#catBody)"/>
+
+  <!-- Belly -->
+  <ellipse cx="200" cy="300" rx="55" ry="50" fill="url(#catBelly)"/>
+
+  <!-- Back paws / legs -->
+  <ellipse cx="125" cy="340" rx="28" ry="18" fill="#e67e22"/>
+  <ellipse cx="275" cy="340" rx="28" ry="18" fill="#e67e22"/>
+
+  <!-- Front Paws -->
+  <rect x="165" cy="300" width="28" height="50" rx="14" fill="#ffaa5a"/>
+  <rect x="207" cy="300" width="28" height="50" rx="14" fill="#ffaa5a"/>
+  <ellipse cx="179" cy="348" rx="15" ry="10" fill="#fff5eb"/>
+  <ellipse cx="221" cy="348" rx="15" ry="10" fill="#fff5eb"/>
+
+  <!-- Ears -->
+  <polygon points="120,170 140,80 190,145" fill="#e67e22"/>
+  <polygon points="130,165 145,95 180,145" fill="#f8a5a5"/>
+  <polygon points="280,170 260,80 210,145" fill="#e67e22"/>
+  <polygon points="270,165 255,95 220,145" fill="#f8a5a5"/>
+
+  <!-- Head -->
+  <ellipse cx="200" cy="185" rx="80" ry="70" fill="url(#catBody)"/>
+
+  <!-- Cheeks fluff -->
+  <path d="M 125 185 L 105 195 L 128 205 L 110 215 L 138 220" fill="#e67e22"/>
+  <path d="M 275 185 L 295 195 L 272 205 L 290 215 L 262 220" fill="#e67e22"/>
+
+  <!-- Forehead stripes -->
+  <path d="M 190 125 L 200 140 L 210 125" stroke="#cc5500" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <path d="M 185 138 L 200 152 L 215 138" stroke="#cc5500" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+  <!-- Eyes -->
+  <ellipse cx="165" cy="180" rx="14" ry="16" fill="#2c3e50"/>
+  <circle cx="169" cy="175" r="5" fill="#ffffff"/>
+  <circle cx="162" cy="184" r="2.5" fill="#ffffff"/>
+
+  <ellipse cx="235" cy="180" rx="14" ry="16" fill="#2c3e50"/>
+  <circle cx="239" cy="175" r="5" fill="#ffffff"/>
+  <circle cx="232" cy="184" r="2.5" fill="#ffffff"/>
+
+  <!-- Blush -->
+  <ellipse cx="145" cy="200" rx="12" ry="7" fill="#ff7675" opacity="0.4"/>
+  <ellipse cx="255" cy="200" rx="12" ry="7" fill="#ff7675" opacity="0.4"/>
+
+  <!-- Muzzle -->
+  <ellipse cx="192" cy="206" rx="12" ry="9" fill="#fff5eb"/>
+  <ellipse cx="208" cy="206" rx="12" ry="9" fill="#fff5eb"/>
+
+  <!-- Nose -->
+  <polygon points="195,198 205,198 200,204" fill="#e84393"/>
+
+  <!-- Mouth -->
+  <path d="M 192 206 C 196 211, 200 211, 200 205 C 200 211, 204 211, 208 206" fill="none" stroke="#636e72" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Whiskers -->
+  <line x1="175" y1="202" x2="115" y2="195" stroke="#636e72" stroke-width="2" stroke-linecap="round"/>
+  <line x1="175" y1="206" x2="110" y2="208" stroke="#636e72" stroke-width="2" stroke-linecap="round"/>
+  <line x1="175" y1="210" x2="118" y2="220" stroke="#636e72" stroke-width="2" stroke-linecap="round"/>
+  <line x1="225" y1="202" x2="285" y2="195" stroke="#636e72" stroke-width="2" stroke-linecap="round"/>
+  <line x1="225" y1="206" x2="290" y2="208" stroke="#636e72" stroke-width="2" stroke-linecap="round"/>
+  <line x1="225" y1="210" x2="282" y2="220" stroke="#636e72" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Collar and Bell -->
+  <path d="M 155 240 Q 200 260 245 240" stroke="#e74c3c" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <circle cx="200" cy="254" r="8" fill="#f1c40f"/>
+  <circle cx="200" cy="254" r="2" fill="#d35400"/>
+</svg>

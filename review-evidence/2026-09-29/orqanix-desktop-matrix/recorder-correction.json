@@ -1,0 +1,10 @@
+{
+  "changedAfterOriginalMatrix": true,
+  "originalSourceSha256": "43e6c0ffc58999270ccaad80c72ff5459c4a247fa9acc481b6f9e57d84f2cbf6",
+  "correctedSourceSha256": "3991ed06145e613106d7a78817b6829c612b5912527d2d40d102630205c05f6f",
+  "cause": "close after end() but before finish leaves writableEnded true and writableFinished false; the old guard could leave inbound telemetry pending",
+  "specificExcludedRowAttribution": "possible, not proven",
+  "originalExclusionRetained": "simple-r2-j1n0a1",
+  "regressionTestsPassed": 13,
+  "appliesTo": "subsequent specialist experiment only"
+}

@@ -10,7 +10,7 @@ that this entire workspace is the public AxWise distribution.
 | Project | Responsibility | Source |
 | --- | --- | --- |
 | AxWise extension | Optional discovery, interviews, personas, evidence analysis, PRDs and delivery briefs | [Public AxWise repository](https://github.com/AxWise-GmbH/axwise-flow) |
-| Orqanix desktop | Goose conversation/tool loop, approvals, local utilities, optional AxWise and OMP | [Desktop repository](https://github.com/vitalyvishnevsky/orqaly-goose) |
+| Orqanix desktop | Goose conversation/tool loop, approvals, local utilities, optional AxWise and native engineering tools | [Desktop repository](https://github.com/vitalyvishnevsky/orqaly-goose) |
 | Orqanix website and gateway | Downloads, production account access, authenticated Gemini/search/JEV transport | This private repository |
 
 AxWise is a specialist tool, not a compulsory router. Enabling it does not send

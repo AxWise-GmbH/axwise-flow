@@ -1,0 +1,538 @@
+--- a/crates/goose/src/agents/extension_manager.rs
++++ b/crates/goose/src/agents/extension_manager.rs
+@@ -1691,21 +1691,56 @@
+     /// Get extensions info for building the system prompt
+     pub async fn get_extensions_info(&self, working_dir: &std::path::Path) -> Vec<ExtensionInfo> {
+         let working_dir_str = working_dir.to_string_lossy();
+-        self.extensions
+-            .lock()
+-            .await
++        let extensions = self.extensions.lock().await;
++        let native_enabled = extensions.values().any(|ext| {
++            matches!(&ext.config, ExtensionConfig::Platform { name, .. }
++                if name == super::platform_extensions::native_engineering::EXTENSION_NAME)
++        });
++        extensions
+             .iter()
+             .map(|(name, ext)| {
+-                let instructions = ext.get_instructions().unwrap_or_default();
++                let instructions = if native_enabled
++                    && matches!(&ext.config, ExtensionConfig::Platform { name, .. }
++                        if name == super::platform_extensions::developer::EXTENSION_NAME)
++                {
++                    super::platform_extensions::developer::developer_instructions(true).to_string()
++                } else {
++                    ext.get_instructions().unwrap_or_default()
++                };
+                 let instructions = instructions.replace("{{WORKING_DIR}}", &working_dir_str);
+                 ExtensionInfo::new(name, &instructions, ext.supports_resources())
+             })
+             .collect()
+     }
+ 
+-    /// Keep mounted capabilities discoverable without loading their schemas or instructions.
+     #[cfg(feature = "code-mode")]
+     pub(crate) async fn code_mode_capability_prompt(&self) -> Option<(String, String)> {
++        let directory = self.code_mode_capability_directory().await;
++        // Native tools remain first-class in Code Mode, whose prompt omits the
++        // normal extension instruction block. Carry only this host-owned policy.
++        let native = self
++            .extensions
++            .lock()
++            .await
++            .values()
++            .find(|ext| {
++                matches!(&ext.config, ExtensionConfig::Platform { name, .. }
++                if name == super::platform_extensions::native_engineering::EXTENSION_NAME)
++            })
++            .and_then(Extension::get_instructions);
++        let mut parts = Vec::new();
++        if let Some(instructions) = native {
++            parts.push(format!("# Native engineering\n{instructions}"));
++        }
++        if let Some((_, metadata)) = directory {
++            parts.push(metadata);
++        }
++        (!parts.is_empty()).then(|| ("code_mode_capabilities".to_string(), parts.join("\n\n")))
++    }
++
++    /// Keep other mounted capabilities discoverable without loading their instructions.
++    #[cfg(feature = "code-mode")]
++    async fn code_mode_capability_directory(&self) -> Option<(String, String)> {
+         if matches!(
+             crate::agents::platform_extensions::code_execution::get_tool_disclosure(),
+             pctx_code_mode::config::ToolDisclosure::Sidecar
+@@ -2764,6 +2799,69 @@
+         assert!(manager.code_mode_capability_prompt().await.is_none());
+     }
+ 
++    #[cfg(feature = "code-mode")]
++    #[tokio::test]
++    async fn code_mode_preserves_host_native_policy_without_disclosing_hidden_remote_instructions()
++    {
++        let temp = tempfile::tempdir().unwrap();
++        let manager = ExtensionManager::new_without_provider(temp.path().to_path_buf());
++        let client =
++            super::super::platform_extensions::native_engineering::NativeEngineeringClient::new(
++                PlatformExtensionContext {
++                    extension_manager: None,
++                    session_manager: Arc::new(crate::session::SessionManager::new(
++                        temp.path().to_path_buf(),
++                    )),
++                    scheduler: None,
++                    session: None,
++                    use_login_shell_path: false,
++                },
++            )
++            .unwrap();
++        manager
++            .add_client(
++                "native_engineering".into(),
++                ExtensionConfig::Platform {
++                    name: "native_engineering".into(),
++                    description: "Native engineering".into(),
++                    display_name: None,
++                    bundled: Some(true),
++                    available_tools: vec![],
++                },
++                Arc::new(client),
++                None,
++            )
++            .await;
++        let (_, prompt) = manager.code_mode_capability_prompt().await.unwrap();
++        assert!(prompt.contains("Native engineering selection policy v1"));
++        assert!(!prompt.contains("Use write and edit to efficiently make changes"));
++        manager
++            .remove_extension("native_engineering")
++            .await
++            .unwrap();
++        assert!(manager.code_mode_capability_prompt().await.is_none());
++        manager
++            .add_client(
++                "native_engineering".into(),
++                ExtensionConfig::Stdio {
++                    name: "native_engineering".into(),
++                    description: "Remote lookalike".into(),
++                    cmd: "PRIVATE_EXECUTABLE".into(),
++                    args: vec![],
++                    envs: Envs::default(),
++                    env_keys: vec![],
++                    timeout: None,
++                    cwd: None,
++                    bundled: None,
++                    available_tools: vec![],
++                },
++                Arc::new(MockClient {}),
++                None,
++            )
++            .await;
++        assert!(manager.code_mode_capability_prompt().await.is_none());
++    }
++
+     mod static_oauth_client {
+         use super::*;
+ 
+--- a/crates/goose/src/agents/platform_extensions/developer/mod.rs
++++ b/crates/goose/src/agents/platform_extensions/developer/mod.rs
+@@ -39,7 +39,20 @@
+     image_tool: Arc<ImageTool>,
+ }
+ 
+-fn developer_instructions() -> &'static str {
++pub(crate) fn developer_instructions(native_engineering: bool) -> &'static str {
++    if native_engineering {
++        return indoc! {"
++            Use the developer extension for requested software work and terminal commands.
++            Native engineering selection policy v1 is active: follow the native_engineering
++            guidance for structural search, semantic navigation and guarded existing-file edits.
++            Use tree and ordinary text/path search when they fit the task, and write for new files.
++            Keep ordinary edit/write as fallbacks for operations unsupported by the available
++            native tools. Explain a relevant limitation when falling back; do not bypass stale
++            hashes or failed tests by blindly overwriting the file. Minimize redundant reads
++            without dropping conflict checks or verification. Respect the user's scope and
++            normal permissions. Use python3 for Python commands.
++        "};
++    }
+     if cfg!(windows) {
+         indoc! {"
+             Use the developer extension to build software and operate a terminal.
+@@ -77,7 +90,7 @@
+     pub fn new(context: PlatformExtensionContext) -> Result<Self> {
+         let info = InitializeResult::new(ServerCapabilities::builder().enable_tools().build())
+             .with_server_info(Implementation::new(EXTENSION_NAME, "1.0.0").with_title("Developer"))
+-            .with_instructions(developer_instructions());
++            .with_instructions(developer_instructions(false));
+ 
+         Ok(Self {
+             info,
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/mod.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/mod.rs
+@@ -30,15 +30,21 @@
+ 
+ impl NativeEngineeringClient {
+     pub fn new(_context: PlatformExtensionContext) -> Result<Self> {
++        let lsp = lsp::LspTools::new();
++        let instructions = format!(
++            "{}\n{}",
++            include_str!("selection.md"),
++            lsp.configuration_summary()
++        );
+         let info = InitializeResult::new(ServerCapabilities::builder().enable_tools().build())
+-            .with_server_info(Implementation::new(EXTENSION_NAME, "1.0.0").with_title("Native Engineering"))
+-            .with_instructions(
+-                "These tools run directly in the current Goose coding loop. Use ast_search for real Tree-sitter query captures, lsp_query for an installed language server, and hashline_edit action=read to obtain the exact file digest and line anchors before editing. safe_edit_and_test applies one guarded file edit and runs the supplied test command. Inspect its actual test/rollback outcome; failed or missing checks never mean verified. Repair failures with a new tool call in this same conversation. Tool availability does not expand the user's request or replace normal tool permissions. Paths are confined to this session's working directory.",
+-            );
++            .with_server_info(
++                Implementation::new(EXTENSION_NAME, "1.1.0").with_title("Native Engineering"),
++            )
++            .with_instructions(instructions);
+         Ok(Self {
+             info,
+             edits: edits::EditTools::new(),
+-            lsp: lsp::LspTools::new(),
++            lsp,
+         })
+     }
+ }
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/ast.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/ast.rs
+@@ -61,7 +61,7 @@
+         .clone();
+     vec![Tool::new(
+         "ast_search".to_string(),
+-        "Search real syntax-tree captures using a Tree-sitter query. Reads workspace files and respects ignored files when walking directories. Supply language for a directory. Returns exact node ranges (1-based lines, 0-based UTF-8 byte columns; exclusive end), bounded snippets and the full saved-file SHA-256. Unsupported languages, invalid queries, partial scans and cancellation are explicit; this is not an LSP or regex search.".to_string(),
++        "Prefer for structural code questions (declarations/call shapes) where text search would match comments or strings. Search real syntax-tree captures using a Tree-sitter query. Reads workspace files and respects ignored files when walking directories. Supply language for a directory. Returns exact node ranges (1-based lines, 0-based UTF-8 byte columns; exclusive end), bounded snippets and the full saved-file SHA-256. Unsupported languages, invalid queries, partial scans and cancellation are explicit; this is not an LSP or regex search.".to_string(),
+         schema,
+     ).annotate(ToolAnnotations::from_raw(
+         Some("AST Search".into()), Some(true), Some(false), Some(true), Some(false),
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/lsp.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/lsp.rs
+@@ -72,6 +72,22 @@
+         }
+     }
+ 
++    pub(super) fn configuration_summary(&self) -> String {
++        match &self.configured {
++            Ok(servers) => {
++                let mut languages: Vec<_> = servers.keys().map(String::as_str).collect();
++                languages.sort_unstable();
++                let configured = if languages.is_empty() {
++                    "none".to_string()
++                } else {
++                    languages.join(", ")
++                };
++                format!("Host-configured LSP languages: {configured}. Configuration is not a startup check: a successful lsp_query confirms that server answered. Other supported languages use known host PATH commands, whose availability is unverified. Never install a server automatically. LSP input limit: 2 MiB; response limit: 64 KiB; query deadline: 30 seconds. Diagnostics are current-document results; unversioned results are not proof of freshness or project-wide correctness.")
++            }
++            Err(_) => "Host LSP configuration is invalid; lsp_query is unavailable until the host configuration is corrected. Use bounded local alternatives and report this limitation; do not guess or install a server.".to_string(),
++        }
++    }
++
+     pub fn tools() -> Vec<Tool> {
+         let schema = json!({
+             "type":"object", "additionalProperties":false,
+@@ -87,7 +103,7 @@
+         });
+         vec![Tool::new(
+             "lsp_query",
+-            "Query a real local language server for symbols, definition, references, hover, or current-document diagnostics. Positions use zero-based lines and UTF-16 characters. Requires a server installed by the user or bundled by the host; unavailable servers are reported, never installed. Read-only protocol: server edits and commands are rejected. Diagnostics without a document version are explicitly unverified. This runs a trusted host-configured language-server process, not a model or delegated agent.",
++            "Prefer for semantic definitions, references, types and diagnostics. Query a real local language server for symbols, definition, references, hover, or current-document diagnostics. If the position is unknown, call symbols for the file first and use the returned selectionRange. Positions use zero-based lines and UTF-16 characters. Requires a server installed by the user or bundled by the host; unavailable servers are reported, never installed. Read-only protocol: server edits and commands are rejected. Diagnostics without a document version are explicitly unverified. This runs a trusted host-configured language-server process, not a model or delegated agent.",
+             schema.as_object().expect("literal object").clone(),
+         ).annotate(ToolAnnotations::from_raw(Some("Language intelligence".into()), Some(true), Some(false), Some(true), Some(true))) ]
+     }
+@@ -1003,6 +1019,30 @@
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++
++    #[test]
++    fn capability_guidance_reports_configuration_without_commands_or_startup_claims() {
++        let mut tools = client(vec!["/private/host-secret-command".into()]);
++        tools
++            .configured
++            .as_mut()
++            .unwrap()
++            .insert("python".into(), vec!["private-argument".into()]);
++        let summary = tools.configuration_summary();
++        assert!(summary.contains("Host-configured LSP languages: python, rust."));
++        assert!(summary.contains("Configuration is not a startup check"));
++        assert!(!summary.contains("host-secret-command"));
++        assert!(!summary.contains("private-argument"));
++        tools.configured = Ok(HashMap::new());
++        assert!(tools.configuration_summary().contains("languages: none."));
++        assert!(tools
++            .configuration_summary()
++            .contains("availability is unverified"));
++        tools.configured = Err("private-malformed-configuration".into());
++        let invalid = tools.configuration_summary();
++        assert!(invalid.contains("configuration is invalid"));
++        assert!(!invalid.contains("private-malformed"));
++    }
+ 
+     fn fixture(mode: &str, log: &Path) -> Option<Vec<String>> {
+         let node = std::env::var("GOOSE_TEST_NODE").unwrap_or_else(|_| "node".into());
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/edits.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/edits.rs
+@@ -104,8 +104,8 @@
+                 .clone()
+         }
+         [
+-            Tool::new("hashline_edit", "Read a workspace text file with full-file SHA-256 and numbered line anchors, or apply exact anchored edits after verifying that preimage. Existing UTF-8 files only, maximum 1 MiB. Ranges include their line endings; replacement text must include any desired newline. Does not run tests or claim verification. Files outside the trusted workspace and symlink paths are rejected.", schema::<HashlineParams>()),
+-            Tool::new("safe_edit_and_test", "Apply exact SHA/line-anchor guarded edits to one existing workspace file, then execute the supplied test_command argv directly in the trusted workspace. Requires approval for the file change and command. Test timeout is 1–600 seconds (default 60); captured output is bounded. On test failure, timeout or cancellation, restore the original bytes only if the file still equals this tool's postimage; otherwise preserve intervening edits and report the conflict. No automatic model repair. Unix process containment only; other platforms fail before editing. This tool is not an OS sandbox: an approved test executable may affect other files.", schema::<SafeEditParams>()),
++            Tool::new("hashline_edit", "Prefer action=read before editing a supported existing file. Copy returned hashes and anchors into action=edit or safe_edit_and_test; re-read on conflicts. Read a workspace text file with full-file SHA-256 and numbered line anchors, or apply exact anchored edits after verifying that preimage. Existing UTF-8 files only, maximum 1 MiB. Ranges include their line endings; replacement text must include any desired newline. Does not run tests or claim verification. Files outside the trusted workspace and symlink paths are rejected.", schema::<HashlineParams>()),
++            Tool::new("safe_edit_and_test", "Prefer for an existing-file change with a suitable test command, after hashline_edit action=read. Apply exact SHA/line-anchor guarded edits to one existing workspace file, then execute the supplied test_command argv directly in the trusted workspace. Requires approval for the file change and command. Test timeout is 1–600 seconds (default 60); captured output is bounded. On test failure, timeout or cancellation, restore the original bytes only if the file still equals this tool's postimage; otherwise preserve intervening edits and report the conflict. No automatic model repair. Unix process containment only; other platforms fail before editing. This tool is not an OS sandbox: an approved test executable may affect other files.", schema::<SafeEditParams>()),
+         ].into_iter().map(|tool| tool.annotate(ToolAnnotations::from_raw(
+             None, Some(false), Some(true), Some(false), Some(true),
+         ))).collect()
+@@ -319,6 +319,14 @@
+         file.try_lock_exclusive()
+             .map_err(|_| "FILE_BUSY: Another native edit/test transaction owns this file.")?;
+         Ok(Self { _file: file })
++    }
++}
++
++impl Drop for EditLock {
++    fn drop(&mut self) {
++        // A concurrent spawn may retain a duplicate until exec; closing our fd alone
++        // would let that duplicate extend the completed transaction's lock lifetime.
++        let _ = FileExt::unlock(&self._file);
+     }
+ }
+ 
+@@ -984,6 +992,24 @@
+     }
+ 
+     #[test]
++    fn lock_ownership_ends_even_while_a_duplicated_descriptor_remains_open() {
++        let (_directory, _ctx, path) = setup("original\n");
++        let lock = EditLock::acquire(&path).unwrap();
++        // A concurrent process spawn can temporarily inherit this open description.
++        let inherited = lock._file.try_clone().unwrap();
++        drop(lock);
++        let next = EditLock::acquire(&path)
++            .expect("a descriptor copy must not extend the completed transaction's lock");
++        drop(inherited);
++        assert!(
++            EditLock::acquire(&path).is_err(),
++            "closing the old copy must not release the new owner"
++        );
++        drop(next);
++        assert!(EditLock::acquire(&path).is_ok());
++    }
++
++    #[test]
+     fn stable_lock_rejects_second_transaction_and_drop_restores_first() {
+         let (_directory, ctx, path) = setup("original\n");
+         let edits: Vec<AnchoredEdit> =
+@@ -999,7 +1025,7 @@
+         assert!(EditLock::acquire(&path).is_err());
+         drop(transaction);
+         assert_eq!(fs::read_to_string(&path).unwrap(), "original\n");
+-        assert!(EditLock::acquire(&path).is_ok());
++        EditLock::acquire(&path).expect("completed transaction releases its edit lock");
+     }
+ 
+     #[test]
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/README.md
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/README.md
+@@ -13,6 +13,17 @@
+ | `lsp_query` | Uses an installed stdio language server for symbols, definitions, references, hover or diagnostics. Positions are zero-based UTF-16, as specified by LSP. |
+ | `hashline_edit` | `action: "read"` returns the whole-file SHA-256 and per-line anchors. `action: "edit"` requires that digest and exact boundary anchors before applying ranges to one file. |
+ | `safe_edit_and_test` | Applies the same guarded edit, runs literal `test_command` argv in the workspace, and returns the exit status and captured output. A failed, timed out or cancelled test rolls back only if the edited file still matches the tool's postimage. |
++
++When this host-mounted extension is active, both Goose loops use selection policy v1.
++The shared extension-info builder replaces the developer extension's blanket
++write/edit preference with task-based native guidance; removing the extension
++restores the original guidance on the next turn. AST serves structural search,
++LSP semantic navigation, and hashline reads guard existing-file edits. Ordinary
++text/path search and new-file writes remain available. Instructions list only
++host-configured LSP language names, never server commands, and distinguish
++configuration from a successful query. Code Mode carries this host-owned native
++policy separately because its normal extension-instruction block is omitted;
++other extension descriptions remain discovery metadata.
+ 
+ Read the current file before every edit attempt. A stale digest or anchor is a
+ failure, not permission to guess a replacement. After a failed test, the same
+--- a/crates/goose/tests/native_engineering_integration.rs
++++ b/crates/goose/tests/native_engineering_integration.rs
+@@ -30,6 +30,154 @@
+ ];
+ const ORIGINAL: &str = "value = \"before\"\n";
+ const UPDATED: &str = "value = \"after\"\n";
++
++#[derive(Default)]
++struct PromptProbe {
++    observations: Mutex<Vec<(String, Vec<String>)>>,
++}
++
++#[async_trait]
++impl Provider for PromptProbe {
++    fn get_name(&self) -> &str {
++        "native-prompt-offline-test"
++    }
++
++    async fn stream(
++        &self,
++        _: &ModelConfig,
++        system_prompt: &str,
++        _: &[Message],
++        tools: &[Tool],
++    ) -> std::result::Result<MessageStream, ProviderError> {
++        self.observations.lock().unwrap().push((
++            system_prompt.to_owned(),
++            tools.iter().map(|tool| tool.name.to_string()).collect(),
++        ));
++        Ok(stream_from_single_message(
++            Message::assistant().with_text("Prompt captured without running tools."),
++            ProviderUsage::new("offline-model".into(), Usage::default()),
++        ))
++    }
++}
++
++async fn check_prompt(agent: &Agent, session: &Session, native: bool) -> Result<()> {
++    let provider = Arc::new(PromptProbe::default());
++    agent
++        .update_provider(
++            provider.clone(),
++            ModelConfig::new("offline-model"),
++            &session.id,
++        )
++        .await?;
++    let stream = agent
++        .reply(
++            Message::user().with_text("Describe the currently available coding workflow."),
++            SessionConfig {
++                id: session.id.clone(),
++                schedule_id: None,
++                max_turns: Some(2),
++                retry_config: None,
++            },
++            None,
++        )
++        .await?;
++    tokio::pin!(stream);
++    while let Some(event) = stream.next().await {
++        event?;
++    }
++    let observations = provider.observations.lock().unwrap();
++    assert_eq!(observations.len(), 1);
++    let (prompt, tools) = &observations[0];
++    assert_eq!(
++        prompt.contains("Native engineering selection policy v1"),
++        native
++    );
++    assert_eq!(
++        prompt.contains("Use write and edit to efficiently make changes"),
++        !native
++    );
++    assert_eq!(
++        prompt.contains("Host-configured LSP languages: python"),
++        native
++    );
++    assert!(!prompt.contains("private-test-server-command"));
++    for name in NATIVE_TOOLS {
++        assert_eq!(tools.iter().any(|tool| tool == name), native, "{name}");
++    }
++    assert!(
++        tools.iter().any(|tool| tool == "write"),
++        "new-file creation remains available"
++    );
++    Ok(())
++}
++
++#[tokio::test]
++async fn both_loops_refresh_native_guidance_after_mount_remove_and_session_resume() -> Result<()> {
++    for state_machine in ["0", "1"] {
++        let temp = tempfile::tempdir()?;
++        let _env = env_lock::lock_env([
++            ("GOOSE_PATH_ROOT", Some(temp.path().to_str().unwrap())),
++            ("GOOSE_STATE_MACHINE", Some(state_machine)),
++            (
++                "GOOSE_NATIVE_LSP_SERVERS",
++                Some(r#"{"python":["/private-test-server-command"]}"#),
++            ),
++        ]);
++        let (agent, session) = fixture(temp.path(), GooseMode::Auto).await?;
++        agent
++            .add_extension(
++                ExtensionConfig::Platform {
++                    name: "developer".into(),
++                    description: "Developer".into(),
++                    display_name: None,
++                    bundled: Some(true),
++                    available_tools: vec![],
++                },
++                &session.id,
++            )
++            .await?;
++        check_prompt(&agent, &session, false).await?;
++        agent.add_extension(extension(), &session.id).await?;
++        check_prompt(&agent, &session, true).await?;
++
++        let sessions = Arc::new(SessionManager::new(temp.path().join("sessions")));
++        let saved = sessions.get_session(&session.id, true).await?;
++        let resumed = Arc::new(Agent::with_config(
++            AgentConfig::new(
++                sessions.clone(),
++                Arc::new(PermissionManager::new(temp.path().join("permissions"))),
++                None,
++                GooseMode::Auto,
++                true,
++                GoosePlatform::GooseCli,
++            )
++            .with_use_login_shell_path(false),
++        ));
++        resumed.load_extensions_from_session(&saved).await;
++        check_prompt(&resumed, &saved, true).await?;
++        resumed
++            .remove_extension("native_engineering", &saved.id)
++            .await?;
++        check_prompt(&resumed, &saved, false).await?;
++        let disabled = sessions.get_session(&session.id, true).await?;
++        let resumed_disabled = Arc::new(Agent::with_config(
++            AgentConfig::new(
++                sessions,
++                Arc::new(PermissionManager::new(temp.path().join("permissions"))),
++                None,
++                GooseMode::Auto,
++                true,
++                GoosePlatform::GooseCli,
++            )
++            .with_use_login_shell_path(false),
++        ));
++        resumed_disabled
++            .load_extensions_from_session(&disabled)
++            .await;
++        check_prompt(&resumed_disabled, &disabled, false).await?;
++    }
++    Ok(())
++}
+ 
+ fn extension() -> ExtensionConfig {
+     ExtensionConfig::Platform {
+--- a/goose-self-test.yaml
++++ b/goose-self-test.yaml
+@@ -211,7 +211,9 @@
+      in this same conversation; there is no separate coding agent or automatic model repair.
+   When a source checkout and Rust toolchain are available, also run
+   `cargo test -p goose --test native_engineering_integration` for deterministic coverage of both
+-  agent loops, host mount/remove, permission denial, and cancellation before mutation.
++  agent loops, host mount/remove, session resume, native selection guidance, permission denial,
++  and cancellation before mutation. A configured LSP language alone is not evidence that its
++  server started; record unavailable-server errors separately from successful protocol queries.
+   Record actual outcomes and skipped prerequisites in {{ workspace_dir }}/native_engineering.md.
+   {% endif %}
+ 
+--- /dev/null
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/selection.md
+@@ -0,0 +1,11 @@
++Native engineering selection policy v1
++
++These tools run in the current Goose conversation. Choose tools for the requested task; do not call every tool as a checklist.
++
++- Prefer `ast_search` when the question concerns code structure, such as declarations or call shapes, rather than matching comments or strings. Use ordinary text/path search for filenames, literal text and unsupported syntax. AST accepts a real Tree-sitter query, not regex. Example for JavaScript declarations: {"path":"src","language":"javascript","query":"(function_declaration name: (identifier) @name)"}. For Python use `(function_definition name: (identifier) @name)`. A directory requires one explicit language. Supported grammars: rust, python, javascript, typescript, tsx, go, java, kotlin, swift, ruby. Inputs are saved workspace files, at most 2 MiB each, 256 files and 100 returned captures per call; inspect partial-scan results.
++- Prefer `lsp_query` for semantic definitions, references, hover types and current-file diagnostics when a suitable server is configured or available. If a position is unknown, request `{"action":"symbols","path":"src/example.ts"}` first, then use its symbol selection range for definition/references/hover. Positions are zero-based lines and UTF-16 characters. Example after an edit: `{"action":"diagnostics","path":"src/example.ts"}`. These diagnostics supplement tests; missing or unversioned diagnostics do not establish correctness. On an unavailable server or unsupported action, report the limitation and use an appropriate local alternative.
++- Before changing a supported existing file, prefer `hashline_edit` with `{"action":"read","path":"src/example.ts"}` to obtain its current full SHA-256 and exact line anchors. Copy those values into the edit; do not invent hashes, reuse stale anchors, or overwrite through another tool to bypass a conflict. Re-read and reconcile after a stale-file error. Editing uses inclusive one-based line ranges; replacement text must preserve intended newlines. Native edits support existing regular UTF-8 files up to 1 MiB inside this workspace; symlink traversal and new-file creation are unsupported.
++- Prefer `safe_edit_and_test` when an existing-file edit has a suitable bounded test command. Pass the path, expected_sha256, anchored edits and literal test_command argv, for example `["node","--test","tests/example.test.mjs"]` only when that test exists and fits the change. Never invent a passing check. The tool edits one file, runs the supplied command and conditionally rolls back on failure, timeout or cancellation. Inspect the test and rollback receipt, then repair in this same conversation. A passing receipt only covers the command that ran, not all requirements or an independent review.
++- For interdependent multi-file changes where testing each intermediate edit would fail, use guarded `hashline_edit` edits for the existing files, then run the relevant checks once the changes are coherent. This is not an atomic multi-file transaction and the individual edits are unverified. Use ordinary write for new files and ordinary tools for unsupported operations, stating relevant limitations. Do not treat test failure as permission to silently bypass it.
++
++Only use tools present in the current tool list. Tool availability does not expand the user's request, replace normal permissions or add a remote Jev review. Stay in the session workspace. Local test commands have normal approved command authority; this tool is not an OS sandbox.

@@ -1,0 +1,19 @@
+{
+  "installedApp": {
+    "path": "/Applications/Orqanix.app",
+    "version": "2.4.2",
+    "build": "5707",
+    "ompVersion": "18.2.1",
+    "engineeringBridgeCommit": "45667e228f1011a7cf31d2c45b81eaa4589c344a",
+    "runtimeManifestSha256": "9700ffd185bc5be0292c555b120461863ea14c11336688e5a0e1927996fc48fd",
+    "gooseBinarySha256": "bef41ad1617fbe49fb6ef848858a12ee9b1eb335be012a91ab71c02909f967c7"
+  },
+  "latestBenchmarkPreviousArm": {
+    "sha256": "ff80a98ec86c080d63894aaa15f419f20fae3b78967e211d33b1cd02f0f446a2",
+    "baseCommit": "76ba53c1d23a342d0f3f7a8b1f3b57044977fbbb",
+    "workingTreeDirty": true,
+    "releaseEligible": false,
+    "containsNativeRustSources": true
+  },
+  "note": "Read-only identity inspection. The installed 2.4.2 binary was not an arm in the latest twelve-trial comparison. A version label/base commit alone does not identify the local modified build."
+}

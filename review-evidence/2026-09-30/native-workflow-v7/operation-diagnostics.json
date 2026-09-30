@@ -1,0 +1,1500 @@
+{
+  "rows": [
+    {
+      "key": "control-default-1",
+      "seconds": 35.6,
+      "passed": true,
+      "providerOccupancySeconds": 29.929,
+      "providerCallsInSendWindow": 16,
+      "operations": [],
+      "safeEditTests": [],
+      "missingReplacementNewlineBeforeFollowingLine": [],
+      "ordinaryDeveloperInstructionPresent": true,
+      "codingPolicyVersions": [
+        "None"
+      ]
+    },
+    {
+      "key": "control-candidate-1",
+      "seconds": 38.144,
+      "passed": true,
+      "providerOccupancySeconds": 32.483,
+      "providerCallsInSendWindow": 17,
+      "operations": [
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 7,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 15,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 21,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 128,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 23,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        }
+      ],
+      "safeEditTests": [
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 0,
+          "plan": false,
+          "milliseconds": 128
+        }
+      ],
+      "missingReplacementNewlineBeforeFollowingLine": [],
+      "ordinaryDeveloperInstructionPresent": true,
+      "codingPolicyVersions": [
+        "v7"
+      ]
+    },
+    {
+      "key": "ast-candidate-1",
+      "seconds": 72.825,
+      "passed": true,
+      "providerOccupancySeconds": 64.085,
+      "providerCallsInSendWindow": 22,
+      "operations": [
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 12,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 14,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "ast_search",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 23,
+          "verified": null,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 4,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 30,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 142,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 24,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "lsp_query",
+          "action": "diagnostics",
+          "status": "completed",
+          "milliseconds": 444,
+          "verified": null,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "lsp_query",
+          "action": "diagnostics",
+          "status": "completed",
+          "milliseconds": 402,
+          "verified": null,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        }
+      ],
+      "safeEditTests": [
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 2,
+          "plan": false,
+          "milliseconds": 142
+        }
+      ],
+      "missingReplacementNewlineBeforeFollowingLine": [],
+      "ordinaryDeveloperInstructionPresent": true,
+      "codingPolicyVersions": [
+        "v7"
+      ]
+    },
+    {
+      "key": "ast-default-1",
+      "seconds": 55.544,
+      "passed": true,
+      "providerOccupancySeconds": 47.243,
+      "providerCallsInSendWindow": 23,
+      "operations": [],
+      "safeEditTests": [],
+      "missingReplacementNewlineBeforeFollowingLine": [],
+      "ordinaryDeveloperInstructionPresent": true,
+      "codingPolicyVersions": [
+        "None"
+      ]
+    },
+    {
+      "key": "lsp-default-1",
+      "seconds": 148.888,
+      "passed": true,
+      "providerOccupancySeconds": 135.845,
+      "providerCallsInSendWindow": 41,
+      "operations": [],
+      "safeEditTests": [],
+      "missingReplacementNewlineBeforeFollowingLine": [],
+      "ordinaryDeveloperInstructionPresent": true,
+      "codingPolicyVersions": [
+        "None"
+      ]
+    },
+    {
+      "key": "lsp-candidate-1",
+      "seconds": 120.191,
+      "passed": true,
+      "providerOccupancySeconds": 108.243,
+      "providerCallsInSendWindow": 31,
+      "operations": [
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 13,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 12,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 17,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 26,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 30,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 33,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "lsp_query",
+          "action": "symbols",
+          "status": "completed",
+          "milliseconds": 365,
+          "verified": null,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "lsp_query",
+          "action": "references",
+          "status": "completed",
+          "milliseconds": 57,
+          "verified": null,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "lsp_query",
+          "action": "rename",
+          "status": "completed",
+          "milliseconds": 382,
+          "verified": null,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": 14,
+          "analysisInputs": 45,
+          "matches": 0,
+          "previewComplete": true
+        },
+        {
+          "tool": "lsp_query",
+          "action": "rename_preview",
+          "status": "completed",
+          "milliseconds": 44,
+          "verified": null,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": 14,
+          "analysisInputs": 45,
+          "matches": 0,
+          "previewComplete": true
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "failed",
+          "milliseconds": 49,
+          "verified": false,
+          "code": null,
+          "error": "STALE_SCOPE: Files were added or removed; prepare a new rename plan.",
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "lsp_query",
+          "action": "rename",
+          "status": "completed",
+          "milliseconds": 386,
+          "verified": null,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": 14,
+          "analysisInputs": 46,
+          "matches": 0,
+          "previewComplete": true
+        },
+        {
+          "tool": "lsp_query",
+          "action": "rename_preview",
+          "status": "completed",
+          "milliseconds": 59,
+          "verified": null,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": 14,
+          "analysisInputs": 46,
+          "matches": 0,
+          "previewComplete": true
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 257,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": true,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        }
+      ],
+      "safeEditTests": [
+        {
+          "verified": false,
+          "testExecuted": null,
+          "testExit": null,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 0,
+          "plan": true,
+          "milliseconds": 49
+        },
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 0,
+          "plan": true,
+          "milliseconds": 257
+        }
+      ],
+      "missingReplacementNewlineBeforeFollowingLine": [],
+      "ordinaryDeveloperInstructionPresent": true,
+      "codingPolicyVersions": [
+        "v7"
+      ]
+    },
+    {
+      "key": "control-candidate-2",
+      "seconds": 35.408,
+      "passed": true,
+      "providerOccupancySeconds": 30.439,
+      "providerCallsInSendWindow": 16,
+      "operations": [
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 12,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 19,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 122,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 18,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        }
+      ],
+      "safeEditTests": [
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 0,
+          "plan": false,
+          "milliseconds": 122
+        }
+      ],
+      "missingReplacementNewlineBeforeFollowingLine": [],
+      "ordinaryDeveloperInstructionPresent": true,
+      "codingPolicyVersions": [
+        "v7"
+      ]
+    },
+    {
+      "key": "control-default-2",
+      "seconds": 37.739,
+      "passed": true,
+      "providerOccupancySeconds": 33.126,
+      "providerCallsInSendWindow": 16,
+      "operations": [],
+      "safeEditTests": [],
+      "missingReplacementNewlineBeforeFollowingLine": [],
+      "ordinaryDeveloperInstructionPresent": true,
+      "codingPolicyVersions": [
+        "None"
+      ]
+    },
+    {
+      "key": "ast-default-2",
+      "seconds": 77.594,
+      "passed": true,
+      "providerOccupancySeconds": 68.258,
+      "providerCallsInSendWindow": 25,
+      "operations": [],
+      "safeEditTests": [],
+      "missingReplacementNewlineBeforeFollowingLine": [],
+      "ordinaryDeveloperInstructionPresent": true,
+      "codingPolicyVersions": [
+        "None"
+      ]
+    },
+    {
+      "key": "ast-candidate-2",
+      "seconds": 113.058,
+      "passed": true,
+      "providerOccupancySeconds": 97.637,
+      "providerCallsInSendWindow": 48,
+      "operations": [
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 13,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 16,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "ast_search",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 22,
+          "verified": null,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 4,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 24,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 131,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 31,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 139,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 37,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 131,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 40,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 133,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 33,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 131,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 48,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 128,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 54,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 126,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 57,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 125,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 48,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 129,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 49,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 108,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 56,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 128,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 53,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 128,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 48,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 125,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 52,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 47,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        }
+      ],
+      "safeEditTests": [
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 2,
+          "plan": false,
+          "milliseconds": 131
+        },
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 2,
+          "plan": false,
+          "milliseconds": 139
+        },
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 2,
+          "plan": false,
+          "milliseconds": 131
+        },
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 2,
+          "plan": false,
+          "milliseconds": 133
+        },
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 0,
+          "plan": false,
+          "milliseconds": 131
+        },
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 0,
+          "plan": false,
+          "milliseconds": 128
+        },
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 0,
+          "plan": false,
+          "milliseconds": 126
+        },
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 0,
+          "plan": false,
+          "milliseconds": 125
+        },
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 0,
+          "plan": false,
+          "milliseconds": 129
+        },
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 0,
+          "plan": false,
+          "milliseconds": 108
+        },
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 0,
+          "plan": false,
+          "milliseconds": 128
+        },
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 0,
+          "plan": false,
+          "milliseconds": 128
+        },
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 0,
+          "plan": false,
+          "milliseconds": 125
+        }
+      ],
+      "missingReplacementNewlineBeforeFollowingLine": [
+        {
+          "path": "src/routes/accounts.ts",
+          "endLine": 10,
+          "replacementEnd": "{\n    if(req.fail) throw new Error('account create');\n    return res.send('created:'+req.id);\n  }));",
+          "followingLine": "  router.get('/health', (_req,res) => res.send('ok'));\n",
+          "toolCallId": "call_459076"
+        },
+        {
+          "path": "src/routes/orders.ts",
+          "endLine": 1,
+          "replacementEnd": "import {withErrors} from '../framework/errors.ts';\nimport {Router} from '../framework/router.ts';",
+          "followingLine": "const audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };\n",
+          "toolCallId": "call_459076"
+        },
+        {
+          "path": "src/routes/orders.ts",
+          "endLine": 13,
+          "replacementEnd": "> {\n    if(req.fail) throw new Error('order delete');\n    return res.send('deleted:'+req.id);\n  }));",
+          "followingLine": "}\n",
+          "toolCallId": "call_459076"
+        },
+        {
+          "path": "src/routes/accounts.ts",
+          "endLine": 12,
+          "replacementEnd": "  }));\n  router.get('/health', (_req,res) => res.send('ok'));\n}",
+          "followingLine": "export const documentation = \"router.get('/fake', async handler)\";\n",
+          "toolCallId": "call_401428"
+        },
+        {
+          "path": "src/routes/orders.ts",
+          "endLine": 2,
+          "replacementEnd": "ter.ts';\nconst audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };",
+          "followingLine": "export const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });\n",
+          "toolCallId": "call_401428"
+        },
+        {
+          "path": "src/routes/accounts.ts",
+          "endLine": 13,
+          "replacementEnd": "}\nexport const documentation = \"router.get('/fake', async handler)\";",
+          "followingLine": "export async function unrelatedHelper() { throw new Error('helper'); }\n",
+          "toolCallId": "call_759009"
+        },
+        {
+          "path": "src/routes/orders.ts",
+          "endLine": 3,
+          "replacementEnd": "k; } };\nexport const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });",
+          "followingLine": "export function registerOrders(router: Router) {\n",
+          "toolCallId": "call_759009"
+        },
+        {
+          "path": "src/routes/orders.ts",
+          "endLine": 4,
+          "replacementEnd": "rders', async () => { throw new Error('audit'); });\nexport function registerOrders(router: Router) {",
+          "followingLine": "  router.get('/orders/:id', withErrors(async (req,res) => {\n",
+          "toolCallId": "call_526309"
+        },
+        {
+          "path": "src/routes/orders.ts",
+          "endLine": 5,
+          "replacementEnd": "unction registerOrders(router: Router) {\n  router.get('/orders/:id', withErrors(async (req,res) => {",
+          "followingLine": "    const values = await Promise.all([req.id].map(async value => value.toUpperCase()));\n",
+          "toolCallId": "call_382183"
+        },
+        {
+          "path": "src/routes/orders.ts",
+          "endLine": 6,
+          "replacementEnd": "eq,res) => {\n    const values = await Promise.all([req.id].map(async value => value.toUpperCase()));",
+          "followingLine": "    if(req.fail) throw new Error('order read');\n",
+          "toolCallId": "call_545615"
+        },
+        {
+          "path": "src/routes/orders.ts",
+          "endLine": 7,
+          "replacementEnd": "l([req.id].map(async value => value.toUpperCase()));\n    if(req.fail) throw new Error('order read');",
+          "followingLine": "    return res.send(values[0]);\n",
+          "toolCallId": "call_421811"
+        },
+        {
+          "path": "src/routes/orders.ts",
+          "endLine": 8,
+          "replacementEnd": "    if(req.fail) throw new Error('order read');\n    return res.send(values[0]);",
+          "followingLine": "  }));\n",
+          "toolCallId": "call_384124"
+        },
+        {
+          "path": "src/routes/orders.ts",
+          "endLine": 9,
+          "replacementEnd": "    return res.send(values[0]);\n  }));",
+          "followingLine": "  router.delete('/orders/:id', withErrors(async (req,res) => {\n",
+          "toolCallId": "call_472901"
+        },
+        {
+          "path": "src/routes/orders.ts",
+          "endLine": 10,
+          "replacementEnd": "  }));\n  router.delete('/orders/:id', withErrors(async (req,res) => {",
+          "followingLine": "    if(req.fail) throw new Error('order delete');\n",
+          "toolCallId": "call_419195"
+        },
+        {
+          "path": "src/routes/orders.ts",
+          "endLine": 11,
+          "replacementEnd": "ete('/orders/:id', withErrors(async (req,res) => {\n    if(req.fail) throw new Error('order delete');",
+          "followingLine": "    return res.send('deleted:'+req.id);\n",
+          "toolCallId": "call_398174"
+        },
+        {
+          "path": "src/routes/orders.ts",
+          "endLine": 12,
+          "replacementEnd": "    if(req.fail) throw new Error('order delete');\n    return res.send('deleted:'+req.id);",
+          "followingLine": "  }));\n",
+          "toolCallId": "call_618724"
+        }
+      ],
+      "ordinaryDeveloperInstructionPresent": true,
+      "codingPolicyVersions": [
+        "v7"
+      ]
+    },
+    {
+      "key": "lsp-candidate-2",
+      "seconds": 107.446,
+      "passed": true,
+      "providerOccupancySeconds": 95.465,
+      "providerCallsInSendWindow": 35,
+      "operations": [],
+      "safeEditTests": [],
+      "missingReplacementNewlineBeforeFollowingLine": [],
+      "ordinaryDeveloperInstructionPresent": true,
+      "codingPolicyVersions": [
+        "v7"
+      ]
+    },
+    {
+      "key": "lsp-default-2",
+      "seconds": 131.728,
+      "passed": true,
+      "providerOccupancySeconds": 118.604,
+      "providerCallsInSendWindow": 46,
+      "operations": [],
+      "safeEditTests": [],
+      "missingReplacementNewlineBeforeFollowingLine": [],
+      "ordinaryDeveloperInstructionPresent": true,
+      "codingPolicyVersions": [
+        "None"
+      ]
+    }
+  ],
+  "successfulAst": 2,
+  "successfulRenamePlans": 2,
+  "verifiedPlanApplies": 1,
+  "diagnosticTimeouts": 0,
+  "limitation": "Tool durations include IPC; provider occupancy is a clipped union of request intervals, not causal attribution or paid/uncached token accounting."
+}

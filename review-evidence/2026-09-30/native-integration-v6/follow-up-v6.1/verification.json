@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "failures": [],
+  "reportSha256": "180eea31f8f8819556acf408ca09252df176a3fb63bbde8077c380115f5745e6",
+  "scope": "Exactly four actual-desktop simple-task follow-up trials, not the twelve-trial matrix.",
+  "frozenRustSourcesChecked": 584,
+  "originalSyncedFilesChecked": 13,
+  "meaning": "Provenance, model, flag, boundary and quality validation; not performance acceptance."
+}

@@ -1,0 +1,11 @@
+{
+  "scripts/benchmark-orqanix-efficiency.mjs": "33205b1734e7ff928b4097bd140842571d5f02572a1d1fa70663da2876a2c8ed",
+  "scripts/benchmark-orqanix-efficiency.test.mjs": "a2a36217098279a2d937e8fbfd2361095bfcf1a65ca72719040f8789cd1b0aea",
+  "scripts/lib/orqanix-efficiency-tasks.mjs": "cde46e999894298d2fdcb2af08b40f4192002471b49a3e9e6780ff6e4aa73d6c",
+  "scripts/calibrate-orqanix-efficiency.mjs": "115224693d9e70475c835855d738d097573db8e3d0eb030b1faa92b139c2a6fa",
+  "scripts/summarize-orqanix-efficiency.mjs": "95bc5601cedd23dc05bffd646696113e72aba4553135401bf407ceb599394dea",
+  "scripts/lib/orqanix-selection-sandbox.mjs": "4ed8381b593405bf387f17b1e320cf9c2e22a79d7c5586482dcd13b5740977d7",
+  "scripts/lib/orqanix-specialist-sandbox.mjs": "41758dd153febf772d16114b4b44e2d7b97f0cc6c205cf1adf461d29122075f1",
+  "scripts/lib/orqanix-benchmark-relay.mjs": "df1cfed8cdf028f9449abdf93fe1535ae5506bdbe63c76d08270f28d80a18b3b",
+  "scripts/lib/orqanix-scoped-benchmark-relay.mjs": "aba5480368486ce42a8ae7dded4472f90d9ee1dd82dd86550bf50e93032fe0dd"
+}

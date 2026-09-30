@@ -1,0 +1,112 @@
+[
+  {
+    "name": "unit",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "goose",
+      "native_engineering",
+      "--lib",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls"
+    ],
+    "exitCode": 0,
+    "seconds": 60.81650704215281
+  },
+  {
+    "name": "real-lsp",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "goose",
+      "native_engineering",
+      "--lib",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls",
+      "--",
+      "--ignored",
+      "--nocapture"
+    ],
+    "exitCode": 0,
+    "seconds": 4.399151541991159
+  },
+  {
+    "name": "loop",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "goose",
+      "--test",
+      "native_engineering_integration",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls"
+    ],
+    "exitCode": 0,
+    "seconds": 21.720012916019186
+  },
+  {
+    "name": "code-mode",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "goose",
+      "code_mode",
+      "--lib",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls"
+    ],
+    "exitCode": 0,
+    "seconds": 0.45833062496967614
+  },
+  {
+    "name": "clippy",
+    "command": [
+      "cargo",
+      "clippy",
+      "-p",
+      "goose",
+      "-p",
+      "goose-cli",
+      "--all-targets",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exitCode": 0,
+    "seconds": 11.966440292075276
+  },
+  {
+    "name": "release",
+    "command": [
+      "cargo",
+      "build",
+      "-p",
+      "goose-cli",
+      "--bin",
+      "goose",
+      "--release",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls"
+    ],
+    "exitCode": 0,
+    "seconds": 181.73517662496306
+  }
+]

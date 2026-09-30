@@ -1,0 +1,23 @@
+{
+  "summary": "Implemented lineTotal with strict safe integer validation for priceCents, quantity, and discountBps, bounds checks, RangeError on invalid input or intermediate overflow, zero handling for zero quantity and full discount, and Math.floor rounding.",
+  "examples": [
+    {
+      "id": "zero",
+      "input": [
+        1250,
+        0,
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "id": "rounding",
+      "input": [
+        199,
+        3,
+        1250
+      ],
+      "expected": 522
+    }
+  ]
+}

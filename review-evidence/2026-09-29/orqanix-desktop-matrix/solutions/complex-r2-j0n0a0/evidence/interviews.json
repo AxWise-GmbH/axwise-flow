@@ -1,0 +1,22 @@
+[
+  {
+    "id": "E1",
+    "role": "Warehouse operator",
+    "quote": "Reserve all lines of an order together or reserve nothing; repeated SKU lines must be added together before checking stock."
+  },
+  {
+    "id": "E2",
+    "role": "Dispatch manager",
+    "quote": "Expedited orders get stock before normal orders; preserve arrival order within each priority."
+  },
+  {
+    "id": "E3",
+    "role": "Payments analyst",
+    "quote": "An order ID is idempotent: process only its first occurrence and ignore later duplicates."
+  },
+  {
+    "id": "E4",
+    "role": "Quality analyst",
+    "quote": "Invalid order lines must be rejected without changing stock, and callers must retain their original input objects."
+  }
+]

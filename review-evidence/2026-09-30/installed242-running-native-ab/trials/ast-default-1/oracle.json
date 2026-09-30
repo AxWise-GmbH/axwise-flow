@@ -1,0 +1,143 @@
+{
+  "key": "ast-default-1",
+  "boundary": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "workspace read",
+        "passed": true
+      },
+      {
+        "name": "workspace write and remove",
+        "passed": true
+      },
+      {
+        "name": "profile write",
+        "passed": true
+      },
+      {
+        "name": "own temp write",
+        "passed": true
+      },
+      {
+        "name": "other temp read denied",
+        "passed": true
+      },
+      {
+        "name": "other temp write denied",
+        "passed": true
+      },
+      {
+        "name": "user directory listing denied",
+        "passed": true
+      },
+      {
+        "name": "child inherits restriction",
+        "passed": true
+      },
+      {
+        "name": "symlink read escape denied",
+        "passed": true
+      },
+      {
+        "name": "symlink write escape denied",
+        "passed": true
+      },
+      {
+        "name": "hardlink escape denied",
+        "passed": true
+      },
+      {
+        "name": "app binary readable",
+        "passed": true
+      },
+      {
+        "name": "app resources immutable",
+        "passed": true
+      }
+    ],
+    "appliesTo": "Independent graders only; existing live backend was not relaunched into this boundary"
+  },
+  "passed": true,
+  "behavior": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "registration order",
+        "passed": true
+      },
+      {
+        "name": "success route 0",
+        "passed": true
+      },
+      {
+        "name": "success route 1",
+        "passed": true
+      },
+      {
+        "name": "success route 2",
+        "passed": true
+      },
+      {
+        "name": "success route 3",
+        "passed": true
+      },
+      {
+        "name": "success route 4",
+        "passed": true
+      },
+      {
+        "name": "forward failure route 0",
+        "passed": true
+      },
+      {
+        "name": "forward failure route 1",
+        "passed": true
+      },
+      {
+        "name": "forward failure route 3",
+        "passed": true
+      },
+      {
+        "name": "forward failure route 4",
+        "passed": true
+      },
+      {
+        "name": "synchronous health preserved",
+        "passed": true
+      },
+      {
+        "name": "unrelated audit and helper still reject",
+        "passed": true
+      }
+    ]
+  },
+  "types": {
+    "passed": true,
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "publicTests": {
+    "passed": true,
+    "exitCode": 0,
+    "stdout": "TAP version 13\n# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.302209\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 60.200667\n",
+    "stderr": ""
+  },
+  "regression": {
+    "passed": true,
+    "exitCode": 0,
+    "stdout": "TAP version 13\n# Subtest: Router async error handling regression tests\n    # Subtest: preserves route registration order and methods\n    ok 1 - preserves route registration order and methods\n      ---\n      duration_ms: 0.602292\n      type: 'test'\n      ...\n    # Subtest: successfully handles GET /accounts/:id and preserves response values\n    ok 2 - successfully handles GET /accounts/:id and preserves response values\n      ---\n      duration_ms: 0.094625\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on GET /accounts/:id failure\n    ok 3 - forwards errors to next on GET /accounts/:id failure\n      ---\n      duration_ms: 0.067625\n      type: 'test'\n      ...\n    # Subtest: successfully handles POST /accounts with named async function\n    ok 4 - successfully handles POST /accounts with named async function\n      ---\n      duration_ms: 0.056792\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on POST /accounts failure\n    ok 5 - forwards errors to next on POST /accounts failure\n      ---\n      duration_ms: 0.091458\n      type: 'test'\n      ...\n    # Subtest: preserves synchronous handling on GET /health\n    ok 6 - preserves synchronous handling on GET /health\n      ---\n      duration_ms: 0.045708\n      type: 'test'\n      ...\n    # Subtest: successfully handles GET /orders/:id and preserves response values\n    ok 7 - successfully handles GET /orders/:id and preserves response values\n      ---\n      duration_ms: 0.103333\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on GET /orders/:id failure\n    ok 8 - forwards errors to next on GET /orders/:id failure\n      ---\n      duration_ms: 0.117875\n      type: 'test'\n      ...\n    # Subtest: successfully handles DELETE /orders/:id and preserves response values\n    ok 9 - successfully handles DELETE /orders/:id and preserves response values\n      ---\n      duration_ms: 0.203375\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on DELETE /orders/:id failure\n    ok 10 - forwards errors to next on DELETE /orders/:id failure\n      ---\n      duration_ms: 0.264166\n      type: 'test'\n      ...\n    # Subtest: leaves unrelated helpers and audit API unwrapped\n    ok 11 - leaves unrelated helpers and audit API unwrapped\n      ---\n      duration_ms: 0.198\n      type: 'test'\n      ...\n    1..11\nok 1 - Router async error handling regression tests\n  ---\n  duration_ms: 2.622917\n  type: 'suite'\n  ...\n1..1\n# tests 11\n# suites 1\n# pass 11\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 60.716\n",
+    "stderr": ""
+  },
+  "originalMutation": {
+    "detected": true,
+    "passed": false,
+    "exitCode": 1,
+    "signal": null,
+    "stdout": "TAP version 13\n# Subtest: Router async error handling regression tests\n    # Subtest: preserves route registration order and methods\n    ok 1 - preserves route registration order and methods\n      ---\n      duration_ms: 0.60475\n      type: 'test'\n      ...\n    # Subtest: successfully handles GET /accounts/:id and preserves response values\n    ok 2 - successfully handles GET /accounts/:id and preserves response values\n      ---\n      duration_ms: 0.079833\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on GET /accounts/:id failure\n    not ok 3 - forwards errors to next on GET /accounts/:id failure\n      ---\n      duration_ms: 0.080125\n      type: 'test'\n      location: '/private/tmp/orqanix-installed242-live-20260930/ast-default-1/fixture/workspace/tests/regression.test.mjs:39:3'\n      failureType: 'testCodeFailure'\n      error: 'account read'\n      code: 'ERR_TEST_FAILURE'\n      stack: |-\n        Object.handler (file:///private/tmp/orqanix-installed242-live-20260930/ast-default-1/fixture/workspace/src/routes/accounts.ts:4:24)\n        TestContext.<anonymous> (file:///private/tmp/orqanix-installed242-live-20260930/ast-default-1/fixture/workspace/tests/regression.test.mjs:47:17)\n        Test.runInAsyncScope (node:async_hooks:214:14)\n        Test.run (node:internal/test_runner/test:1047:25)\n        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)\n        Test.postRun (node:internal/test_runner/test:1173:19)\n        Test.run (node:internal/test_runner/test:1101:12)\n        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)\n      ...\n    # Subtest: successfully handles POST /accounts with named async function\n    ok 4 - successfully handles POST /accounts with named async function\n      ---\n      duration_ms: 0.064708\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on POST /accounts failure\n    not ok 5 - forwards errors to next on POST /accounts failure\n      ---\n      duration_ms: 0.096625\n      type: 'test'\n      location: '/private/tmp/orqanix-installed242-live-20260930/ast-default-1/fixture/workspace/tests/regression.test.mjs:67:3'\n      failureType: 'testCodeFailure'\n      error: 'account create'\n      code: 'ERR_TEST_FAILURE'\n      stack: |-\n        Object.createAccount [as handler] (file:///private/tmp/orqanix-installed242-live-20260930/ast-default-1/fixture/workspace/src/routes/accounts.ts:8:24)\n        TestContext.<anonymous> (file:///private/tmp/orqanix-installed242-live-20260930/ast-default-1/fixture/workspace/tests/regression.test.mjs:75:17)\n        Test.runInAsyncScope (node:async_hooks:214:14)\n        Test.run (node:internal/test_runner/test:1047:25)\n        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)\n        Test.postRun (node:internal/test_runner/test:1173:19)\n        Test.run (node:internal/test_runner/test:1101:12)\n        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)\n      ...\n    # Subtest: preserves synchronous handling on GET /health\n    ok 6 - preserves synchronous handling on GET /health\n      ---\n      duration_ms: 0.063208\n      type: 'test'\n      ...\n    # Subtest: successfully handles GET /orders/:id and preserves response values\n    ok 7 - successfully handles GET /orders/:id and preserves response values\n      ---\n      duration_ms: 0.120791\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on GET /orders/:id failure\n    not ok 8 - forwards errors to next on GET /orders/:id failure\n      ---\n      duration_ms: 0.122625\n      type: 'test'\n      location: '/private/tmp/orqanix-installed242-live-20260930/ast-default-1/fixture/workspace/tests/regression.test.mjs:108:3'\n      failureType: 'testCodeFailure'\n      error: 'order read'\n      code: 'ERR_TEST_FAILURE'\n      stack: |-\n        Object.handler (file:///private/tmp/orqanix-installed242-live-20260930/ast-default-1/fixture/workspace/src/routes/orders.ts:7:24)\n        async TestContext.<anonymous> (file:///private/tmp/orqanix-installed242-live-20260930/ast-default-1/fixture/workspace/tests/regression.test.mjs:116:5)\n        async Test.run (node:internal/test_runner/test:1054:7)\n        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)\n      ...\n    # Subtest: successfully handles DELETE /orders/:id and preserves response values\n    ok 9 - successfully handles DELETE /orders/:id and preserves response values\n      ---\n      duration_ms: 0.124041\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on DELETE /orders/:id failure\n    not ok 10 - forwards errors to next on DELETE /orders/:id failure\n      ---\n      duration_ms: 0.293334\n      type: 'test'\n      location: '/private/tmp/orqanix-installed242-live-20260930/ast-default-1/fixture/workspace/tests/regression.test.mjs:136:3'\n      failureType: 'testCodeFailure'\n      error: 'order delete'\n      code: 'ERR_TEST_FAILURE'\n      stack: |-\n        Object.handler (file:///private/tmp/orqanix-installed242-live-20260930/ast-default-1/fixture/workspace/src/routes/orders.ts:11:24)\n        TestContext.<anonymous> (file:///private/tmp/orqanix-installed242-live-20260930/ast-default-1/fixture/workspace/tests/regression.test.mjs:144:17)\n        Test.runInAsyncScope (node:async_hooks:214:14)\n        Test.run (node:internal/test_runner/test:1047:25)\n        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)\n        Test.postRun (node:internal/test_runner/test:1173:19)\n        Test.run (node:internal/test_runner/test:1101:12)\n        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)\n      ...\n    # Subtest: leaves unrelated helpers and audit API unwrapped\n    ok 11 - leaves unrelated helpers and audit API unwrapped\n      ---\n      duration_ms: 0.5905\n      type: 'test'\n      ...\n    1..11\nnot ok 1 - Router async error handling regression tests\n  ---\n  duration_ms: 2.777584\n  type: 'suite'\n  location: '/private/tmp/orqanix-installed242-live-20260930/ast-default-1/fixture/workspace/tests/regression.test.mjs:7:1'\n  failureType: 'subtestsFailed'\n  error: '4 subtests failed'\n  code: 'ERR_TEST_FAILURE'\n  ...\n1..1\n# tests 11\n# suites 1\n# pass 7\n# fail 4\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 63.314458\n",
+    "stderr": "Command failed: /usr/bin/sandbox-exec -f /private/tmp/orqanix-installed242-live-20260930/ast-default-1/grading-boundary.sb /private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/node/bin/node --experimental-strip-types --test tests/regression.test.mjs\n"
+  },
+  "immutableFailures": [],
+  "unexpectedFiles": []
+}

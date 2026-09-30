@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import argparse
-import os
 from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 
+from backend.services.local_axwise.configuration import (ConfigurationError, RuntimeConfiguration, load_runtime_configuration)
 from backend.services.local_axwise.engine import execute_tool
 from backend.services.local_axwise.kernel import DESCRIPTIONS
 
@@ -21,6 +21,34 @@ STORAGE & REFERENCES:
 Artifacts are automatically indexed in embedded SQLite (~/.axwise/state/axwise.db) and saved as local Markdown files.
 References between steps are resolved automatically to the latest compatible artifacts in the session when omitted.""",
 )
+
+
+_runtime_configuration: RuntimeConfiguration | None = None
+_provider = None
+
+
+def configure_runtime(config_path=None, *, state_dir=None) -> RuntimeConfiguration:
+    """Read host-owned settings once at startup; no credentials or model calls."""
+    global _runtime_configuration, _provider
+    _runtime_configuration = load_runtime_configuration(config_path, state_dir=state_dir)
+    _provider = None
+    return _runtime_configuration
+
+
+def runtime_configuration() -> RuntimeConfiguration:
+    global _runtime_configuration
+    if _runtime_configuration is None:
+        configure_runtime()
+    return _runtime_configuration
+
+
+async def _execute(tool_name: str, raw_input: dict[str, Any]):
+    global _provider
+    config = runtime_configuration()
+    if _provider is None:
+        _provider = config.create_provider()
+    return await execute_tool(tool_name, raw_input, session_id=config.scope_id,
+                              provider=_provider, state_dir=config.state_dir)
 
 
 def _desc(name: str) -> str:
@@ -55,7 +83,7 @@ async def prepare_discovery(
     if revisionOf:
         raw_input["revisionOf"] = revisionOf
 
-    result = await execute_tool("prepare_discovery", raw_input)
+    result = await _execute("prepare_discovery", raw_input)
     return result["content"]
 
 
@@ -87,7 +115,7 @@ async def research_market(
     if revisionOf:
         raw_input["revisionOf"] = revisionOf
 
-    result = await execute_tool("research_market", raw_input)
+    result = await _execute("research_market", raw_input)
     return result["content"]
 
 
@@ -114,7 +142,7 @@ async def generate_personas(
     if revisionOf:
         raw_input["revisionOf"] = revisionOf
 
-    result = await execute_tool("generate_personas", raw_input)
+    result = await _execute("generate_personas", raw_input)
     return result["content"]
 
 
@@ -148,7 +176,7 @@ async def simulate_interviews(
     if revisionOf:
         raw_input["revisionOf"] = revisionOf
 
-    result = await execute_tool("simulate_interviews", raw_input)
+    result = await _execute("simulate_interviews", raw_input)
     return result["content"]
 
 
@@ -173,7 +201,7 @@ async def chat_with_persona(
     if revisionOf:
         raw_input["revisionOf"] = revisionOf
 
-    result = await execute_tool("chat_with_persona", raw_input)
+    result = await _execute("chat_with_persona", raw_input)
     return result["content"]
 
 
@@ -207,7 +235,7 @@ async def analyze_interviews(
     if revisionOf:
         raw_input["revisionOf"] = revisionOf
 
-    result = await execute_tool("analyze_interviews", raw_input)
+    result = await _execute("analyze_interviews", raw_input)
     return result["content"]
 
 
@@ -238,7 +266,7 @@ async def create_prd(
     if revisionOf:
         raw_input["revisionOf"] = revisionOf
 
-    result = await execute_tool("create_prd", raw_input)
+    result = await _execute("create_prd", raw_input)
     return result["content"]
 
 
@@ -261,7 +289,7 @@ async def create_delivery_brief(
     if revisionOf:
         raw_input["revisionOf"] = revisionOf
 
-    result = await execute_tool("create_delivery_brief", raw_input)
+    result = await _execute("create_delivery_brief", raw_input)
     return result["content"]
 
 
@@ -286,7 +314,8 @@ async def run_full_discovery(
 
     # 2. Personas (select within depth budget if needed)
     from backend.services.local_axwise.storage import find_latest_artifact
-    latest_disc = find_latest_artifact(["prepare_discovery"])
+    config = runtime_configuration()
+    latest_disc = find_latest_artifact(["prepare_discovery"], session_id=config.scope_id, state_dir=config.state_dir)
     role_limit = 3 if depth == "standard" else 4
     stakeholders = None
     if latest_disc and len(latest_disc.get("artifact", {}).get("stakeholders", [])) > role_limit:
@@ -331,14 +360,17 @@ async def run_full_discovery(
     return "\n".join(sections)
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description="AxWise Local FastMCP server")
+    parser.add_argument("--config", default=None, help="Optional BYOK configuration JSON")
     parser.add_argument("--transport", default="stdio", choices=["stdio", "sse"])
     parser.add_argument("--state-dir", default=None, help="Directory to store SQLite database and artifacts")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
-    if args.state_dir:
-        os.environ["AXWISE_STATE_DIR"] = args.state_dir
+    try:
+        configure_runtime(args.config, state_dir=args.state_dir)
+    except ConfigurationError as error:
+        parser.error(str(error))
 
     mcp.run(transport=args.transport)
 

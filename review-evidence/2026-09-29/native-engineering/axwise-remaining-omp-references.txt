@@ -1,0 +1,25 @@
+Tracked text inventory after active runtime removal. Remaining matches are historical documents and release receipts; no active runtime reference.
+
+apps/orqaly/docs/LOCAL_AXWISE_EXTENSION_PLAN_2026-09-23.md:98:   The current packager handles Node/OMP, not this Python runtime. Register Axwise
+apps/orqaly/docs/RELEASE_2.3.11_2026-09-23.md:4:reset, without mandatory Axwise desktop orchestration. OMP starts off through a
+apps/orqaly/docs/RELEASE_2.3.11_2026-09-23.md:5:one-time migration; JEV and other preferences are preserved, and later OMP toggle
+apps/orqaly/docs/RELEASE_2.3.11_2026-09-23.md:65:  incomplete evidence. This proves route compatibility, not a live OMP edit run.
+apps/orqaly/docs/LOCAL_GOOSE_RESET_2026-09-23.md:12:  retrieval and compulsory OMP delegation instructions are removed.
+apps/orqaly/docs/LOCAL_GOOSE_RESET_2026-09-23.md:34:OMP off and optional JEV on; installed apps and conversation history are untouched.
+apps/orqaly/docs/LOCAL_GOOSE_RESET_2026-09-23.md:45:the desktop still defaults to the deployed preview API. Do not enable OMP in
+apps/orqaly/docs/LOCAL_GOOSE_RESET_2026-09-23.md:171:get weather`, without Axwise or OMP. This verifies presentation, not the ACP
+apps/orqaly/docs/GCP_RESET_DEPENDENCIES_2026-09-23.md:64:| `orqaly-coding-sandbox-preview` | Cloud workflow coding sandbox, referenced by the API and worker. This is not the local desktop OMP process. |
+apps/orqaly/docs/GCP_RESET_DEPENDENCIES_2026-09-23.md:85:Local OMP remains a separate optional capability. Its model transport uses
+apps/orqaly/docs/GCP_RESET_DEPENDENCIES_2026-09-23.md:90:deployed OMP acceptance.
+artifacts/release-certificate-v2.1.0.json:22:      "omp": "omp/18.2.1",
+artifacts/release-certificate-v2.1.0.json:52:      "ompBridgeTests": "18 passed, 0 failed (@orqanix/omp-mcp-server)",
+docs/desktop-harness-benchmark-2026-09-23.md:9:- Local engineering: OMP, under existing user approvals. Retrieval failures never automatically start it.
+docs/desktop-harness-benchmark-2026-09-23.md:67:Before calling the whole harness faster, test a clean desktop conversation and a long existing conversation with weather, local news, typed follow-ups, JEV off, OMP off, restart and two-window queue conflicts. Measure message-to-first-useful-result separately from model tokens/second.
+docs/desktop-harness-revision-2026-09-23.md:5:Everyday information goes through a bounded, authenticated stateless endpoint, not an AxWise operation/worker/poll loop. AxWise retains PRDs, interviews, simulations and substantial evidence workflows. OMP remains local engineering, never an automatic search fallback. Existing auth, RBAC, billing and approval authority are unchanged.
+docs/desktop-harness-revision-2026-09-23.md:23:- JEV off makes no TypeSafe request. OMP off leaves JEV available. No retrieval failure triggers shell, installation or engineering work.
+docs/orqanix-vs-raw-llm-benchmark-report.md:5:Orqanix is a public preview. Its public and preview domains currently share the preview deployment. AxWise research, OMP workspace engineering and Jev evaluation are integrated to different degrees; a complete acceptance record from the released desktop installer is needed before describing the combined workflow as verified.
+docs/orqanix-co-founders-architectural-signoff-2026-09-18.md:12:> **"AxWise Decides; Orqaly Executes; Goose Desktop & OMP Act Locally."**
+docs/orqanix-co-founders-architectural-signoff-2026-09-18.md:16:3. **Local Desktop Operator (Goose Desktop & Oh My Pi)**: Fast local code refactoring, AST inspection (Tree-sitter/LSP), macOS Accessibility UI automation (Peekaboo), and OS Keychain-backed Clerk PKCE authentication.
+docs/orqanix-co-founders-architectural-signoff-2026-09-18.md:72:   - Enforce `CapabilityContractV1` in Orqanix Desktop to route tasks directly to `omp` (AST code), `Peekaboo` (GUI automation), or `shell` without exploratory hallucination turns.
+packages/axwise-local/DESKTOP_BENCHMARK_2026-09-24.md:35:- Smart approval mode; OMP off and JEV setting on. Axwise on for the research
+packages/axwise-local/DESKTOP_BENCHMARK_2026-09-24.md:119:It was restored to on after the comparison; OMP/JEV settings were not changed.

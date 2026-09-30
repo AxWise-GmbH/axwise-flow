@@ -1,0 +1,15 @@
+{
+  "summary": "Fixed lineTotal in src/pricing.mjs by enforcing safe non-negative integer validation for priceCents and quantity, range validation [0, 10000] for discountBps, safe integer overflow checks for both intermediate products, floor division for discount application, and correct handling of zero quantity and full discount.",
+  "examples": [
+    {
+      "id": "zero",
+      "input": [1250, 0, 0],
+      "expected": 0
+    },
+    {
+      "id": "rounding",
+      "input": [199, 3, 1250],
+      "expected": 522
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "summary": "Validated that priceCents, quantity, and discountBps are non-negative safe integers within allowed ranges, added RangeError checks for unsafe integer intermediates (priceCents * quantity and product * (10000 - discountBps)), and computed line totals using Math.floor with correct handling of zero quantity and 100% discount.",
+  "examples": [
+    {
+      "id": "zero",
+      "input": [1250, 0, 0],
+      "expected": 0
+    },
+    {
+      "id": "rounding",
+      "input": [199, 3, 1250],
+      "expected": 522
+    }
+  ]
+}

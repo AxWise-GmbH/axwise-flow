@@ -1,0 +1,9 @@
+{
+  "reuseReason": "Fixtures/oracles and packaged language runtime unchanged; guidance-only candidate. Prior fixture calibration retained; live grading will run for every new trial.",
+  "source": "review-evidence/2026-09-30/native-operations-v4/calibration.json",
+  "fingerprints": {
+    "lib/orqanix-semantic-tasks.mjs": "4fe70ecd367ad60d683dc179666f9b6b3f9864262d3eeee0cd3846bd3aa8e7e3",
+    "lib/orqanix-selection-sandbox.mjs": "4ed8381b593405bf387f17b1e320cf9c2e22a79d7c5586482dcd13b5740977d7"
+  },
+  "passed": true
+}

@@ -1,0 +1,4 @@
+line one
+line two replaced without newline
+line four
+line five joined with line six

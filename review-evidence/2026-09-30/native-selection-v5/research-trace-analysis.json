@@ -1,0 +1,187 @@
+{
+  "researchDate": "2026-09-30",
+  "measurements": [
+    {
+      "trial": "ast-default-1",
+      "rawRow": "/private/tmp/orqanix-selection-v5-live-20260930/ast-default-1/row.json",
+      "elapsedMs": 43295,
+      "providerIntervalUnionWithinSendWindowMs": 35917.0,
+      "allModelRequests": 18,
+      "requestsWithToolInventory": 17,
+      "initialAgentPromptTokens": 6129,
+      "reportedPromptTokens": 214076,
+      "reportedCachedTokens": 64562,
+      "requestsMissingCacheBreakdown": 13,
+      "toolOutputSizes": {
+        "todo__todo_write": {
+          "calls": 2,
+          "serializedResultCharacters": 8
+        },
+        "shell": {
+          "calls": 10,
+          "serializedResultCharacters": 14979
+        },
+        "tree": {
+          "calls": 1,
+          "serializedResultCharacters": 4
+        },
+        "edit": {
+          "calls": 2,
+          "serializedResultCharacters": 8
+        },
+        "write": {
+          "calls": 1,
+          "serializedResultCharacters": 4
+        }
+      },
+      "astResult": null
+    },
+    {
+      "trial": "ast-candidate-1",
+      "rawRow": "/private/tmp/orqanix-selection-v5-live-20260930/ast-candidate-1/row.json",
+      "elapsedMs": 46845,
+      "providerIntervalUnionWithinSendWindowMs": 40379.0,
+      "allModelRequests": 16,
+      "requestsWithToolInventory": 15,
+      "initialAgentPromptTokens": 9488,
+      "reportedPromptTokens": 261783,
+      "reportedCachedTokens": 133756,
+      "requestsMissingCacheBreakdown": 9,
+      "toolOutputSizes": {
+        "todo__todo_write": {
+          "calls": 2,
+          "serializedResultCharacters": 8
+        },
+        "hashline_edit": {
+          "calls": 3,
+          "serializedResultCharacters": 13029
+        },
+        "tree": {
+          "calls": 1,
+          "serializedResultCharacters": 4
+        },
+        "shell": {
+          "calls": 6,
+          "serializedResultCharacters": 5376
+        },
+        "write": {
+          "calls": 1,
+          "serializedResultCharacters": 4
+        },
+        "safe_edit_and_test": {
+          "calls": 1,
+          "serializedResultCharacters": 2981
+        }
+      },
+      "astResult": null
+    },
+    {
+      "trial": "ast-default-2",
+      "rawRow": "/private/tmp/orqanix-selection-v5-live-20260930/ast-default-2/row.json",
+      "elapsedMs": 47828,
+      "providerIntervalUnionWithinSendWindowMs": 38713.0,
+      "allModelRequests": 21,
+      "requestsWithToolInventory": 20,
+      "initialAgentPromptTokens": 6129,
+      "reportedPromptTokens": 235947,
+      "reportedCachedTokens": 44239,
+      "requestsMissingCacheBreakdown": 15,
+      "toolOutputSizes": {
+        "todo__todo_write": {
+          "calls": 2,
+          "serializedResultCharacters": 8
+        },
+        "shell": {
+          "calls": 14,
+          "serializedResultCharacters": 12334
+        },
+        "edit": {
+          "calls": 2,
+          "serializedResultCharacters": 8
+        },
+        "write": {
+          "calls": 1,
+          "serializedResultCharacters": 4
+        }
+      },
+      "astResult": null
+    },
+    {
+      "trial": "ast-candidate-2",
+      "rawRow": "/private/tmp/orqanix-selection-v5-live-20260930/ast-candidate-2/row.json",
+      "elapsedMs": 59870,
+      "providerIntervalUnionWithinSendWindowMs": 52504.0,
+      "allModelRequests": 22,
+      "requestsWithToolInventory": 21,
+      "initialAgentPromptTokens": 9066,
+      "reportedPromptTokens": 431328,
+      "reportedCachedTokens": 271591,
+      "requestsMissingCacheBreakdown": 10,
+      "toolOutputSizes": {
+        "todo__todo_write": {
+          "calls": 3,
+          "serializedResultCharacters": 12
+        },
+        "hashline_edit": {
+          "calls": 5,
+          "serializedResultCharacters": 24668
+        },
+        "tree": {
+          "calls": 1,
+          "serializedResultCharacters": 4
+        },
+        "ast_search": {
+          "calls": 1,
+          "serializedResultCharacters": 4958
+        },
+        "shell": {
+          "calls": 8,
+          "serializedResultCharacters": 7319
+        },
+        "write": {
+          "calls": 1,
+          "serializedResultCharacters": 4
+        },
+        "safe_edit_and_test": {
+          "calls": 1,
+          "serializedResultCharacters": 2977
+        }
+      },
+      "astResult": {
+        "matches": 20,
+        "nameCounts": {
+          "get": 4,
+          "Error": 6,
+          "send": 5,
+          "post": 1,
+          "all": 1,
+          "map": 1,
+          "toUpperCase": 1,
+          "delete": 1
+        },
+        "observedIntervalMs": 21
+      }
+    }
+  ],
+  "interpretation": [
+    "The AST operation was observed at 21ms by operation-diagnostics.json; its result included generic calls beyond the intended async Router registrations.",
+    "Recorded provider interval union measures waiting on requests, including transport, queueing and generation; it does not isolate model compute or prove context caused latency.",
+    "Reported prompt totals include repeated history and cached inputs; missing cache breakdown is not proof of zero cache hits.",
+    "Initial prompt differences describe total native tool/policy/context overhead; this analysis does not isolate each contribution.",
+    "Only two repetitions per arm; this is diagnosis and prioritization, not a causal performance guarantee."
+  ],
+  "sources": {
+    "deepseekPrompt": "https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/system-prompt.md",
+    "deepseekToolOutput": "https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/tools.md",
+    "deepseekLsp": "https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/lsp/lsp-stdio/README.md",
+    "hermesLsp": "https://hermes-agent.nousresearch.com/docs/user-guide/features/lsp",
+    "hermesCodeExecution": "https://hermes-agent.nousresearch.com/docs/user-guide/features/code-execution",
+    "hermesMicroCompaction": "https://hermes-agent.nousresearch.com/docs/developer-guide/micro-compaction",
+    "aiderRepoMap": "https://aider.chat/docs/repomap.html",
+    "gooseCodeMode": "https://github.com/aaif-goose/goose/blob/main/documentation/docs/guides/managing-tools/code-mode.md",
+    "cloudflareCodeMode": "https://developers.cloudflare.com/agents/tools/codemode/",
+    "googleCaching": "https://ai.google.dev/gemini-api/docs/caching",
+    "miniSweAgent": "https://mini-swe-agent.com/",
+    "sweAgentAci": "https://swe-agent.com/latest/background/aci/"
+  }
+}

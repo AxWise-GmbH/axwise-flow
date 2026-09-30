@@ -20,7 +20,7 @@ JS_FILES = tuple(f"packages/axwise-local/src/{name}.mjs" for name in (
 KERNEL_FILES = tuple(f"backend/services/local_axwise/{name}.py" for name in (
     "__init__", "kernel", "worker", "quality", "pipeline_common", "discovery",
     "personas", "delivery", "prd_revisions", "analysis_views",
-    "fastmcp_server", "engine", "provider", "storage", "schema_cleaner",
+    "fastmcp_server", "engine", "provider", "storage", "schema_cleaner", "configuration",
 ))
 DEPENDENCY_FILES = (
     "backend/domain/workflow_v2/wire.py",
@@ -30,6 +30,7 @@ DEPENDENCY_FILES = (
     "backend/services/workflow_v2/analysis_candidates.py",
     "backend/services/workflow_v2/capability_generation_payloads.py",
     "backend/services/workflow_v2/cognitive/policy.py",
+    "backend/services/workflow_v2/cognitive/typesafe_triage.py",
 )
 INIT_FILES = (
     "backend/__init__.py", "backend/services/__init__.py",
@@ -44,7 +45,7 @@ JS_TESTS = tuple(f"packages/axwise-local/test/{name}.test.mjs" for name in (
 PYTHON_TESTS = tuple(f"backend/tests/local_axwise/{name}.py" for name in (
     "__init__", "fixtures", "test_quality", "test_analysis_context", "test_kernel",
     "test_discovery", "test_analysis_views", "test_prd_revisions", "test_personas",
-    "test_delivery", "test_pipeline_integration",
+    "test_delivery", "test_pipeline_integration", "test_public_config",
 ))
 DISTRIBUTION_FILES = tuple(f"packages/axwise-distribution/{name}" for name in (
     "manifest.py", "build.py", "build_backend.py", "launcher.py", "npm-cli.mjs",

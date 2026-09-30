@@ -1,0 +1,11 @@
+{
+  "scripts/benchmark-orqanix-selection.mjs": "8e2f769117ad339d2e28be1811d12492d6e93b5fe41be13ca11651760e6888c7",
+  "scripts/calibrate-orqanix-selection.mjs": "7c448181acf99442bbcd68f6ffa91b975e34c0cbeb80627b224f6c2ab586a4d0",
+  "scripts/lib/orqanix-selection-tasks.mjs": "b8f9bc6ac3ba6e3fa1c3389f07c7f5422130bd26c5ababeaa784556402cadc00",
+  "scripts/lib/orqanix-selection-sandbox.mjs": "4ed8381b593405bf387f17b1e320cf9c2e22a79d7c5586482dcd13b5740977d7",
+  "scripts/lib/orqanix-specialist-sandbox.mjs": "41758dd153febf772d16114b4b44e2d7b97f0cc6c205cf1adf461d29122075f1",
+  "scripts/lib/orqanix-benchmark-relay.mjs": "f2097a65ac35c1e5e6eb8936617314fa6e9413c73d9a66a08aee5525b324597a",
+  "apps/orqaly/server/workflow-v2/goose-provider-http.js": "5b4b80c746f7ca2c45bbcdac997dc9a68c3b7937dfe054c644787b74db0cc8dd",
+  "apps/orqaly/server/workflow-v2/desktop-decision-service.js": "529396657474ea30b56d5f74984d55c5630a51282ab79f3071deb2fc344d794b",
+  "apps/orqaly/server/workflow-v2/engineering-review-service.js": "3f09d1cffba4bd04b86405f6cb1029423e17351ede88c9eafcc906e75da3b7ee"
+}

@@ -1,0 +1,466 @@
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/edits.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/edits.rs
+@@ -27,6 +27,9 @@
+ const MAX_FILE_BYTES: usize = 1_048_576;
+ const MAX_OUTPUT_BYTES: usize = 65_536;
+ const MAX_EDITS: usize = 100;
++const MAX_READ_FILES: usize = 16;
++const MAX_BATCH_BYTES: usize = 262_144;
++const MAX_RECEIPT_BYTES: usize = 16_384;
+ 
+ #[derive(Clone, Debug, Deserialize, JsonSchema)]
+ #[serde(deny_unknown_fields)]
+@@ -47,6 +50,7 @@
+ #[serde(rename_all = "snake_case")]
+ pub enum HashlineAction {
+     Read,
++    ReadMany,
+     Edit,
+ }
+ 
+@@ -54,7 +58,10 @@
+ #[serde(deny_unknown_fields)]
+ pub struct HashlineParams {
+     pub action: HashlineAction,
+-    pub path: String,
++    /// One existing file for read/edit; omit for read_many.
++    pub path: Option<String>,
++    /// read_many only: 1–16 existing files, with independent snapshots/errors.
++    pub paths: Option<Vec<String>>,
+     /// Required for edit: the full 64-character SHA-256 returned by read.
+     pub expected_sha256: Option<String>,
+     /// Required for edit. Nonoverlapping inclusive line ranges; at most 100.
+@@ -104,7 +111,7 @@
+                 .clone()
+         }
+         [
+-            Tool::new("hashline_edit", "Prefer action=read before editing a supported existing file. Copy returned hashes and anchors into action=edit or safe_edit_and_test; re-read on conflicts. Read a workspace text file with full-file SHA-256 and numbered line anchors, or apply exact anchored edits after verifying that preimage. Existing UTF-8 files only, maximum 1 MiB. Ranges include their line endings; replacement text must include any desired newline. Does not run tests or claim verification. Files outside the trusted workspace and symlink paths are rejected.", schema::<HashlineParams>()),
++            Tool::new("hashline_edit", "Read and edit existing workspace UTF-8 files with SHA-256 and line-anchor guards (1 MiB/file). Use action=read_many with paths to gather up to 16 edit targets in one call (256 KiB combined line data; inspect per-file errors/truncation), or action=read with path. Reuse returned snapshots; reread only missing context or after a stale conflict. action=edit accepts path, expected_sha256 and edits, and returns bounded post_edit context with fresh anchors. Replacement ranges include line endings. No tests are run. Outside-workspace and symlink paths are rejected.", schema::<HashlineParams>()),
+             Tool::new("safe_edit_and_test", "Prefer for an existing-file change with a suitable test command, after hashline_edit action=read. Apply exact SHA/line-anchor guarded edits to one existing workspace file, then execute the supplied test_command argv directly in the trusted workspace. Requires approval for the file change and command. Test timeout is 1–600 seconds (default 60); captured output is bounded. On test failure, timeout or cancellation, restore the original bytes only if the file still equals this tool's postimage; otherwise preserve intervening edits and report the conflict. No automatic model repair. Unix process containment only; other platforms fail before editing. This tool is not an OS sandbox: an approved test executable may affect other files.", schema::<SafeEditParams>()),
+         ].into_iter().map(|tool| tool.annotate(ToolAnnotations::from_raw(
+             None, Some(false), Some(true), Some(false), Some(true),
+@@ -466,38 +473,123 @@
+     }
+ }
+ 
++fn snapshot(bytes: &[u8], start: usize, limit: usize, budget: &mut usize) -> Result<Value, String> {
++    let text = std::str::from_utf8(bytes).map_err(|_| "UNSUPPORTED_FILE: UTF-8 text required.")?;
++    let all_lines = lines(text);
++    if start == 0 || start > all_lines.len() || !(1..=2000).contains(&limit) {
++        return Err("INVALID_READ_RANGE: Select an existing line and 1–2000 lines.".into());
++    }
++    let mut rows = Vec::new();
++    for (index, row) in all_lines.iter().enumerate().skip(start - 1).take(limit) {
++        let value = json!({"line":index+1,"anchor":anchor(index+1,row),"text":row});
++        let size = serde_json::to_vec(&value)
++            .expect("line serialization")
++            .len();
++        if size > *budget {
++            break;
++        }
++        *budget -= size;
++        rows.push(value);
++    }
++    let next = start + rows.len();
++    Ok(
++        json!({"status":"read","sha256":sha(bytes),"total_lines":all_lines.len(),
++        "start_line":start,"has_more":next <= all_lines.len(),
++        "next_line":if next <= all_lines.len() {Some(next)} else {None},
++        "lines":rows,"verified":false}),
++    )
++}
++
++fn post_edit_context(original: &[u8], postimage: &[u8]) -> Value {
++    let before = lines(std::str::from_utf8(original).expect("validated UTF-8"));
++    let after = lines(std::str::from_utf8(postimage).expect("validated UTF-8"));
++    let prefix = before
++        .iter()
++        .zip(&after)
++        .take_while(|(a, b)| a == b)
++        .count();
++    let suffix = before[prefix..]
++        .iter()
++        .rev()
++        .zip(after[prefix..].iter().rev())
++        .take_while(|(a, b)| a == b)
++        .count();
++    let start = prefix.saturating_sub(2).min(after.len() - 1);
++    let end = (after.len() - suffix + 2).min(after.len());
++    let mut budget = MAX_RECEIPT_BYTES;
++    let mut result = snapshot(
++        postimage,
++        start + 1,
++        (end - start).clamp(1, 64),
++        &mut budget,
++    )
++    .expect("bounded postimage range");
++    let returned = result["lines"].as_array().expect("snapshot rows").len();
++    result["changed_context_truncated"] = json!(start + returned < end);
++    result
++}
++
+ fn hashline(
+     params: HashlineParams,
+     ctx: &ToolCallContext,
+     token: &CancellationToken,
+ ) -> Result<Value, String> {
+     cancelled(token)?;
+-    let path = workspace_path(ctx, &params.path)?;
++    if matches!(params.action, HashlineAction::ReadMany) {
++        if params.path.is_some() || params.expected_sha256.is_some() || params.edits.is_some() {
++            return Err(
++                "INVALID_ARGUMENTS: read_many accepts paths and read pagination only.".into(),
++            );
++        }
++        let paths = params.paths.ok_or("PATHS_REQUIRED")?;
++        if paths.is_empty() || paths.len() > MAX_READ_FILES {
++            return Err("INVALID_PATHS: Supply 1–16 paths.".into());
++        }
++        let mut budget = MAX_BATCH_BYTES;
++        let mut results = Vec::new();
++        for input in paths {
++            cancelled(token)?;
++            let read = (|| {
++                let path = workspace_path(ctx, &input)?;
++                let (bytes, _) = read_file(&path)?;
++                let mut value = snapshot(
++                    &bytes,
++                    params.read_start_line.unwrap_or(1),
++                    params.read_max_lines.unwrap_or(200),
++                    &mut budget,
++                )?;
++                value["path"] = json!(path);
++                Ok::<_, String>(value)
++            })();
++            results.push(read.unwrap_or_else(
++                |error| json!({"status":"error","path":input,"error":error,"verified":false}),
++            ));
++        }
++        return Ok(
++            json!({"status":"read_many","files":results,"verified":false,
++            "line_bytes_returned":MAX_BATCH_BYTES-budget,
++            "note":"Independent file snapshots; inspect every file for errors and has_more."}),
++        );
++    }
++    if params.paths.is_some() {
++        return Err("INVALID_ARGUMENTS: paths requires read_many.".into());
++    }
++    let path = workspace_path(ctx, &params.path.ok_or("PATH_REQUIRED")?)?;
+     match params.action {
+         HashlineAction::Read => {
+             if params.expected_sha256.is_some() || params.edits.is_some() {
+                 return Err("INVALID_ARGUMENTS: Read does not accept edits/preimage.".into());
+             }
+             let (bytes, _) = read_file(&path)?;
+-            let text = std::str::from_utf8(&bytes)
+-                .map_err(|_| "UNSUPPORTED_FILE: UTF-8 text required.")?;
+-            let start = params.read_start_line.unwrap_or(1);
+-            let limit = params.read_max_lines.unwrap_or(200);
+-            let all_lines = lines(text);
+-            if start == 0 || start > all_lines.len() || !(1..=2000).contains(&limit) {
+-                return Err("INVALID_READ_RANGE: Select an existing line and 1–2000 lines.".into());
+-            }
+-            let rows: Vec<Value> = all_lines
+-                .iter()
+-                .enumerate()
+-                .skip(start - 1)
+-                .take(limit)
+-                .map(|(index, row)| json!({"line":index+1,"anchor":anchor(index+1,row),"text":row}))
+-                .collect();
+-            Ok(
+-                json!({"status":"read","path":path,"sha256":sha(&bytes),"total_lines":all_lines.len(),
+-                    "start_line":start,"has_more":start - 1 + rows.len() < all_lines.len(),"lines":rows,"verified":false}),
+-            )
++            let mut budget = usize::MAX;
++            let mut result = snapshot(
++                &bytes,
++                params.read_start_line.unwrap_or(1),
++                params.read_max_lines.unwrap_or(200),
++                &mut budget,
++            )?;
++            result["path"] = json!(path);
++            Ok(result)
+         }
+         HashlineAction::Edit => {
+             if params.read_start_line.is_some() || params.read_max_lines.is_some() {
+@@ -508,9 +600,12 @@
+             let mut transaction = Transaction::apply(ctx, path.clone(), &expected, &edits, token)?;
+             transaction.active = false;
+             Ok(
+-                json!({"status":"edited","path":path,"before_sha256":sha(&transaction.original),"sha256":sha(&transaction.postimage),"verified":false,"tests_executed":false}),
++                json!({"status":"edited","path":path,"before_sha256":sha(&transaction.original),
++                "sha256":sha(&transaction.postimage),"verified":false,"tests_executed":false,
++                "post_edit":post_edit_context(&transaction.original,&transaction.postimage)}),
+             )
+         }
++        HashlineAction::ReadMany => unreachable!("handled above"),
+     }
+ }
+ 
+@@ -711,7 +806,8 @@
+     Ok(
+         json!({"status":if verified {"verified"} else {"failed"},"verified":verified,"path":path,
+         "before_sha256":sha(&transaction.original),"edited_sha256":sha(&transaction.postimage),"current_sha256":current_sha,
+-        "target_unchanged_during_test":unchanged,"test":test_json,"rollback":rollback}),
++        "target_unchanged_during_test":unchanged,"test":test_json,"rollback":rollback,
++        "post_edit":if verified {Some(post_edit_context(&transaction.original,&transaction.postimage))} else {None}}),
+     )
+ }
+ 
+@@ -778,6 +874,138 @@
+         assert_eq!(result["lines"][0]["anchor"], anchor(2, "second\n"));
+         assert_eq!(result["lines"][0]["text"], "second\n");
+         assert_eq!(result["has_more"], true);
++    }
++
++    #[tokio::test]
++    async fn batch_reads_keep_independent_snapshots_errors_and_guards() {
++        let (directory, ctx, path) = setup("first\nsecond\n");
++        fs::write(directory.path().join("other.txt"), "other\n").unwrap();
++        let (error, result) = call("hashline_edit",
++            json!({"action":"read_many","paths":["target.txt","missing.txt","other.txt","../outside.txt"]}),
++            &ctx, CancellationToken::new()).await;
++        assert!(!error);
++        let files = result["files"].as_array().unwrap();
++        assert_eq!(files[0]["sha256"], sha(b"first\nsecond\n"));
++        assert_eq!(files[1]["status"], "error");
++        assert_eq!(files[2]["lines"][0]["anchor"], anchor(1, "other\n"));
++        assert_eq!(files[3]["status"], "error");
++        fs::write(&path, "external\n").unwrap();
++        let (error, _) = call("hashline_edit", json!({"action":"edit","path":"target.txt",
++            "expected_sha256":files[0]["sha256"],"edits":[edit_json("first\nsecond\n",1,1,"new\n")]}),
++            &ctx, CancellationToken::new()).await;
++        assert!(error);
++        assert_eq!(fs::read_to_string(path).unwrap(), "external\n");
++    }
++
++    #[tokio::test]
++    async fn batch_bounds_and_invalid_shapes_never_write() {
++        let (directory, ctx, path) = setup("x\n");
++        for args in [
++            json!({"action":"read_many","paths":[]}),
++            json!({"action":"read_many","paths":vec!["target.txt";17]}),
++            json!({"action":"read_many","path":"target.txt","paths":["target.txt"]}),
++            json!({"action":"edit","path":"target.txt","paths":["target.txt"]}),
++        ] {
++            assert!(
++                call("hashline_edit", args, &ctx, CancellationToken::new())
++                    .await
++                    .0
++            );
++        }
++        fs::write(
++            directory.path().join("large.txt"),
++            "0123456789".repeat(40000),
++        )
++        .unwrap();
++        let (_, result) = call(
++            "hashline_edit",
++            json!({"action":"read_many","paths":["large.txt","target.txt"]}),
++            &ctx,
++            CancellationToken::new(),
++        )
++        .await;
++        assert!(result["line_bytes_returned"].as_u64().unwrap() <= MAX_BATCH_BYTES as u64);
++        assert_eq!(result["files"][0]["has_more"], true);
++        assert_eq!(result["files"][0]["next_line"], 1);
++        assert_eq!(result["files"][1]["lines"][0]["text"], "x\n");
++        assert_eq!(fs::read_to_string(path).unwrap(), "x\n");
++    }
++
++    #[tokio::test]
++    async fn edit_receipt_can_drive_another_guarded_edit_without_reading() {
++        let (_directory, ctx, path) = setup("old\nkeep\n");
++        let mut args = arguments("old\nkeep\n", "new\nkeep\n");
++        args["action"] = json!("edit");
++        let (error, result) = call("hashline_edit", args, &ctx, CancellationToken::new()).await;
++        assert!(!error);
++        let receipt = &result["post_edit"];
++        let row = &receipt["lines"][0];
++        assert_eq!(row["text"], "new\n");
++        let (error, _) = call(
++            "hashline_edit",
++            json!({"action":"edit","path":"target.txt",
++            "expected_sha256":receipt["sha256"],"edits":[{"start_line":row["line"],
++            "end_line":row["line"],"start_anchor":row["anchor"],"end_anchor":row["anchor"],
++            "replacement":"final\n"}]}),
++            &ctx,
++            CancellationToken::new(),
++        )
++        .await;
++        assert!(!error);
++        assert_eq!(fs::read_to_string(path).unwrap(), "final\nkeep\n");
++    }
++
++    #[test]
++    fn receipt_context_handles_deletion_newlines_and_truncation() {
++        for (before, after) in [
++            ("a\r\nb\nlast", "a\r\nc\nlast"),
++            ("a\n", ""),
++            ("a", "a\n"),
++            ("", ""),
++        ] {
++            let value = post_edit_context(before.as_bytes(), after.as_bytes());
++            assert_eq!(value["sha256"], sha(after.as_bytes()));
++            for row in value["lines"].as_array().unwrap() {
++                let n = row["line"].as_u64().unwrap() as usize;
++                assert_eq!(row["anchor"], anchor(n, lines(after)[n - 1]));
++            }
++        }
++        let after = "changed\n".repeat(100);
++        let value = post_edit_context(b"old\n", after.as_bytes());
++        assert_eq!(value["changed_context_truncated"], true);
++        assert_eq!(value["lines"].as_array().unwrap().len(), 64);
++        assert_eq!(value["next_line"], 65);
++        let value = post_edit_context(b"old", "x".repeat(20000).as_bytes());
++        assert_eq!(value["changed_context_truncated"], true);
++        assert!(value["lines"].as_array().unwrap().is_empty());
++    }
++
++    #[tokio::test]
++    async fn safe_edit_receipt_only_exposes_verified_postimage() {
++        for success in [true, false] {
++            let (_directory, ctx, path) = setup("original\n");
++            let (_, result) = call(
++                "safe_edit_and_test",
++                safe_args(
++                    "original\n",
++                    "updated\n",
++                    if success { "exit 0" } else { "exit 1" },
++                ),
++                &ctx,
++                CancellationToken::new(),
++            )
++            .await;
++            if success {
++                assert_eq!(result["post_edit"]["sha256"], sha(b"updated\n"));
++                assert_eq!(
++                    result["post_edit"]["lines"][0]["anchor"],
++                    anchor(1, "updated\n")
++                );
++            } else {
++                assert_eq!(result["post_edit"], Value::Null);
++                assert_eq!(fs::read_to_string(path).unwrap(), "original\n");
++            }
++        }
+     }
+ 
+     #[tokio::test]
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/selection.md
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/selection.md
+@@ -1,11 +1,11 @@
+-Native engineering selection policy v1
++Native engineering selection policy v2
+ 
+-These tools run in the current Goose conversation. Choose tools for the requested task; do not call every tool as a checklist.
++Complete the requested change with few model/tool round trips. Gather related context together, make a coherent change, and verify it. Native tools are optional aids, not a checklist.
+ 
+-- Prefer `ast_search` when the question concerns code structure, such as declarations or call shapes, rather than matching comments or strings. Use ordinary text/path search for filenames, literal text and unsupported syntax. AST accepts a real Tree-sitter query, not regex. Example for JavaScript declarations: {"path":"src","language":"javascript","query":"(function_declaration name: (identifier) @name)"}. For Python use `(function_definition name: (identifier) @name)`. A directory requires one explicit language. Supported grammars: rust, python, javascript, typescript, tsx, go, java, kotlin, swift, ruby. Inputs are saved workspace files, at most 2 MiB each, 256 files and 100 returned captures per call; inspect partial-scan results.
+-- Prefer `lsp_query` for semantic definitions, references, hover types and current-file diagnostics when a suitable server is configured or available. If a position is unknown, request `{"action":"symbols","path":"src/example.ts"}` first, then use its symbol selection range for definition/references/hover. Positions are zero-based lines and UTF-16 characters. Example after an edit: `{"action":"diagnostics","path":"src/example.ts"}`. These diagnostics supplement tests; missing or unversioned diagnostics do not establish correctness. On an unavailable server or unsupported action, report the limitation and use an appropriate local alternative.
+-- Before changing a supported existing file, prefer `hashline_edit` with `{"action":"read","path":"src/example.ts"}` to obtain its current full SHA-256 and exact line anchors. Copy those values into the edit; do not invent hashes, reuse stale anchors, or overwrite through another tool to bypass a conflict. Re-read and reconcile after a stale-file error. Editing uses inclusive one-based line ranges; replacement text must preserve intended newlines. Native edits support existing regular UTF-8 files up to 1 MiB inside this workspace; symlink traversal and new-file creation are unsupported.
+-- Prefer `safe_edit_and_test` when an existing-file edit has a suitable bounded test command. Pass the path, expected_sha256, anchored edits and literal test_command argv, for example `["node","--test","tests/example.test.mjs"]` only when that test exists and fits the change. Never invent a passing check. The tool edits one file, runs the supplied command and conditionally rolls back on failure, timeout or cancellation. Inspect the test and rollback receipt, then repair in this same conversation. A passing receipt only covers the command that ran, not all requirements or an independent review.
+-- For interdependent multi-file changes where testing each intermediate edit would fail, use guarded `hashline_edit` edits for the existing files, then run the relevant checks once the changes are coherent. This is not an atomic multi-file transaction and the individual edits are unverified. Use ordinary write for new files and ordinary tools for unsupported operations, stating relevant limitations. Do not treat test failure as permission to silently bypass it.
++- Use ordinary text/path search and batch plain reads for exploration, documentation and files you will not edit. Use `ast_search` for structural matches where text search would include irrelevant strings/comments; it requires a Tree-sitter query and an explicit language for directories. Use `lsp_query` definitions/references for ambiguous symbol relationships. Request symbols first only when the position is unknown (positions are zero-based UTF-16). Inspect partial results; use local alternatives when unsupported/unavailable.
++- For existing-file edit targets, gather content and anchors together with `hashline_edit` `{"action":"read_many","paths":["src/a.ts","src/b.ts"]}` (up to 16 files). Single-file `action:read` also works. Inspect each file's errors, `has_more` and `next_line`; fetch only missing context. Reuse snapshots already in the conversation. Do not reread an unchanged file just before editing: the edit checks its full SHA-256 and boundary anchors. On a stale conflict, reread the affected file and reconcile; never bypass the guard through another tool.
++- Combine known edits to the same file in one call. Copy the returned SHA and anchors exactly; preserve replacement newlines. Successful edits include bounded `post_edit` context and fresh anchors for follow-up changes; do not reread merely to confirm success. These snapshots remain subject to the same conflict checks. Native edits support existing regular UTF-8 files up to 1 MiB inside the workspace. Use ordinary write for new files and ordinary tools for unsupported operations.
++- For a single-file change with a relevant bounded check, `safe_edit_and_test` combines the guarded edit and literal test argv, with conditional rollback. Inspect its receipt. For interdependent files, apply guarded edits, add meaningful regression tests, then run the relevant tests/type check together after the change is coherent. Individual edits are not a multi-file transaction.
++- Verify the requirements, including boundaries and preserved behavior; tests should challenge assumptions, not encode an invented restriction. Reuse a successful check result while its relevant code, tests and configuration are unchanged. Rerun after relevant changes, inconclusive results or a specific new concern. LSP diagnostics can help investigate a problem; do not routinely add them after a successful compiler check. Unversioned diagnostics do not prove freshness, and tests do not prove all requirements.
+ 
+-Only use tools present in the current tool list. Tool availability does not expand the user's request, replace normal permissions or add a remote Jev review. Stay in the session workspace. Local test commands have normal approved command authority; this tool is not an OS sandbox.
++Use only available tools within the user's scope and normal permissions. No tool adds remote review or OS sandboxing. Preserve conflict checks, inspect failures and never silently bypass a failed test.
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/README.md
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/README.md
+@@ -11,10 +11,10 @@
+ | --- | --- |
+ | `ast_search` | Runs a real Tree-sitter query against saved workspace files; returns captures, ranges, snippets and file hashes. Directory searches require a language and respect ignore rules. |
+ | `lsp_query` | Uses an installed stdio language server for symbols, definitions, references, hover or diagnostics. Positions are zero-based UTF-16, as specified by LSP. |
+-| `hashline_edit` | `action: "read"` returns the whole-file SHA-256 and per-line anchors. `action: "edit"` requires that digest and exact boundary anchors before applying ranges to one file. |
++| `hashline_edit` | `action: "read"` returns the whole-file SHA-256 and per-line anchors. `action: "read_many"` gathers up to 16 independent snapshots, with a 256 KiB combined line-data limit and per-file errors/pagination. `action: "edit"` requires that digest and exact boundary anchors before applying ranges to one file. |
+ | `safe_edit_and_test` | Applies the same guarded edit, runs literal `test_command` argv in the workspace, and returns the exit status and captured output. A failed, timed out or cancelled test rolls back only if the edited file still matches the tool's postimage. |
+ 
+-When this host-mounted extension is active, both Goose loops use selection policy v1.
++When this host-mounted extension is active, both Goose loops use selection policy v2.
+ The shared extension-info builder replaces the developer extension's blanket
+ write/edit preference with task-based native guidance; removing the extension
+ restores the original guidance on the next turn. AST serves structural search,
+@@ -72,3 +72,10 @@
+ agent loops, including denied and cancelled edits. The ignored
+ `real_bundled_language_servers_smoke` test additionally uses the runtime named
+ by `GOOSE_REAL_LSP_RUNTIME` for genuine TypeScript/Python protocol checks.
++
++Successful edits return `post_edit`: up to 64 lines / 16 KiB of changed-region context,
++with a full postimage digest and fresh anchors. Check `changed_context_truncated` and
++`has_more`; use single-file pagination for missing ranges. Failed safe edits return no
++post-edit snapshot. Batch reads do not create a shared filesystem transaction, and
++all subsequent writes still check each complete preimage. Reuse snapshots and checks
++when applicable; no tool skips validation or automatically caches test success.
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/mod.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/mod.rs
+@@ -38,7 +38,7 @@
+         );
+         let info = InitializeResult::new(ServerCapabilities::builder().enable_tools().build())
+             .with_server_info(
+-                Implementation::new(EXTENSION_NAME, "1.1.0").with_title("Native Engineering"),
++                Implementation::new(EXTENSION_NAME, "1.2.0").with_title("Native Engineering"),
+             )
+             .with_instructions(instructions);
+         Ok(Self {
+--- a/crates/goose/src/agents/platform_extensions/developer/mod.rs
++++ b/crates/goose/src/agents/platform_extensions/developer/mod.rs
+@@ -43,14 +43,14 @@
+     if native_engineering {
+         return indoc! {"
+             Use the developer extension for requested software work and terminal commands.
+-            Native engineering selection policy v1 is active: follow the native_engineering
+-            guidance for structural search, semantic navigation and guarded existing-file edits.
+-            Use tree and ordinary text/path search when they fit the task, and write for new files.
+-            Keep ordinary edit/write as fallbacks for operations unsupported by the available
+-            native tools. Explain a relevant limitation when falling back; do not bypass stale
+-            hashes or failed tests by blindly overwriting the file. Minimize redundant reads
+-            without dropping conflict checks or verification. Respect the user's scope and
+-            normal permissions. Use python3 for Python commands.
++            Gather related context in as few iterations as possible; minimize unnecessary
++            model turns and repeated output. Native engineering selection policy v2 is active.
++            Follow its guidance for guarded edits, batch reads and task-specific AST/LSP use.
++            Use ordinary text/path search and plain reads for exploration, write for new files,
++            and ordinary tools for unsupported operations. Reuse successful verification while
++            relevant inputs are unchanged. Preserve conflict checks; never bypass stale hashes
++            or failed tests by blindly overwriting files. Respect scope and permissions.
++            Use python3 for Python commands.
+         "};
+     }
+     if cfg!(windows) {
+--- a/crates/goose/src/agents/extension_manager.rs
++++ b/crates/goose/src/agents/extension_manager.rs
+@@ -2833,7 +2833,7 @@
+             )
+             .await;
+         let (_, prompt) = manager.code_mode_capability_prompt().await.unwrap();
+-        assert!(prompt.contains("Native engineering selection policy v1"));
++        assert!(prompt.contains("Native engineering selection policy v2"));
+         assert!(!prompt.contains("Use write and edit to efficiently make changes"));
+         manager
+             .remove_extension("native_engineering")
+--- a/crates/goose/tests/native_engineering_integration.rs
++++ b/crates/goose/tests/native_engineering_integration.rs
+@@ -89,7 +89,7 @@
+     assert_eq!(observations.len(), 1);
+     let (prompt, tools) = &observations[0];
+     assert_eq!(
+-        prompt.contains("Native engineering selection policy v1"),
++        prompt.contains("Native engineering selection policy v2"),
+         native
+     );
+     assert_eq!(
+--- a/goose-self-test.yaml
++++ b/goose-self-test.yaml
+@@ -202,7 +202,8 @@
+   2. Ask lsp_query for document symbols and a definition. Check that the response identifies a
+      real language server. If that language server is unavailable, record the LSP check as skipped;
+      never report heuristic text search as a successful LSP check.
+-  3. Read the source with hashline_edit action=read. Copy its full digest and line anchors into
++  3. Read the source and another existing text file together with hashline_edit action=read_many.
++     Inspect per-file results and pagination. Copy its full digest and line anchors into
+      safe_edit_and_test, making a small correction and running a local test command as literal argv.
+      Verify the file bytes, test exit code, and verified field. A completed call alone is not a pass.
+   4. Read new anchors and exercise a deliberately failing test. Verify rollback restores the

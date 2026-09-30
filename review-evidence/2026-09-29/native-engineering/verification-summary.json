@@ -1,0 +1,59 @@
+{
+  "model": "gemini-3.8-flash",
+  "core": {
+    "nativeTestsPassed": 39,
+    "securityTestsPassed": 52,
+    "integrationTestsPassed": 3,
+    "realBundledLspSmokePassed": 1,
+    "agentLoops": [
+      "legacy",
+      "state-machine"
+    ],
+    "clippyWarningsDenied": true,
+    "formatCheckPassed": true,
+    "cliBuild": "cargo build -p goose-cli --bin goose --offline --no-default-features --features rustls-tls"
+  },
+  "desktop": {
+    "focusedTestsPassed": 187,
+    "typescriptCheckPassed": true,
+    "focusedEslintPassed": true,
+    "localeCatalogs": 16,
+    "connectorAndPackagingTestsPassed": 42,
+    "mirroredConnectorTestsPassed": 35,
+    "releaseEligibilityTestsPassed": 2,
+    "liveE2eSpec": "typechecked, linted and discovered; not executed",
+    "source": "completed desktop worker verification; runtime and independent18test subset log retained"
+  },
+  "axwise": {
+    "retirementTestsPassed": 115,
+    "serverTestsPassed": 86,
+    "details": "axwise-omp-retirement-validation.json"
+  },
+  "delivery": {
+    "gooseChangesCopiedToOriginal": true,
+    "copyVerification": "goose-changed-files.json",
+    "installedAppReplaced": false,
+    "committed": false,
+    "pushed": false,
+    "deployed": false
+  },
+  "limitations": [
+    "No production app package installed",
+    "Native compound edit/test is Unix-only",
+    "Other LSP languages require host servers",
+    "Retired cloud coding arm is unavailable; new local native benchmark is separate",
+    "One small controlled workload does not establish broad reliability or speed"
+  ],
+  "benchmark": {
+    "offlineTestsPassed": 13,
+    "liveRows": 8,
+    "nativeFullyAccepted": 4,
+    "nativeRows": 4,
+    "baselineFullyAccepted": 1,
+    "baselineCorrectArtifacts": 3,
+    "baselineRows": 4,
+    "providerHttpAttempts": 81,
+    "baselineComparisonConfoundedByPermissionPolicy": true,
+    "model": "gemini-3.8-flash"
+  }
+}

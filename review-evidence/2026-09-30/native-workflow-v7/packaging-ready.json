@@ -1,0 +1,10 @@
+{
+  "app": "/private/tmp/orqanix-native-v7-ready-app-20260930/Orqanix Native v7 Test.app",
+  "bundleIdentifier": "com.orqanix.benchmark.native.v7",
+  "previousCopiedIdentifier": "com.orqanix.benchmark.native.v6p1",
+  "signedSha256": "10c5e5b7b37c17f962e5b316103efdd26dbcb5e880717732f36d882e54882bae",
+  "sameBinary": true,
+  "signatureVerified": true,
+  "failedPackagePreserved": "/private/tmp/orqanix-native-v7-app-20260930/Orqanix Native v7 Test.app",
+  "hypothesis": "Separate bundle identity may resolve new desktop TLS readiness failure; must be validated with fresh no-inference preflight."
+}

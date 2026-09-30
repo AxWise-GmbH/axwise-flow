@@ -1,0 +1,37 @@
+✔ explicit empty key never falls back to environment or calls network (1.474375ms)
+✔ valid routing and safety responses retain real model/probability evidence (14.903834ms)
+✔ invalid route/effort enums and probability evidence are not evaluated (1.801708ms)
+✔ low confidence remains uncertain (0.155208ms)
+✔ missing, malformed, or oversized safety evidence never passes (0.330416ms)
+✔ triage bounds a hanging body even when the transport ignores abort (10.9645ms)
+✔ triage respects cancellation and invalid/oversized response bodies (0.486208ms)
+✔ safety bounds a hanging body even when the transport ignores abort (11.471ms)
+✔ safety respects cancellation and invalid/oversized response bodies (0.394125ms)
+✔ experimental helpers are disabled by default (0.517708ms)
+✔ text occurrence search names its heuristic behavior and avoids longer identifiers (0.517709ms)
+✔ hashlines remain stable across CRLF and preserve line numbering (0.102167ms)
+✔ valid anchors apply an in-memory edit (0.122333ms)
+✔ missing, malformed, fractional and stale anchors/ranges are rejected (0.124083ms)
+✔ source hints explicitly lack LSP and compiler capabilities (0.306041ms)
+✔ actual edit helper dry run changes no file and is never verified (4.363292ms)
+✔ no-test edit is applied but not verified; remote safety is not enabled by an API key (1.591792ms)
+✔ concurrent edits during asynchronous safety review are preserved (1.544791ms)
+✔ explicit failed safety verdict blocks without writing candidate (1.114958ms)
+✔ unavailable safety is surfaced as not evaluated (2.80725ms)
+✔ only a real successful test command verifies a stable edited file (29.679417ms)
+✔ failed tests restore the original file when no other writer changed it (28.018125ms)
+✔ failed-test rollback never overwrites a change made during testing (27.340083ms)
+✔ tests modifying the edited file do not verify that new content (27.350375ms)
+✔ timed-out tests fail and restore original content (54.923542ms)
+✔ caller cannot override the actual source snapshot used to check anchors (0.784042ms)
+✔ invalid test command is rejected before file modification (0.95575ms)
+✔ oversized replacement is rejected before changing the file (1.375625ms)
+✔ concurrent calls in the same process cannot edit the same file together (0.883792ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 232.644292

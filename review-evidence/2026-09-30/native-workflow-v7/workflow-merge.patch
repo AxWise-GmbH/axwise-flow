@@ -1,0 +1,146 @@
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/selection.md
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/selection.md
+@@ -1,12 +1,8 @@
+-Native engineering selection policy v6.1
++Native engineering selection policy v7
+ 
+-Choose tools by task. For a small unique text replacement, use shell (rg/cat) and ordinary edit/write; do not add AST/LSP or guarded reads/tests unless semantic discovery or preimage protection is needed. Read-only exploration uses shell; gather required guards in one read_many batch. Native tools are not a checklist.
++Use native operations when they replace work. Keep the ordinary developer workflow for simple textual changes; tools are not a checklist. Read-only exploration and unique edits may use ordinary shell/read/edit/write. Do not add guarded reads, AST or LSP when the needed context is already sufficient and preimage protection is unnecessary.
+ 
+-- Structural discovery: start with one scoped ast_search preset. For direct async TS/JS handlers use preset=calls, receiver (e.g. router), async_argument=true and language. This excludes unrelated receivers, synchronous handlers and nested callbacks. Inspect syntax context/truncation; AST does not resolve bindings. Reuse returned snapshot_id and L<line> anchors for guarded edits; read only missing context.
+-- Source API rename: locate the declaration, then lsp_query action=rename with path, qualified symbol (or line/character), new_name and optional scope before manually editing consumers. Scope bounds edits; analysis includes workspace sources/configs. A tsconfig/jsconfig is required for TS/JS. Inspect all preview pages via action=rename_preview, plan_id, path and next_offset; preserve aliases, public/wire keys and unrelated bindings. Apply the reviewed plan_id once with safe_edit_and_test and relevant tests/typecheck. Language-server project coverage still needs validation.
+-- Semantic navigation: lsp_query references/definition with path and qualified symbol. Resolve ambiguity and follow pagination.
+-- Custom batches: reuse AST/read snapshots, or hashline_edit read_many; safe_edit_and_test files applies/checks the batch. Use compact=true for hashline/safe tools. Reconcile stale guards; never bypass them. Do not reread unchanged files just to refresh snapshots. Write new files normally. Add requested regression tests before planning/applying guarded renames.
+-
+-Example rename: {"action":"rename","path":"src/api.ts","symbol":"RequestContext.requestId","new_name":"traceId","scope":"src"}.
+-
+-Configured servers start on demand and are reused; no prerequisite probes, installation or extra model. Unsupported/unsafe/oversized results use bounded ordinary alternatives. Reuse unchanged context and applicable successful checks; never cache test success automatically. Do not add routine diagnostics after successful compiler/tests. Diagnostics are optional and wait at most 750 ms for a report; pending is unknown, never clean. Retry only when needed. Unversioned diagnostics do not prove freshness. RECOVERY_REQUIRED needs explicit hashline_edit action=recover; unresolved conflicts require reconciliation.
++- For custom multi-file changes, gather only needed context with `hashline_edit` read_many, or reuse unchanged AST/read snapshots. Copy snapshot_id and L<line> anchors into `safe_edit_and_test` files to apply the whole batch and check it once. Use compact=true for hashline/safe tools. Use edit_many when checks need a later step. All guards bind the full preimage internally. Reconcile stale changes; never bypass a guard. Use write for new files and add requested regression tests before planning/applying guarded changes.
++- When a source-level rename needs binding-aware edits, prefer one `lsp_query` action=rename with path, qualified symbol (or line/character), new_name and optional scope. Scope bounds edits; the server's project graph discovers consumers and workspace sources/configs are guarded. TS/JS requires tsconfig/jsconfig. Inspect public/wire keys, aliases and unrelated symbols, including all preview pages via action=rename_preview, path, plan_id and next_offset. Apply a fitting plan once with `safe_edit_and_test` plan_id and relevant tests/typecheck. Do not manually recreate its edits or reread every target. Project coverage still needs validation. Unsupported/oversized/unsafe plans require bounded ordinary edits; never force a global text replacement.
++- Use `ast_search` presets for structural discovery obscured by comments/strings or repeated patterns. Direct inline async TS/JS handlers can use preset=calls, receiver, async_argument=true and language. Reuse returned syntax context, snapshot_id and line anchors; read only missing/truncated context. AST matches syntax, not bindings. Use `lsp_query` references/definition with a qualified declaration symbol for alias/shadowing questions; inspect ambiguity, partial results and pagination. Servers start on demand and are reused. Call configured servers directly, without prerequisite probes, host-bundle searches, installation or an extra model. An unavailable response is sufficient evidence to fall back.
++- Add appropriate behavior/regression tests and run necessary checks after relevant changes. Reuse current context and applicable successful checks only while their relevant inputs are unchanged; never cache test success automatically. Avoid routine semantic queries, duplicate reads and repeated checks after success. Diagnostics are optional, with a 750 ms report wait after initialization; pending is unknown, never clean. Receipts prove only the checks that ran; unversioned diagnostics do not prove freshness. RECOVERY_REQUIRED needs explicit hashline_edit action=recover and reconciliation of conflicts. Respect normal scope and permissions. No OMP or separate model is involved.
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/README.md
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/README.md
+@@ -14,12 +14,14 @@
+ | `hashline_edit` | `action: "read"` returns the whole-file SHA-256 and per-line anchors. `action: "read_many"` gathers up to 16 independent snapshots, with a 64 KiB combined line-data limit and per-file errors/pagination. `action: "edit"` requires that digest and exact boundary anchors before applying ranges to one file. |
+ | `safe_edit_and_test` | Applies the same guarded edit, runs literal `test_command` argv in the workspace, and returns the exit status and captured output. A failed, timed out or cancelled test rolls back only if the edited file still matches the tool's postimage. |
+ 
+-When this host-mounted extension is active, both Goose loops use selection policy v6.1.
+-The shared extension-info builder replaces the developer extension's blanket
+-write/edit preference with task-based native guidance; removing the extension
+-restores the original guidance on the next turn. AST serves structural search,
+-LSP semantic navigation, and hashline reads guard edits that need snapshot protection. Simple unique changes may use ordinary edit. Ordinary
+-text/path search and new-file writes remain available. Instructions list only
++When this host-mounted extension is active, both Goose loops use selection policy v7.
++The ordinary developer instructions are identical with the mode off or on, restoring
++the efficient workflow used in the v4 screening build. The additional policy offers
++compact batched reads and one batch apply/test when these replace work. AST serves
++structural search, LSP semantic navigation, and hashline reads guard edits that need
++snapshot protection. Existing sufficient context does not require additional semantic
++queries. Simple unique changes may use ordinary edit. Ordinary text/path search and
++new-file writes remain available. Instructions list only
+ host-configured LSP language names, never server commands, and distinguish
+ configuration from a successful query. Code Mode carries this host-owned native
+ policy separately because its normal extension-instruction block is omitted;
+@@ -103,7 +105,7 @@
+ 
+ ## Native operations v4
+ 
+-The host still mounts exactly four tools under the existing feature flag. Efficient ordinary developer instructions remain available for simple changes; structural and semantic operations follow conditional policy v6.1. No OMP process or extra model performs these operations.
++The host still mounts exactly four tools under the existing feature flag. Efficient ordinary developer instructions remain available; optional structural and semantic operations follow policy v7. No OMP process or extra model performs these operations.
+ 
+ `lsp_query` supports read-only `action=rename` with `path`, qualified `symbol` (or a position), `new_name`, and optional `scope`. Scope limits edits, while analysis guards workspace source/configuration inputs. The language server discovers consumers from its project graph; the client opens only the declaration and other queried documents, rather than opening every workspace file. TypeScript/JavaScript rename requires an ancestor tsconfig/jsconfig. Configured projects, project references and tests still determine semantic coverage; no response claims that every workspace file participates in the graph.
+ 
+@@ -121,7 +123,7 @@
+ 
+ ## AST selection and compact output
+ 
+-Both agent loops and Code Mode carry the host-owned selection policy v6.1. Structural tasks use scoped AST presets; direct TS/JS async handlers can filter `receiver` and `async_argument=true`. The latter matches direct inline async arrows/function expressions, excluding nested callbacks and synchronous handlers. Receivers are exact syntax, not semantic types. Presets provide line ranges, bounded syntax context and session/workspace snapshot IDs; reuse these with `L<line>` anchors rather than rereading complete files. Truncated snippets or scans require additional context.
++Both agent loops and Code Mode carry the host-owned selection policy v7. Scoped AST presets are optional when structural discovery is needed; direct TS/JS async handlers can filter `receiver` and `async_argument=true`. The latter matches direct inline async arrows/function expressions, excluding nested callbacks and synchronous handlers. Receivers are exact syntax, not semantic types. Presets provide line ranges, bounded syntax context and session/workspace snapshot IDs; reuse these with `L<line>` anchors rather than rereading complete files. Truncated snippets or scans require additional context.
+ 
+ `compact=true` on hashline/safe tools projects reads to anchor-tab-text and shortens successful test output to a 2,048-character tail per stream with original byte counts. Canonical structured receipts retain the complete bounded output, guards, rollback and test evidence. Failures retain diagnostics. The default output contract remains compatible; Code Mode intentionally consumes visible content rather than hidden structured metadata.
+ 
+@@ -132,3 +134,10 @@
+ The deterministic tests cover preview pagination, mixed-language hash guards, an actual SIGKILL before batch commit, conflict preservation, AST snapshot reuse, and both primary loops. The opt-in `real_large_sparse_rename_handles_unopened_ts_js_consumers_and_pages` test uses bundled TypeScript LSP against 1,000 source files and 100 unopened consumers, then checks types and wire contracts. Actual desktop timing remains a separate acceptance gate; tool integration alone is not evidence of a speed or quality improvement.
+ 
+ Diagnostics wait at most 750 ms for a report after server initialization. Absent reports return `status=pending`, `diagnostics=null` and `versionVerified=false`, preserving the warm server. Timed-out pull requests are cancelled; late replies are discarded. Pending results never prove a clean workspace. Compiler/tests remain the correctness gate.
++
++Policy v7 combines the v4 ordinary developer workflow with the current tool implementation:
++large-project analysis guards, paged rename previews, AST snapshot reuse, compact output,
++and interrupted-batch recovery remain unchanged. This is guidance, not an automatic task
++classifier or deferred tool loading: all four tool schemas remain available while the
++mode is enabled. Historical v4 time reductions do not establish performance of this
++combined build; matched desktop measurements are required before promotion.
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/mod.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/mod.rs
+@@ -44,7 +44,7 @@
+         );
+         let info = InitializeResult::new(ServerCapabilities::builder().enable_tools().build())
+             .with_server_info(
+-                Implementation::new(EXTENSION_NAME, "1.5.1").with_title("Native Engineering"),
++                Implementation::new(EXTENSION_NAME, "1.5.2").with_title("Native Engineering"),
+             )
+             .with_instructions(instructions);
+         Ok(Self {
+--- a/crates/goose/src/agents/platform_extensions/developer/mod.rs
++++ b/crates/goose/src/agents/platform_extensions/developer/mod.rs
+@@ -39,21 +39,7 @@
+     image_tool: Arc<ImageTool>,
+ }
+ 
+-pub(crate) fn developer_instructions(native_engineering: bool) -> &'static str {
+-    if native_engineering {
+-        return indoc! {"
+-            Use the developer extension to build software and operate a terminal.
+-            Gather relevant context in as few iterations as possible, then make changes and verify.
+-            Use tree when the workspace structure is unknown. For simple unique textual changes,
+-            use ordinary shell search/read. Use write and edit to efficiently make changes for these
+-            tasks and to create new files. Run commands and tests through shell as needed.
+-
+-            For structural discovery, symbol references and source-level renames, follow the
+-            Native engineering selection policy before choosing textual search or manual edits.
+-            Its conditional rules replace the generic search/edit preference for those operations.
+-            Preserve the efficient ordinary workflow for tasks outside those conditions.
+-        "};
+-    }
++pub(crate) fn developer_instructions(_native_engineering: bool) -> &'static str {
+     if cfg!(windows) {
+         indoc! {"
+             Use the developer extension to build software and operate a terminal.
+--- a/crates/goose/src/agents/extension_manager.rs
++++ b/crates/goose/src/agents/extension_manager.rs
+@@ -2833,7 +2833,7 @@
+             )
+             .await;
+         let (_, prompt) = manager.code_mode_capability_prompt().await.unwrap();
+-        assert!(prompt.contains("Native engineering selection policy v6.1"));
++        assert!(prompt.contains("Native engineering selection policy v7"));
+         assert!(!prompt.contains("Use write and edit to efficiently make changes"));
+         manager
+             .remove_extension("native_engineering")
+--- a/crates/goose/tests/native_engineering_integration.rs
++++ b/crates/goose/tests/native_engineering_integration.rs
+@@ -89,18 +89,15 @@
+     assert_eq!(observations.len(), 1);
+     let (prompt, tools) = &observations[0];
+     assert_eq!(
+-        prompt.contains("Native engineering selection policy v6.1"),
++        prompt.contains("Native engineering selection policy v7"),
+         native
+     );
+     assert!(prompt.contains("Use write and edit to efficiently make changes"));
+-    assert_eq!(
+-        prompt.contains("Its conditional rules replace the generic search/edit preference"),
+-        native
+-    );
+-    assert_eq!(prompt.contains("When you need to search, prefer"), !native);
++    assert!(!prompt.contains("Its conditional rules replace the generic search/edit preference"));
++    assert!(prompt.contains("When you need to search, prefer"));
+     if native {
+-        assert!(prompt.contains("before manually editing consumers"));
+-        assert!(prompt.contains("start with one scoped"));
++        assert!(prompt.contains("Use native operations when they replace work"));
++        assert!(prompt.contains("apply the whole batch and check it once"));
+     }
+     assert_eq!(
+         prompt.contains("Host-configured LSP languages: python"),

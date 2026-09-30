@@ -1,0 +1,172 @@
+{
+  "summary": "Triage open support tickets by normalizing inputs, updating tickets to their latest occurrence while excluding closed ones, grouping counts by severity, listing unique customer IDs, and queueing tickets by priority.",
+  "requirements": [
+    {
+      "id": "latest_open",
+      "description": "Treat repeated ticket IDs as sequential updates by preserving only the final occurrence of each ID, and omit tickets whose latest status is closed from triage processing.",
+      "sources": [
+        {
+          "id": "I2",
+          "quote": "Repeated IDs are updates: keep the last occurrence, and exclude tickets whose latest state is closed."
+        }
+      ],
+      "acceptance": {
+        "given": "A list of ticket entries containing duplicate ticket IDs",
+        "when": "The ticket list is summarized",
+        "then": "Only the last occurrence of each ID is retained, and tickets whose latest state is closed are excluded from the summary and queue"
+      }
+    },
+    {
+      "id": "priority_order",
+      "description": "Arrange open tickets in the triage queue in order of priority: urgent tickets first, followed by normal tickets, then low tickets, resolving any ties within the same severity level by ascending ticket ID.",
+      "sources": [
+        {
+          "id": "I1",
+          "quote": "Urgent open tickets must appear before normal and low tickets; ties should use the ticket ID in ascending order."
+        }
+      ],
+      "acceptance": {
+        "given": "A collection of open tickets across different severity levels",
+        "when": "The triage queue is built",
+        "then": "The queue contains ticket IDs ordered urgent, normal, low, with tickets of matching severity sorted by ID in ascending order"
+      }
+    },
+    {
+      "id": "customer_summary",
+      "description": "Calculate triage metrics including the total count of open tickets, open ticket counts partitioned by severity level (urgent, normal, low), and an ascending list of unique customer IDs with open tickets.",
+      "sources": [
+        {
+          "id": "I3",
+          "quote": "The summary must count open tickets by severity and list each affected customer once in ascending ID order."
+        }
+      ],
+      "acceptance": {
+        "given": "A collection of normalized open tickets for one or more customers",
+        "when": "The ticket summary is calculated",
+        "then": "The result includes openCount, bySeverity breakdown for urgent, normal, and low, and an array of unique customerIds sorted in ascending order"
+      }
+    }
+  ],
+  "assumptions": [
+    "Ticket inputs are valid objects with string fields for id, title, customerId, severity, and state.",
+    "Ticket IDs and customer IDs are compared lexicographically in ascending order using character code order.",
+    "A subsequent occurrence with an identical ticket ID replaces all attributes of any prior occurrence.",
+    "Only tickets whose most recent occurrence is in the open state are reflected in openCount, bySeverity, customerIds, and queue."
+  ],
+  "scenarios": [
+    {
+      "id": "latest_closed",
+      "input": [
+        {
+          "id": "a",
+          "title": "Fix",
+          "customerId": "c",
+          "severity": "urgent",
+          "state": "open"
+        },
+        {
+          "id": "a",
+          "title": "Fixed",
+          "customerId": "c",
+          "severity": "urgent",
+          "state": "closed"
+        }
+      ],
+      "expected": {
+        "openCount": 0,
+        "bySeverity": {
+          "urgent": 0,
+          "normal": 0,
+          "low": 0
+        },
+        "customerIds": [],
+        "queue": []
+      }
+    },
+    {
+      "id": "priority_order_and_ties",
+      "input": [
+        {
+          "id": "t3",
+          "title": "Service degradation",
+          "customerId": "cust-beta",
+          "severity": "normal",
+          "state": "open"
+        },
+        {
+          "id": "t1",
+          "title": "System outage",
+          "customerId": "cust-gamma",
+          "severity": "urgent",
+          "state": "open"
+        },
+        {
+          "id": "t2",
+          "title": "Security vulnerability",
+          "customerId": "cust-alpha",
+          "severity": "urgent",
+          "state": "open"
+        },
+        {
+          "id": "t4",
+          "title": "Minor cosmetic defect",
+          "customerId": "cust-alpha",
+          "severity": "low",
+          "state": "open"
+        }
+      ],
+      "expected": {
+        "openCount": 4,
+        "bySeverity": {
+          "urgent": 2,
+          "normal": 1,
+          "low": 1
+        },
+        "customerIds": [
+          "cust-alpha",
+          "cust-beta",
+          "cust-gamma"
+        ],
+        "queue": [
+          "t1",
+          "t2",
+          "t3",
+          "t4"
+        ]
+      }
+    },
+    {
+      "id": "deduplicate_and_reopen",
+      "input": [
+        {
+          "id": "ticket-1",
+          "title": "Initial bug",
+          "customerId": "cust-1",
+          "severity": "low",
+          "state": "closed"
+        },
+        {
+          "id": "ticket-1",
+          "title": "Reopened bug escalation",
+          "customerId": "cust-1",
+          "severity": "urgent",
+          "state": "open"
+        }
+      ],
+      "expected": {
+        "openCount": 1,
+        "bySeverity": {
+          "urgent": 1,
+          "normal": 0,
+          "low": 0
+        },
+        "customerIds": [
+          "cust-1"
+        ],
+        "queue": [
+          "ticket-1"
+        ]
+      }
+    }
+  ]
+}

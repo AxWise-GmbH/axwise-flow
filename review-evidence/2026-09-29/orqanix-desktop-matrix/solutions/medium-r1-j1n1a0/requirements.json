@@ -1,0 +1,173 @@
+{
+  "summary": "Requirements for support ticket triage normalization and summarization derived from stakeholder interviews.",
+  "requirements": [
+    {
+      "id": "latest_open",
+      "description": "De-duplicate tickets by ticket ID retaining only the most recent entry as an update, and exclude tickets from the triage summary if their most recent state is closed.",
+      "sources": [
+        {
+          "id": "I2",
+          "quote": "Repeated IDs are updates: keep the last occurrence, and exclude tickets whose latest state is closed."
+        }
+      ],
+      "acceptance": {
+        "given": "A list of tickets that may contain repeated ticket IDs with open or closed states",
+        "when": "Tickets are summarized",
+        "then": "Only the last occurrence of each ID is evaluated, and tickets whose latest state is closed are excluded from open ticket counts, customer ID listings, and the queue"
+      }
+    },
+    {
+      "id": "priority_order",
+      "description": "Order open tickets in the triage queue by severity priority (urgent first, followed by normal, then low), sorting tickets with identical severity by ascending ticket ID.",
+      "sources": [
+        {
+          "id": "I1",
+          "quote": "Urgent open tickets must appear before normal and low tickets; ties should use the ticket ID in ascending order."
+        }
+      ],
+      "acceptance": {
+        "given": "A list of open tickets with varying severities and ticket IDs",
+        "when": "The triage queue is built",
+        "then": "Tickets are sorted with urgent tickets first, normal tickets second, low tickets third, and ties broken by ascending ticket ID order"
+      }
+    },
+    {
+      "id": "customer_summary",
+      "description": "Aggregate open tickets to report total counts by severity (urgent, normal, low) and generate a deduplicated list of customer IDs sorted in ascending order.",
+      "sources": [
+        {
+          "id": "I3",
+          "quote": "The summary must count open tickets by severity and list each affected customer once in ascending ID order."
+        }
+      ],
+      "acceptance": {
+        "given": "A list of open tickets across multiple customers and severities",
+        "when": "The summary is generated",
+        "then": "bySeverity reflects the count of open tickets for urgent, normal, and low severities, and customerIds contains every unique customer ID sorted in ascending order"
+      }
+    }
+  ],
+  "assumptions": [
+    "Ticket titles, IDs, and customer IDs must be trimmed of surrounding whitespace and must not be empty.",
+    "Severities are case-insensitive and restricted to 'urgent', 'normal', and 'low'.",
+    "Ticket states are case-insensitive and restricted to 'open' and 'closed'.",
+    "Input objects are never modified directly by normalization or summarization functions.",
+    "Non-array inputs to summarizeTickets and malformed tickets throw a TypeError."
+  ],
+  "scenarios": [
+    {
+      "id": "latest_closed",
+      "input": [
+        {
+          "id": "a",
+          "title": "Fix",
+          "customerId": "c",
+          "severity": "urgent",
+          "state": "open"
+        },
+        {
+          "id": "a",
+          "title": "Fixed",
+          "customerId": "c",
+          "severity": "urgent",
+          "state": "closed"
+        }
+      ],
+      "expected": {
+        "openCount": 0,
+        "bySeverity": {
+          "urgent": 0,
+          "normal": 0,
+          "low": 0
+        },
+        "customerIds": [],
+        "queue": []
+      }
+    },
+    {
+      "id": "priority_and_tie_breaking",
+      "input": [
+        {
+          "id": "t-low",
+          "title": "Minor styling glitch",
+          "customerId": "cust-2",
+          "severity": "low",
+          "state": "open"
+        },
+        {
+          "id": "t-norm",
+          "title": "Export button delay",
+          "customerId": "cust-1",
+          "severity": "normal",
+          "state": "open"
+        },
+        {
+          "id": "t-urg-2",
+          "title": "Payment gateway failure",
+          "customerId": "cust-2",
+          "severity": "urgent",
+          "state": "open"
+        },
+        {
+          "id": "t-urg-1",
+          "title": "Data loss on checkout",
+          "customerId": "cust-3",
+          "severity": "urgent",
+          "state": "open"
+        }
+      ],
+      "expected": {
+        "openCount": 4,
+        "bySeverity": {
+          "urgent": 2,
+          "normal": 1,
+          "low": 1
+        },
+        "customerIds": [
+          "cust-1",
+          "cust-2",
+          "cust-3"
+        ],
+        "queue": [
+          "t-urg-1",
+          "t-urg-2",
+          "t-norm",
+          "t-low"
+        ]
+      }
+    },
+    {
+      "id": "latest_open_update",
+      "input": [
+        {
+          "id": "t-1",
+          "title": "Login issue",
+          "customerId": "cust-1",
+          "severity": "low",
+          "state": "open"
+        },
+        {
+          "id": "t-1",
+          "title": "Escalated login issue",
+          "customerId": "cust-1",
+          "severity": "urgent",
+          "state": "open"
+        }
+      ],
+      "expected": {
+        "openCount": 1,
+        "bySeverity": {
+          "urgent": 1,
+          "normal": 0,
+          "low": 0
+        },
+        "customerIds": [
+          "cust-1"
+        ],
+        "queue": [
+          "t-1"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+{
+  "summary": "Triage open support tickets by normalizing inputs, deduplicating updates by retaining the latest occurrence, filtering out closed tickets, ordering open tickets by severity with alphanumeric tie-breaking, and summarizing ticket counts and affected customers.",
+  "requirements": [
+    {
+      "id": "latest_open",
+      "description": "Tickets with repeated IDs represent updates where only the last occurrence is retained, and tickets whose latest state is closed are excluded from the open triage summary.",
+      "sources": [
+        {
+          "id": "I2",
+          "quote": "Repeated IDs are updates: keep the last occurrence, and exclude tickets whose latest state is closed."
+        }
+      ],
+      "acceptance": {
+        "given": "A list of tickets containing multiple updates with identical IDs and various states",
+        "when": "The ticket list is summarized",
+        "then": "Only the latest entry for each ID is evaluated, and tickets whose latest state is closed are excluded from the triage queue and counts"
+      }
+    },
+    {
+      "id": "priority_order",
+      "description": "Urgent open tickets must appear before normal and low tickets in the queue, with ties within the same severity resolved in ascending ticket ID order.",
+      "sources": [
+        {
+          "id": "I1",
+          "quote": "Urgent open tickets must appear before normal and low tickets; ties should use the ticket ID in ascending order."
+        }
+      ],
+      "acceptance": {
+        "given": "A set of open tickets with urgent, normal, and low severities",
+        "when": "The triage queue is generated",
+        "then": "The queue orders tickets urgent then normal then low, breaking ties using ticket ID in ascending order"
+      }
+    },
+    {
+      "id": "customer_summary",
+      "description": "The triage summary counts open tickets by severity (urgent, normal, low) and lists each affected customer ID once in ascending order.",
+      "sources": [
+        {
+          "id": "I3",
+          "quote": "The summary must count open tickets by severity and list each affected customer once in ascending ID order."
+        }
+      ],
+      "acceptance": {
+        "given": "A set of open tickets associated with customer IDs and severities",
+        "when": "The ticket summary is calculated",
+        "then": "bySeverity contains counts for urgent, normal, and low tickets, and customerIds lists unique affected customer IDs sorted in ascending order"
+      }
+    }
+  ],
+  "assumptions": [
+    "Ticket objects must provide id, title, customerId, severity, and state string properties.",
+    "String fields must be trimmed, and severity and state values are normalized to lowercase.",
+    "Valid severity values are urgent, normal, and low; valid state values are open and closed.",
+    "Non-array inputs to summarizeTickets and malformed tickets throw a TypeError.",
+    "Inputs are treated as immutable and must not be modified."
+  ],
+  "scenarios": [
+    {
+      "id": "latest_closed",
+      "input": [
+        {
+          "id": "a",
+          "title": "Fix",
+          "customerId": "c",
+          "severity": "urgent",
+          "state": "open"
+        },
+        {
+          "id": "a",
+          "title": "Fixed",
+          "customerId": "c",
+          "severity": "urgent",
+          "state": "closed"
+        }
+      ],
+      "expected": {
+        "openCount": 0,
+        "bySeverity": {
+          "urgent": 0,
+          "normal": 0,
+          "low": 0
+        },
+        "customerIds": [],
+        "queue": []
+      }
+    },
+    {
+      "id": "priority_and_customer_ordering",
+      "input": [
+        {
+          "id": "t3",
+          "title": "Crash",
+          "customerId": "cust-b",
+          "severity": "urgent",
+          "state": "open"
+        },
+        {
+          "id": "t1",
+          "title": "Outage",
+          "customerId": "cust-a",
+          "severity": "urgent",
+          "state": "open"
+        },
+        {
+          "id": "t2",
+          "title": "Slow query",
+          "customerId": "cust-b",
+          "severity": "low",
+          "state": "open"
+        },
+        {
+          "id": "t4",
+          "title": "Billing issue",
+          "customerId": "cust-c",
+          "severity": "normal",
+          "state": "open"
+        }
+      ],
+      "expected": {
+        "openCount": 4,
+        "bySeverity": {
+          "urgent": 2,
+          "normal": 1,
+          "low": 1
+        },
+        "customerIds": [
+          "cust-a",
+          "cust-b",
+          "cust-c"
+        ],
+        "queue": [
+          "t1",
+          "t3",
+          "t4",
+          "t2"
+        ]
+      }
+    }
+  ]
+}

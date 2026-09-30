@@ -1,0 +1,15 @@
+{
+  "summary": "Updated lineTotal to validate that priceCents, quantity, and discountBps are non-negative safe integers within allowable ranges, check that intermediate multiplication products are safe integers, correctly return zero for zero quantity or full discount, and floor the discounted total.",
+  "examples": [
+    {
+      "id": "zero",
+      "input": [1250, 0, 0],
+      "expected": 0
+    },
+    {
+      "id": "rounding",
+      "input": [199, 3, 1250],
+      "expected": 522
+    }
+  ]
+}

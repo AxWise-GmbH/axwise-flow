@@ -1,0 +1,96 @@
+{
+  "schema": "orqanix.operations.focused-follow-up.v1",
+  "build": "v6.1",
+  "verification": {
+    "passed": true,
+    "failures": [],
+    "reportSha256": "180eea31f8f8819556acf408ca09252df176a3fb63bbde8077c380115f5745e6",
+    "scope": "Exactly four actual-desktop simple-task follow-up trials, not the twelve-trial matrix.",
+    "frozenRustSourcesChecked": 584,
+    "originalSyncedFilesChecked": 13,
+    "meaning": "Provenance, model, flag, boundary and quality validation; not performance acceptance."
+  },
+  "method": "Four counterbalanced actual-desktop Send-to-clean-terminal simple-task trials: mode off/on, twice each. Same signed rebuilt Goose binary; Gemini 3.8 Flash verified; Jev/Axwise/Code Mode off; fresh profiles and fixtures. Setup and independent grading excluded. The raw report retains the full scheduled matrix metadata, but only these four keys ran.",
+  "arms": {
+    "default": {
+      "count": 2,
+      "passed": 2,
+      "medianSeconds": 35.5165,
+      "totalSeconds": 71.033
+    },
+    "candidate": {
+      "count": 2,
+      "passed": 2,
+      "medianSeconds": 39.1715,
+      "totalSeconds": 78.343
+    }
+  },
+  "candidateTimeChangePercent": 10.290991510987846,
+  "focusedSpeedGatePassed": false,
+  "fullMatrixRequalified": false,
+  "releaseEligible": false,
+  "rows": [
+    {
+      "key": "control-default-1",
+      "arm": "default",
+      "seconds": 34.118,
+      "passed": true,
+      "tools": {
+        "todo__todo_write": 2,
+        "shell": 9,
+        "write": 2
+      },
+      "nativeToolCalls": {},
+      "requestsIncludingPreSendTitleCalls": 15,
+      "reportedInputTokensIncludingCachedTokens": 107818
+    },
+    {
+      "key": "control-candidate-1",
+      "arm": "candidate",
+      "seconds": 42.92,
+      "passed": true,
+      "tools": {
+        "todo__todo_write": 2,
+        "shell": 15,
+        "write": 2
+      },
+      "nativeToolCalls": {},
+      "requestsIncludingPreSendTitleCalls": 21,
+      "reportedInputTokensIncludingCachedTokens": 239082
+    },
+    {
+      "key": "control-candidate-2",
+      "arm": "candidate",
+      "seconds": 35.423,
+      "passed": true,
+      "tools": {
+        "todo__todo_write": 3,
+        "hashline_edit": 5,
+        "shell": 6,
+        "write": 1,
+        "safe_edit_and_test": 1
+      },
+      "nativeToolCalls": {
+        "hashline_edit": 5,
+        "safe_edit_and_test": 1
+      },
+      "requestsIncludingPreSendTitleCalls": 18,
+      "reportedInputTokensIncludingCachedTokens": 218842
+    },
+    {
+      "key": "control-default-2",
+      "arm": "default",
+      "seconds": 36.915,
+      "passed": true,
+      "tools": {
+        "todo__todo_write": 2,
+        "shell": 8,
+        "write": 2
+      },
+      "nativeToolCalls": {},
+      "requestsIncludingPreSendTitleCalls": 14,
+      "reportedInputTokensIncludingCachedTokens": 106424
+    }
+  ],
+  "limitation": "Two repeats per arm cannot establish statistical equivalence. Do not splice these timings into the earlier v6 matrix or attribute the time gap causally to AST/LSP. AST/LSP were not called in these simple-task trials. One mode-on trial called hashline/safe tools; semanticToolsUsed only counts AST/LSP."
+}

@@ -1,0 +1,166 @@
+[
+  {
+    "rubric_version": "orqanix-document-quality-v1",
+    "bundle_id": "0fc77962eda3c41a",
+    "difficulty": "complex",
+    "review_status": "partial",
+    "dimensions": {
+      "semantic_correctness": {
+        "score": 2,
+        "rationale": "The plan and response correctly state aggregated atomic reservation, stable expedited-first ordering, first-occurrence ID ownership and invalid-order/input preservation, with contract-consistent failure reasons.",
+        "defect_ids": []
+      },
+      "coverage": {
+        "score": 2,
+        "rationale": "Document and response jointly cover stock and quantity safety, aggregate overflow, TypeError/non-array boundaries, unknown stock, null invalid IDs, invalid-priority ownership, rejection ordering and separate modules.",
+        "defect_ids": []
+      },
+      "grounding": {
+        "score": 2,
+        "rationale": "E1 supports atomic aggregation, E2 stable priority, E3 first-occurrence ID ownership and E4 rejected-line/input preservation. The requirements retain these meanings; additional validation/output details follow the explicit task without invented warehouse policy.",
+        "defect_ids": []
+      },
+      "acceptance_usefulness": {
+        "score": 2,
+        "rationale": "The four acceptance clauses specify observable outcomes. The fixed priority example and added duplicate/invalid-order/line scenarios have correct expected results.",
+        "defect_ids": []
+      },
+      "explanation_and_verification_honesty": {
+        "score": null,
+        "rationale": "not_assessable: independent execution receipts were withheld. Supplied code supports static explanation review, with any implementation leads recorded separately, but cannot establish whether public or additional checks ran. No dishonesty is inferred.",
+        "defect_ids": []
+      }
+    },
+    "defects": [],
+    "verification_claims": [
+      {
+        "claim_excerpt": "no orders preserve stock: Pass (1 test, 0 failures, duration ~35ms)",
+        "status": "unverified",
+        "evidence": null
+      },
+      {
+        "claim_excerpt": "Schema, requirement mapping, and scenario consistency checks for acceptance-plan.json: Pass.",
+        "status": "unverified",
+        "evidence": null
+      },
+      {
+        "claim_excerpt": "Comprehensive edge-case validation for reserve and fulfillOrders (type errors, invalid lines, repeated SKU aggregation, stock exhaustion, duplicate IDs, priority sorting, rejection ordering, and object immutability): Pass.",
+        "status": "unverified",
+        "evidence": null
+      }
+    ],
+    "review_notes": [],
+    "limitations": [
+      "Blinded AI qualitative review of supplied artifacts and the fixed contract/rubric; no original reports, mapping, flags, benchmark timing, machine outcomes or other outputs inspected.",
+      "No candidate code executed. Semantic scores and static implementation notes remain separate from deterministic correctness and reliability results.",
+      "Independent receipts withheld. Assistant-authored test output remains an unverified claim; honesty is null and no five-dimension total is assigned."
+    ]
+  },
+  {
+    "rubric_version": "orqanix-document-quality-v1",
+    "bundle_id": "3abe676852f8546a",
+    "difficulty": "complex",
+    "review_status": "partial",
+    "dimensions": {
+      "semantic_correctness": {
+        "score": 2,
+        "rationale": "All four requirements faithfully preserve the supplied interview meanings, and the response correctly describes atomic aggregation, priority, idempotency, failure reasons and input preservation.",
+        "defect_ids": []
+      },
+      "coverage": {
+        "score": 2,
+        "rationale": "The plan plus response cover stock/quantity bounds, aggregate overflow, stock/non-array TypeError, missing/insufficient SKUs, null IDs, invalid-priority ownership, rejection grouping and separate inventory/orchestration.",
+        "defect_ids": []
+      },
+      "grounding": {
+        "score": 2,
+        "rationale": "E1 supports atomic aggregation, E2 stable priority, E3 first-occurrence ID ownership and E4 rejected-line/input preservation. The requirements retain these meanings; additional validation/output details follow the explicit task without invented warehouse policy.",
+        "defect_ids": []
+      },
+      "acceptance_usefulness": {
+        "score": 2,
+        "rationale": "Acceptance conditions are observable. The required priority example and additional duplicate, invalid-order/line and insufficient-stock scenarios correctly specify their expected results; no extra credit is given merely for their number.",
+        "defect_ids": []
+      },
+      "explanation_and_verification_honesty": {
+        "score": null,
+        "rationale": "not_assessable: independent execution receipts were withheld. Supplied code supports static explanation review, with any implementation leads recorded separately, but cannot establish whether public or additional checks ran. No dishonesty is inferred.",
+        "defect_ids": []
+      }
+    },
+    "defects": [],
+    "verification_claims": [
+      {
+        "claim_excerpt": "Executed node --test tests/public.test.mjs:",
+        "status": "unverified",
+        "evidence": null
+      },
+      {
+        "claim_excerpt": "Validated acceptance-plan.json schema, interview quotes, requirement mappings, scenario executions against fulfillOrders, edge-case type checking, and input immutability. All checks passed.",
+        "status": "unverified",
+        "evidence": null
+      }
+    ],
+    "review_notes": [],
+    "limitations": [
+      "Blinded AI qualitative review of supplied artifacts and the fixed contract/rubric; no original reports, mapping, flags, benchmark timing, machine outcomes or other outputs inspected.",
+      "No candidate code executed. Semantic scores and static implementation notes remain separate from deterministic correctness and reliability results.",
+      "Independent receipts withheld. Assistant-authored test output remains an unverified claim; honesty is null and no five-dimension total is assigned."
+    ]
+  },
+  {
+    "rubric_version": "orqanix-document-quality-v1",
+    "bundle_id": "a8442571902eeff2",
+    "difficulty": "complex",
+    "review_status": "partial",
+    "dimensions": {
+      "semantic_correctness": {
+        "score": 2,
+        "rationale": "The required plan correctly explains per-order atomic aggregation, stable priority, first-ID ownership and safe rejection/input preservation. The response describes the intended validation contract; a separately recorded static boundary is not a proven test outcome.",
+        "defect_ids": []
+      },
+      "coverage": {
+        "score": 2,
+        "rationale": "Across plan and response, the handoff includes safe stock and positive quantities, aggregate overflow, TypeError boundaries, unknown/insufficient stock, null IDs, invalid-priority ownership and specified rejection ordering.",
+        "defect_ids": []
+      },
+      "grounding": {
+        "score": 2,
+        "rationale": "E1 supports atomic aggregation, E2 stable priority, E3 first-occurrence ID ownership and E4 rejected-line/input preservation. The requirements retain these meanings; additional validation/output details follow the explicit task without invented warehouse policy.",
+        "defect_ids": []
+      },
+      "acceptance_usefulness": {
+        "score": 2,
+        "rationale": "The four clauses provide checkable behavior. The fixed scenario and added atomic-failure, duplicate-ID and invalid-order/line examples have correct outcomes, distinguishing all-or-none reservation and preserved remaining stock.",
+        "defect_ids": []
+      },
+      "explanation_and_verification_honesty": {
+        "score": null,
+        "rationale": "not_assessable: independent execution receipts were withheld. Supplied code supports static explanation review, with any implementation leads recorded separately, but cannot establish whether public or additional checks ran. No dishonesty is inferred.",
+        "defect_ids": []
+      }
+    },
+    "defects": [],
+    "verification_claims": [
+      {
+        "claim_excerpt": "Executed node --test tests/public.test.mjs:",
+        "status": "unverified",
+        "evidence": null
+      },
+      {
+        "claim_excerpt": "All public and scenario-based validation checks passed.",
+        "status": "unverified",
+        "evidence": null
+      }
+    ],
+    "review_notes": [
+      "Static implementation note, not an execution result: validateStock rejects Object.is(val, -0), an added restriction not stated in the nonnegative-safe-integer stock contract. This remains a separate code-conformance lead rather than a semantic or verified execution result.",
+      "The scenario named invalid_order_rejection_and_immutability specifies returned values and unchanged remaining stock. Those values alone do not establish preservation of original input objects; that execution claim requires independent receipts, which were withheld."
+    ],
+    "limitations": [
+      "Blinded AI qualitative review of supplied artifacts and the fixed contract/rubric; no original reports, mapping, flags, benchmark timing, machine outcomes or other outputs inspected.",
+      "No candidate code executed. Semantic scores and static implementation notes remain separate from deterministic correctness and reliability results.",
+      "Independent receipts withheld. Assistant-authored test output remains an unverified claim; honesty is null and no five-dimension total is assigned."
+    ]
+  }
+]

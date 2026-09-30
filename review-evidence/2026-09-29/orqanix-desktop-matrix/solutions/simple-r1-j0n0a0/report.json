@@ -1,0 +1,15 @@
+{
+  "summary": "Validated that priceCents, quantity, and discountBps are nonnegative safe integers with discountBps within 0..10000. Verified intermediate products remain safe integers, throwing RangeError otherwise, and calculated the line total using Math.floor with exact integer scaling.",
+  "examples": [
+    {
+      "id": "zero",
+      "input": [1250, 0, 0],
+      "expected": 0
+    },
+    {
+      "id": "rounding",
+      "input": [199, 3, 1250],
+      "expected": 522
+    }
+  ]
+}

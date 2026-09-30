@@ -1,0 +1,15 @@
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {join} from 'node:path';
+import {preflight} from '/Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-selection-sandbox.mjs';
+import {evaluate} from '/Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-semantic-tasks.mjs';
+const root='/private/tmp/orqanix-installed242-engineering-focused-20260930';
+const report=JSON.parse(await readFile(join(root,'report.json'),'utf8'));
+const key=process.argv[2];
+const trial=report.fixtures.find(x=>x.key===key);if(!trial)throw Error('UNKNOWN_TRIAL');
+const directory=join(root,key),profile=join(directory,'grading-profile'),tmp=join(directory,'grading-tmp');
+await mkdir(profile,{recursive:true,mode:0o700});await mkdir(tmp,{recursive:true,mode:0o700});
+const boundary=await preflight({appBundle:'/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app',profile,workspace:trial.fixture.workspace,tmp});
+const boundaryFile=join(directory,'grading-boundary.sb');await writeFile(boundaryFile,boundary.profile,{mode:0o600});
+const oracle=await evaluate(trial.fixture,report.runtime,boundaryFile);
+await writeFile(join(directory,'oracle.json'),JSON.stringify({key,boundary:{passed:boundary.passed,checks:boundary.checks,appliesTo:'Independent graders only; existing live backend was not relaunched into this boundary'},...oracle},null,2),{mode:0o600});
+console.log(JSON.stringify({key,passed:oracle.passed,mutation:oracle.originalMutation?.detected,behavior:oracle.behavior.passed,types:oracle.types.passed,public:oracle.publicTests.passed,regression:oracle.regression.passed,immutable:oracle.immutableFailures,unexpected:oracle.unexpectedFiles}));

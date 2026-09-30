@@ -1,0 +1,77 @@
+   Compiling goose v1.50.0 (/private/tmp/orqaly-goose-verified-fixes/crates/goose)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 28.62s
+     Running unittests src/lib.rs (target/debug/deps/goose-74791959b85261c3)
+
+running 69 tests
+test agents::platform_extensions::native_engineering::ast::tests::cancelled_search_never_returns_completed ... ok
+test agents::platform_extensions::native_engineering::ast::tests::oversized_file_is_explicitly_rejected ... ok
+test agents::platform_extensions::native_engineering::ast::tests::invalid_query_missing_language_and_limits_fail_explicitly ... ok
+test agents::platform_extensions::native_engineering::ast::tests::bounded_search_reports_partial_results ... ok
+test agents::platform_extensions::native_engineering::ast::tests::javascript_search_matches_syntax_and_not_comments_or_strings ... ok
+test agents::platform_extensions::native_engineering::edits::batch_tests::all_guards_are_validated_before_publication_or_test_spawn ... ok
+test agents::platform_extensions::native_engineering::ast::tests::directory_search_respects_ignore_rules_and_restricts_language ... ok
+test agents::platform_extensions::native_engineering::ast::tests::python_capture_handles_multiline_structure_and_unicode_bytes ... ok
+test agents::platform_extensions::native_engineering::edits::crash_tests::crash_child_fixture ... ok
+test agents::platform_extensions::native_engineering::edits::batch_tests::duplicate_targets_and_cross_session_handles_never_write ... ok
+test agents::platform_extensions::native_engineering::ast::tests::preset_filters_before_result_limit_and_rejects_conflicting_query_modes ... ok
+test agents::platform_extensions::native_engineering::ast::tests::preset_names_filter_syntax_and_return_lsp_compatible_unicode_positions ... ok
+test agents::platform_extensions::ext_manager::tests::model_cannot_bypass_native_engineering_feature_flag ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::batch_bounds_and_invalid_shapes_never_write ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::batch_reads_keep_independent_snapshots_errors_and_guards ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::dropped_transaction_does_not_overwrite_external_change ... ok
+test agents::platform_extensions::native_engineering::ast::tests::direct_async_receiver_filter_reuses_snapshot_and_excludes_decoys ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::edit_receipt_can_drive_another_guarded_edit_without_reading ... ok
+test agents::platform_extensions::native_engineering::edits::batch_tests::failed_batch_preserves_intervening_changes_and_restores_other_owned_files ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::empty_file_has_a_usable_anchor ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::exact_multiple_ranges_preserve_untouched_dirty_text_and_endings ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::lock_ownership_ends_even_while_a_duplicated_descriptor_remains_open ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::native_mutations_advertise_destructive_approval_hints ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::missing_workspace_and_outside_path_are_rejected ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::overlapping_ranges_and_zero_timeout_fail_before_writes ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::pre_cancelled_requests_never_mutate_or_spawn ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::executable_mode_is_preserved_by_edit_and_rollback ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::receipt_context_handles_deletion_newlines_and_truncation ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::failed_test_restores_exact_dirty_preimage_and_returns_evidence ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::read_returns_full_digest_and_exact_paginated_line_anchors ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::output_capture_is_bounded_but_test_status_remains_explicit ... ok
+test agents::platform_extensions::native_engineering::edits::batch_tests::batch_tests_observe_complete_changes_and_failure_restores_both_files ... ok
+test agents::platform_extensions::native_engineering::ast::tests::presets_compile_for_every_supported_grammar ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::stale_digest_or_anchor_never_changes_file ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::stable_lock_rejects_second_transaction_and_drop_restores_first ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::rollback_rejects_a_parent_replaced_with_symlink ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::symlink_file_and_parent_are_rejected ... ok
+test agents::platform_extensions::native_engineering::lsp::rename_tests::real_large_sparse_rename_handles_unopened_ts_js_consumers_and_pages ... ignored, set GOOSE_REAL_LSP_RUNTIME to the prepared orqaly-runtime directory
+test agents::platform_extensions::native_engineering::lsp::rename_tests::real_project_reference_rename_includes_unopened_sibling_project ... ignored, set GOOSE_REAL_LSP_RUNTIME to the prepared orqaly-runtime directory
+test agents::platform_extensions::native_engineering::edits::batch_tests::cancelling_or_dropping_batch_test_restores_all_owned_postimages ... ok
+test agents::platform_extensions::native_engineering::lsp::rename_tests::real_rename_preserves_wire_keys_aliases_shadowing_and_rejects_stale_scope ... ignored, set GOOSE_REAL_LSP_RUNTIME to the prepared orqaly-runtime directory
+test agents::platform_extensions::native_engineering::lsp::rename_tests::workspace_edits_validate_utf16_scope_overlap_versions_and_resource_operations ... ok
+test agents::platform_extensions::native_engineering::lsp::tests::capability_guidance_reports_configuration_without_commands_or_startup_claims ... ok
+test agents::platform_extensions::native_engineering::edits::crash_tests::sigkill_recovery_restores_owned_bytes_and_preserves_intervening_edits ... ok
+test agents::platform_extensions::native_engineering::lsp::tests::missing_server_and_path_escape_are_explicit_failures ... ok
+test agents::platform_extensions::native_engineering::lsp::tests::named_symbols_require_unique_in_bounds_semantic_declarations ... ok
+test agents::platform_extensions::native_engineering::lsp::tests::parses_byte_counted_fragmented_frames_and_rejects_bounds ... ok
+test agents::platform_extensions::native_engineering::lsp::tests::named_locations_page_without_reading_external_files_and_refresh_saved_context ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::successful_test_receives_literal_argv_and_keeps_edits ... ok
+test agents::platform_extensions::native_engineering::lsp::tests::real_bundled_language_servers_smoke ... ignored, set GOOSE_REAL_LSP_RUNTIME to the prepared orqaly-runtime directory
+test agents::platform_extensions::native_engineering::lsp::tests::real_named_references_follow_aliases_exclude_shadowing_and_refresh_open_files ... ignored, set GOOSE_REAL_LSP_RUNTIME to the prepared orqaly-runtime directory
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::safe_edit_receipt_only_exposes_verified_postimage ... ok
+test agents::platform_extensions::native_engineering::lsp::tests::cancellation_stops_child_and_clears_session ... ok
+test agents::platform_extensions::native_engineering::lsp::tests::validates_host_configuration_and_utf16_positions ... ok
+test agents::platform_extensions::native_engineering::lsp::tests::actual_protocol_preserves_versions_and_refuses_server_mutations ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::test_or_user_changes_are_preserved_even_when_tests_exit_zero ... ok
+test agents::platform_extensions::native_engineering::state::tests::rename_pages_cannot_be_skipped_and_plan_is_consumed_once ... ok
+test agents::platform_extensions::native_engineering::tests::platform_registration_is_opt_in_and_exposes_exact_native_tools ... ok
+test agents::platform_extensions::native_engineering::state::tests::snapshots_are_bound_to_session_root_lifetime_and_budget ... ok
+test agents::platform_extensions::native_engineering::tests::workspace_rejects_file_and_directory_symlinks ... ok
+test agents::platform_extensions::native_engineering::tests::workspace_requires_host_context_and_rejects_escape ... ok
+test agents::platform_extensions::native_engineering::lsp::tests::synchronizes_other_open_documents_after_external_edits ... ok
+test agents::platform_extensions::native_engineering::lsp::tests::unversioned_push_diagnostics_are_not_claimed_fresh ... ok
+test agents::platform_extensions::native_engineering::project::tests::sparse_graph_includes_mixed_sources_and_detects_input_and_membership_changes ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::dropped_tool_future_kills_process_group_and_rolls_back ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::cancellation_terminates_descendants_and_restores_preimage ... ok
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::timeout_terminates_descendants_and_restores_preimage ... ok
+test agents::platform_extensions::native_engineering::lsp::tests::pending_diagnostics_are_bounded_unknown_and_keep_warm_protocol_usable ... ok
+test agents::platform_extensions::native_engineering::lsp::tests::pull_diagnostics_and_server_errors_are_real_protocol_results ... ok
+
+test result: ok. 64 passed; 0 failed; 5 ignored; 0 measured; 2192 filtered out; finished in 30.92s
+

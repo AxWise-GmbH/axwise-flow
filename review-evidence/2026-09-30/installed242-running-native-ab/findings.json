@@ -1,0 +1,29 @@
+{
+  "build": "Installed Orqanix 2.4.2 (5707)",
+  "trials": 12,
+  "nativeOff": {
+    "trials": 6,
+    "passed": 6
+  },
+  "nativeOn": {
+    "trials": 6,
+    "passed": 6
+  },
+  "qualityGates": [
+    "independent behavior checks",
+    "TypeScript compile",
+    "public tests",
+    "added regression tests",
+    "original bug mutation caught",
+    "immutable inputs and permitted file scope"
+  ],
+  "flagBehavior": "Engineering bridge mounted only for on chats; all other mounted extensions matched. Jev/Axwise disabled during trials, original settings restored.",
+  "engineeringToolsCalled": 0,
+  "newRustNativeToolsPresent": false,
+  "toolExecutionCoverage": "Bridge execution not exercised; tasks used normal Goose tools, including existing Analyze tree.",
+  "installation": "Same original app/backend processes, unchanged Goose/app.asar hashes, no install or restart.",
+  "timingConclusion": "No defensible speed gain established. Smart approval pauses contaminate wall time; subtracting whole todo handling gaps is a rough bound, not an autonomous counterfactual. Extra installed extensions, low thinking effort and warm backend differ from prior v8 protocol. Raw times, gaps and all samples retained.",
+  "upstreamModel": "Existing orqaly-gemini alias preserved with low effort; exact resolved remote model identity was not instrumented in this no-rerouting live app test.",
+  "verificationPassed": true,
+  "rawReport": "/private/tmp/orqanix-installed242-live-20260930/report.json"
+}

@@ -245,3 +245,17 @@ test('main table renders advisory and outdated reviews without relabelling compl
   assert.match(document.querySelector('#details-plan').textContent, /Original recorded checks — review outdated/);
   dom.window.close();
 });
+
+
+test('retired coding adapter is shown as unavailable and excluded from latency samples', () => {
+  const record = liveRecord();
+  const coding = record.cases.find(item => item.category === 'coding');
+  coding.arms.orqanix = { ...coding.arms.orqanix, status: 'failed', elapsedMs: 0,
+    error: 'NATIVE_CODING_ADAPTER_UNAVAILABLE', evaluation: { verdict: 'not_evaluated' } };
+  const summary = buildPublicSummary([record], { now: '2026-09-21T12:00:00.000Z' });
+  const item = summary.latest.cases.find(value => value.category === 'coding');
+  assert.equal(dashboard.outcome(item.arms.orqanix).text, 'Coding adapter unavailable');
+  assert.match(dashboard.failureReason(item.arms.orqanix), /did not run/);
+  assert.match(dashboard.interpretation(item), /not a paired native Goose comparison/);
+  assert.equal(summary.windows['15m'].categories.coding.latencyMs.orqanix.p50, null);
+});

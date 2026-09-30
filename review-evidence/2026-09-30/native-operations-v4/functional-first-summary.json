@@ -1,0 +1,9 @@
+{
+  "modelRequests": 45,
+  "exitCode": 0,
+  "allModelIdentitiesVerified": true,
+  "capabilityDenied": 0,
+  "operationsExercised": true,
+  "cleanRecipePass": false,
+  "reason": "Unnecessary shell discovery of host application/server files despite configured LSP. Kept as initial functional evidence; guidance tightened before timed trials."
+}

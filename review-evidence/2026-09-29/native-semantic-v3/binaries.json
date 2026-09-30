@@ -1,0 +1,15 @@
+{
+  "schema": "orqanix.native-semantic-v3-build.v1",
+  "profile": "release",
+  "features": [
+    "rustls-tls"
+  ],
+  "codeMode": false,
+  "releaseEligible": false,
+  "baselineSha256": "bef41ad1617fbe49fb6ef848858a12ee9b1eb335be012a91ab71c02909f967c7",
+  "candidateSha256": "f03e0be229b45ecf4e24a80d7090b8d3788dc492f6f3152ba1abe4b05aa9abc9",
+  "arms": {
+    "default": "installed 2.4.2 Goose binary, all engineering flags off",
+    "candidate": "semantic v3 native tools, Jev and AxWise off"
+  }
+}

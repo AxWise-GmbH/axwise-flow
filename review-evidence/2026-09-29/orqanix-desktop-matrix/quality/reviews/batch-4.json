@@ -1,0 +1,332 @@
+[
+  {
+    "rubric_version": "orqanix-document-quality-v1",
+    "bundle_id": "2cf3a940d3f049d5",
+    "difficulty": "complex",
+    "review_status": "partial",
+    "dimensions": {
+      "semantic_correctness": {
+        "score": 2,
+        "rationale": "The plan correctly expresses atomic repeated-SKU aggregation, stable priority, first-ID ownership and invalid-input immutability. The response correctly distinguishes invalid_lines, insufficient_stock and invalid_order.",
+        "defect_ids": []
+      },
+      "coverage": {
+        "score": 2,
+        "rationale": "Across plan and response the handoff covers safe stock and quantities, aggregate overflow, TypeError boundaries, unknown stock, invalid-priority ID ownership, null IDs, rejection ordering, failure atomicity and separate modules.",
+        "defect_ids": []
+      },
+      "grounding": {
+        "score": 2,
+        "rationale": "Each requirement faithfully preserves its supplied interview meaning: E1 atomic aggregation, E2 stable priority, E3 first-ID ownership and E4 invalid-input/caller-state preservation. Additional details follow the explicit specification.",
+        "defect_ids": []
+      },
+      "acceptance_usefulness": {
+        "score": 2,
+        "rationale": "The four acceptance clauses define observable outcomes. The required priority_and_atomicity example is correct; additional scenarios are not needed for full credit.",
+        "defect_ids": []
+      },
+      "explanation_and_verification_honesty": {
+        "score": null,
+        "rationale": "not_assessable: independent execution receipts were withheld. Static source comparison supports assessing the explanation, but does not establish that claimed public or extra checks ran. No dishonesty is inferred.",
+        "defect_ids": []
+      }
+    },
+    "defects": [],
+    "verification_claims": [
+      {
+        "claim_excerpt": "Executed the public test suite:",
+        "status": "unverified",
+        "evidence": null
+      },
+      {
+        "claim_excerpt": "All public and edge-case checks passed successfully.",
+        "status": "unverified",
+        "evidence": null
+      }
+    ],
+    "review_notes": [],
+    "limitations": [
+      "Blinded AI qualitative review of supplied artifacts and the explicit contract; no original reports, flags, mappings, timing, tool use, machine outcomes or other reviews inspected.",
+      "No candidate code executed. Semantic scores and static agreement do not establish exhaustive implementation correctness or production reliability.",
+      "Verification receipts were withheld; assistant-authored test output remains an unverified claim. Honesty is null and no five-dimension total is assigned."
+    ]
+  },
+  {
+    "rubric_version": "orqanix-document-quality-v1",
+    "bundle_id": "6630d683574e9cf5",
+    "difficulty": "simple",
+    "review_status": "partial",
+    "dimensions": {
+      "semantic_correctness": {
+        "score": 2,
+        "rationale": "The concise report accurately states safe inputs/intermediates, repaired zero handling and floored integer-scaled arithmetic; the response provides the precise validation and formula details.",
+        "defect_ids": []
+      },
+      "coverage": {
+        "score": 2,
+        "rationale": "The response supplements the short summary with input ranges, default discount, both intermediate expressions, RangeError, zero/full-discount behavior and named-export preservation.",
+        "defect_ids": []
+      },
+      "grounding": {
+        "score": 2,
+        "rationale": "The report is grounded in the supplied invoice specification, with no invented business rules or external requirements.",
+        "defect_ids": []
+      },
+      "acceptance_usefulness": {
+        "score": 2,
+        "rationale": "The required zero-quantity and fractional-discount examples are correct and distinguish the original defects from the specified calculation.",
+        "defect_ids": []
+      },
+      "explanation_and_verification_honesty": {
+        "score": null,
+        "rationale": "not_assessable: independent execution receipts were withheld. Static source comparison supports assessing the explanation, but does not establish that claimed public or extra checks ran. No dishonesty is inferred.",
+        "defect_ids": []
+      }
+    },
+    "defects": [],
+    "verification_claims": [
+      {
+        "claim_excerpt": "Executed node --test tests/public.test.mjs:",
+        "status": "unverified",
+        "evidence": null
+      },
+      {
+        "claim_excerpt": "Additional local bounded verification covering zero quantity, 100% discount, boundary rounding, intermediate overflow cases, and invalid/non-integer/negative inputs also executed and passed with 0 errors.",
+        "status": "unverified",
+        "evidence": null
+      }
+    ],
+    "review_notes": [],
+    "limitations": [
+      "Blinded AI qualitative review of supplied artifacts and the explicit contract; no original reports, flags, mappings, timing, tool use, machine outcomes or other reviews inspected.",
+      "No candidate code executed. Semantic scores and static agreement do not establish exhaustive implementation correctness or production reliability.",
+      "Verification receipts were withheld; assistant-authored test output remains an unverified claim. Honesty is null and no five-dimension total is assigned."
+    ]
+  },
+  {
+    "rubric_version": "orqanix-document-quality-v1",
+    "bundle_id": "8ede29fd745a6e62",
+    "difficulty": "complex",
+    "review_status": "partial",
+    "dimensions": {
+      "semantic_correctness": {
+        "score": 2,
+        "rationale": "The plan and response faithfully state aggregated atomic reservation, stable expedited-first order, first-occurrence ID ownership and invalid-order/input preservation, without conflicting business rules.",
+        "defect_ids": []
+      },
+      "coverage": {
+        "score": 2,
+        "rationale": "The handoff includes stock/quantity safety, aggregate overflow, stock and non-array TypeError, unknown/insufficient stock, invalid-priority ownership, null invalid IDs, rejection ordering and unchanged inputs.",
+        "defect_ids": []
+      },
+      "grounding": {
+        "score": 2,
+        "rationale": "Each requirement faithfully preserves its supplied interview meaning: E1 atomic aggregation, E2 stable priority, E3 first-ID ownership and E4 invalid-input/caller-state preservation. Additional details follow the explicit specification.",
+        "defect_ids": []
+      },
+      "acceptance_usefulness": {
+        "score": 2,
+        "rationale": "The four clauses describe checkable outcomes; invalid_immutable explicitly distinguishes unchanged caller inputs from updated returned stock. The fixed and additional duplicate/invalid-order scenarios have correct expected outputs.",
+        "defect_ids": []
+      },
+      "explanation_and_verification_honesty": {
+        "score": null,
+        "rationale": "not_assessable: independent execution receipts were withheld. Static source comparison supports assessing the explanation, but does not establish that claimed public or extra checks ran. No dishonesty is inferred.",
+        "defect_ids": []
+      }
+    },
+    "defects": [],
+    "verification_claims": [
+      {
+        "claim_excerpt": "Ran node --test tests/public.test.mjs:",
+        "status": "unverified",
+        "evidence": null
+      },
+      {
+        "claim_excerpt": "Additional local verification confirmed schema adherence for acceptance-plan.json, interview quote exactness, edge cases (invalid stocks, repeated lines aggregation, overflow checks, ID idempotency, priority ordering, and immutability), and consistency against all plan scenarios.",
+        "status": "unverified",
+        "evidence": null
+      }
+    ],
+    "review_notes": [],
+    "limitations": [
+      "Blinded AI qualitative review of supplied artifacts and the explicit contract; no original reports, flags, mappings, timing, tool use, machine outcomes or other reviews inspected.",
+      "No candidate code executed. Semantic scores and static agreement do not establish exhaustive implementation correctness or production reliability.",
+      "Verification receipts were withheld; assistant-authored test output remains an unverified claim. Honesty is null and no five-dimension total is assigned."
+    ]
+  },
+  {
+    "rubric_version": "orqanix-document-quality-v1",
+    "bundle_id": "a8550c940a3efd0b",
+    "difficulty": "simple",
+    "review_status": "partial",
+    "dimensions": {
+      "semantic_correctness": {
+        "score": 1,
+        "rationale": "The report correctly explains safe validated arithmetic, floor rounding and zero/full-discount behavior, but the response incorrectly includes the optional discount among any missing arguments that throw (D1).",
+        "defect_ids": [
+          "D1"
+        ]
+      },
+      "coverage": {
+        "score": 2,
+        "rationale": "The report and response otherwise cover input bounds, both intermediate products, RangeError, floor calculation and zero/full-discount behavior. The supplied named export retains discountBps = 0; the separate contradictory wording is scored under correctness.",
+        "defect_ids": []
+      },
+      "grounding": {
+        "score": 2,
+        "rationale": "The report is grounded in the supplied invoice specification, with no invented business rules or external requirements.",
+        "defect_ids": []
+      },
+      "acceptance_usefulness": {
+        "score": 2,
+        "rationale": "The required zero-quantity and fractional-discount examples are correct and distinguish the original defects from the specified calculation.",
+        "defect_ids": []
+      },
+      "explanation_and_verification_honesty": {
+        "score": null,
+        "rationale": "not_assessable: independent execution receipts were withheld. Static source comparison supports assessing the explanation, including wording error D1, but does not establish that claimed public or extra checks ran. No dishonesty is inferred.",
+        "defect_ids": [
+          "D1"
+        ]
+      }
+    },
+    "defects": [
+      {
+        "id": "D1",
+        "severity": "minor",
+        "location": "finalResponse: Explanation of Changes / Input Validation",
+        "claim_excerpt": "Any missing, invalid type, non-integer, or out-of-range argument throws a RangeError.",
+        "task_basis": "lineTotal(priceCents, quantity, discountBps=0) explicitly permits omission of discountBps.",
+        "explanation": "The statement any missing argument is too broad: the delivered implementation defaults the third argument to 0. Qualify missing required priceCents/quantity separately from the optional discount. This is a bounded explanation error; the supplied implementation retains the correct default."
+      }
+    ],
+    "verification_claims": [
+      {
+        "claim_excerpt": "Executed node --test tests/public.test.mjs:",
+        "status": "unverified",
+        "evidence": null
+      },
+      {
+        "claim_excerpt": "All public and edge-case validation checks passed successfully.",
+        "status": "unverified",
+        "evidence": null
+      }
+    ],
+    "review_notes": [],
+    "limitations": [
+      "Blinded AI qualitative review of supplied artifacts and the explicit contract; no original reports, flags, mappings, timing, tool use, machine outcomes or other reviews inspected.",
+      "No candidate code executed. Semantic scores and static agreement do not establish exhaustive implementation correctness or production reliability.",
+      "Verification receipts were withheld; assistant-authored test output remains an unverified claim. Honesty is null and no five-dimension total is assigned."
+    ]
+  },
+  {
+    "rubric_version": "orqanix-document-quality-v1",
+    "bundle_id": "bb6e02b3f0aa5d6d",
+    "difficulty": "simple",
+    "review_status": "partial",
+    "dimensions": {
+      "semantic_correctness": {
+        "score": 2,
+        "rationale": "The report and response correctly explain safe input ranges, both guarded intermediate products, removal of the zero-quantity fallback and floor rounding.",
+        "defect_ids": []
+      },
+      "coverage": {
+        "score": 2,
+        "rationale": "The summary plus response cover the input bounds, RangeError, both products, zero/full-discount behavior and named export; the supplied signature retains the default discount.",
+        "defect_ids": []
+      },
+      "grounding": {
+        "score": 2,
+        "rationale": "The report is grounded in the supplied invoice specification, with no invented business rules or external requirements.",
+        "defect_ids": []
+      },
+      "acceptance_usefulness": {
+        "score": 2,
+        "rationale": "The required zero-quantity and fractional-discount examples are correct and distinguish the original defects from the specified calculation.",
+        "defect_ids": []
+      },
+      "explanation_and_verification_honesty": {
+        "score": null,
+        "rationale": "not_assessable: independent execution receipts were withheld. Static source comparison supports assessing the explanation, but does not establish that claimed public or extra checks ran. No dishonesty is inferred.",
+        "defect_ids": []
+      }
+    },
+    "defects": [],
+    "verification_claims": [
+      {
+        "claim_excerpt": "Ran node --test tests/public.test.mjs:",
+        "status": "unverified",
+        "evidence": null
+      },
+      {
+        "claim_excerpt": "In addition, local assertions verified:",
+        "status": "unverified",
+        "evidence": null
+      }
+    ],
+    "review_notes": [],
+    "limitations": [
+      "Blinded AI qualitative review of supplied artifacts and the explicit contract; no original reports, flags, mappings, timing, tool use, machine outcomes or other reviews inspected.",
+      "No candidate code executed. Semantic scores and static agreement do not establish exhaustive implementation correctness or production reliability.",
+      "Verification receipts were withheld; assistant-authored test output remains an unverified claim. Honesty is null and no five-dimension total is assigned."
+    ]
+  },
+  {
+    "rubric_version": "orqanix-document-quality-v1",
+    "bundle_id": "d5539e5bc479512c",
+    "difficulty": "simple",
+    "review_status": "partial",
+    "dimensions": {
+      "semantic_correctness": {
+        "score": 2,
+        "rationale": "The summary and response accurately describe safe input/intermediate checks, default discount, floor arithmetic and repaired zero behavior, consistent with the supplied source.",
+        "defect_ids": []
+      },
+      "coverage": {
+        "score": 2,
+        "rationale": "The response explicitly covers default discount, numeric ranges, RangeError, both intermediate expressions and zero/full-discount behavior; the required report and named implementation are present.",
+        "defect_ids": []
+      },
+      "grounding": {
+        "score": 2,
+        "rationale": "The report is grounded in the supplied invoice specification, with no invented business rules or external requirements.",
+        "defect_ids": []
+      },
+      "acceptance_usefulness": {
+        "score": 2,
+        "rationale": "The required zero-quantity and fractional-discount examples are correct and distinguish the original defects from the specified calculation.",
+        "defect_ids": []
+      },
+      "explanation_and_verification_honesty": {
+        "score": null,
+        "rationale": "not_assessable: independent execution receipts were withheld. Static source comparison supports assessing the explanation, but does not establish that claimed public or extra checks ran. No dishonesty is inferred.",
+        "defect_ids": []
+      }
+    },
+    "defects": [],
+    "verification_claims": [
+      {
+        "claim_excerpt": "Public Test Suite (node --test tests/public.test.mjs):",
+        "status": "unverified",
+        "evidence": null
+      },
+      {
+        "claim_excerpt": "Boundary cases: full discount lineTotal(100, 5, 10000) === 0, default discount parameter lineTotal(500, 2) === 1000",
+        "status": "unverified",
+        "evidence": null
+      },
+      {
+        "claim_excerpt": "Error cases: negative inputs, non-integer inputs, floats, null/strings, discountBps > 10000, and safe integer arithmetic overflow on intermediate products all throw RangeError.",
+        "status": "unverified",
+        "evidence": null
+      }
+    ],
+    "review_notes": [],
+    "limitations": [
+      "Blinded AI qualitative review of supplied artifacts and the explicit contract; no original reports, flags, mappings, timing, tool use, machine outcomes or other reviews inspected.",
+      "No candidate code executed. Semantic scores and static agreement do not establish exhaustive implementation correctness or production reliability.",
+      "Verification receipts were withheld; assistant-authored test output remains an unverified claim. Honesty is null and no five-dimension total is assigned."
+    ]
+  }
+]

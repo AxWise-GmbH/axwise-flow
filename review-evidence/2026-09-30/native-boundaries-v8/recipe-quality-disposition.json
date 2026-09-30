@@ -1,0 +1,9 @@
+{
+  "passed": false,
+  "mechanicalReceiptChecksPassed": true,
+  "independentFixtureChecksPassed": false,
+  "missingCallerArgumentDetected": true,
+  "disposition": "Do not claim the model-generated functional recipe is fully quality-correct. Preserve its weak print-only checks and missing caller argument. Native boundary/rollback tests and real-server compiler tests pass; timed desktop tasks have separate independent quality grading.",
+  "mechanical": "recipe-verification.json",
+  "independent": "recipe-independent-grading.json"
+}

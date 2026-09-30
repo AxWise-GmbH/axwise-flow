@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { evaluateLintWithJev } from '../packages/omp-mcp-server/src/jev-lint-models.mjs';
+import { evaluateLintWithJev } from './lib/jev-lint-models.mjs';
 
 export function resolveApiKey() {
   if (process.env.TYPESAFE_API_KEY) return process.env.TYPESAFE_API_KEY;

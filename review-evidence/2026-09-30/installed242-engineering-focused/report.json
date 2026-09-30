@@ -1,0 +1,103 @@
+{
+  "schema": "installed242-focused-engineering.v1",
+  "createdAt": "2026-09-30T13:40:18.867Z",
+  "runtime": "/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime",
+  "installed": {
+    "version": "2.4.2",
+    "hashes": {
+      "/Applications/Orqanix.app/Contents/Resources/bin/goose": "bef41ad1617fbe49fb6ef848858a12ee9b1eb335be012a91ab71c02909f967c7",
+      "/Applications/Orqanix.app/Contents/Resources/app.asar": "7418930fa30462baa78dfedbad101eda7873048e86b08aaf4bcd5c0c5815c7ce"
+    }
+  },
+  "settings": {
+    "original": {
+      "native": false,
+      "jev": true,
+      "axwise": true,
+      "approval": "smart_approve"
+    },
+    "during": {
+      "native": true,
+      "jev": true,
+      "axwise": false,
+      "approval": "smart_approve"
+    }
+  },
+  "fixtures": [
+    {
+      "key": "engineering-explicit",
+      "fixture": {
+        "root": "/private/tmp/orqanix-installed242-engineering-focused-20260930/engineering-explicit/fixture",
+        "workspace": "/private/tmp/orqanix-installed242-engineering-focused-20260930/engineering-explicit/fixture/workspace",
+        "difficulty": "ast",
+        "prompt": "The API registers async handlers that currently reject without forwarding failures to next. Find every directly registered async handler on the Router in src/routes and wrap it with the existing withErrors adapter from src/framework/errors.ts. Cover GET, POST and DELETE registrations, including the named async function. Preserve response values, request handling, registration order and the synchronous route. Do not wrap unrelated async callbacks, the unrelated audit.get API, or ordinary helper functions. Add regression tests in tests/regression.test.mjs covering successful handling and error forwarding, and run the tests and type check.\nRead README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results.",
+        "files": {
+          "package.json": "{\"private\":true,\"type\":\"module\"}\n",
+          "tsconfig.json": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"NodeNext\",\n    \"strict\": true,\n    \"noEmit\": true,\n    \"allowImportingTsExtensions\": true\n  },\n  \"include\": [\n    \"src/**/*.ts\"\n  ]\n}",
+          "src/framework/router.ts": "export interface Request { fail?: boolean; id: string; }\nexport interface Response { send(value: string): string; }\nexport type Next = (error: unknown) => void;\nexport type Handler = (req: Request, res: Response, next: Next) => unknown;\nexport class Router {\n  routes: {method: string; path: string; handler: Handler}[] = [];\n  get(path: string, handler: Handler) { this.routes.push({method:'GET',path,handler}); }\n  post(path: string, handler: Handler) { this.routes.push({method:'POST',path,handler}); }\n  delete(path: string, handler: Handler) { this.routes.push({method:'DELETE',path,handler}); }\n}\n",
+          "src/framework/errors.ts": "import type {Handler} from './router.ts';\nexport function withErrors(handler: Handler): Handler {\n  return async (req,res,next) => { try { return await handler(req,res,next); } catch(error) { next(error); } };\n}\n",
+          "src/routes/accounts.ts": "import {Router} from '../framework/router.ts';\nexport function registerAccounts(router: Router) {\n  router.get('/accounts/:id', async (req, res) => {\n    if(req.fail) throw new Error('account read');\n    return res.send('account:'+req.id);\n  });\n  router.post('/accounts', async function createAccount(req, res) {\n    if(req.fail) throw new Error('account create');\n    return res.send('created:'+req.id);\n  });\n  router.get('/health', (_req,res) => res.send('ok'));\n}\nexport const documentation = \"router.get('/fake', async handler)\";\nexport async function unrelatedHelper() { throw new Error('helper'); }\n",
+          "src/routes/orders.ts": "import {Router} from '../framework/router.ts';\nconst audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };\nexport const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });\nexport function registerOrders(router: Router) {\n  router.get('/orders/:id', async (req,res) => {\n    const values = await Promise.all([req.id].map(async value => value.toUpperCase()));\n    if(req.fail) throw new Error('order read');\n    return res.send(values[0]);\n  });\n  router.delete('/orders/:id', async (req,res) => {\n    if(req.fail) throw new Error('order delete');\n    return res.send('deleted:'+req.id);\n  });\n}\n",
+          "src/app.ts": "import {Router} from './framework/router.ts';\nimport {registerAccounts} from './routes/accounts.ts';\nimport {registerOrders} from './routes/orders.ts';\nexport function makeRouter() {const router=new Router();registerAccounts(router);registerOrders(router);return router;}\n",
+          "tests/public.test.mjs": "import assert from 'node:assert/strict';\nimport {test} from 'node:test';\nimport {makeRouter} from '../src/app.ts';\ntest('five routes registered',()=>assert.equal(makeRouter().routes.length,5));\n",
+          "README.md": "# Forward asynchronous route failures\n\nThe API registers async handlers that currently reject without forwarding failures to next. Find every directly registered async handler on the Router in src/routes and wrap it with the existing withErrors adapter from src/framework/errors.ts. Cover GET, POST and DELETE registrations, including the named async function. Preserve response values, request handling, registration order and the synchronous route. Do not wrap unrelated async callbacks, the unrelated audit.get API, or ordinary helper functions. Add regression tests in tests/regression.test.mjs covering successful handling and error forwarding, and run the tests and type check.\nRead README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results.\n\nPermitted changes: src/routes/accounts.ts, src/routes/orders.ts and tests/regression.test.mjs (create it). All other files are immutable inputs. Keep the implementation in its current modules.\n\nTests: node --experimental-strip-types --test tests/*.test.mjs\nType check: node \"/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json\nDependencies and language servers are already supplied by the app. This workspace is an initialized Git repository; do not change Git metadata.\n"
+        },
+        "gitHashes": {
+          "COMMIT_EDITMSG": "5d7a2361d71f595ce8a4b314069a5c86a6c4d55dedb673b19e2eaaa6b11ebb21",
+          "HEAD": "f6f2b945f6c411b02ba3da9c7ace88dcf71b6af65ba2e0d89aa82900042b5a10",
+          "config": "cae33efdb02cf774435c1ff9cb16bcc1014606908530c6e1dc727615fe3e8cda",
+          "description": "85ab6c163d43a17ea9cf7788308bca1466f1b0a8d1cc92e26e9bf63da4062aee",
+          "hooks/applypatch-msg.sample": "0223497a0b8b033aa58a3a521b8629869386cf7ab0e2f101963d328aa62193f7",
+          "hooks/commit-msg.sample": "1f74d5e9292979b573ebd59741d46cb93ff391acdd083d340b94370753d92437",
+          "hooks/fsmonitor-watchman.sample": "e0549964e93897b519bd8e333c037e51fff0f88ba13e086a331592bf801fa1d0",
+          "hooks/post-update.sample": "81765af2daef323061dcbc5e61fc16481cb74b3bac9ad8a174b186523586f6c5",
+          "hooks/pre-applypatch.sample": "e15c5b469ea3e0a695bea6f2c82bcf8e62821074939ddd85b77e0007ff165475",
+          "hooks/pre-commit.sample": "f9af7d95eb1231ecf2eba9770fedfa8d4797a12b02d7240e98d568201251244a",
+          "hooks/pre-merge-commit.sample": "d3825a70337940ebbd0a5c072984e13245920cdf8898bd225c8d27a6dfc9cb53",
+          "hooks/pre-push.sample": "ecce9c7e04d3f5dd9d8ada81753dd1d549a9634b26770042b58dda00217d086a",
+          "hooks/pre-rebase.sample": "4febce867790052338076f4e66cc47efb14879d18097d1d61c8261859eaaa7b3",
+          "hooks/pre-receive.sample": "a4c3d2b9c7bb3fd8d1441c31bd4ee71a595d66b44fcf49ddb310252320169989",
+          "hooks/prepare-commit-msg.sample": "e9ddcaa4189fddd25ed97fc8c789eca7b6ca16390b2392ae3276f0c8e1aa4619",
+          "hooks/push-to-checkout.sample": "a53d0741798b287c6dd7afa64aee473f305e65d3f49463bb9d7408ec3b12bf5f",
+          "hooks/update.sample": "8d5f2fa83e103cf08b57eaa67521df9194f45cbdbcb37da52ad586097a14d106",
+          "index": "95f3fbc4adfc27beb2006a1627ccea87a0ed4ac48c1e602c2ab303db2df5d589",
+          "info/exclude": "6671fe83b7a07c8932ee89164d1f2793b2318058eb8b98dc5c06ee0a5a3b0ec1",
+          "logs/HEAD": "9cbf6cb207c930c3ba06b8ce1756ee3f8cb4cf6a84b097e2109abdc064ea84b8",
+          "logs/refs/heads/master": "9cbf6cb207c930c3ba06b8ce1756ee3f8cb4cf6a84b097e2109abdc064ea84b8",
+          "objects/03/a43efec3a6b58f2c6bccbd71a2342c63746fb8": "e325a9b9a6870886ffe24c3124ed04ffbb3ddedf3cb3cede8c17ff6d410b074c",
+          "objects/05/1fa133271b71a0660d2da51a53f7ead398e9b0": "f852e682a5942b9efa1e37a174bb1108e7f9950854183317390006649c835e06",
+          "objects/0f/e1811bc2bacbb7b4ebfe8999912899a10711c3": "7f183e38e1d46f9e0b6d7f83b826f7c133060a2001f633ce289f8372f8922709",
+          "objects/10/b13668a6b1a9e553c0870287e37baf80381402": "ce9e9a90076b3a59d5cbac52841b1dec1a60971d30c958791de578359db1a054",
+          "objects/1a/e308bd95a71e75f78e7088069802a13984efba": "081eb0f55caa8e0c5a5a5411c0badddc1e054d9d2625e5949d894be6ceb195fc",
+          "objects/39/aa7c23bdec272d950195e27df443a122800cec": "8408ff107a2c068efb54e266d5ec24d654e99cddd1df89c924f37c2bf2c50e97",
+          "objects/4a/12367339a7edd3d6847478ef86f947fe69fe1f": "3db95c400ef4bbd7a1e6dd2a4d9bbc0796b0c0ae4d4fddd54f193a27b3a6421f",
+          "objects/4d/d6ea02d359dc3fec8d8baa1d6e6abc9a53401f": "059052af384e9562d0862f99f423a9f458a86ec9c03f5c698d472404ecfc6d00",
+          "objects/5a/781fd5fbf0c40acfd2d31fac592d7a36f0f996": "e0adca47f18c0ae2558f325bff6dbd17ca4922f9d11790290296388aae1f690c",
+          "objects/71/b9289cc07b332c7365838f10fe687ef04455a1": "9f41512d827f6ffe2c06863e5f60ce02907bf2728afcf091556087951231c325",
+          "objects/7e/742d82c5d2f8c63583dff909a4af3c84857ef1": "39bea972f772abf4509792f7978b0168335fb37bdaf6a35d973d094b16f75adc",
+          "objects/b1/931ef9b94495ef8d7e85f0d8ce5af31ed18fb5": "c2b50a468922a995edd30147db957363dc0d0e47643e5faed714f91d68152976",
+          "objects/f2/4a68ff2235e8a8d11e95f2d2fa83599ec3ede4": "2d200180301d35115fd709da21242f754b0d9f11d8650c39b472761a086b75a1",
+          "objects/f8/4528506796fb565716eaf2798e653919e3aa33": "2003b78020761e6d5458a5788f3ddbfdb8a5bdbe4d41ef6dfa4ace39f72acf07",
+          "objects/f9/e03d70c656d1045aaa9af6d90bee48ed5c9898": "ee5887076a075598c4bf6c2e2d0a1add05cba14223d465234266e802499b0899",
+          "refs/heads/master": "be5250b2409c4597481d73ca293262030f727664c3ef3201fdff9f373297bfc6"
+        },
+        "permittedFiles": [
+          "src/routes/accounts.ts",
+          "src/routes/orders.ts",
+          "tests/regression.test.mjs"
+        ],
+        "initialHashes": {
+          "package.json": "a90fc33418afa2b9cbf4768524b021135b965ecdf993457505bfae3ac44a8428",
+          "tsconfig.json": "ac0ae35e8ece9e360cce116675dfda713b10f2136cfa737216ebf1c93d3351ae",
+          "src/framework/router.ts": "d5c43d0aa3ec23a24af13f7f45ddc142df26f4a38120bb09ba1a62c0ad76f3e1",
+          "src/framework/errors.ts": "8cd06b3c1bbb5dcbc7ac6ccdc24543a8d92abb234a694cb90385e88daf1021e4",
+          "src/routes/accounts.ts": "c941eae64369ec1c1ef8ed87a4d1d4253e762936e18b5ccc60dc24d7bf960427",
+          "src/routes/orders.ts": "f8390232c11184f808cfcc1138161bb2e62e2ed2537d74c669125133d59f05dd",
+          "src/app.ts": "6357607e9ee5bbad862f25117119664a0ba2960cbb48e16708a0886a8ce02f53",
+          "tests/public.test.mjs": "257511d3bcddaa9ab8540638c3453a21982285880dbcc0c480d117f13c37c3db",
+          "README.md": "5ad811fb92cd5b743c1c84294a9ba76d41ccdd75dc5488181f24af78b044feb2"
+        }
+      }
+    }
+  ]
+}

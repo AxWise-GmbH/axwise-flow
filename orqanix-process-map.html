@@ -305,7 +305,7 @@ var EDGE_KINDS = window.EDGE_KINDS = {
 // ── DOMAINS (Overview grid) ──────────────────────────────────────────
 D('tier1_web', 'Tier 1: Web UI & Portal', 0, 0, 'live', 'React 19 / Vite 7 workspace portal with Clerk PKCE auth, real-time SSE chat, goals, and DAG builder.')
 D('tier3_desktop', 'Tier 3: Desktop Operator', 0, 1, 'live', 'Orqanix Preview.app (Goose core), Clerk PKCE loopback, OS Keychain store, conversation MCP extension.')
-D('tier4_omp', 'Tier 4: Deep Engineering', 0, 2, 'live', 'Oh My Pi (OMP) local runtime via omp-mcp-server, ephemeral RPC child, AST/LSP inspection and approved edit.')
+D('tier4_native', 'Tier 4: Native Engineering', 0, 2, 'partial', 'Goose native extension: AST/LSP inspection, hash-guarded edits and approved test argv. Installed availability depends on the desktop build.')
 D('infra_identity', 'Identity & Model Providers', 0, 3, 'live', 'Clerk OAuth PKCE, Google Gemini 3.8 Flash (1M ctx), SearXNG Cloud Run proxy.')
 
 D('tier2_api', 'Tier 2: Orqaly API Gateway', 1, 0, 'live', 'Express 5 API on Cloud Run, Clerk JWT validation, ETag optimistic concurrency, Assistant, Goals, and Solutions.')
@@ -336,9 +336,9 @@ N('desk_goose', 'tier3_desktop', 'USER_ACTION', 'Orqanix Desktop Shell (Goose)',
 N('desk_oauth', 'tier3_desktop', 'API', 'Clerk PKCE Loopback CLI', { wiring: 'live', conf: 'VERIFIED', src: ['packages/orqaly-goose-connector/src/cli.mjs'], desc: 'Headless loopback listener on 127.0.0.1:{port}/callback with OS Keychain storage.' })
 N('desk_mcp', 'tier3_desktop', 'AUTOMATION', 'Goose Conversation MCP Extension', { wiring: 'live', conf: 'VERIFIED', src: ['packages/orqaly-goose-connector/src/mcp.mjs'], desc: 'Stdio MCP extension providing ask_axwise, axwise_work_status, and read_goal_artifact.' })
 
-// Tier 4: OMP
-N('omp_bridge', 'tier4_omp', 'AUTOMATION', 'OMP MCP Server Bridge', { wiring: 'live', conf: 'VERIFIED', src: ['packages/omp-mcp-server/src/mcp.mjs'], desc: 'Local MCP adapter connecting Goose Desktop to Oh My Pi.' })
-N('omp_daemon', 'tier4_omp', 'WORKER', 'Oh My Pi RPC Subprocess', { wiring: 'live', conf: 'VERIFIED', src: ['packages/omp-mcp-server/src/omp-client.mjs'], desc: 'Ephemeral omp --mode rpc process performing AST inspection, Tree-sitter queries, and safe file edits.' })
+// Tier 4: Native Goose extension (source in the desktop repository)
+N('native_engineering', 'tier4_native', 'AUTOMATION', 'Native Engineering Tools', { wiring: 'partial', conf: 'SOURCE', src: ['../orqaly-goose/crates/goose/src/agents/platform_extensions/native_engineering/mod.rs'], desc: 'First-class Goose tools with workspace context, approval and cancellation.' })
+N('native_edit_tests', 'tier4_native', 'WORKER', 'Guarded Edit and Test', { wiring: 'partial', conf: 'SOURCE', src: ['../orqaly-goose/crates/goose/src/agents/platform_extensions/native_engineering/edits.rs'], desc: 'SHA-bound line edits, conditional rollback and bounded approved test execution. Failed tests return to the same Goose loop.' })
 
 // Tier 2: Orqaly API & Worker
 N('api_v2', 'tier2_api', 'API', 'Workflow V2 REST API Router', { wiring: 'live', conf: 'VERIFIED', src: ['apps/orqaly/server/workflow-v2/http-app.js'], desc: 'Express 5 API enforcing Clerk JWTs, ETag row versions, rate limits, and /v2/* endpoints.' })
@@ -394,11 +394,11 @@ E('ax_pipeline_a', 'ax_hybrid_prd', 'writes', 'Empirical Spans')
 E('ax_pipeline_b', 'ax_hybrid_prd', 'writes', 'Simulated Dialogue')
 
 E('desk_goose', 'desk_mcp', 'triggers', 'stdio JSON-RPC')
-E('desk_goose', 'omp_bridge', 'triggers', 'stdio JSON-RPC')
+E('desk_goose', 'native_engineering', 'triggers', 'Native tool dispatch')
 E('desk_mcp', 'api_desktop_gw', 'emits', 'POST /desktop/v1/work')
 E('api_desktop_gw', 'gemini_model', 'reads', 'Chat Completion Proxy')
-E('omp_bridge', 'omp_daemon', 'triggers', 'omp --mode rpc (NDJSON)')
-E('omp_daemon', 'api_desktop_gw', 'reads', 'Model Query /desktop/v1')
+E('native_engineering', 'native_edit_tests', 'triggers', 'Approved exact edit and test argv')
+E('native_edit_tests', 'desk_goose', 'emits', 'Test evidence returned to existing loop')
 
 E('api_v2', 'agentic_cp_srv', 'emits', 'HMAC RequestPrincipal')
 E('agentic_cp_srv', 'agentic_tg_srv', 'emits', 'Signed Ed25519 Grant')
@@ -407,7 +407,7 @@ E('agentic_cp_srv', 'agentic_tg_srv', 'emits', 'Signed Ed25519 Grant')
 C('A', 'Цепочка 1: Чат Ассистента (Web SSE)', 'live', ['web_auth', 'web_assistant', 'api_v2', 'tbl_workflows', 'gemini_model'], { desc: 'Пользователь отправляет сообщение в веб-интерфейсе -> Express валидирует Clerk JWT -> сохраняет в PostgreSQL -> запускает стриминг ответа от Gemini через SSE.' })
 C('B', 'Цепочка 2: 10-этапное исполнение Цели (Goals Lifecycle)', 'live', ['web_goals', 'api_v2', 'tbl_outbox', 'worker_outbox', 'ax_api_v2', 'tbl_ax_ops', 'ax_worker', 'gemini_model', 'tbl_artifacts'], { desc: 'Подача задачи -> запись в Outbox -> воркер захватывает lease (SKIP LOCKED) -> AxWise операция -> синтез артефакта -> сохранение SHA-256 слепка.' })
 C('C', 'Цепочка 3: Поиск и исследование с десктопа (Goose Operator)', 'live', ['desk_goose', 'desk_oauth', 'desk_mcp', 'api_desktop_gw', 'ax_api_v2', 'ax_worker', 'searxng_srv'], { desc: 'Goose десктоп запрашивает исследование через ask_axwise -> Cloud Gateway -> фоновая операция AxWise -> опрос статуса через axwise_work_status.' })
-C('D', 'Цепочка 4: Глубокий инжиниринг через Oh My Pi', 'live', ['desk_goose', 'omp_bridge', 'omp_daemon'], { desc: 'Goose вызывает orqanix_engineering_inspect -> bridge спавнит дочерний процесс OMP rpc -> анализ AST и кода -> возвращение проверенного отчёта.' })
+C('D', 'Цепочка 4: Native Goose engineering', 'partial', ['desk_goose', 'native_engineering', 'native_edit_tests'], { desc: 'Goose reads hash anchors, proposes an approved exact edit and runs explicit tests; failures and conditional rollback evidence return to the same conversation loop.' })
 C('E', 'Цепочка 5: Визуальный конструктор и DAG (Workflow Builder)', 'live', ['web_builder', 'api_v2', 'ax_api_v2', 'ax_worker', 'tbl_workflows'], { desc: 'Пользователь задает требования в React Flow -> AxWise PrepareSolutionV2 генерирует схему -> валидация топологии -> отображение графа.' })
 
 // ── AUTOMATION ────────────────────────────────────────────────────────
@@ -420,7 +420,7 @@ M.automation = [
 
 // ── REPORT ────────────────────────────────────────────────────────────
 M.report = [
-  ['Desktop Operator (Goose + OMP)', 'РАБОТАЕТ', 'packages/omp-mcp-server, packages/orqaly-goose-connector', 'Сессия исполняется внутри OMP; 7/7 OMP тестов пройдены; 23/23 Connector тестов пройдены; Keychain авторизация активна.'],
+  ['Desktop Operator (Native Goose)', 'ИСХОДНЫЙ КОД', 'orqaly-goose/native_engineering, packages/orqaly-goose-connector', 'Native tools run in the Goose loop; local LSP and approved test processes are separate utilities. Source verification does not establish installed-release acceptance.'],
   ['Web UI & Workspace (Vite 7)', 'РАБОТАЕТ', 'apps/orqaly/src/', 'Сборка gcp-launch проверена (32 чанка, 1.25 МБ); verify:gcp-web аудит успешен; 56/56 роут-тестов пройдены.'],
   ['Execution API & Worker Engine', 'РАБОТАЕТ', 'apps/orqaly/server/workflow-v2/', 'Локальный E2E на PG16 пройден (simple + advanced); 5 очередей активны; outbox SKIP LOCKED проверен.'],
   ['AxWise Cognitive Engine & Research', 'РАБОТАЕТ', 'backend/services/workflow_v2/', 'PR #52 объединен; 4,000-символьные топик контракты работают; 117/117 бекенд тестов пройдены; Gemini 3.8 зафиксирован.'],

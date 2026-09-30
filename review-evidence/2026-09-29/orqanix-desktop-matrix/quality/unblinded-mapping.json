@@ -1,0 +1,402 @@
+{
+  "simple-r1-j0n0a0": {
+    "bundle_id": "59566e4586aee305",
+    "batch": "batch-1",
+    "sourceArtifactHashes": {
+      "src/pricing.mjs": "c4d1eb340c009ea61cbc1aed3d58db3e98e4d6db3253b848a11ce09ceb04c801",
+      "report.json": "7b6a6c8b6446d25f692a05077ba22b1b07d24f16e624e4f68705ad78304dcbe9"
+    }
+  },
+  "simple-r1-j1n1a1": {
+    "bundle_id": "c8c7ea4757c7f959",
+    "batch": "batch-1",
+    "sourceArtifactHashes": {
+      "src/pricing.mjs": "5fa41e5cdeb935cd028940739b01c233037916102a14d7ca005e07eba88ee12c",
+      "report.json": "60d91e09e9ab8cc74c45d110e39d70af4ef9f95684bb9617529a87f300814893"
+    }
+  },
+  "simple-r1-j0n1a1": {
+    "bundle_id": "9b9ea9cec30cafe3",
+    "batch": "batch-1",
+    "sourceArtifactHashes": {
+      "src/pricing.mjs": "72346e6caf4577641f7cc8231c3f56f8a3bfe9324c56259ad6176899628f52d4",
+      "report.json": "820ba5fcfb62354cb7b7cea446c61139e62aeb6509da2be5a2b156c3d9e8a6be"
+    }
+  },
+  "simple-r1-j1n0a0": {
+    "bundle_id": "33f99dc4befed0e0",
+    "batch": "batch-1",
+    "sourceArtifactHashes": {
+      "src/pricing.mjs": "ef5394b123f9d1bd9de2a2c0e43b3910dbcf4562a35bc1f5c4ce2b39cb787392",
+      "report.json": "742a8cc3a43053887bea307f06a05fb6712e8714733d2f10d5e7a980e8a43b14"
+    }
+  },
+  "simple-r1-j1n1a0": {
+    "bundle_id": "ff2298d6ad1e39c0",
+    "batch": "batch-1",
+    "sourceArtifactHashes": {
+      "src/pricing.mjs": "d5c4db5278f43c1d7404bbc6c2e2c3dd579d40a8a94f5f97ed0a8dfb9662c221",
+      "report.json": "67ea2fc251985555f550b340cf976ce5945814910f828c1d22cb6a646e564c78"
+    }
+  },
+  "simple-r1-j0n0a1": {
+    "bundle_id": "77c97c3dd8d7e2bb",
+    "batch": "batch-1",
+    "sourceArtifactHashes": {
+      "src/pricing.mjs": "df444c35899cfd0b3175f2136ca284b4712e825cf52e030698e79b099fee7816",
+      "report.json": "afd71a4caf570ec4f44637215fe30e5bff9c70fb7a18f7d3188d9d62597a41e2"
+    }
+  },
+  "simple-r1-j1n0a1": {
+    "bundle_id": "a6d8e647e0cb9656",
+    "batch": "batch-1",
+    "sourceArtifactHashes": {
+      "src/pricing.mjs": "426ba21b0315c4ca651f73da6059c12969da5c0b0b969ee68977636c2a5d87d3",
+      "report.json": "03128b07b741b360150407c519f1bcf834ca577c892bf9bf32d578e82db3b753"
+    }
+  },
+  "simple-r1-j0n1a0": {
+    "bundle_id": "28a75424890ee23f",
+    "batch": "batch-1",
+    "sourceArtifactHashes": {
+      "src/pricing.mjs": "b280eb82caecacd2cf2f9df641ff8d4f326b5ec8e64033d7d279c09b0f1942a0",
+      "report.json": "573dba486b128527e0f1073bef38cb2c2a3916e26906cb2c0735f5423cad2c1b"
+    }
+  },
+  "medium-r1-j0n1a1": {
+    "bundle_id": "ec07d915768e43a5",
+    "batch": "batch-1",
+    "sourceArtifactHashes": {
+      "src/triage.mjs": "d1da140a1d1b7b017e8d2aa59d0f6f25bd8a5a8ca1840ad308ddaec13ac76541",
+      "requirements.json": "e956176760deee9182882fa30db67e356010ef06975a06ea852b61809d2fc43a"
+    }
+  },
+  "medium-r1-j1n0a0": {
+    "bundle_id": "4106f623920f3a2c",
+    "batch": "batch-1",
+    "sourceArtifactHashes": {
+      "src/triage.mjs": "39b335b369a8c8a2c22e945af28fcd0c3f88d8eca6db27938ab217dccb1ea2c5",
+      "requirements.json": "60306345125ce0cee0eb25ad3918709149c6aefb55c9f9a8adae6460c9a13bdc"
+    }
+  },
+  "medium-r1-j0n0a0": {
+    "bundle_id": "392b0c8f0e01ed96",
+    "batch": "batch-1",
+    "sourceArtifactHashes": {
+      "src/triage.mjs": "8d63f40f6683d3a7864015f07d192b253656bf2240433910bd6467f208ca4703",
+      "requirements.json": "a09d05939ddaede2fa25b59d6a31c1503123a2c675f217bff82c8c2be439463a"
+    }
+  },
+  "medium-r1-j1n1a1": {
+    "bundle_id": "87fb44c032c5e156",
+    "batch": "batch-1",
+    "sourceArtifactHashes": {
+      "src/triage.mjs": "1a25f44d2d6d32d632a3d7f96fb290d4c1b3765483128c9559b3d4f26e11ce90",
+      "requirements.json": "27f034492b2fe432571f3a886864a1e7292e0e507d3f585cdf9e6f0411c93259"
+    }
+  },
+  "medium-r1-j1n0a1": {
+    "bundle_id": "52790596ae7bc8ec",
+    "batch": "batch-1",
+    "sourceArtifactHashes": {
+      "src/triage.mjs": "10bd1c228345685b40e6e32c833d5e9704bd3c301f46e432c958d8aa2e164c14",
+      "requirements.json": "b03ff46e7fa07037b62695b06578ac2dfc0239bf520e9edfdac453535364ec7c"
+    }
+  },
+  "medium-r1-j0n1a0": {
+    "bundle_id": "a42ac5758d713f53",
+    "batch": "batch-1",
+    "sourceArtifactHashes": {
+      "src/triage.mjs": "785bfef378d90f5d1e588a2ee8a768d81dfca6510cf5107ce3d67f97ae5100ef",
+      "requirements.json": "4e517c10563b849aa0bfae56429d894c7f705300c362548130ebcdbcc5a63c41"
+    }
+  },
+  "medium-r1-j1n1a0": {
+    "bundle_id": "8d57919d6fd025c9",
+    "batch": "batch-1",
+    "sourceArtifactHashes": {
+      "src/triage.mjs": "bfa3594e031eac71e712376af4c65896bd32c393e009f10887659a48528dbfcf",
+      "requirements.json": "30228d92bd81959d33a77f191bf44886a812e437be4666fb394003c98cd793c4"
+    }
+  },
+  "medium-r1-j0n0a1": {
+    "bundle_id": "66093cd0f89c9065",
+    "batch": "batch-1",
+    "sourceArtifactHashes": {
+      "src/triage.mjs": "547d6cd4735844989bf4758f7acc04dfa8e05264a39724e5ab5c86a7a1b40694",
+      "requirements.json": "be7ec30f57b2aa7a05f0953366f1163763ffe912d828961d4bcec7bc548b4621"
+    }
+  },
+  "complex-r1-j1n1a0": {
+    "bundle_id": "1317bf40bed1240d",
+    "batch": "batch-2",
+    "sourceArtifactHashes": {
+      "src/inventory.mjs": "206424e6e539ec38baaeadb8ad48921dc1ceed59069f393b44e430c99b32f136",
+      "src/orders.mjs": "c4d16257ccba605fe93d2137a43877ecb7d1516a933197e7b9c92149d5021ce5",
+      "acceptance-plan.json": "4eb42429c5e8071691c7e621c00348785bb6eb598d4ea55dcf9d88e5c0abab62"
+    }
+  },
+  "complex-r1-j0n0a1": {
+    "bundle_id": "0a7e78231ad3249c",
+    "batch": "batch-2",
+    "sourceArtifactHashes": {
+      "src/inventory.mjs": "2b2be86fce15ba9650ab2204c786c1f83135ea5a64449bea90ea7cc9ce9a26e1",
+      "src/orders.mjs": "d28370f21d20390d99b74c5c0a28951a930619b56c0c9beeae1bf7dda474d2bb",
+      "acceptance-plan.json": "83b00fb719d54156984852450f1f3965ffd81c7d41d3d974ee52da55df805f87"
+    }
+  },
+  "complex-r1-j1n0a1": {
+    "bundle_id": "3f29825a3e01acbe",
+    "batch": "batch-2",
+    "sourceArtifactHashes": {
+      "src/inventory.mjs": "11f215a05cbc471d6df95e4430d096ec15543e5e88d3a68a598d85c3f82957e3",
+      "src/orders.mjs": "25a024d963aad98a474f0f95af88cf28bf3138e6577383507082cac4135eb628",
+      "acceptance-plan.json": "9ff52a31b8e119667486a911829891682f57adb763b5cfd96e7cccfa0a2fb3f8"
+    }
+  },
+  "complex-r1-j0n1a0": {
+    "bundle_id": "b79ede3f5721a3c2",
+    "batch": "batch-3",
+    "sourceArtifactHashes": {
+      "src/inventory.mjs": "912a2e48cd2047a1c151b58481cd4377ef867456a597be4573e4ce48dbae5480",
+      "src/orders.mjs": "cef12c5dbd6b39bd54fcfa85c8be58a4786486eea8bd90a3f96e97a02d1f6cb9",
+      "acceptance-plan.json": "60e86426e43e5ef1a82416b0d96a2d9fec1d3d6847ce9ab43312087123964fbd"
+    }
+  },
+  "complex-r1-j0n0a0": {
+    "bundle_id": "9cfe35406eb0640f",
+    "batch": "batch-3",
+    "sourceArtifactHashes": {
+      "src/inventory.mjs": "cd1daeb654dae1fcf85e215b8398fa8c736c646f351054e3e760f2fed641aa09",
+      "src/orders.mjs": "3b8be0e3916fad77789c9db133a80bdd3d3e13e27583966ea383539f81cbeb23",
+      "acceptance-plan.json": "38ef829eba203e1d1878b5731108deccb06492817144a566c15c0654aff1d3aa"
+    }
+  },
+  "complex-r1-j1n1a1": {
+    "bundle_id": "56e574858aceb745",
+    "batch": "batch-3",
+    "sourceArtifactHashes": {
+      "src/inventory.mjs": "099502c48ff35ecd04474cdd401be76f0b2085aff812f6d7c42eb9003b157459",
+      "src/orders.mjs": "a056c63604143fb96d43b26e34ce15f5fd221ecd1ef53b845b8b254a1f1240cb",
+      "acceptance-plan.json": "a46bcde11d83905cb75b51cb76c479ac71f94d1078b3721288f5f69b60a10909"
+    }
+  },
+  "complex-r1-j0n1a1": {
+    "bundle_id": "8ede29fd745a6e62",
+    "batch": "batch-4",
+    "sourceArtifactHashes": {
+      "src/inventory.mjs": "db44c62271e6e699e900f047bed0c2520c57d2c9c16f3c98217913568a32da58",
+      "src/orders.mjs": "712047533718bd91fc0bc112f3d55bec0eced519a9efbda4fa8385cbfc08d90c",
+      "acceptance-plan.json": "f10be79c6e7b5cfecc71890f195f12ef66f5f954c4c719920b94103024513019"
+    }
+  },
+  "complex-r1-j1n0a0": {
+    "bundle_id": "2cf3a940d3f049d5",
+    "batch": "batch-4",
+    "sourceArtifactHashes": {
+      "src/inventory.mjs": "93e0b4340fa443055062fcbc46ba2b3897c4dde2482694765288c20b6c69392d",
+      "src/orders.mjs": "72be7bf7616e25970a32a8bf2c5d21758f18e15c047f9c4e81075f95cdb46388",
+      "acceptance-plan.json": "aa52a1775329abc383367cf7dbb814270d565a5242b9ffa3763cb4fffe1ddb7e"
+    }
+  },
+  "simple-r2-j0n1a0": {
+    "bundle_id": "6630d683574e9cf5",
+    "batch": "batch-4",
+    "sourceArtifactHashes": {
+      "src/pricing.mjs": "8b218b278f98b41a4d9cc52725b4584778754f4d8fb1e44de5623fa805c16f2e",
+      "report.json": "413a973403e2ecae7184f322c0a5d74baa0108834fc5d0e39f4d66e58467426e"
+    }
+  },
+  "simple-r2-j1n0a1": {
+    "bundle_id": "d5539e5bc479512c",
+    "batch": "batch-4",
+    "sourceArtifactHashes": {
+      "src/pricing.mjs": "0b79a60c7faccf7acac22129848813da5c144a085d632e81d399fb0153b95238",
+      "report.json": "a9df6ec36c875742c675dd462c3ee03baac923ffc8d9e41bafdd86f77ff65ba6"
+    }
+  },
+  "simple-r2-j0n0a1": {
+    "bundle_id": "bb6e02b3f0aa5d6d",
+    "batch": "batch-4",
+    "sourceArtifactHashes": {
+      "src/pricing.mjs": "71e466e3a5e5c4bebbc8c27c7c31bd59a48520f5e6b4c81a64e37fa61ef1e8e0",
+      "report.json": "f24f3d6c9d73a9928f31a2214fbcd4e5eef0b4641f123c59d93ca80d4ec2571b"
+    }
+  },
+  "simple-r2-j1n1a0": {
+    "bundle_id": "a8550c940a3efd0b",
+    "batch": "batch-4",
+    "sourceArtifactHashes": {
+      "src/pricing.mjs": "adb3371a302185d868741917d11bf66e94ae127e03b3fad84310206cbfb9c939",
+      "report.json": "55b906fea3ab6d2e21eb7cccc86d3a7e4fd360bd6fe9dea59dc44c47cb3d02e0"
+    }
+  },
+  "simple-r2-j1n0a0": {
+    "bundle_id": "0940e08b1990052c",
+    "batch": "batch-5",
+    "sourceArtifactHashes": {
+      "src/pricing.mjs": "d7a44998308c134fc0bd6720a14e672db9b80ef0c5874704d3ad103fe7792da7",
+      "report.json": "0a59219e51d0e41614a0355edb7011b42411dc40eda8a4a2b2a6f211a4f96916"
+    }
+  },
+  "simple-r2-j0n1a1": {
+    "bundle_id": "8044c1d0c2d8d785",
+    "batch": "batch-5",
+    "sourceArtifactHashes": {
+      "src/pricing.mjs": "03f4b765117c19d8f25a894e6a0b8f2a1456d5e630f6c7ff1d12e9c8905ae5b3",
+      "report.json": "00a2cd8f95b5edcea03833f46c28e42f78b0ffa29ac586035abeacd47e3c7be7"
+    }
+  },
+  "simple-r2-j1n1a1": {
+    "bundle_id": "5fae7d127d215adf",
+    "batch": "batch-5",
+    "sourceArtifactHashes": {
+      "src/pricing.mjs": "6921644528313df0120fc416fa428bd975f9801af4db8d4b3b2147c6415cbb4b",
+      "report.json": "3659da67232ef6d665d9f56a3d980d91721afdbe6557d9ce3f0425c854cbaa3d"
+    }
+  },
+  "simple-r2-j0n0a0": {
+    "bundle_id": "79cee466451847ad",
+    "batch": "batch-5",
+    "sourceArtifactHashes": {
+      "src/pricing.mjs": "084271e2994fa692483a71fea79af279442bf70dd390ffa7588f80dcf33874f1",
+      "report.json": "8487dd7d03728f9fa392c5616cfd57028a775be276360723cc040ef438fee55b"
+    }
+  },
+  "medium-r2-j0n0a1": {
+    "bundle_id": "08c2c01e6eadb2b1",
+    "batch": "batch-5",
+    "sourceArtifactHashes": {
+      "src/triage.mjs": "0b2e7ddf57c91f68fd4b6c4fba2d297ff843b09bf3be07806aa369f05c281b20",
+      "requirements.json": "e8138f3f48b7b53ec86b8852f0653d540b8985ae9cd4de35204d0acec5e1be99"
+    }
+  },
+  "medium-r2-j1n1a0": {
+    "bundle_id": "1211c9007f1866a4",
+    "batch": "batch-5",
+    "sourceArtifactHashes": {
+      "src/triage.mjs": "67a575f2aed1d78e0b3aff43b79c4546239eb89ee180f7e6a5568ba0250eb0d0",
+      "requirements.json": "4256a374952a8ad2b5994f488dc922be6c6981a282b06bd34e095efef1ff8400"
+    }
+  },
+  "medium-r2-j0n1a0": {
+    "bundle_id": "d7aaa97b0327bb99",
+    "batch": "batch-6",
+    "sourceArtifactHashes": {
+      "src/triage.mjs": "19889afd899b8f1d22fcc59d4f8c5c4bd65a47fe0cb735f9a0f0f2a65931967c",
+      "requirements.json": "03fb4d598f9507cf16f9afd691f99e1053ba1fed8597b4dbc48009168ff14428"
+    }
+  },
+  "medium-r2-j1n0a1": {
+    "bundle_id": "851989ad22d182c6",
+    "batch": "batch-6",
+    "sourceArtifactHashes": {
+      "src/triage.mjs": "900a67f824ba3bcdf2e98b21229a5c7a735b5dba92b1758dec4b6d0c5f128606",
+      "requirements.json": "5152548dcc30221299334f7e8be39f04e748f5f9560389c095c40e8d12bb3069"
+    }
+  },
+  "medium-r2-j1n1a1": {
+    "bundle_id": "bf858f8f978ccc5e",
+    "batch": "batch-6",
+    "sourceArtifactHashes": {
+      "src/triage.mjs": "c67c941cbd8ffe85b3174c5c462a63a45d67b2692b56ae924f55ecaf3c0911da",
+      "requirements.json": "804b0f7e520ca8c0c47f7a4f94b1a205ae1d60ca10e957039485f9132050f867"
+    }
+  },
+  "medium-r2-j0n0a0": {
+    "bundle_id": "46dd8fbb29263d17",
+    "batch": "batch-6",
+    "sourceArtifactHashes": {
+      "src/triage.mjs": "a9c6f52686816e28d1c45266cbfd36aef180d297f7b43e21e5b8c0ef9058fa58",
+      "requirements.json": "e6bf59b25f099183afb8764996af9242fd43cf091afc4cb3c6a0c18ba372a1c6"
+    }
+  },
+  "medium-r2-j1n0a0": {
+    "bundle_id": "37107072537d52ee",
+    "batch": "batch-6",
+    "sourceArtifactHashes": {
+      "src/triage.mjs": "1c26a01518d5f1369eb941c88e05a0bec6c61cc6d20f79fa2933fc56cbe9d045",
+      "requirements.json": "060b6911b0bdd65f65e5c74c8204b2c30c5d9da8d875b67ac3092769daff1d61"
+    }
+  },
+  "medium-r2-j0n1a1": {
+    "bundle_id": "b5fec1fd19aa8c8c",
+    "batch": "batch-6",
+    "sourceArtifactHashes": {
+      "src/triage.mjs": "df269f283d65b4ce3bbc9185d680b26a53b3d584cf909439680c39b70fc7e6af",
+      "requirements.json": "22ae2bab684e6014fa061196629f790859b3793af7da7696dc2f5dc276b58625"
+    }
+  },
+  "complex-r2-j1n0a0": {
+    "bundle_id": "2a745978a6951aa8",
+    "batch": "batch-7",
+    "sourceArtifactHashes": {
+      "src/inventory.mjs": "40c612695d05b9081c955f80897827b4473ceac2d1dad8161a393ac071d870fa",
+      "src/orders.mjs": "90a8c3d24b36ef7159661442af8eabf8970af50e5e3feda319f94c198879572a",
+      "acceptance-plan.json": "d035f40b6b256c357cb69e3df997d20103ecf5f3caf559523fcb5bb0606312e8"
+    }
+  },
+  "complex-r2-j0n1a1": {
+    "bundle_id": "d13a3b7a7ffc5a28",
+    "batch": "batch-7",
+    "sourceArtifactHashes": {
+      "src/inventory.mjs": "2f599868df754e21f4a6e8b9082b5e5ea7e30ff14d65c5769e1b5ccc948b810c",
+      "src/orders.mjs": "c6cb18a3217714c1f200d676afd3ffd65edefb7fc3d801ff878506a2ee1b053b",
+      "acceptance-plan.json": "16cecdbed431c4428e796bc8a6bc06b73a3077521c595632fbad68353d2ee94d"
+    }
+  },
+  "complex-r2-j1n1a1": {
+    "bundle_id": "bc7f4b615e44203a",
+    "batch": "batch-7",
+    "sourceArtifactHashes": {
+      "src/inventory.mjs": "304a4580aa428368bdd685e2b69191b04f0db51778faa4939c1c68b9613197bc",
+      "src/orders.mjs": "650d7124fe68b5fe7950fb88fc3dcc952c91550b7f0f662909ae531a5d8fa3d7",
+      "acceptance-plan.json": "a76230a20e54c96208e2b136dc4c0478895a1efc4eb3fbbd608548082139e301"
+    }
+  },
+  "complex-r2-j0n0a0": {
+    "bundle_id": "a8442571902eeff2",
+    "batch": "batch-8",
+    "sourceArtifactHashes": {
+      "src/inventory.mjs": "db546a970ec3dedba999b6868eb17e38ed5791afd4adaebfda2ee2223d7f1227",
+      "src/orders.mjs": "4f7d1339ffac71c6b1c3a2715a4d68e514fc4c8c85a62ce2991925c6df36bfc6",
+      "acceptance-plan.json": "e511124941867604b53de0bc2c9a5261eb8f0916d56516f94a8ac6e0d98b1eef"
+    }
+  },
+  "complex-r2-j0n1a0": {
+    "bundle_id": "3abe676852f8546a",
+    "batch": "batch-8",
+    "sourceArtifactHashes": {
+      "src/inventory.mjs": "b329e18f4d2340e5b110caf7fa0709deb69686ee882e825daacff94fd2b5d590",
+      "src/orders.mjs": "315a2ddd35a7d88bac688ab6fe355c3f90674ff7b5f03bf39e5587b8bf102f0a",
+      "acceptance-plan.json": "5a929c06ca547ec1c0a0703cfa09cda13f30860cca1e0b3144b5143770b0ad83"
+    }
+  },
+  "complex-r2-j1n0a1": {
+    "bundle_id": "0fc77962eda3c41a",
+    "batch": "batch-8",
+    "sourceArtifactHashes": {
+      "src/inventory.mjs": "04d5f8fc4ad0c5b4e795cca647557a0befb1092b34bc72ebdbe3a3869eb75fad",
+      "src/orders.mjs": "3064b0c0265e2155ceae4f30302316be1b908b7a01e5592e519074b0d23a668f",
+      "acceptance-plan.json": "814499a1e66766937b807faed9a2731f0d1c09ebf3190af5ab253780a155a58c"
+    }
+  },
+  "complex-r2-j0n0a1": {
+    "bundle_id": "3ff7c81d2a3aa24a",
+    "batch": "batch-9",
+    "sourceArtifactHashes": {
+      "src/inventory.mjs": "9aa99572e9101e7ae76e139c9ad6ce8be4e91683ea3068a7996f76c10cfd7bbf",
+      "src/orders.mjs": "03e9c9dd3b79dd2cdf208da14526fdd96c1091a5bd8ade492f6358e1a6cd7a64",
+      "acceptance-plan.json": "f7a87a30263bf89791895f29314528fa564729e3788246fb57fd90393a3225c2"
+    }
+  },
+  "complex-r2-j1n1a0": {
+    "bundle_id": "d752bb192b3419c4",
+    "batch": "batch-9",
+    "sourceArtifactHashes": {
+      "src/inventory.mjs": "df59b9371211c3e282302f79f4e74093468a1d6e0292fd18ff2e28f60e987f3f",
+      "src/orders.mjs": "d5c5719e311ba439699116a0a355e1a6d233e818806ab0bf5839ec5bb830dc45",
+      "acceptance-plan.json": "2e7339cab355b91009bca1d81a02e0094a4c5b9484936676674646e9bcd18a15"
+    }
+  }
+}

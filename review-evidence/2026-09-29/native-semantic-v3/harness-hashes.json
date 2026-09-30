@@ -1,0 +1,10 @@
+{
+  "scripts/benchmark-orqanix-semantic.mjs": "57c69a5c754a18ec3826df5218944046e7c00763be075fff5ba5d0097b1f5e97",
+  "scripts/benchmark-orqanix-semantic.test.mjs": "89d9a062da67a9531eba97feecca548a74e07e8f09128f5d3ddd04adfc7aa536",
+  "scripts/calibrate-orqanix-semantic.mjs": "dba166933bb15d994e73e731d5865218f2644f750d451dbaa05a210e3df8d28f",
+  "scripts/summarize-orqanix-semantic.mjs": "41a82a11759282dd57890230ffd3b64641dcfc5d80b18e7875daa75458e16874",
+  "scripts/lib/orqanix-semantic-tasks.mjs": "4fe70ecd367ad60d683dc179666f9b6b3f9864262d3eeee0cd3846bd3aa8e7e3",
+  "scripts/lib/orqanix-semantic-scoped-relay.mjs": "b500e6a5802b536daf4c25557541a13c8bf184f536989a3606632290cef49153",
+  "scripts/lib/orqanix-semantic-scoped-relay.test.mjs": "6920ae180b7b4bffca94bd1be4a45bd01fc6008eb32a10bc2eacb323dcf62798",
+  "review-evidence/2026-09-29/native-semantic-v3/PROTOCOL.md": "812386de18d34e45e519b4d0cd71223713f622ee7dd01571048d39ea6df57597"
+}

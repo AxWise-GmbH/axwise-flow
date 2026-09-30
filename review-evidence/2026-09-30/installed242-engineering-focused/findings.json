@@ -1,0 +1,95 @@
+{
+  "schema": "installed242-focused-findings.v1",
+  "installedVersion": "2.4.2 (5707)",
+  "sessionId": "20260930_15",
+  "engineeringCalls": 4,
+  "quality": {
+    "passed": true,
+    "originalBugDetectedByRegression": true,
+    "behavior": true,
+    "types": true,
+    "publicTests": true,
+    "regressionTests": true,
+    "immutableFailures": [],
+    "unexpectedFiles": []
+  },
+  "lsp": {
+    "attempted": true,
+    "succeeded": false,
+    "reportedError": "No language server found for this action; No language servers configured for this project",
+    "evidenceLimit": "lsp invocation confirmed by toolsUsed; exact error is reported in nested assistant output, because bridge does not preserve raw nested tool results"
+  },
+  "ast": {
+    "standaloneToolAdvertised": false,
+    "newRustToolsTested": false
+  },
+  "edit": {
+    "verified": true,
+    "testsExitCode": 0,
+    "jevReview": {
+      "status": "passed",
+      "reason": "advisory_review",
+      "advisory": true,
+      "provider": "typesafe",
+      "model": "jev-1.13.0",
+      "evaluatedAt": "2026-09-30T13:46:52.844Z",
+      "recordedAt": "2026-09-30T13:46:52.845Z",
+      "latencyMs": 302,
+      "qualityScore": 0.94,
+      "readyProbability": 0.83
+    }
+  },
+  "performance": {
+    "validComparison": false,
+    "reason": "Explicit four-step forced-use protocol with manual Smart approvals; no matched control; receipt durations exclude some phases and exec outputs are nested assistant reports"
+  },
+  "nestedToolResultCaptureGap": true,
+  "model": {
+    "primaryAlias": "orqaly-gemini",
+    "primaryThinking": "low",
+    "engineeringAlias": "orqaly-gemini",
+    "engineeringThinking": "high",
+    "resolvedUpstreamModelVerified": false
+  },
+  "verification": {
+    "installedHashesUnchanged": true,
+    "hashesAfter": {
+      "/Applications/Orqanix.app/Contents/Resources/bin/goose": "bef41ad1617fbe49fb6ef848858a12ee9b1eb335be012a91ab71c02909f967c7",
+      "/Applications/Orqanix.app/Contents/Resources/app.asar": "7418930fa30462baa78dfedbad101eda7873048e86b08aaf4bcd5c0c5815c7ce"
+    },
+    "sameAppPid": 75179,
+    "sameBackendPid": 75213,
+    "appStarted": "2026-09-30 08:59:21 Europe/Berlin",
+    "backendStarted": "2026-09-30 08:59:22 Europe/Berlin",
+    "noInstallOrRestart": true,
+    "settingsRestored": {
+      "native": false,
+      "axwise": true,
+      "jev": true,
+      "approvalMode": "smart_approve"
+    },
+    "originalChatRestored": "20260930_2"
+  },
+  "uiEvents": [
+    {
+      "event": "send",
+      "atMs": 1790775761041
+    },
+    {
+      "event": "allow-once",
+      "tool": "orqanix_engineering_edit",
+      "atMs": 1790775905802
+    },
+    {
+      "event": "allow-once",
+      "tool": "orqanix_engineering_exec",
+      "atMs": 1790776074257
+    },
+    {
+      "event": "ui-complete",
+      "atMs": 1790776151113,
+      "displayedWall": "5:27",
+      "sessionId": "20260930_15"
+    }
+  ]
+}

@@ -4,7 +4,10 @@ from email.parser import BytesParser
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -12,7 +15,7 @@ from unittest.mock import patch
 import zipfile
 
 from build import build_release, SOURCE_FILES, WHEEL_NAME, NPM_FILENAME, SDIST_FILENAME, DEPENDENCIES
-from launcher import node_binary
+from manifest import VERSION
 
 
 class DistributionTest(unittest.TestCase):
@@ -56,7 +59,7 @@ class DistributionTest(unittest.TestCase):
         self.assertFalse((output / "source/private-server.py").exists())
         with zipfile.ZipFile(output / "artifacts" / WHEEL_NAME) as archive:
             self.assertFalse(any("test" in name or "connector" in name for name in archive.namelist()))
-            records = csv.reader(io.StringIO(archive.read("axwise_extension-0.3.0.dist-info/RECORD").decode()))
+            records = csv.reader(io.StringIO(archive.read(f"axwise_extension-{VERSION}.dist-info/RECORD").decode()))
             for name, checksum, size in records:
                 if not checksum:
                     self.assertTrue(name.endswith("/RECORD"))
@@ -70,11 +73,11 @@ class DistributionTest(unittest.TestCase):
         output = self.base / "sdist"
         build_release(self.root, output)
         with tarfile.open(output / "artifacts" / SDIST_FILENAME, "r:gz") as archive:
-            prefix = "axwise_extension-0.3.0/"
+            prefix = f"axwise_extension-{VERSION}/"
             metadata = BytesParser().parsebytes(archive.extractfile(prefix + "PKG-INFO").read())
             self.assertEqual(metadata["Metadata-Version"], "2.4")
             self.assertEqual(metadata["Name"], "axwise-extension")
-            self.assertEqual(metadata["Version"], "0.3.0")
+            self.assertEqual(metadata["Version"], VERSION)
             self.assertEqual(metadata["License-File"], "LICENSE")
             self.assertIn(prefix + "LICENSE", archive.getnames())
             self.assertIn(prefix + "pyproject.toml", archive.getnames())
@@ -115,15 +118,88 @@ class DistributionTest(unittest.TestCase):
             self.assertNotIn(value, str(caught.exception))
             self.assertFalse((self.base / f"suspect-{index}").exists())
 
-    def test_node_version_and_absolute_override(self):
-        with self.assertRaisesRegex(ValueError, "absolute"):
-            node_binary({"AXWISE_NODE": "node"})
-        with patch("launcher.subprocess.run") as run:
-            run.return_value.stdout = "v22.15.0\n"
-            self.assertEqual(node_binary({"AXWISE_NODE": "/trusted/node"}), "/trusted/node")
-            run.return_value.stdout = "v20.0.0\n"
-            with self.assertRaisesRegex(ValueError, "22"):
-                node_binary({"AXWISE_NODE": "/trusted/node"})
+    def test_version_does_not_import_runtime_or_require_node(self):
+        from launcher import main
+        with patch("builtins.print") as output, self.assertRaises(SystemExit) as exited:
+            main(["--version"])
+        self.assertEqual(exited.exception.code, 0)
+
+
+class ExportedRuntimeTest(unittest.TestCase):
+    def test_real_export_runs_without_checkout_or_network(self):
+        """Use real shipped files, with fake inference through the public wrapper."""
+        root = Path(__file__).resolve().parents[2]
+        with tempfile.TemporaryDirectory(prefix="axwise-export-runtime-") as temporary:
+            work = Path(temporary)
+            release = work / "release"
+            build_release(root, release)
+            wheel_root = work / "installed"
+            with zipfile.ZipFile(release / "artifacts" / WHEEL_NAME) as archive:
+                archive.extractall(wheel_root)
+            config = {
+                "version": 1, "provider": "openai-compatible", "model": "test-model",
+                "baseUrl": "http://127.0.0.1:9876/v1", "allowLoopback": True,
+                "apiKeyEnv": "AXWISE_EXPORT_TEST_KEY", "stateDir": str(work / "state"),
+                "profileId": "test-profile", "workspaceId": "test-project", "sessionId": "test-session",
+            }
+            config_path = work / "config.json"
+            config_path.write_text(json.dumps(config))
+            script = r'''
+import asyncio, json, sys
+from pathlib import Path
+from unittest.mock import patch
+sys.path.insert(0, sys.argv[1])
+from axwise_extension import cli
+
+async def verify():
+    from backend.services.local_axwise import fastmcp_server as server
+    from backend.services.local_axwise.provider import ModelProvider
+    from backend.services.local_axwise.storage import find_latest_artifact
+    from backend.services.workflow_v2.cognitive.typesafe_triage import validate_deliverable_with_jev
+    assert callable(validate_deliverable_with_jev)
+    assert Path(server.__file__).resolve().is_relative_to(Path(sys.argv[1]).resolve())
+    settings = server.runtime_configuration()
+    names = {tool.name for tool in await server.mcp.list_tools()}
+    assert len(names) == 9 and 'run_full_discovery' in names
+    async def fake_complete(self, system_prompt, user_prompt, response_schema=None, max_output_tokens=4096):
+        assert self.provider_type == 'openai' and self.model == 'test-model'
+        assert self.base_url == 'http://127.0.0.1:9876/v1' and self.api_key == 'dummy-export-key'
+        request = json.loads(user_prompt)
+        candidate = {'title': 'Exported PRD', 'sections': [
+            {'heading': heading, 'items': [{'text': 'Propose a one-week pilot; the product owner reviews copying time before expanding scope.', 'basis': 'proposal', 'sourceIds': []}]}
+            for heading in request['requiredSections']]}
+        return json.dumps(candidate), {'inputTokens': 10, 'outputTokens': 20}
+    with patch.object(ModelProvider, 'complete', fake_complete), patch('backend.services.local_axwise.provider.discover_local_credentials', side_effect=AssertionError('unexpected discovery')):
+        rendered = await server.create_prd(brief='A shared handoff tracker. Draft a provisional PRD.')
+    assert 'Exported PRD' in rendered
+    artifact = find_latest_artifact(['create_prd'], session_id=settings.scope_id, state_dir=settings.state_dir)
+    assert artifact and (settings.state_dir / 'axwise.db').is_file()
+    assert list(settings.state_dir.rglob('*.md'))
+    print(json.dumps({'tools': len(names), 'scopedArtifact': True, 'jevImport': True}))
+
+def fake_run(self, **kwargs):
+    assert kwargs == {'transport': 'stdio'}
+    asyncio.run(verify())
+
+# cli imports its bundled kernel before FastMCP; intercept the transport only.
+sys.path.insert(0, str(Path(sys.argv[1]) / 'axwise_extension' / 'kernel'))
+with patch('mcp.server.fastmcp.FastMCP.run', fake_run), patch('socket.socket.connect', side_effect=AssertionError('network is forbidden')):
+    cli.main(['--config', sys.argv[2]])
+'''
+            # No checkout path, real secrets, or local dotenv/keychain discovery.
+            env = {"PATH": os.environ.get("PATH", ""), "HOME": str(work),
+                   "AXWISE_EXPORT_TEST_KEY": "dummy-export-key"}
+            result = subprocess.run([sys.executable, "-I", "-c", script, str(wheel_root), str(config_path)],
+                                    cwd=work, env=env, text=True, capture_output=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(result.stdout), {"tools": 9, "scopedArtifact": True, "jevImport": True})
+            # Exercise the real FastMCP stdio initialize/list protocol too.
+            # Tool discovery requires neither a configured key nor a provider.
+            from smoke import mcp_check
+            env.pop("AXWISE_EXPORT_TEST_KEY")
+            launch = "import sys; sys.path.insert(0, sys.argv[1]); from axwise_extension.cli import main; main(['--config', sys.argv[2]])"
+            protocol = mcp_check([sys.executable, "-I", "-c", launch, str(wheel_root), str(config_path)], env, work)
+            self.assertEqual(protocol["toolCount"], 9)
 
 
 if __name__ == "__main__":

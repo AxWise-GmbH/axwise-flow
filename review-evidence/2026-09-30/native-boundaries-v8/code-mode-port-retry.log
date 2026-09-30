@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.97s
+     Running unittests src/lib.rs (target/debug/deps/goose-07c34eaceba84da0)
+
+running 1 test
+test agents::state_machine::tests::prompt_skill_lifecycle::code_mode_capability_directory_reaches_state_machine_and_tracks_unmount ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2283 filtered out; finished in 0.47s
+
