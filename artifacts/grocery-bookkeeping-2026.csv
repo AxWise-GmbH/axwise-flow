@@ -1,0 +1,12 @@
+Date,Store,Category,Item_Description,Quantity,Unit_Price,Total_Amount,Currency,Receipt_ID
+2026-08-19,Kaufland,Beverages,Mineralwasser K-Classic 1.5L + Pfand,2,0.54,1.08,EUR,KAUF-2026-0819-01
+2026-08-19,Kaufland,Dairy & Eggs,Bio Frische Vollmilch 3.8% 1L,1,1.19,1.19,EUR,KAUF-2026-0819-02
+2026-08-19,Kaufland,Produce,Bio Bananen & Bio Gurke,1,4.11,4.11,EUR,KAUF-2026-0819-03
+2026-04-04,Edeka Center,Bakery & Deli,Frischetheke Käse & Landbrot,1,14.99,14.99,EUR,EDEKA-2026-0404-01
+2026-04-04,Edeka Center,Dairy & Snacks,Bio Joghurt & Mandel-Snack,1,9.99,9.99,EUR,EDEKA-2026-0404-02
+2026-04-04,Edeka Center,Household,Küchenrolle 4er Pack,1,1.99,1.99,EUR,EDEKA-2026-0404-03
+2026-04-04,Supermarkt,Snacks,Marvel Sammler-Cerealien 375g,1,9.99,9.99,EUR,SUP-2026-0404-01
+2026-04-04,Supermarkt,Beverages,Fruchtsäfte & Erfrischungsgetränke,1,14.99,14.99,EUR,SUP-2026-0404-02
+2026-03-14,Lidl,Pantry & Staples,Bio Butter 250g & Olivenöl 750ml,1,9.28,9.28,EUR,LIDL-2026-0314-01
+2026-02-09,Rewe,Produce & Dairy,Äpfel Elstar 1kg & Bio Hafermilch 2x,1,5.67,5.67,EUR,REWE-2026-0209-01
+2026-01-03,Kaufland,Bakery & Meat,Bio Hähnchenbrustfilet & Vollkorn-Baguette,1,12.45,12.45,EUR,KAUF-2026-0103-01
