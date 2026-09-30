@@ -1,0 +1,6 @@
+{
+  "scripts/self-test-native-semantic.mjs": "6ac2666b9a661855d8a3e19f313e7881dd8175803b2298824dc52143d9024dd4",
+  "scripts/summarize-orqanix-semantic.mjs": "41a82a11759282dd57890230ffd3b64641dcfc5d80b18e7875daa75458e16874",
+  "scripts/verify-orqanix-semantic.mjs": "526c0006ea8ad015b167e2f475784e759d8974ec3d7bfe4788d3795cf45115a9",
+  "ORQANIX_NATIVE_SEMANTIC_2026-09-29.md": "32bbcd66c6abefe935060c82bdbc40a7dc9c4a2ecd186f89207c9129836f0da8"
+}

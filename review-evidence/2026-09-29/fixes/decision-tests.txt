@@ -1,0 +1,10 @@
+
+ RUN  v3.2.4 /Users/admin/.codex/worktrees/verified-runtime-fixes/axwise-flow-oss/apps/orqaly
+
+ ✓ server/workflow-v2/desktop-decision-service.test.js (15 tests) 30ms
+
+ Test Files  1 passed (1)
+      Tests  15 passed (15)
+   Start at  10:40:27
+   Duration  317ms (transform 17ms, setup 42ms, collect 39ms, tests 30ms, environment 0ms, prepare 35ms)
+

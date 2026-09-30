@@ -55,7 +55,7 @@ export const SCENARIOS = Object.freeze([
   ] },
 ]);
 export const SAFETY = 'This isolated benchmark uses only synthetic examples. Use available capabilities when useful. You may read only this fixture workspace and save generated research artifacts. New Markdown files may be created only at the fixture workspace root: at most eight files, 64 KB each and 256 KB total. Never overwrite existing files, including README.md, or modify source code. Do not install software, edit repository files, access unrelated accounts or files, execute arbitrary code, commit, push, deploy or start background tasks. For current facts use available public-information capabilities. Report failures honestly.';
-const CAPABILITIES = Object.freeze({ ompEnabled: false, jevReviewEnabled: true });
+const CAPABILITIES = Object.freeze({ nativeGemsEnabled: false, jevReviewEnabled: true });
 const WRITE_NAMES = new Set(['write', 'developer__write']);
 const SHELL_NAMES = new Set(['shell', 'developer__shell', 'execute_bash']);
 const CALLBACKS = new Map([...AXWISE_TOOL_CALLBACKS, ['Developer.analyze', 'developer__analyze'],

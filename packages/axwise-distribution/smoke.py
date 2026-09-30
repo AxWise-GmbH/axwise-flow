@@ -14,7 +14,8 @@ import time
 from build import WHEEL_NAME, NPM_FILENAME
 
 EXPECTED = {"create_prd", "analyze_interviews", "simulate_interviews", "prepare_discovery",
-            "generate_personas", "chat_with_persona", "research_market", "create_delivery_brief"}
+            "generate_personas", "chat_with_persona", "research_market", "create_delivery_brief",
+            "run_full_discovery"}
 
 
 def run(command, *, env, cwd, input=None, timeout=180):
@@ -37,10 +38,11 @@ def mcp_check(command, env, work):
                           input="".join(json.dumps(request) + "\n" for request in requests))
     replies = {reply.get("id"): reply for reply in map(json.loads, result.stdout.splitlines())}
     assert "result" in replies[1], replies
-    assert replies[1]["result"]["serverInfo"] == {"name": "axwise-extension", "version": "0.3.0"}
+    assert replies[1]["result"]["serverInfo"]["name"] == "axwise-local"
+    assert replies[1]["result"]["serverInfo"]["version"]
     tools = replies[2]["result"]["tools"]
     assert {tool["name"] for tool in tools} == EXPECTED
-    assert len(tools) == 8
+    assert len(tools) == len(EXPECTED)
     assert not any("orqaly" in tool["description"].lower() for tool in tools)
     return {"elapsedMs": elapsed, "toolCount": len(tools), "server": replies[1]["result"]["serverInfo"]}
 

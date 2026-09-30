@@ -1,0 +1,361 @@
+{
+  "schema": "orqanix.signed-zero-diagnostic-protocol.v1",
+  "designation": "POST-INSPECTION signed-zero diagnostic; selected after reviewers observed explicit -0 rejection. Separate from the original oracle, the frozen 416-case supplemental audit, and the blinded qualitative review. Correlated checks, not independent trials.",
+  "designTiming": "POST-INSPECTION: motivated by explicit -0 rejections noticed in generated solutions. Expectations are fixed before this diagnostic executes. This is not a blinded or preregistered extension of the 416-case supplemental audit.",
+  "sourceContract": "/Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-tasks.mjs",
+  "sourceContractSha256": "061521b69c9a3b4bed770b139671a50d8b44346a5d2f3fd728d7322a00191a25",
+  "contractRationale": {
+    "invoice": "All inputs must be safe integers; price and quantity are nonnegative, discount is 0..10000 with default 0. Number.isSafeInteger(-0) is true and -0 satisfies those inclusive ranges. Calls must not reject it.",
+    "stock": "Plain stock {a:-0} has a nonempty SKU key and nonnegative safe-integer value. A one-unit reservation is insufficient_stock; empty lines are invalid_lines; empty orders preserve stock with no accepted IDs or rejections.",
+    "outputZeroSign": "The contract does not explicitly prescribe the sign of returned zero; the invoice formula can return -0. Returned +0 and -0 are treated as numerically equivalent and their observed signs are informational.",
+    "inputImmutability": "Argument contents are compared before and after each invocation, including signed zero via Object.is. Failed reserve calls must return a different remaining object; no extra identity constraint is imposed on fulfillOrders."
+  },
+  "selection": {
+    "requiredUniqueMatrixRows": 48,
+    "requiredRowsPerDifficulty": {
+      "simple": 16,
+      "medium": 16,
+      "complex": 16
+    },
+    "evaluatedDifficulties": [
+      "simple",
+      "complex"
+    ],
+    "medium": "Recorded as not_applicable; no medium candidate read or execution.",
+    "uniformity": "Every simple solution receives the same 11 cases and every complex solution the same 6 cases. No selection by results, flag configuration, or qualitative review.",
+    "reviewMapping": "No private mapping or qualitative review data is read or joined by the runner."
+  },
+  "caseSemantics": {
+    "signedZeroEncoding": {
+      "$signedZero": "-0"
+    },
+    "invocationsPerCase": 2,
+    "reuse": "Each case is repeated on the same inputs and implementation instance.",
+    "expectedEquality": "Structural value equality with returned signed zeros normalized. Only expected successful returns are accepted; every exception fails its case.",
+    "inputEquality": "Structural value equality retaining signed zero.",
+    "expectedCaseOutcomes": 272,
+    "expectedInvocations": 544
+  },
+  "limits": {
+    "sourceBytes": 131072,
+    "inputBytes": 4194304,
+    "outputBytes": 262144,
+    "vmTimeoutMs": 1500,
+    "processTimeoutMs": 4000,
+    "heapMiB": 96
+  },
+  "isolation": {
+    "execution": "One fresh bounded child per applicable solution; vm.SourceTextModule receives only allowed source bytes and VM-native checker code.",
+    "imports": "Only relative imports resolving to the supplied allowed source modules. No candidate access to filesystem, network, process, timers, or host functions; dynamic imports forbidden.",
+    "allowedSourceModules": {
+      "simple": [
+        "src/pricing.mjs"
+      ],
+      "complex": [
+        "src/inventory.mjs",
+        "src/orders.mjs"
+      ]
+    },
+    "caveat": "VM and process limits are defense in depth, not an OS security sandbox; the V8 heap bound is not a total-RSS bound."
+  },
+  "separation": {
+    "frozenSupplementalProtocolSha256": "bc6a8bd56f8098f796b557e79feea13c29014b9fe1af57b68335f88d2bce8996",
+    "frozenSupplementalRunnerSha256": "67691c14feb0bbfb2d29241ecbedd76a853aba59f152328e6c480c1a5eb36c93",
+    "frozenSupplementalSourceSha256": "1bc43d69e876727ed5947ace30aa1cbf47e55129574d333f76de1665370d22b5",
+    "aggregation": "Write signed-zero-result.json exclusively. Do not change, replace, or combine original or supplemental pass rates or qualitative review mappings."
+  },
+  "cases": {
+    "simple": [
+      {
+        "id": "simple-price-minus-zero",
+        "group": "signed_zero_price",
+        "variant": "minus_zero",
+        "module": "src/pricing.mjs",
+        "fn": "lineTotal",
+        "args": [
+          {
+            "$signedZero": "-0"
+          },
+          3,
+          0
+        ],
+        "expected": 0
+      },
+      {
+        "id": "simple-price-plus-zero",
+        "group": "signed_zero_price",
+        "variant": "plus_zero_control",
+        "module": "src/pricing.mjs",
+        "fn": "lineTotal",
+        "args": [
+          0,
+          3,
+          0
+        ],
+        "expected": 0
+      },
+      {
+        "id": "simple-quantity-minus-zero",
+        "group": "signed_zero_quantity",
+        "variant": "minus_zero",
+        "module": "src/pricing.mjs",
+        "fn": "lineTotal",
+        "args": [
+          199,
+          {
+            "$signedZero": "-0"
+          },
+          0
+        ],
+        "expected": 0
+      },
+      {
+        "id": "simple-quantity-plus-zero",
+        "group": "signed_zero_quantity",
+        "variant": "plus_zero_control",
+        "module": "src/pricing.mjs",
+        "fn": "lineTotal",
+        "args": [
+          199,
+          0,
+          0
+        ],
+        "expected": 0
+      },
+      {
+        "id": "simple-discount-minus-zero",
+        "group": "signed_zero_discount",
+        "variant": "minus_zero",
+        "module": "src/pricing.mjs",
+        "fn": "lineTotal",
+        "args": [
+          199,
+          3,
+          {
+            "$signedZero": "-0"
+          }
+        ],
+        "expected": 597
+      },
+      {
+        "id": "simple-discount-plus-zero",
+        "group": "signed_zero_discount",
+        "variant": "plus_zero_control",
+        "module": "src/pricing.mjs",
+        "fn": "lineTotal",
+        "args": [
+          199,
+          3,
+          0
+        ],
+        "expected": 597
+      },
+      {
+        "id": "simple-discount-omitted",
+        "group": "omitted_discount_default",
+        "variant": "omitted_default",
+        "module": "src/pricing.mjs",
+        "fn": "lineTotal",
+        "args": [
+          199,
+          3
+        ],
+        "expected": 597
+      },
+      {
+        "id": "simple-price-minus-zero-default",
+        "group": "omitted_discount_default",
+        "variant": "minus_zero",
+        "module": "src/pricing.mjs",
+        "fn": "lineTotal",
+        "args": [
+          {
+            "$signedZero": "-0"
+          },
+          3
+        ],
+        "expected": 0
+      },
+      {
+        "id": "simple-price-plus-zero-default",
+        "group": "omitted_discount_default",
+        "variant": "plus_zero_control",
+        "module": "src/pricing.mjs",
+        "fn": "lineTotal",
+        "args": [
+          0,
+          3
+        ],
+        "expected": 0
+      },
+      {
+        "id": "simple-quantity-minus-zero-default",
+        "group": "omitted_discount_default",
+        "variant": "minus_zero",
+        "module": "src/pricing.mjs",
+        "fn": "lineTotal",
+        "args": [
+          199,
+          {
+            "$signedZero": "-0"
+          }
+        ],
+        "expected": 0
+      },
+      {
+        "id": "simple-quantity-plus-zero-default",
+        "group": "omitted_discount_default",
+        "variant": "plus_zero_control",
+        "module": "src/pricing.mjs",
+        "fn": "lineTotal",
+        "args": [
+          199,
+          0
+        ],
+        "expected": 0
+      }
+    ],
+    "complex": [
+      {
+        "id": "complex-reserve-impossible-unit-minus-zero",
+        "group": "signed_zero_stock_insufficient",
+        "variant": "minus_zero",
+        "module": "src/inventory.mjs",
+        "fn": "reserve",
+        "args": [
+          {
+            "a": {
+              "$signedZero": "-0"
+            }
+          },
+          [
+            {
+              "sku": "a",
+              "quantity": 1
+            }
+          ]
+        ],
+        "expected": {
+          "accepted": false,
+          "remaining": {
+            "a": 0
+          },
+          "reason": "insufficient_stock"
+        },
+        "remainingCopy": true
+      },
+      {
+        "id": "complex-reserve-impossible-unit-plus-zero",
+        "group": "signed_zero_stock_insufficient",
+        "variant": "plus_zero_control",
+        "module": "src/inventory.mjs",
+        "fn": "reserve",
+        "args": [
+          {
+            "a": 0
+          },
+          [
+            {
+              "sku": "a",
+              "quantity": 1
+            }
+          ]
+        ],
+        "expected": {
+          "accepted": false,
+          "remaining": {
+            "a": 0
+          },
+          "reason": "insufficient_stock"
+        },
+        "remainingCopy": true
+      },
+      {
+        "id": "complex-reserve-empty-lines-minus-zero",
+        "group": "signed_zero_stock_invalid_lines",
+        "variant": "minus_zero",
+        "module": "src/inventory.mjs",
+        "fn": "reserve",
+        "args": [
+          {
+            "a": {
+              "$signedZero": "-0"
+            }
+          },
+          []
+        ],
+        "expected": {
+          "accepted": false,
+          "remaining": {
+            "a": 0
+          },
+          "reason": "invalid_lines"
+        },
+        "remainingCopy": true
+      },
+      {
+        "id": "complex-reserve-empty-lines-plus-zero",
+        "group": "signed_zero_stock_invalid_lines",
+        "variant": "plus_zero_control",
+        "module": "src/inventory.mjs",
+        "fn": "reserve",
+        "args": [
+          {
+            "a": 0
+          },
+          []
+        ],
+        "expected": {
+          "accepted": false,
+          "remaining": {
+            "a": 0
+          },
+          "reason": "invalid_lines"
+        },
+        "remainingCopy": true
+      },
+      {
+        "id": "complex-fulfill-empty-orders-minus-zero",
+        "group": "signed_zero_stock_empty_orders",
+        "variant": "minus_zero",
+        "module": "src/orders.mjs",
+        "fn": "fulfillOrders",
+        "args": [
+          {
+            "a": {
+              "$signedZero": "-0"
+            }
+          },
+          []
+        ],
+        "expected": {
+          "acceptedIds": [],
+          "rejected": [],
+          "remaining": {
+            "a": 0
+          }
+        }
+      },
+      {
+        "id": "complex-fulfill-empty-orders-plus-zero",
+        "group": "signed_zero_stock_empty_orders",
+        "variant": "plus_zero_control",
+        "module": "src/orders.mjs",
+        "fn": "fulfillOrders",
+        "args": [
+          {
+            "a": 0
+          },
+          []
+        ],
+        "expected": {
+          "acceptedIds": [],
+          "rejected": [],
+          "remaining": {
+            "a": 0
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "experiment": "Unified conditional native selection policy v5",
+  "rows": 12,
+  "tasks": [
+    "control",
+    "ast",
+    "lsp"
+  ],
+  "arms": [
+    "native_off",
+    "native_v5_on"
+  ],
+  "repetitionsPerTaskArm": 2,
+  "sameBinary": true,
+  "historicalV4": "Reference only; not a concurrently matched policy ablation",
+  "qualityGates": "Independent behavior/type/public/regression/original-bug mutation/protected-file checks",
+  "semanticAdoption": "Diagnostic; performance acceptance requires no slower total and each task median; do not claim benefit from semantic calls unless used",
+  "model": "gemini-3.8-flash",
+  "otherFlags": "Jev, Axwise and Code Mode off; legacy loop",
+  "scope": "Guidance only; no semantic backend behavior, tool names or tool schemas changed; no extra model call",
+  "frozenBeforeTiming": true
+}

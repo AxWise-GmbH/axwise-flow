@@ -1,0 +1,178 @@
+{
+  "workload": "controlled average() TypeScript fix; required native tools when mounted",
+  "model": "gemini-3.8-flash",
+  "reasoningEffortRequested": "high",
+  "httpAttempts": 81,
+  "requestModelEffortAllMatch": true,
+  "successfulResponseModelsAllMatch": true,
+  "nativeCompleted": 4,
+  "nativeMeanSeconds": 32.462250000000004,
+  "baselineCompleted": 1,
+  "baselineCorrectArtifacts": 3,
+  "rows": [
+    {
+      "arm": "native-off_loop-0",
+      "native": false,
+      "loop": "0",
+      "repetition": 1,
+      "elapsedSeconds": 18.688,
+      "completed": true,
+      "independentOraclePassed": true,
+      "nativeTreatmentPassed": true,
+      "accepted": true,
+      "httpAttempts": 11,
+      "reportedTotalTokens": 34959,
+      "requestsWithReportedUsage": 11,
+      "permissionDenials": [],
+      "non200Responses": []
+    },
+    {
+      "arm": "native-off_loop-1",
+      "native": false,
+      "loop": "1",
+      "repetition": 1,
+      "elapsedSeconds": 24.069,
+      "completed": false,
+      "independentOraclePassed": true,
+      "nativeTreatmentPassed": true,
+      "accepted": false,
+      "httpAttempts": 11,
+      "reportedTotalTokens": 47448,
+      "requestsWithReportedUsage": 11,
+      "permissionDenials": [
+        {
+          "tool": "shell",
+          "input": {
+            "command": "git status --short"
+          },
+          "reason": "Outside controlled fixture policy"
+        }
+      ],
+      "non200Responses": []
+    },
+    {
+      "arm": "native-on_loop-0",
+      "native": true,
+      "loop": "0",
+      "repetition": 1,
+      "elapsedSeconds": 35.697,
+      "completed": true,
+      "independentOraclePassed": true,
+      "nativeTreatmentPassed": true,
+      "accepted": true,
+      "httpAttempts": 11,
+      "reportedTotalTokens": 76088,
+      "requestsWithReportedUsage": 10,
+      "permissionDenials": [],
+      "non200Responses": [
+        {
+          "attempt": 24,
+          "httpStatus": 503
+        }
+      ]
+    },
+    {
+      "arm": "native-on_loop-1",
+      "native": true,
+      "loop": "1",
+      "repetition": 1,
+      "elapsedSeconds": 32.509,
+      "completed": true,
+      "independentOraclePassed": true,
+      "nativeTreatmentPassed": true,
+      "accepted": true,
+      "httpAttempts": 11,
+      "reportedTotalTokens": 90081,
+      "requestsWithReportedUsage": 11,
+      "permissionDenials": [],
+      "non200Responses": []
+    },
+    {
+      "arm": "native-on_loop-1",
+      "native": true,
+      "loop": "1",
+      "repetition": 2,
+      "elapsedSeconds": 28.181,
+      "completed": true,
+      "independentOraclePassed": true,
+      "nativeTreatmentPassed": true,
+      "accepted": true,
+      "httpAttempts": 10,
+      "reportedTotalTokens": 78106,
+      "requestsWithReportedUsage": 10,
+      "permissionDenials": [],
+      "non200Responses": []
+    },
+    {
+      "arm": "native-on_loop-0",
+      "native": true,
+      "loop": "0",
+      "repetition": 2,
+      "elapsedSeconds": 33.462,
+      "completed": true,
+      "independentOraclePassed": true,
+      "nativeTreatmentPassed": true,
+      "accepted": true,
+      "httpAttempts": 13,
+      "reportedTotalTokens": 94749,
+      "requestsWithReportedUsage": 13,
+      "permissionDenials": [],
+      "non200Responses": []
+    },
+    {
+      "arm": "native-off_loop-1",
+      "native": false,
+      "loop": "1",
+      "repetition": 2,
+      "elapsedSeconds": 11.754,
+      "completed": false,
+      "independentOraclePassed": false,
+      "nativeTreatmentPassed": true,
+      "accepted": false,
+      "httpAttempts": 6,
+      "reportedTotalTokens": 19773,
+      "requestsWithReportedUsage": 6,
+      "permissionDenials": [
+        {
+          "tool": "shell",
+          "input": {
+            "command": "cat -e average.ts"
+          },
+          "reason": "Outside controlled fixture policy"
+        }
+      ],
+      "non200Responses": []
+    },
+    {
+      "arm": "native-off_loop-0",
+      "native": false,
+      "loop": "0",
+      "repetition": 2,
+      "elapsedSeconds": 15.758,
+      "completed": false,
+      "independentOraclePassed": true,
+      "nativeTreatmentPassed": true,
+      "accepted": false,
+      "httpAttempts": 8,
+      "reportedTotalTokens": 24505,
+      "requestsWithReportedUsage": 8,
+      "permissionDenials": [
+        {
+          "tool": "shell",
+          "input": {
+            "command": "git status -s"
+          },
+          "reason": "Outside controlled fixture policy"
+        }
+      ],
+      "non200Responses": []
+    }
+  ],
+  "interpretation": [
+    "All four native runs exercise genuine tools and independently valid fixes.",
+    "Baseline command-policy rejections confound reliability comparison; do not treat 4/4 versus 1/4 completion as a general quality gain.",
+    "No speed or token saving demonstrated in this forced-tool small fixture.",
+    "Failed trials and transient HTTP503 retry remain included; no measured row rerun.",
+    "Token totals use only each request last reported usage snapshot; HTTP503 has no reported usage."
+  ]
+}

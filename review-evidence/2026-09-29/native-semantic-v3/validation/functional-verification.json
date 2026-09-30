@@ -1,0 +1,21 @@
+{
+  "nativeChecksPassed": true,
+  "checks": {
+    "ast_excludes_decoys": true,
+    "named_aliases_after_project_setup": true,
+    "open_document_refresh": true,
+    "ambiguity_rejected": true,
+    "qualified_symbol_query": true,
+    "pagination": true,
+    "verified_edit": true,
+    "rollback_restores_actual_bytes": true,
+    "stale_guard_prevents_marker": true
+  },
+  "cleanRecipePass": false,
+  "caveats": [
+    "Initial unconfigured TypeScript query omitted unopened consumer references; later project setup and opening the consumer yielded the correct graph.",
+    "Recipe attempted an out-of-scope filesystem-wide cargo prerequisite search; command returned code 1 with no output under confinement. No termination was confirmed.",
+    "The revised bounded-prerequisite recipe was rendered/validated offline afterward, not rerun through the model."
+  ],
+  "modelRun": "33 Gemini 3.8 Flash requests; separate from the 12 timed trials."
+}

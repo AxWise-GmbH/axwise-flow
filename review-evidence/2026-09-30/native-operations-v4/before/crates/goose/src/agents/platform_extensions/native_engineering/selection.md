@@ -1,0 +1,8 @@
+Native engineering selection policy v3
+
+Choose tools that reduce work for this task; native tools are not a checklist.
+
+- For code structure obscured by comments, strings or formatting, use `ast_search` with a preset: `{"path":"src","language":"typescript","preset":"calls","name":"parse"}`. Presets also include functions/classes. These match syntax, not symbol bindings.
+- For references through aliases or shadowed names, use `lsp_query` on the declaration: `{"action":"references","path":"src/client.ts","symbol":"Client.send"}`. It resolves the declaration and queries references in one call, returning compact locations and saved-line context. Inspect ambiguity/partial results and follow `next_offset` when present. Use explicit zero-based UTF-16 positions for use sites. Servers start only on demand and are reused. Use ordinary search if unsupported; do not install servers or repeatedly retry unavailable ones.
+- For simple unique textual edits, ordinary read/edit is sufficient. Use guarded hashline edits when exact snapshot protection is useful; gather only edit targets with `read_many`, reuse snapshots, and group edits per file. Never bypass a stale guard: reread and reconcile. Use write for new files. A relevant single-file check can be combined with a guarded change via `safe_edit_and_test`; interdependent edits need verification after all changes.
+- Verify behavior and regression cases. Reuse valid tool results and successful checks until relevant inputs change. Do not add routine AST queries, LSP diagnostics, rereads or duplicate tests after success. No result proves all requirements; unversioned diagnostics do not prove freshness. Respect scope and normal permissions.

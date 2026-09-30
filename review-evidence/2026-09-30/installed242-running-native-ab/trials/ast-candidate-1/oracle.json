@@ -1,0 +1,143 @@
+{
+  "key": "ast-candidate-1",
+  "boundary": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "workspace read",
+        "passed": true
+      },
+      {
+        "name": "workspace write and remove",
+        "passed": true
+      },
+      {
+        "name": "profile write",
+        "passed": true
+      },
+      {
+        "name": "own temp write",
+        "passed": true
+      },
+      {
+        "name": "other temp read denied",
+        "passed": true
+      },
+      {
+        "name": "other temp write denied",
+        "passed": true
+      },
+      {
+        "name": "user directory listing denied",
+        "passed": true
+      },
+      {
+        "name": "child inherits restriction",
+        "passed": true
+      },
+      {
+        "name": "symlink read escape denied",
+        "passed": true
+      },
+      {
+        "name": "symlink write escape denied",
+        "passed": true
+      },
+      {
+        "name": "hardlink escape denied",
+        "passed": true
+      },
+      {
+        "name": "app binary readable",
+        "passed": true
+      },
+      {
+        "name": "app resources immutable",
+        "passed": true
+      }
+    ],
+    "appliesTo": "Independent graders only; existing live backend was not relaunched into this boundary"
+  },
+  "passed": true,
+  "behavior": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "registration order",
+        "passed": true
+      },
+      {
+        "name": "success route 0",
+        "passed": true
+      },
+      {
+        "name": "success route 1",
+        "passed": true
+      },
+      {
+        "name": "success route 2",
+        "passed": true
+      },
+      {
+        "name": "success route 3",
+        "passed": true
+      },
+      {
+        "name": "success route 4",
+        "passed": true
+      },
+      {
+        "name": "forward failure route 0",
+        "passed": true
+      },
+      {
+        "name": "forward failure route 1",
+        "passed": true
+      },
+      {
+        "name": "forward failure route 3",
+        "passed": true
+      },
+      {
+        "name": "forward failure route 4",
+        "passed": true
+      },
+      {
+        "name": "synchronous health preserved",
+        "passed": true
+      },
+      {
+        "name": "unrelated audit and helper still reject",
+        "passed": true
+      }
+    ]
+  },
+  "types": {
+    "passed": true,
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "publicTests": {
+    "passed": true,
+    "exitCode": 0,
+    "stdout": "TAP version 13\n# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.306292\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 59.965583\n",
+    "stderr": ""
+  },
+  "regression": {
+    "passed": true,
+    "exitCode": 0,
+    "stdout": "TAP version 13\n# Subtest: route registration order and metadata\nok 1 - route registration order and metadata\n  ---\n  duration_ms: 0.466458\n  type: 'test'\n  ...\n# Subtest: successful handling for GET /accounts/:id\nok 2 - successful handling for GET /accounts/:id\n  ---\n  duration_ms: 0.274541\n  type: 'test'\n  ...\n# Subtest: error forwarding for GET /accounts/:id\nok 3 - error forwarding for GET /accounts/:id\n  ---\n  duration_ms: 0.092625\n  type: 'test'\n  ...\n# Subtest: successful handling for POST /accounts (named function)\nok 4 - successful handling for POST /accounts (named function)\n  ---\n  duration_ms: 0.058834\n  type: 'test'\n  ...\n# Subtest: error forwarding for POST /accounts (named function)\nok 5 - error forwarding for POST /accounts (named function)\n  ---\n  duration_ms: 0.108417\n  type: 'test'\n  ...\n# Subtest: synchronous route /health is preserved and not wrapped with async handler\nok 6 - synchronous route /health is preserved and not wrapped with async handler\n  ---\n  duration_ms: 0.054333\n  type: 'test'\n  ...\n# Subtest: successful handling for GET /orders/:id\nok 7 - successful handling for GET /orders/:id\n  ---\n  duration_ms: 0.104792\n  type: 'test'\n  ...\n# Subtest: error forwarding for GET /orders/:id\nok 8 - error forwarding for GET /orders/:id\n  ---\n  duration_ms: 0.052625\n  type: 'test'\n  ...\n# Subtest: successful handling for DELETE /orders/:id\nok 9 - successful handling for DELETE /orders/:id\n  ---\n  duration_ms: 0.239334\n  type: 'test'\n  ...\n# Subtest: error forwarding for DELETE /orders/:id\nok 10 - error forwarding for DELETE /orders/:id\n  ---\n  duration_ms: 0.591625\n  type: 'test'\n  ...\n# Subtest: unrelated async functions and callbacks are not wrapped\nok 11 - unrelated async functions and callbacks are not wrapped\n  ---\n  duration_ms: 0.286625\n  type: 'test'\n  ...\n1..11\n# tests 11\n# suites 0\n# pass 11\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 61.528\n",
+    "stderr": ""
+  },
+  "originalMutation": {
+    "detected": true,
+    "passed": false,
+    "exitCode": 1,
+    "signal": null,
+    "stdout": "TAP version 13\n# Subtest: route registration order and metadata\nok 1 - route registration order and metadata\n  ---\n  duration_ms: 0.49675\n  type: 'test'\n  ...\n# Subtest: successful handling for GET /accounts/:id\nok 2 - successful handling for GET /accounts/:id\n  ---\n  duration_ms: 0.279542\n  type: 'test'\n  ...\n# Subtest: error forwarding for GET /accounts/:id\nnot ok 3 - error forwarding for GET /accounts/:id\n  ---\n  duration_ms: 0.087834\n  type: 'test'\n  location: '/private/tmp/orqanix-installed242-live-20260930/ast-candidate-1/fixture/workspace/tests/regression.test.mjs:50:1'\n  failureType: 'testCodeFailure'\n  error: 'account read'\n  code: 'ERR_TEST_FAILURE'\n  stack: |-\n    Object.handler (file:///private/tmp/orqanix-installed242-live-20260930/ast-candidate-1/fixture/workspace/src/routes/accounts.ts:4:24)\n    TestContext.<anonymous> (file:///private/tmp/orqanix-installed242-live-20260930/ast-candidate-1/fixture/workspace/tests/regression.test.mjs:54:26)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.processPendingSubtests (node:internal/test_runner/test:744:18)\n    Test.postRun (node:internal/test_runner/test:1173:19)\n    Test.run (node:internal/test_runner/test:1101:12)\n    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)\n  ...\n# Subtest: successful handling for POST /accounts (named function)\nok 4 - successful handling for POST /accounts (named function)\n  ---\n  duration_ms: 0.059208\n  type: 'test'\n  ...\n# Subtest: error forwarding for POST /accounts (named function)\nnot ok 5 - error forwarding for POST /accounts (named function)\n  ---\n  duration_ms: 0.05475\n  type: 'test'\n  location: '/private/tmp/orqanix-installed242-live-20260930/ast-candidate-1/fixture/workspace/tests/regression.test.mjs:74:1'\n  failureType: 'testCodeFailure'\n  error: 'account create'\n  code: 'ERR_TEST_FAILURE'\n  stack: |-\n    Object.createAccount [as handler] (file:///private/tmp/orqanix-installed242-live-20260930/ast-candidate-1/fixture/workspace/src/routes/accounts.ts:8:24)\n    TestContext.<anonymous> (file:///private/tmp/orqanix-installed242-live-20260930/ast-candidate-1/fixture/workspace/tests/regression.test.mjs:78:26)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.processPendingSubtests (node:internal/test_runner/test:744:18)\n    Test.postRun (node:internal/test_runner/test:1173:19)\n    Test.run (node:internal/test_runner/test:1101:12)\n    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)\n  ...\n# Subtest: synchronous route /health is preserved and not wrapped with async handler\nok 6 - synchronous route /health is preserved and not wrapped with async handler\n  ---\n  duration_ms: 0.047667\n  type: 'test'\n  ...\n# Subtest: successful handling for GET /orders/:id\nok 7 - successful handling for GET /orders/:id\n  ---\n  duration_ms: 0.058459\n  type: 'test'\n  ...\n# Subtest: error forwarding for GET /orders/:id\nnot ok 8 - error forwarding for GET /orders/:id\n  ---\n  duration_ms: 0.06525\n  type: 'test'\n  location: '/private/tmp/orqanix-installed242-live-20260930/ast-candidate-1/fixture/workspace/tests/regression.test.mjs:112:1'\n  failureType: 'testCodeFailure'\n  error: 'order read'\n  code: 'ERR_TEST_FAILURE'\n  stack: |-\n    Object.handler (file:///private/tmp/orqanix-installed242-live-20260930/ast-candidate-1/fixture/workspace/src/routes/orders.ts:7:24)\n    async TestContext.<anonymous> (file:///private/tmp/orqanix-installed242-live-20260930/ast-candidate-1/fixture/workspace/tests/regression.test.mjs:116:3)\n    async Test.run (node:internal/test_runner/test:1054:7)\n    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)\n  ...\n# Subtest: successful handling for DELETE /orders/:id\nok 9 - successful handling for DELETE /orders/:id\n  ---\n  duration_ms: 0.218625\n  type: 'test'\n  ...\n# Subtest: error forwarding for DELETE /orders/:id\nnot ok 10 - error forwarding for DELETE /orders/:id\n  ---\n  duration_ms: 0.273959\n  type: 'test'\n  location: '/private/tmp/orqanix-installed242-live-20260930/ast-candidate-1/fixture/workspace/tests/regression.test.mjs:136:1'\n  failureType: 'testCodeFailure'\n  error: 'order delete'\n  code: 'ERR_TEST_FAILURE'\n  stack: |-\n    Object.handler (file:///private/tmp/orqanix-installed242-live-20260930/ast-candidate-1/fixture/workspace/src/routes/orders.ts:11:24)\n    TestContext.<anonymous> (file:///private/tmp/orqanix-installed242-live-20260930/ast-candidate-1/fixture/workspace/tests/regression.test.mjs:140:26)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.processPendingSubtests (node:internal/test_runner/test:744:18)\n    Test.postRun (node:internal/test_runner/test:1173:19)\n    Test.run (node:internal/test_runner/test:1101:12)\n    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)\n  ...\n# Subtest: unrelated async functions and callbacks are not wrapped\nok 11 - unrelated async functions and callbacks are not wrapped\n  ---\n  duration_ms: 0.231542\n  type: 'test'\n  ...\n1..11\n# tests 11\n# suites 0\n# pass 7\n# fail 4\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 63.689708\n",
+    "stderr": "Command failed: /usr/bin/sandbox-exec -f /private/tmp/orqanix-installed242-live-20260930/ast-candidate-1/grading-boundary.sb /private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/node/bin/node --experimental-strip-types --test tests/regression.test.mjs\n"
+  },
+  "immutableFailures": [],
+  "unexpectedFiles": []
+}

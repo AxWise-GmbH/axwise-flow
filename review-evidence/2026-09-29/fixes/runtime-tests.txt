@@ -1,0 +1,8 @@
+............................................................................................................................................................................................................................../private/tmp/axwise-review-config-venv/lib/python3.11/site-packages/pydantic_settings/sources/utils.py:47: IncompleteFieldDefinitionWarning: Field 'lifespan' has an incomplete definition: its annotation contains an unresolved forward reference, so settings sources may fail to correctly resolve its value. Call `model_rebuild()` on the model where the field is defined, once all the referenced types are defined.
+  warnings.warn(
+Executing <Task finished name='Task-135' coro=<WrapperScopeTests.test_every_tool_and_pipeline_lookup_use_one_host_owned_scope() done, defined at /Users/admin/.codex/worktrees/verified-runtime-fixes/axwise-flow-oss/backend/tests/local_axwise/test_public_config.py:121> result=None created at /opt/homebrew/Cellar/python@3.11/3.11.12/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/runners.py:100> took 0.141 seconds
+.......................................................
+----------------------------------------------------------------------
+Ran 277 tests in 2.457s
+
+OK

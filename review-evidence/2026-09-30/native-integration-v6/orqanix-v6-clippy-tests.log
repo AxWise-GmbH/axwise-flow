@@ -1,0 +1,38 @@
+    Checking tokio-util v0.7.19
+    Checking process-wrap v9.1.0
+    Checking sqlx-core v0.9.0
+    Checking image v0.24.9
+    Checking tree-sitter v0.26.13
+    Checking onig_sys v69.9.3
+    Checking nibble_vec v0.1.0
+    Checking plist v1.10.0
+    Checking onig v6.5.3
+    Checking radix_trie v0.3.0
+    Checking rustyline v18.0.1
+    Checking h2 v0.4.19
+    Checking tower-http v0.6.11
+    Checking syntect v5.3.0
+    Checking bat v0.26.1
+    Checking sqlx-sqlite v0.9.0
+    Checking sqlx v0.9.0
+    Checking hyper v1.11.1
+    Checking hyper-util v0.1.20
+    Checking hyper-rustls v0.27.9
+    Checking axum v0.8.9
+    Checking axum-server v0.8.0
+    Checking wiremock v0.6.5
+    Checking reqwest v0.13.4
+    Checking reqwest v0.12.28
+    Checking oauth2 v5.0.0
+    Checking goose-download-manager v0.1.0-alpha.8 (/private/tmp/orqaly-goose-verified-fixes/crates/goose-download-manager)
+    Checking rmcp v3.2.0
+    Checking agent-client-protocol-http v2.0.0 (https://github.com/agentclientprotocol/rust-sdk?rev=c97a5203d3392f7f231514d84eea014f9f43e6fb#c97a5203)
+    Checking goose-provider-types v0.1.0-alpha.8 (/private/tmp/orqaly-goose-verified-fixes/crates/goose-provider-types)
+    Checking goose-mcp v1.50.0 (/private/tmp/orqaly-goose-verified-fixes/crates/goose-mcp)
+    Checking goose-test-support v1.50.0 (/private/tmp/orqaly-goose-verified-fixes/crates/goose-test-support)
+    Checking goose-providers v0.1.0-alpha.8 (/private/tmp/orqaly-goose-verified-fixes/crates/goose-providers)
+    Checking goose-agent v0.1.0-alpha.8 (/private/tmp/orqaly-goose-verified-fixes/crates/goose-agent)
+    Checking goose-context-management v0.1.0-alpha.8 (/private/tmp/orqaly-goose-verified-fixes/crates/goose-context-management)
+    Checking goose v1.50.0 (/private/tmp/orqaly-goose-verified-fixes/crates/goose)
+    Checking goose-cli v1.50.0 (/private/tmp/orqaly-goose-verified-fixes/crates/goose-cli)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 54.55s

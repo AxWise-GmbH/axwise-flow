@@ -1,0 +1,17 @@
+[
+  {
+    "id": "I1",
+    "role": "Support lead",
+    "quote": "Urgent open tickets must appear before normal and low tickets; ties should use the ticket ID in ascending order."
+  },
+  {
+    "id": "I2",
+    "role": "Operations analyst",
+    "quote": "Repeated IDs are updates: keep the last occurrence, and exclude tickets whose latest state is closed."
+  },
+  {
+    "id": "I3",
+    "role": "Account manager",
+    "quote": "The summary must count open tickets by severity and list each affected customer once in ascending ID order."
+  }
+]

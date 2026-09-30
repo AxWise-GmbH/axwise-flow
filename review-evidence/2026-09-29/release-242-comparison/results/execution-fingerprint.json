@@ -1,0 +1,40 @@
+{
+  "maxModelCalls": 120,
+  "primaryEffort": "provider default, identical across arms",
+  "nestedOmpEffort": "high, as shipped",
+  "preflight": false,
+  "timeoutSeconds": 600,
+  "languageServers": {
+    "kind": "added_native_lsp_verified",
+    "versions": {
+      "pyright": "1.1.414",
+      "typescript": "5.9.3",
+      "typescript-language-server": "6.0.1"
+    }
+  },
+  "bin/goose": "9f10ec5e88a3c80d7739774cbfb5d59ed1632afc96d28516e2127b584d023d57",
+  "bin/goose-release": "bef41ad1617fbe49fb6ef848858a12ee9b1eb335be012a91ab71c02909f967c7",
+  "bin/benchmark-auth.mjs": "b20d374c3c41965d81e1c58a75040b619539fe8230ac8649307fab2f0797d3c3",
+  "bin/selection-ab-build.json": "45dc0a8895376066d192daf6bd31014dbeb38a162b71cb0e5245f8dd6e6da680",
+  "bin/goose-candidate": "27c173e104fa24d964d3ffd29ea0833499069434c8d7e4951ac58a040f7ad879",
+  "orqaly-runtime/connector/src/cli.mjs": "2f9223bdde66e67620df625c3e9150c695331ecd54d0109ff76e6278158d9c40",
+  "orqaly-runtime/runtime-manifest.json": "9700ffd185bc5be0292c555b120461863ea14c11336688e5a0e1927996fc48fd",
+  "benchmark-release242-native.mjs": "2aa8e16d468da5b520ea8146cb5e56e4041282037e042c975a75d0663514398b",
+  "benchmark-orqanix-efficiency.mjs": "33205b1734e7ff928b4097bd140842571d5f02572a1d1fa70663da2876a2c8ed",
+  "benchmark-goose-reset.mjs": "382fc2bebb2912826c3234285067e050c9e3224b0c433267d340c0053ed47c92",
+  "benchmark-local-axwise.mjs": "98e57f620d5776e11b259201f3612b945a9cb9f08f575af38868f2cc130f3a4e",
+  "benchmark-native-engineering.mjs": "b05b60a2d2e21e8c74502f892a4d7eebc4d4eed99184425005970ef86930934d",
+  "lib/orqanix-efficiency-tasks.mjs": "cde46e999894298d2fdcb2af08b40f4192002471b49a3e9e6780ff6e4aa73d6c",
+  "lib/orqanix-selection-sandbox.mjs": "4ed8381b593405bf387f17b1e320cf9c2e22a79d7c5586482dcd13b5740977d7",
+  "lib/orqanix-specialist-sandbox.mjs": "41758dd153febf772d16114b4b44e2d7b97f0cc6c205cf1adf461d29122075f1",
+  "lib/orqanix-release242-relay.mjs": "53686a1608e4d03e2022f890a7a20209192dcd4d6e0791156c507e5c5c6d097e",
+  "lib/orqanix-release242-scoped-relay.mjs": "fb5c248078a8c9620be7d467b4f3dfb3a50a050120e96c7644dcad72efc2f9bf",
+  "prompt-release": "c21576c52923f51d6e9eae6679eccea6f7cbb9c9fd336709d5977dae886ab24f",
+  "prompt-candidate": "1e63f21400c5c78bcaaa52288cce569671b2d043cafb1ba20df6fb965ef868d0",
+  "engineering/src/mcp.mjs": "6b51438f600b8f35ffdf4b61b7a76eb77184d4354b2cfa8301ee832ad8da5773",
+  "engineering/src/config.mjs": "e23078fb2fb15342e5100d679f2682011c5ddb51518490ac526841218ff7d8c1",
+  "engineering/src/omp-client.mjs": "c5d253b68676977b108b89e7a827cc53dce96a630f9b6ec89f431ccbeb7034f9",
+  "engineering/src/evidence.mjs": "69c00309495917178d09150f1a5a0b68f994fe9e88b7721a0d2422382730d281",
+  "omp/bin/omp": "ac673868a1598b4beda98dc6ce2148f24afabc42816c702b2dac5f79f0d861de",
+  "providerTemplate": "656da91963e31b4ac3f199156bda093940cd94f7008254c089c8ffff15d3b200"
+}

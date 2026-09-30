@@ -200,7 +200,7 @@ def build_release(root, output):
     provenance = {"format": "axwise.release.v1", "version": VERSION,
                   "sourceManifestSha256": digest(files["SOURCE-MANIFEST.json"]),
                   "dependencies": list(DEPENDENCIES), "artifacts": items,
-                  "prerequisites": {"node": ">=22", "python": ">=3.11", "npmLauncher": "uv (uvx) on PATH"}}
+                  "prerequisites": {"python": ">=3.11", "npmLauncher": "Node >=22 and uv (uvx) on PATH"}}
     write_new(artifacts / "release-manifest.json", (json.dumps(provenance, indent=2) + "\n").encode())
     write_new(artifacts / "SHA256SUMS", "".join(f"{item['sha256']}  {item['file']}\n" for item in items).encode())
     return provenance

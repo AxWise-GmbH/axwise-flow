@@ -1,0 +1,3 @@
+{"event":"starting","key":"control-default-1"}
+{"event":"finished","key":"control-default-1","status":"harness_or_app_error","error":"RENDERER_UNAVAILABLE"}
+APP_OR_HARNESS_REQUIRES_DIAGNOSIS

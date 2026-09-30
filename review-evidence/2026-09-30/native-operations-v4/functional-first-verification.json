@@ -1,0 +1,205 @@
+{
+  "kind": "functional-recipe-not-timed-benchmark",
+  "passed": false,
+  "checks": {
+    "terminal": true,
+    "model": true,
+    "capability": true,
+    "astFunctions": true,
+    "astCalls": true,
+    "ambiguity": true,
+    "qualifiedReferences": true,
+    "renamePlan": true,
+    "renameApply": true,
+    "batchApply": true,
+    "batchRollback": true,
+    "singleRollback": true,
+    "staleSingle": true,
+    "staleBatch": true,
+    "noHostDiscovery": false
+  },
+  "modelRequests": 45,
+  "unwantedDiscovery": [
+    "python3 --version; which pyright pyright-langserver pylsp typescript-language-server tsserver node 2>&1 || true",
+    "echo $PATH; ls -la \"/private/tmp/orqanix-operations-v4-app-20260930/Orqanix Operations Test.app/Contents/Resources/orqaly-runtime/node/bin\" 2>/dev/null || true",
+    "find \"/private/tmp/orqanix-operations-v4-app-20260930\" -name \"*server*\" -o -name \"pyright*\" -o -name \"typescript*\" 2>/dev/null || true"
+  ],
+  "nativeReceipts": [
+    {
+      "name": "ast_search",
+      "plan": false,
+      "batch": false,
+      "status": "completed"
+    },
+    {
+      "name": "ast_search",
+      "plan": false,
+      "batch": false,
+      "status": "completed"
+    },
+    {
+      "name": "lsp_query",
+      "action": "references",
+      "plan": false,
+      "batch": false,
+      "status": "failed",
+      "code": "ambiguous_symbol"
+    },
+    {
+      "name": "lsp_query",
+      "action": "references",
+      "plan": false,
+      "batch": false,
+      "status": "completed"
+    },
+    {
+      "name": "lsp_query",
+      "action": "references",
+      "plan": false,
+      "batch": false,
+      "status": "completed"
+    },
+    {
+      "name": "lsp_query",
+      "action": "references",
+      "plan": false,
+      "batch": false,
+      "status": "failed",
+      "code": "ambiguous_symbol"
+    },
+    {
+      "name": "lsp_query",
+      "action": "references",
+      "plan": false,
+      "batch": false,
+      "status": "completed"
+    },
+    {
+      "name": "lsp_query",
+      "action": "references",
+      "plan": false,
+      "batch": false,
+      "status": "completed"
+    },
+    {
+      "name": "lsp_query",
+      "action": "references",
+      "plan": false,
+      "batch": false,
+      "status": "completed"
+    },
+    {
+      "name": "hashline_edit",
+      "action": "read_many",
+      "plan": false,
+      "batch": false,
+      "status": "read_many",
+      "verified": false
+    },
+    {
+      "name": "safe_edit_and_test",
+      "plan": false,
+      "batch": false,
+      "status": "verified",
+      "verified": true
+    },
+    {
+      "name": "hashline_edit",
+      "action": "read",
+      "plan": false,
+      "batch": false,
+      "status": "read",
+      "verified": false
+    },
+    {
+      "name": "safe_edit_and_test",
+      "plan": false,
+      "batch": false,
+      "status": "failed",
+      "verified": false
+    },
+    {
+      "name": "safe_edit_and_test",
+      "plan": false,
+      "batch": false,
+      "status": "error",
+      "error": "STALE_PREIMAGE: Read the current file and regenerate anchors.",
+      "verified": false
+    },
+    {
+      "name": "hashline_edit",
+      "action": "read",
+      "plan": false,
+      "batch": false,
+      "status": "read",
+      "verified": false
+    },
+    {
+      "name": "lsp_query",
+      "action": "rename",
+      "plan": false,
+      "batch": false,
+      "status": "completed"
+    },
+    {
+      "name": "lsp_query",
+      "action": "rename",
+      "plan": false,
+      "batch": false,
+      "status": "failed",
+      "code": "ambiguous_symbol"
+    },
+    {
+      "name": "lsp_query",
+      "action": "rename",
+      "plan": false,
+      "batch": false,
+      "status": "completed"
+    },
+    {
+      "name": "safe_edit_and_test",
+      "plan": true,
+      "batch": false,
+      "status": "verified",
+      "verified": true
+    },
+    {
+      "name": "hashline_edit",
+      "action": "read_many",
+      "plan": false,
+      "batch": false,
+      "status": "read_many",
+      "verified": false
+    },
+    {
+      "name": "safe_edit_and_test",
+      "plan": false,
+      "batch": true,
+      "status": "failed",
+      "verified": false
+    },
+    {
+      "name": "safe_edit_and_test",
+      "plan": false,
+      "batch": true,
+      "status": "error",
+      "error": "STALE_PREIMAGE: Read the current file and regenerate anchors.",
+      "verified": false
+    },
+    {
+      "name": "hashline_edit",
+      "action": "read_many",
+      "plan": false,
+      "batch": false,
+      "status": "read_many",
+      "verified": false
+    },
+    {
+      "name": "safe_edit_and_test",
+      "plan": false,
+      "batch": true,
+      "status": "verified",
+      "verified": true
+    }
+  ]
+}

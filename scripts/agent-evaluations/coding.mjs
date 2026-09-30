@@ -1,7 +1,5 @@
 import { execFile as nodeExecFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { createServer } from 'node:http';
-import { once } from 'node:events';
 import {
   chmod,
   mkdir,
@@ -13,16 +11,11 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
-import { runEngineeringTask } from '../../packages/omp-mcp-server/src/omp-client.mjs';
 
 const MAX_SOURCE_BYTES = 16_384;
 const TARGET_FILENAME = /^src\/[a-z][a-z0-9-]*\.js$/;
 const EXPORT_FUNCTION = /export\s+function\s+([A-Za-z_$][\w$]*)\s*\(/;
 const SHA256 = /^[a-f0-9]{64}$/;
-const DEFAULT_OMP_BINARY = '/opt/orqanix/omp/bin/omp';
 const DEFAULT_TIMEOUT_MS = 180_000;
 
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
@@ -77,100 +70,6 @@ function assertCodingCase(caseData) {
     }
   }
   return { fixture, exportName: match[1] };
-}
-
-function modelsYaml(apiBaseUrl) {
-  return [
-    'providers:',
-    '  orqanix:',
-    `    baseUrl: ${JSON.stringify(apiBaseUrl)}`,
-    '    api: openai-completions',
-    '    apiKey: ORQANIX_OMP_TOKEN',
-    '    authHeader: true',
-    '    models:',
-    '      - id: orqaly-gemini',
-    '        name: Orqanix Gemini',
-    '        reasoning: true',
-    '        input: [text]',
-    '        contextWindow: 1048576',
-    '        maxTokens: 65536',
-    '',
-  ].join('\n');
-}
-
-async function startOmpGateway({ apiBaseUrl, tokenProvider, signal }) {
-  const localSecret = sha256(randomUUID());
-  const upstream = `${apiBaseUrl.replace(/\/$/, '')}/chat/completions`;
-  const server = createServer(async (request, response) => {
-    response.setHeader('Cache-Control', 'no-store');
-    if (
-      request.method !== 'POST' ||
-      request.url !== '/chat/completions' ||
-      request.headers.authorization !== `Bearer ${localSecret}`
-    ) {
-      response.writeHead(403, { 'Content-Type': 'application/json' });
-      response.end('{"error":{"code":"LOCAL_GATEWAY_DENIED"}}');
-      return;
-    }
-    const chunks = [];
-    let size = 0;
-    const requestController = new AbortController();
-    const disconnected = () => {
-      if (!response.writableEnded) requestController.abort();
-    };
-    request.once('aborted', disconnected);
-    response.once('close', disconnected);
-    try {
-      for await (const chunk of request) {
-        size += chunk.length;
-        if (size > 2 * 1024 * 1024) throw new Error('request_too_large');
-        chunks.push(chunk);
-      }
-      const token = await tokenProvider({}, signal);
-      const deadline = AbortSignal.timeout(DEFAULT_TIMEOUT_MS);
-      const signals = [requestController.signal, deadline, ...(signal ? [signal] : [])];
-      const upstreamResponse = await fetch(upstream, {
-        method: 'POST',
-        headers: {
-          'Content-Type': request.headers['content-type'] || 'application/json',
-          'X-Orqaly-Evaluation-Authorization': `Bearer ${token}`,
-        },
-        body: Buffer.concat(chunks),
-        redirect: 'error',
-        signal: AbortSignal.any(signals),
-      });
-      response.writeHead(upstreamResponse.status, {
-        'Content-Type': upstreamResponse.headers.get('content-type') || 'application/json',
-        'Cache-Control': 'no-store',
-      });
-      if (upstreamResponse.body) {
-        await pipeline(Readable.fromWeb(upstreamResponse.body), response);
-      }
-      else response.end();
-    } catch {
-      if (!response.headersSent) {
-        response.writeHead(502, { 'Content-Type': 'application/json' });
-        response.end('{"error":{"code":"LOCAL_GATEWAY_UPSTREAM_FAILED"}}');
-      } else response.destroy();
-    } finally {
-      request.off('aborted', disconnected);
-      response.off('close', disconnected);
-    }
-  });
-  server.listen(0, '127.0.0.1');
-  await once(server, 'listening');
-  const address = server.address();
-  if (!address || typeof address === 'string') throw new Error('Local OMP gateway did not bind.');
-  return {
-    apiBaseUrl: `http://127.0.0.1:${address.port}`,
-    tokenProvider: async () => localSecret,
-    close: async () => {
-      const closed = once(server, 'close');
-      server.close();
-      server.closeAllConnections?.();
-      await closed;
-    },
-  };
 }
 
 const notEvaluatedReview = (reason) => ({
@@ -273,12 +172,10 @@ async function createFixture(caseData, workRoot) {
   const root = await mkdtemp(join(await realpath(workRoot), 'orqanix-coding-'));
   const workspace = join(root, 'workspace');
   const testDir = join(root, 'trusted-tests');
-  const stateDir = join(root, 'omp-state');
   const targetPath = join(workspace, fixture.targetFilename);
   const testPath = join(testDir, 'verify.mjs');
   await mkdir(dirname(targetPath), { recursive: true, mode: 0o700 });
   await mkdir(testDir, { mode: 0o700 });
-  await mkdir(stateDir, { mode: 0o700 });
   await writeFile(targetPath, fixture.starter, { mode: 0o600 });
   await writeFile(join(workspace, 'package.json'), '{"private":true,"type":"module"}\n', {
     mode: 0o600,
@@ -301,7 +198,6 @@ async function createFixture(caseData, workRoot) {
   return {
     root,
     workspace,
-    stateDir,
     targetPath,
     targetFilename: fixture.targetFilename,
     testDir,
@@ -443,126 +339,38 @@ export function extractVanillaSource(response, targetFilename) {
   return source;
 }
 
-function runnerConfig({ fixture, apiBaseUrl, accountHash, conversationId, ompBinary, timeoutMs }) {
+function reviewConfig({ apiBaseUrl, accountHash, conversationId }) {
   if (typeof accountHash !== 'string' || !SHA256.test(accountHash)) {
     throw new Error('A dedicated evaluation account hash is required.');
   }
   if (typeof conversationId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(conversationId)) {
     throw new Error('A dedicated evaluation conversation ID is required.');
   }
+  return { accountHash, conversationId, apiBaseUrl: apiBaseUrl.replace(/\/$/, '') };
+}
+
+export const NATIVE_CODING_BENCHMARK = 'scripts/benchmark-native-engineering.mjs';
+
+/** The removed delegated coding arm is unavailable; native Goose has a separate harness. */
+export async function runOrqanixCodingArm() {
+  const timestamp = new Date().toISOString();
   return {
-    workspace: fixture.workspace,
-    binary: ompBinary,
-    node: process.execPath,
-    connector: fileURLToPath(import.meta.url),
-    connectorConfig: fileURLToPath(import.meta.url),
-    connectorCwd: dirname(fileURLToPath(import.meta.url)),
-    accountHash,
-    conversationId,
-    apiBaseUrl: apiBaseUrl.replace(/\/$/, ''),
-    stateDir: fixture.stateDir,
-    model: 'orqanix/orqaly-gemini',
-    thinking: 'high',
-    timeoutMs,
-    startupTimeoutMs: 30_000,
-    maxOutputBytes: 32_768,
+    status: 'failed',
+    executionSucceeded: false,
+    model: 'native-goose/unavailable',
+    endpoint: 'native-goose/evaluation-adapter-unavailable',
+    startedAt: timestamp,
+    finishedAt: timestamp,
+    elapsedMs: 0,
+    output: '',
+    evaluation: { verdict: 'not_evaluated', reason: 'native_coding_adapter_unavailable' },
+    evidence: {
+      execution: 'unavailable',
+      benchmark: NATIVE_CODING_BENCHMARK,
+      reason: 'The cloud coding adapter is retired. Use the separate native Goose benchmark; no coding model or tests ran for this arm.',
+    },
+    error: 'NATIVE_CODING_ADAPTER_UNAVAILABLE',
   };
-}
-
-async function writeModelProfile(config) {
-  await writeFile(join(config.stateDir, 'models.yml'), modelsYaml(config.apiBaseUrl), {
-    mode: 0o600,
-    flag: 'wx',
-  });
-}
-
-/**
- * Execute one real OMP edit against a disposable fixture. The injected token is
- * passed only to OMP and the Jev request; the generated-code test gets neither.
- */
-export async function runOrqanixCodingArm({
-  caseData,
-  apiBaseUrl,
-  accountHash,
-  conversationId,
-  tokenProvider,
-  signal,
-  ompBinary = process.env.ORQANIX_EVALUATION_OMP_BINARY || DEFAULT_OMP_BINARY,
-  workRoot = join(tmpdir(), 'orqanix-agent-evaluations'),
-  timeoutMs = DEFAULT_TIMEOUT_MS,
-  jevEvaluator,
-  engineeringTaskRunner = runEngineeringTask,
-  ompGatewayFactory = startOmpGateway,
-  keepWorkspace = false,
-}) {
-  if (typeof tokenProvider !== 'function') throw new Error('tokenProvider is required.');
-  const fixture = await createFixture(caseData, workRoot);
-  const startedAt = new Date().toISOString();
-  const started = Date.now();
-  let gateway;
-  try {
-    if (typeof apiBaseUrl !== 'string' || !apiBaseUrl.startsWith('https://')) {
-      throw new Error('A HTTPS evaluation gateway base URL is required.');
-    }
-    gateway = await ompGatewayFactory({ apiBaseUrl, tokenProvider, signal });
-    const config = runnerConfig({
-      fixture,
-      apiBaseUrl: gateway.apiBaseUrl,
-      accountHash,
-      conversationId,
-      ompBinary,
-      timeoutMs,
-    });
-    await writeModelProfile(config);
-    const result = await engineeringTaskRunner({
-      config,
-      task: caseData.prompt,
-      mode: 'edit',
-      timeoutMs,
-      signal,
-      tokenProvider: gateway.tokenProvider,
-      jevEvaluator: (args) => invokeValidatedJev(
-        jevEvaluator || machineJevEvaluator({ apiBaseUrl, tokenProvider }),
-        args
-      ),
-      acceptanceCriteria: caseData.criteria,
-      researchReferences: [],
-      testCommand: verificationCommand(fixture),
-    });
-    const checks = await fixtureChecks(fixture, result.evidence?.tests);
-    const executionSucceeded = ['completed', 'review_required'].includes(result.status);
-    return {
-      status: executionSucceeded ? 'completed' : 'failed',
-      executionSucceeded,
-      model: 'orqanix/orqaly-gemini',
-      endpoint: apiBaseUrl,
-      startedAt,
-      finishedAt: new Date().toISOString(),
-      elapsedMs: Date.now() - started,
-      output: result.assistantText || '',
-      outputTruncated: result.outputTruncated === true,
-      checks: { ...checks, jevStatus: result.review?.status || 'not_evaluated' },
-      evaluation: executionSucceeded
-        ? armEvaluation(checks, result.review?.status)
-        : { verdict: 'not_evaluated', reason: result.code || result.status || 'omp_failed' },
-      evidence: {
-        execution: 'headless_omp',
-        requestedModel: 'orqanix/orqaly-gemini',
-        taskId: result.taskId,
-        inputHash: result.inputHash,
-        evidenceHash: result.evidenceHash,
-        targetHash: checks.targetHash,
-        tests: result.evidence?.tests,
-        diff: result.evidence?.diff,
-        toolsUsed: result.toolsUsed || [],
-        review: result.review,
-      },
-      ...(executionSucceeded ? {} : { error: result.code || result.status || 'OMP_FAILED' }),
-    };
-  } finally {
-    if (gateway) await gateway.close();
-    if (!keepWorkspace) await removeFixture(fixture);
-  }
 }
 
 async function evaluateVanillaWithJev({
@@ -642,14 +450,7 @@ export async function runVanillaCodingArm({
     if (typeof apiBaseUrl !== 'string' || !apiBaseUrl.startsWith('https://')) {
       throw new Error('A HTTPS evaluation gateway base URL is required.');
     }
-    const config = runnerConfig({
-      fixture,
-      apiBaseUrl,
-      accountHash,
-      conversationId,
-      ompBinary: DEFAULT_OMP_BINARY,
-      timeoutMs,
-    });
+    const config = reviewConfig({ apiBaseUrl, accountHash, conversationId });
     const response = await vanillaCall({ prompt: caseData.prompt, signal, caseData });
     const rawOutput = outputText(response);
     if (response?.status && response.status !== 'completed') {
@@ -756,7 +557,7 @@ export async function runVanillaCodingArm({
   }
 }
 
-/** Run identical catalog input through real OMP and the direct-model comparator. */
+/** Preserve the direct-model comparator and record the unavailable coding arm explicitly. */
 export async function runCodingPair(options) {
   const settledArm = async (operation, model, execution) => {
     const startedAt = new Date().toISOString();
@@ -787,7 +588,7 @@ export async function runCodingPair(options) {
     }
   };
   const [orqanix, vanilla] = await Promise.all([
-    settledArm(() => runOrqanixCodingArm(options), 'orqanix/orqaly-gemini', 'headless_omp'),
+    settledArm(() => runOrqanixCodingArm(options), 'native-goose/unavailable', 'unavailable'),
     settledArm(() => runVanillaCodingArm(options), 'vanilla', 'direct_model'),
   ]);
   return { orqanix, vanilla };

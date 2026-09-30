@@ -1,0 +1,653 @@
+{
+  "rows": [
+    {
+      "key": "control-default-1",
+      "seconds": 26.822,
+      "passed": true,
+      "providerOccupancySeconds": 22.383,
+      "providerCallsInSendWindow": 14,
+      "operations": [],
+      "safeEditTests": [],
+      "omittedReplacementBoundaryNewlines": [],
+      "shellFailureDisposition": [],
+      "ordinaryDeveloperInstructionsPresent": true,
+      "policyVersions": [
+        "None"
+      ]
+    },
+    {
+      "key": "control-candidate-1",
+      "seconds": 33.226,
+      "passed": true,
+      "providerOccupancySeconds": 29.357,
+      "providerCallsInSendWindow": 12,
+      "operations": [
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 11,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 13,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 126,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        }
+      ],
+      "safeEditTests": [
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 0,
+          "plan": false,
+          "milliseconds": 126
+        }
+      ],
+      "omittedReplacementBoundaryNewlines": [],
+      "shellFailureDisposition": [],
+      "ordinaryDeveloperInstructionsPresent": true,
+      "policyVersions": [
+        "v8"
+      ]
+    },
+    {
+      "key": "ast-candidate-1",
+      "seconds": 60.753,
+      "passed": true,
+      "providerOccupancySeconds": 53.761,
+      "providerCallsInSendWindow": 19,
+      "operations": [
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 8,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 12,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 19,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 20,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "ast_search",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 23,
+          "verified": null,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 20,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 33,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 137,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        }
+      ],
+      "safeEditTests": [
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 2,
+          "plan": false,
+          "milliseconds": 137
+        }
+      ],
+      "omittedReplacementBoundaryNewlines": [],
+      "shellFailureDisposition": [],
+      "ordinaryDeveloperInstructionsPresent": true,
+      "policyVersions": [
+        "v8"
+      ]
+    },
+    {
+      "key": "ast-default-1",
+      "seconds": 54.421,
+      "passed": true,
+      "providerOccupancySeconds": 47.141,
+      "providerCallsInSendWindow": 20,
+      "operations": [],
+      "safeEditTests": [],
+      "omittedReplacementBoundaryNewlines": [],
+      "shellFailureDisposition": [],
+      "ordinaryDeveloperInstructionsPresent": true,
+      "policyVersions": [
+        "None"
+      ]
+    },
+    {
+      "key": "lsp-default-1",
+      "seconds": 136.297,
+      "passed": true,
+      "providerOccupancySeconds": 122.71,
+      "providerCallsInSendWindow": 37,
+      "operations": [],
+      "safeEditTests": [],
+      "omittedReplacementBoundaryNewlines": [],
+      "shellFailureDisposition": [],
+      "ordinaryDeveloperInstructionsPresent": true,
+      "policyVersions": [
+        "None"
+      ]
+    },
+    {
+      "key": "lsp-candidate-1",
+      "seconds": 89.773,
+      "passed": true,
+      "providerOccupancySeconds": 82.183,
+      "providerCallsInSendWindow": 20,
+      "operations": [
+        {
+          "tool": "hashline_edit",
+          "action": "read",
+          "status": "completed",
+          "milliseconds": 12,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 17,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 17,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 17,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 25,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 253,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        }
+      ],
+      "safeEditTests": [
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 14,
+          "plan": false,
+          "milliseconds": 253
+        }
+      ],
+      "omittedReplacementBoundaryNewlines": [],
+      "shellFailureDisposition": [
+        {
+          "command": "node --experimental-strip-types --test tests/regression.test.mjs",
+          "beforeNativeBatch": true,
+          "disposition": "New regression test failed against unmodified bug before the native batch; final independent grading passed."
+        }
+      ],
+      "ordinaryDeveloperInstructionsPresent": true,
+      "policyVersions": [
+        "v8"
+      ]
+    },
+    {
+      "key": "control-candidate-2",
+      "seconds": 36.924,
+      "passed": true,
+      "providerOccupancySeconds": 32.353,
+      "providerCallsInSendWindow": 14,
+      "operations": [
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 11,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 13,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 127,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        }
+      ],
+      "safeEditTests": [
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 0,
+          "plan": false,
+          "milliseconds": 127
+        }
+      ],
+      "omittedReplacementBoundaryNewlines": [],
+      "shellFailureDisposition": [],
+      "ordinaryDeveloperInstructionsPresent": true,
+      "policyVersions": [
+        "v8"
+      ]
+    },
+    {
+      "key": "control-default-2",
+      "seconds": 32.363,
+      "passed": true,
+      "providerOccupancySeconds": 26.108,
+      "providerCallsInSendWindow": 16,
+      "operations": [],
+      "safeEditTests": [],
+      "omittedReplacementBoundaryNewlines": [],
+      "shellFailureDisposition": [],
+      "ordinaryDeveloperInstructionsPresent": true,
+      "policyVersions": [
+        "None"
+      ]
+    },
+    {
+      "key": "ast-default-2",
+      "seconds": 46.237,
+      "passed": true,
+      "providerOccupancySeconds": 39.639,
+      "providerCallsInSendWindow": 17,
+      "operations": [],
+      "safeEditTests": [],
+      "omittedReplacementBoundaryNewlines": [],
+      "shellFailureDisposition": [],
+      "ordinaryDeveloperInstructionsPresent": true,
+      "policyVersions": [
+        "None"
+      ]
+    },
+    {
+      "key": "ast-candidate-2",
+      "seconds": 59.519,
+      "passed": true,
+      "providerOccupancySeconds": 52.629,
+      "providerCallsInSendWindow": 17,
+      "operations": [
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 9,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "ast_search",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 18,
+          "verified": null,
+          "code": null,
+          "error": null,
+          "compact": null,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 5,
+          "previewComplete": null
+        },
+        {
+          "tool": "hashline_edit",
+          "action": "read_many",
+          "status": "completed",
+          "milliseconds": 26,
+          "verified": false,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        },
+        {
+          "tool": "safe_edit_and_test",
+          "action": null,
+          "status": "completed",
+          "milliseconds": 134,
+          "verified": true,
+          "code": null,
+          "error": null,
+          "compact": true,
+          "planApplied": false,
+          "filesChanged": null,
+          "analysisInputs": null,
+          "matches": 0,
+          "previewComplete": null
+        }
+      ],
+      "safeEditTests": [
+        {
+          "verified": true,
+          "testExecuted": true,
+          "testExit": 0,
+          "testCommand": [
+            "node",
+            "--experimental-strip-types",
+            "--test",
+            "tests/public.test.mjs",
+            "tests/regression.test.mjs"
+          ],
+          "batchFiles": 2,
+          "plan": false,
+          "milliseconds": 134
+        }
+      ],
+      "omittedReplacementBoundaryNewlines": [
+        {
+          "path": "src/routes/accounts.ts",
+          "endLine": 10,
+          "mode": "lines",
+          "toolCallId": "call_537806",
+          "meaning": "Omitted terminator retained by v8 default line mode; intentional exact mode remains verbatim."
+        },
+        {
+          "path": "src/routes/orders.ts",
+          "endLine": 1,
+          "mode": "lines",
+          "toolCallId": "call_537806",
+          "meaning": "Omitted terminator retained by v8 default line mode; intentional exact mode remains verbatim."
+        },
+        {
+          "path": "src/routes/orders.ts",
+          "endLine": 13,
+          "mode": "lines",
+          "toolCallId": "call_537806",
+          "meaning": "Omitted terminator retained by v8 default line mode; intentional exact mode remains verbatim."
+        }
+      ],
+      "shellFailureDisposition": [
+        {
+          "command": "node --experimental-strip-types --test tests/*.test.mjs",
+          "beforeNativeBatch": true,
+          "disposition": "New regression test failed against unmodified bug before the native batch; final independent grading passed."
+        }
+      ],
+      "ordinaryDeveloperInstructionsPresent": true,
+      "policyVersions": [
+        "v8"
+      ]
+    },
+    {
+      "key": "lsp-candidate-2",
+      "seconds": 119.481,
+      "passed": true,
+      "providerOccupancySeconds": 106.499,
+      "providerCallsInSendWindow": 43,
+      "operations": [],
+      "safeEditTests": [],
+      "omittedReplacementBoundaryNewlines": [],
+      "shellFailureDisposition": [],
+      "ordinaryDeveloperInstructionsPresent": true,
+      "policyVersions": [
+        "v8"
+      ]
+    },
+    {
+      "key": "lsp-default-2",
+      "seconds": 118.303,
+      "passed": true,
+      "providerOccupancySeconds": 103.398,
+      "providerCallsInSendWindow": 39,
+      "operations": [],
+      "safeEditTests": [],
+      "omittedReplacementBoundaryNewlines": [],
+      "shellFailureDisposition": [],
+      "ordinaryDeveloperInstructionsPresent": true,
+      "policyVersions": [
+        "None"
+      ]
+    }
+  ],
+  "successfulAst": 2,
+  "successfulRenamePlans": 0,
+  "verifiedPlanApplies": 0,
+  "diagnosticTimeouts": 0,
+  "limitation": "Tool durations include IPC; provider occupancy is a clipped union of request intervals, not causal attribution or paid/uncached token accounting."
+}

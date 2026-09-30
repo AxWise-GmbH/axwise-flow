@@ -1,0 +1,6 @@
+{
+  "scripts/summarize-goose-efficiency.mjs": "2caa08ce17411735b30bc760fb68d4d2823bc2468dc8cccbf0a10b48e670f017",
+  "scripts/verify-goose-efficiency.mjs": "62e6905889b1371ac9409d6f77a7a140ec4821ad2ca668f10945209d47b23adb",
+  "scripts/lib/orqanix-efficiency-outcome.mjs": "ad8d4709298dd33d1abd9ade96b78692fe21fc692cf3e103054003e414d141b7",
+  "scripts/lib/orqanix-efficiency-outcome.test.mjs": "a9ad491915af3df85902e966f66cafeefa9013bb942e3de4d5569bbf1a249c95"
+}

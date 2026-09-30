@@ -1,0 +1,172 @@
+{
+  "summary": "Triage specification derived from support interviews covering ticket normalization, deduplication by latest update, severity priority ordering, and customer summary generation.",
+  "requirements": [
+    {
+      "id": "latest_open",
+      "description": "Repeated ticket IDs represent updates where only the last occurrence is preserved, and tickets whose latest state is closed are excluded from the open ticket summary and queue.",
+      "sources": [
+        {
+          "id": "I2",
+          "quote": "Repeated IDs are updates: keep the last occurrence, and exclude tickets whose latest state is closed."
+        }
+      ],
+      "acceptance": {
+        "given": "a list of tickets that may contain repeated ticket IDs",
+        "when": "the ticket summary is generated",
+        "then": "only the last occurrence of each ticket ID is kept, and any ticket whose final state is closed is excluded"
+      }
+    },
+    {
+      "id": "priority_order",
+      "description": "Open tickets in the queue must be prioritized by severity in the order of urgent, normal, then low, with ties within the same severity sorted by ticket ID in ascending order.",
+      "sources": [
+        {
+          "id": "I1",
+          "quote": "Urgent open tickets must appear before normal and low tickets; ties should use the ticket ID in ascending order."
+        }
+      ],
+      "acceptance": {
+        "given": "a list of open tickets with various severities and IDs",
+        "when": "the triage queue is constructed",
+        "then": "tickets are ordered urgent before normal before low, and tickets with identical severity are ordered by ticket ID in ascending order"
+      }
+    },
+    {
+      "id": "customer_summary",
+      "description": "The summary must report the count of open tickets broken down by severity (urgent, normal, low) and provide a list of unique customer IDs with open tickets in ascending order.",
+      "sources": [
+        {
+          "id": "I3",
+          "quote": "The summary must count open tickets by severity and list each affected customer once in ascending ID order."
+        }
+      ],
+      "acceptance": {
+        "given": "a collection of open tickets across multiple customers and severities",
+        "when": "the ticket summary is computed",
+        "then": "the summary includes counts by severity and unique customer IDs sorted in ascending order"
+      }
+    }
+  ],
+  "assumptions": [
+    "Tickets are normalized before deduplication and filtering.",
+    "Non-array inputs to summarizeTickets and malformed tickets to normalizeTicket reject with TypeError.",
+    "Input objects are treated as immutable and must not be mutated.",
+    "Closed tickets are completely excluded from openCount, bySeverity counts, customerIds, and the queue."
+  ],
+  "scenarios": [
+    {
+      "id": "latest_closed",
+      "input": [
+        {
+          "id": "a",
+          "title": "Fix",
+          "customerId": "c",
+          "severity": "urgent",
+          "state": "open"
+        },
+        {
+          "id": "a",
+          "title": "Fixed",
+          "customerId": "c",
+          "severity": "urgent",
+          "state": "closed"
+        }
+      ],
+      "expected": {
+        "openCount": 0,
+        "bySeverity": {
+          "urgent": 0,
+          "normal": 0,
+          "low": 0
+        },
+        "customerIds": [],
+        "queue": []
+      }
+    },
+    {
+      "id": "priority_and_tie_breaking",
+      "input": [
+        {
+          "id": "t3",
+          "title": "Bug 3",
+          "customerId": "c2",
+          "severity": "normal",
+          "state": "open"
+        },
+        {
+          "id": "t1",
+          "title": "Bug 1",
+          "customerId": "c1",
+          "severity": "urgent",
+          "state": "open"
+        },
+        {
+          "id": "t2",
+          "title": "Bug 2",
+          "customerId": "c2",
+          "severity": "urgent",
+          "state": "open"
+        },
+        {
+          "id": "t4",
+          "title": "Bug 4",
+          "customerId": "c3",
+          "severity": "low",
+          "state": "open"
+        }
+      ],
+      "expected": {
+        "openCount": 4,
+        "bySeverity": {
+          "urgent": 2,
+          "normal": 1,
+          "low": 1
+        },
+        "customerIds": [
+          "c1",
+          "c2",
+          "c3"
+        ],
+        "queue": [
+          "t1",
+          "t2",
+          "t3",
+          "t4"
+        ]
+      }
+    },
+    {
+      "id": "update_keeps_last_occurrence",
+      "input": [
+        {
+          "id": "t1",
+          "title": "Original",
+          "customerId": "c1",
+          "severity": "low",
+          "state": "open"
+        },
+        {
+          "id": "t1",
+          "title": "Escalated",
+          "customerId": "c1",
+          "severity": "urgent",
+          "state": "open"
+        }
+      ],
+      "expected": {
+        "openCount": 1,
+        "bySeverity": {
+          "urgent": 1,
+          "normal": 0,
+          "low": 0
+        },
+        "customerIds": [
+          "c1"
+        ],
+        "queue": [
+          "t1"
+        ]
+      }
+    }
+  ]
+}

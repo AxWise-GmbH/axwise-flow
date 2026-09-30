@@ -1,0 +1,61 @@
+    Blocking waiting for file lock on build directory
+   Compiling goose v1.50.0 (/private/tmp/orqaly-goose-verified-fixes/crates/goose)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 50.18s
+     Running unittests src/lib.rs (target/debug/deps/goose-62ab65b17019e158)
+
+running 52 tests
+test security::adversary_inspector::tests::test_extract_original_task ... ok
+test security::adversary_inspector::tests::shell_review_policy_also_covers_native_test_commands ... ok
+test security::adversary_inspector::tests::test_parse_empty ... ok
+test security::adversary_inspector::tests::test_parse_frontmatter_empty_rules_uses_defaults ... ok
+test security::adversary_inspector::tests::test_parse_with_tools_frontmatter ... ok
+test security::adversary_inspector::tests::test_format_tool_call_includes_siblings_of_command ... ok
+test security::adversary_inspector::tests::test_format_tool_call_keeps_fence_text_in_json_string ... ok
+test security::adversary_inspector::tests::test_format_tool_call_shell ... ok
+test security::adversary_inspector::tests::test_format_tool_call_write ... ok
+test security::adversary_inspector::tests::test_extract_recent_user_messages ... ok
+test security::adversary_inspector::tests::test_should_review_matches ... ok
+test security::adversary_inspector::tests::test_should_review_skips_non_matching ... ok
+test security::adversary_inspector::tests::test_parse_without_frontmatter ... ok
+test security::egress_inspector::tests::test_extract_domain_from_url ... ok
+test security::adversary_inspector::tests::user_context_extraction_skips_turn_context_events ... ok
+test security::adversary_inspector::tests::test_disabled_when_no_adversary_md ... ok
+test security::egress_inspector::tests::test_detect_direction ... ok
+test security::egress_inspector::tests::test_gcs_detection ... ok
+test security::egress_inspector::tests::native_test_argv_preserves_egress_inspection ... ok
+test security::egress_inspector::tests::test_scp_detection ... ok
+test security::egress_inspector::tests::test_docker_detection ... ok
+test security::egress_inspector::tests::test_package_publish_detection ... ok
+test security::egress_inspector::tests::test_extract_destinations ... ok
+test security::egress_inspector::tests::test_ssh_detection ... ok
+test security::egress_inspector::tests::test_generic_network_catchall ... ok
+test security::patterns::tests::rm_rf_root_bare_no_false_positives ... ok
+test security::patterns::tests::rm_rf_root_bare_matches_known_variants ... ok
+test security::patterns::tests::rm_rf_home_or_root_no_false_positives_on_subdirs ... ok
+test security::patterns::tests::curl_bash_execution_rejects_non_shell_basenames ... ok
+test security::patterns::tests::unicode_obfuscation_requires_consecutive_escapes ... ok
+test security::patterns::tests::rm_rf_home_or_root_matches_bare_targets ... ok
+test security::patterns::tests::password_cracking_tools_no_false_positives_on_name_john ... ok
+test security::patterns::tests::curl_bash_execution_matches_path_qualified_shells ... ok
+test security::patterns::tests::password_cracking_tools_matches_real_invocations ... ok
+test security::scanner::tests::extract_user_messages_skips_turn_context_events ... ok
+test security::patterns::tests::log_manipulation_no_dev_null_false_positives ... ok
+test security::scanner::tests::test_conversation_scan_without_ml ... ok
+test security::scanner::tests::test_flat_shell_tool_call_analysis ... ok
+test security::scanner::tests::native_edit_test_commands_receive_command_scanning ... ok
+test security::scanner::tests::test_text_pattern_detection ... ok
+test security::scanner::tests::test_tool_call_analysis ... ok
+test security::security_inspector::tests::test_security_inspector_name ... ok
+test security::tool_command::tests::compound_tests_expose_the_actual_command_to_inspectors ... ok
+test security::security_inspector::tests::test_security_inspector ... ok
+test security::scanner::tests::command_classifier_stronger_signal_preserves_pattern_evidence ... ok
+test security::scanner::tests::low_pattern_and_low_classifier_remain_safe ... ok
+test security::scanner::tests::command_classifier_legitimate_result_remains_safe ... ok
+test security::scanner::tests::command_classifier_false_negative_preserves_pattern_detection ... ok
+test security::scanner::tests::decisive_pattern_explanation_keeps_classifier_evidence ... ok
+test security::scanner::tests::classifier_explanation_wins_when_low_pattern_is_not_decisive ... ok
+test security::scanner::tests::context_fusion_preserves_pattern_confidence_floor ... ok
+test security::scanner::tests::context_fusion_keeps_legitimate_command_safe ... ok
+
+test result: ok. 52 passed; 0 failed; 0 ignored; 0 measured; 2182 filtered out; finished in 0.08s
+

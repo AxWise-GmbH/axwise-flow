@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "httpStatus": 200,
+  "seconds": 0.3070684999693185,
+  "body": "ok",
+  "certificateVerification": "Exact generated server certificate trusted; TLS checks enabled.",
+  "port": 56777
+}

@@ -10,9 +10,15 @@ durable-work polling, or a required JEV classification first.
 
 These are ordinary Goose tools. Results return to Goose's model loop, which
 chooses the next step; there is no mandatory Axwise route or blanket ban on
-using another available retrieval tool. OMP remains separately optional. JEV's
-advisory decision/review capabilities do not take ownership of the Goose loop.
+using another available retrieval tool. Optional native engineering tools run
+directly in the same Goose conversation. JEV provides advisory routing; native
+edit receipts report local tests and do not include a remote evidence review.
 Authentication and model transport still use the account-scoped gateway.
+
+This local working-tree snapshot overlays the recorded base commit to retire
+obsolete delegated-engineering descriptions. Its source receipt records each
+overlay SHA-256 and marks the connector `releaseEligible: false`; it is not a
+claim that these bytes were committed in the base revision.
 
 The optional local Axwise specialist is packaged separately from this connector
 in [`packages/axwise-local`](../axwise-local). Its workflow, validation and
@@ -46,8 +52,8 @@ Use `lookup_live_data` for a simple current weather or currency answer and
 hours, a latest score or schedule, or service status. Use `ask_axwise` only when
 the request benefits from multi-source comparison, synthesis, investigation, or
 recommendations. Use `generate_image` only for explicit image creation. None of
-these capability tools invokes OMP; engineering work continues through the
-separately configured local engineering extension. When enabled in desktop
+these capability tools executes local engineering work; that remains with
+Goose and its enabled native tools. When enabled in desktop
 settings, JEV classifies a `quick_info` request at the same time as Gemini performs
 the source-backed lookup. Disabling JEV keeps the bounded quick lookup available
 for direct benchmarking and does not enable an automatic fallback.
@@ -55,7 +61,7 @@ for direct benchmarking and does not enable an automatic fallback.
 same durable request within one bounded tool call. Weather defaults to Celsius,
 so only a missing location needs clarification unless the user asks for another
 unit. If either fast route fails or JEV selects another lane, report that result
-and ask before trying research, a web-search skill, fetch, shell, or OMP; none is
+and ask before trying research, a web-search skill, fetch, shell, or native engineering tools; none is
 an automatic fallback.
 
 Keep ordinary research questions self-contained. `runId` checks access to a

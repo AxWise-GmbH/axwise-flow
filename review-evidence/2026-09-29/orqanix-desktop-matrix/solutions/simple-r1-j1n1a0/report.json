@@ -1,0 +1,15 @@
+{
+  "summary": "Validated safe integer inputs, ensuring priceCents and quantity are non-negative, discountBps is in 0..10000, and intermediate calculations remain safe integers throwing RangeError otherwise, while correctly computing discounted line totals with Math.floor without defaulting zero quantities to one.",
+  "examples": [
+    {
+      "id": "zero",
+      "input": [1250, 0, 0],
+      "expected": 0
+    },
+    {
+      "id": "rounding",
+      "input": [199, 3, 1250],
+      "expected": 522
+    }
+  ]
+}

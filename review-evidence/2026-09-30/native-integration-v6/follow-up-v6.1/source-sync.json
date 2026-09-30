@@ -1,0 +1,59 @@
+{
+  "root": "/Users/admin/axwise-opensource/orqaly-goose",
+  "backup": "/private/tmp/orqanix-v6p1-original-source-backup-20260930",
+  "files": [
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/journal.rs",
+      "sha256": "aed007961dce87ae25d2e292c2386e561e4a496a898b53fc61b42b5b7902c9cb"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/selection.md",
+      "sha256": "0ef70a2da9abe498395b746107fa3fc9914d1322263dfdacf29736fcdcce383a"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/README.md",
+      "sha256": "16a8e6d5c247128a40abd4faa93f2e7eb2c3e37615699689db39a5c14e61d6b1"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/mod.rs",
+      "sha256": "5439efc3f8e756671cca6fec01770ff00012b88772326083144f4c0d5bdf8129"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/project.rs",
+      "sha256": "44cbc7b1144bcc1fe08fb4b3d3afb34b83e98b5fad7c136ceab4eb2570db1f2e"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/state.rs",
+      "sha256": "6d2b52426bbbafd45824c21d627fea57fa78da177560c0c1d85499aa0a914b0d"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/ast.rs",
+      "sha256": "158c40bd57b5e8f80ba765e4226c847de514f1d73db22301f02607cf7c956f91"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/lsp.rs",
+      "sha256": "42a8d2a02593ecd0bd90a659e072f914fd9c01d8a789a9153ec4c66509da6d38"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/edits.rs",
+      "sha256": "58a70c029b1265f9d157cea9276eba6287d9a4bafb32626cf1e02c2a45a2e0ac"
+    },
+    {
+      "path": "crates/goose/src/agents/extension_manager.rs",
+      "sha256": "cabfdd6904c38216fd4b6a9ad351eeed821a7d8b174ae911328db27c0725c6f5"
+    },
+    {
+      "path": "crates/goose/tests/native_engineering_integration.rs",
+      "sha256": "652b3302505d60ea3dbe78225a83149dbb77626d50dae44876e30b7a61284d58"
+    },
+    {
+      "path": "goose-self-test.yaml",
+      "sha256": "6dd744ccdf5d3a2219539c2faf60f6c43e26dda53cc004fe8c8f37605c8c3f0f"
+    },
+    {
+      "path": "crates/goose/tests/fixtures/native_lsp_server.mjs",
+      "sha256": "698834a02d08932f780285c21d1a43e15c9e6dcb6e2c339344c33ac88929cafe"
+    }
+  ],
+  "installedAppChanged": false
+}

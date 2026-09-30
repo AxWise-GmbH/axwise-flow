@@ -1,0 +1,175 @@
+{
+  "summary": "Acceptance plan for warehouse order allocation and inventory reservation based on stakeholder interviews.",
+  "requirements": [
+    {
+      "id": "atomic_reservation",
+      "description": "Reserve all lines of an order together atomically after aggregating repeated SKUs. If any SKU is missing or has insufficient stock, reject without deducting any stock.",
+      "sources": [
+        {
+          "id": "E1",
+          "quote": "Reserve all lines of an order together or reserve nothing; repeated SKU lines must be added together before checking stock."
+        }
+      ],
+      "acceptance": {
+        "given": "An initial inventory stock and order lines containing single or repeated SKUs.",
+        "when": "A reservation request is evaluated.",
+        "then": "Either all aggregated quantities are subtracted atomically or no stock is consumed and insufficient_stock is returned."
+      }
+    },
+    {
+      "id": "expedited_first",
+      "description": "Allocate inventory to expedited orders ahead of normal orders while preserving arrival order within each priority tier.",
+      "sources": [
+        {
+          "id": "E2",
+          "quote": "Expedited orders get stock before normal orders; preserve arrival order within each priority."
+        }
+      ],
+      "acceptance": {
+        "given": "A list of orders with expedited and normal priorities competing for stock.",
+        "when": "Order fulfillment processes the batch.",
+        "then": "All valid expedited orders are fulfilled before normal orders, maintaining arrival order within each tier."
+      }
+    },
+    {
+      "id": "idempotent_ids",
+      "description": "Treat order IDs idempotently by processing only the first occurrence and ignoring subsequent duplicate IDs completely.",
+      "sources": [
+        {
+          "id": "E3",
+          "quote": "An order ID is idempotent: process only its first occurrence and ignore later duplicates."
+        }
+      ],
+      "acceptance": {
+        "given": "An order list containing duplicate occurrences of order IDs.",
+        "when": "Order validation and fulfillment is executed.",
+        "then": "The first occurrence claims the ID and later occurrences are entirely ignored."
+      }
+    },
+    {
+      "id": "invalid_immutable",
+      "description": "Reject invalid lines or orders without modifying inventory stock, preserving caller input immutability.",
+      "sources": [
+        {
+          "id": "E4",
+          "quote": "Invalid order lines must be rejected without changing stock, and callers must retain their original input objects."
+        }
+      ],
+      "acceptance": {
+        "given": "Stock and order inputs passed to allocation functions.",
+        "when": "Validation encounters invalid lines, invalid orders, or safe-integer overflow.",
+        "then": "The rejection reason is recorded, stock remains unchanged, and input arguments are not mutated."
+      }
+    }
+  ],
+  "assumptions": [
+    "Stock levels are nonnegative safe integers and line quantities are positive safe integers.",
+    "Orders with invalid priority are rejected as invalid_order and still claim their ID against duplicate occurrences.",
+    "Invalid or missing order IDs produce rejections with id null and reason invalid_order without claiming an ID.",
+    "Caller input objects and arrays are never mutated."
+  ],
+  "scenarios": [
+    {
+      "id": "priority_and_atomicity",
+      "input": {
+        "stock": { "a": 3, "b": 1 },
+        "orders": [
+          {
+            "id": "normal",
+            "priority": "normal",
+            "lines": [{ "sku": "a", "quantity": 2 }]
+          },
+          {
+            "id": "fast",
+            "priority": "expedited",
+            "lines": [
+              { "sku": "a", "quantity": 2 },
+              { "sku": "b", "quantity": 1 }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "acceptedIds": ["fast"],
+        "rejected": [{ "id": "normal", "reason": "insufficient_stock" }],
+        "remaining": { "a": 1, "b": 0 }
+      }
+    },
+    {
+      "id": "idempotent_order_ids",
+      "input": {
+        "stock": { "sku1": 5 },
+        "orders": [
+          {
+            "id": "ord-1",
+            "priority": "normal",
+            "lines": [{ "sku": "sku1", "quantity": 2 }]
+          },
+          {
+            "id": "ord-1",
+            "priority": "expedited",
+            "lines": [{ "sku": "sku1", "quantity": 2 }]
+          }
+        ]
+      },
+      "expected": {
+        "acceptedIds": ["ord-1"],
+        "rejected": [],
+        "remaining": { "sku1": 3 }
+      }
+    },
+    {
+      "id": "repeated_skus_aggregation",
+      "input": {
+        "stock": { "sku1": 5 },
+        "orders": [
+          {
+            "id": "ord-agg",
+            "priority": "normal",
+            "lines": [
+              { "sku": "sku1", "quantity": 3 },
+              { "sku": "sku1", "quantity": 3 }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "acceptedIds": [],
+        "rejected": [{ "id": "ord-agg", "reason": "insufficient_stock" }],
+        "remaining": { "sku1": 5 }
+      }
+    },
+    {
+      "id": "invalid_orders_and_reservation_failure",
+      "input": {
+        "stock": { "sku1": 2 },
+        "orders": [
+          {
+            "id": "valid-fail",
+            "priority": "normal",
+            "lines": [{ "sku": "sku1", "quantity": 5 }]
+          },
+          {
+            "id": "bad-prio",
+            "priority": "unknown",
+            "lines": [{ "sku": "sku1", "quantity": 1 }]
+          },
+          {
+            "id": "",
+            "priority": "normal",
+            "lines": [{ "sku": "sku1", "quantity": 1 }]
+          }
+        ]
+      },
+      "expected": {
+        "acceptedIds": [],
+        "rejected": [
+          { "id": "bad-prio", "reason": "invalid_order" },
+          { "id": null, "reason": "invalid_order" },
+          { "id": "valid-fail", "reason": "insufficient_stock" }
+        ],
+        "remaining": { "sku1": 2 }
+      }
+    }
+  ]
+}

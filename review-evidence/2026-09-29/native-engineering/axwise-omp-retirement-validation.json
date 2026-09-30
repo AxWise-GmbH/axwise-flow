@@ -1,0 +1,65 @@
+{
+  "scope": "OMP runtime removal from AxWise evaluation/server/build paths; historical receipts preserved",
+  "offline": true,
+  "modelCalls": 0,
+  "evaluation": {
+    "command": "node --test scripts/agent-evaluations/*.test.mjs scripts/jev-lint-models.test.mjs scripts/benchmark-axwise-conversation.test.mjs",
+    "passed": 115,
+    "failed": 0,
+    "log": "axwise-omp-retirement-tests.log",
+    "node": "v26.10.0"
+  },
+  "server": {
+    "command": "./node_modules/.bin/vitest run --maxWorkers=1 server/workflow-v2/engineering-review-service.test.js server/workflow-v2/goose-provider-http.test.js",
+    "cwd": "apps/orqaly",
+    "passed": 86,
+    "failed": 0,
+    "durationSeconds": 1.03,
+    "providerMode": "mocked",
+    "evidence": "successful command output observed by retire_omp_server agent; no raw log file captured",
+    "notes": "Initial sandbox localhost binding EPERM; same command passed with localhost permission."
+  },
+  "deletedTrackedPackageFiles": [
+    "packages/omp-mcp-server/README.md",
+    "packages/omp-mcp-server/package-lock.json",
+    "packages/omp-mcp-server/package.json",
+    "packages/omp-mcp-server/src/config.mjs",
+    "packages/omp-mcp-server/src/evidence.mjs",
+    "packages/omp-mcp-server/src/jev-lint-models.mjs",
+    "packages/omp-mcp-server/src/mcp.mjs",
+    "packages/omp-mcp-server/src/omp-client.mjs",
+    "packages/omp-mcp-server/test/evidence.test.mjs",
+    "packages/omp-mcp-server/test/fixtures/fake-omp.mjs",
+    "packages/omp-mcp-server/test/jev-lint.test.mjs",
+    "packages/omp-mcp-server/test/mcp.test.mjs",
+    "packages/omp-mcp-server/test/omp-client.test.mjs"
+  ],
+  "preservedHelper": "scripts/lib/jev-lint-models.mjs",
+  "retiredCodingArm": {
+    "status": "failed",
+    "evaluation": "not_evaluated",
+    "error": "NATIVE_CODING_ADAPTER_UNAVAILABLE",
+    "modelCalls": 0,
+    "excludedFromLatencySamples": true,
+    "replacementHarness": "scripts/benchmark-native-engineering.mjs"
+  },
+  "limitations": [
+    "Native Goose benchmark is separate from the authenticated cloud evaluation adapter; that adapter is unavailable.",
+    "Docker image was not built and no cloud service was deployed.",
+    "Ignored packages/omp-mcp-server/SOURCE_PROVENANCE.json preserved as historical evidence."
+  ],
+  "retiredBenchmarkStubs": [
+    {
+      "script": "scripts/benchmark-native-engineering-gems.mjs",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "This benchmark is retired. Inspect the plan with node scripts/benchmark-native-engineering.mjs; follow scripts/BENCHMARKS.md for native Goose --preflight or --live.\nNo model request, edit, test process, or benchmark measurement was performed.\n"
+    },
+    {
+      "script": "scripts/sophisticated-gems-benchmark.mjs",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "This benchmark is retired. Inspect the plan with node scripts/benchmark-native-engineering.mjs; follow scripts/BENCHMARKS.md for native Goose --preflight or --live.\nNo model request, edit, test process, or benchmark measurement was performed.\n"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "frozenAt": "2026-09-30T07:55:30.584208+00:00",
+  "candidate": "v4 ordinary developer instructions and optional batching policy on v6.1 AST/LSP/edit/recovery implementation",
+  "comparison": "same rebuilt binary, nativeGemsEnabled off/on",
+  "trials": 12,
+  "tasks": [
+    "simple label fix",
+    "structural handler repair",
+    "cross-file symbol rename"
+  ],
+  "repetitionsPerTaskArm": 2,
+  "model": "gemini-3.8-flash",
+  "otherFlags": {
+    "jev": false,
+    "axwise": false,
+    "codeMode": false
+  },
+  "timing": "Actual Electron Send to clean terminal; setup and independent grading excluded",
+  "quality": "Independent behavior/type/regression/mutation/protected-file and clean-termination gates",
+  "acceptance": "Both arms pass all quality gates; mode-on total time and every task median no slower",
+  "limitation": "Two repetitions screen regressions; no statistical equivalence or universal speed claim. v4 historical 21.1% is not the result of this candidate.",
+  "amendment": {
+    "frozenAt": "2026-09-30T09:25:08.429984+00:00",
+    "reason": "Chromium cookie encryption key load blocks new ad-hoc test app startup before TLS connection; official Electron test workaround applies only to disposable benchmark profiles.",
+    "cookieKeychain": "mock for both arms on macOS",
+    "parentOAuthKeychain": "normal approved access, unchanged",
+    "TLS": "certificate fingerprint verification unchanged",
+    "previousTimedAttempt": "No model calls, no Send, no task duration; preserved under startup-failed-attempt",
+    "driver": "scripts/benchmark-orqanix-workflow-v7.mjs",
+    "driverSha256": "5231b8b4a463bfebb89947b4d0fcb8badc65989bdbbc09fdb568918666f1ef97",
+    "officialSource": "https://releases.electronjs.org/pr/53790",
+    "benchmarkFingerprintFrozenBeforeInference": true
+  }
+}

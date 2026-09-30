@@ -1,0 +1,114 @@
+{
+  "deep_review_jev_unavailable": {
+    "ok": true,
+    "qualityReview": {
+      "passed": true,
+      "note": "Review skipped or advisory: review does not bind this candidate"
+    },
+    "calls": 2,
+    "review_candidate": {}
+  },
+  "positive_control_jev_passed": {
+    "ok": true,
+    "qualityReview": {
+      "passed": true,
+      "score": 1.0,
+      "mode": "deep",
+      "fastPath": "jev",
+      "model": "jev-latest",
+      "advisory": true
+    },
+    "calls": 1
+  },
+  "deep_review_jev_failed_fallback": {
+    "ok": true,
+    "qualityReview": {
+      "passed": true,
+      "note": "Review skipped or advisory: review does not bind this candidate"
+    },
+    "calls": 2
+  },
+  "positive_control_standard_skips_review": {
+    "ok": true,
+    "qualityReview": {
+      "passed": true,
+      "mode": "standard"
+    },
+    "calls": 1
+  },
+  "schema_repair_not_invoked": {
+    "ok": false,
+    "error": "Validation failed for prepare_discovery: 1 validation error for DiscoveryCandidate",
+    "calls": 1
+  },
+  "positive_control_quality_api": {
+    "correctly_bound_failed_review_passed": false,
+    "quality_repair_prepares": true,
+    "schema_repair_prepares": true
+  },
+  "simulation_standard_2_participants": {
+    "ok": true,
+    "qualityReview": {
+      "passed": true,
+      "mode": "standard"
+    },
+    "calls": 1
+  },
+  "simulation_deep_1_participants": {
+    "ok": true,
+    "qualityReview": {
+      "passed": true,
+      "mode": "deep"
+    },
+    "calls": 1
+  },
+  "simulation_deep_2_participants": {
+    "ok": false,
+    "error": "Validation failed for simulate_interviews: simulation cannot use a synthesis repair",
+    "calls": 2
+  },
+  "positive_control_cohort_flattening": {
+    "matches_whole_candidate": true,
+    "passes_kernel": true
+  },
+  "hash_contract": {
+    "returned_equals_db": true,
+    "returned_equals_file": false,
+    "embedded_equals_file": false,
+    "returned_equals_embedded": false,
+    "returned_equals_initial_record_json_without_reference": true,
+    "returned_equals_domain_artifact_canonical_hash": false
+  },
+  "reference_resolution": {
+    "wrong_explicit_sha_overwritten": true,
+    "empty_beta_scope_returns_alpha": true
+  },
+  "negative_safety_verdict": {
+    "json_still_saved": true,
+    "markdown_still_saved": true
+  },
+  "config_provider_ignored": {
+    "provider": "gemini",
+    "model": "gemini-flash-latest",
+    "configured_key_used": false
+  },
+  "positive_control_provider_environment": {
+    "explicit_environment_config_honored": true
+  },
+  "launcher_config": {
+    "config_path_forwarded_as_unused_env": true,
+    "configured_state_dir_applied": false
+  },
+  "positive_control_launcher_state_flag": {
+    "explicit_state_dir_flag_honored": true
+  },
+  "wheel_allowlist": {
+    "storage_secret_checker_included": true,
+    "typesafe_triage_module_included": false
+  },
+  "exported_engine_import": {
+    "isolated_export_imports": true,
+    "jev_available_with_dummy_configured_key": false,
+    "jev_review_function_is_none": true
+  }
+}

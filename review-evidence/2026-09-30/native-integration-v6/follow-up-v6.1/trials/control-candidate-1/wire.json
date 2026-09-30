@@ -1,0 +1,2558 @@
+[
+  {
+    "direction": "received",
+    "at": 1790753533096,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "usage_update",
+          "used": 0,
+          "size": 1048576
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753533096,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "available_commands_update",
+          "availableCommands": [
+            {
+              "name": "prompts",
+              "description": "List available prompts, optionally filtered by extension",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "prompt",
+              "description": "Execute a prompt or show its info with --info",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "compact",
+              "description": "Compact the conversation history",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "clear",
+              "description": "Clear the conversation history",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "skills",
+              "description": "List installed skills and other available sources",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "doctor",
+              "description": "Check that your Goose setup is working",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "goal",
+              "description": "Set a goal the agent must satisfy before finishing, or clear with /goal off",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "grind",
+              "description": "Set a goal the agent pursues relentlessly until max_turns, or clear with /grind off",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "status",
+              "description": "Show session status: model, provider, mode, and token usage",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "goose-doc-guide",
+              "description": "Reference goose documentation to create, configure, or explain goose-specific features like recipes, extensions, sessions, and providers. You MUST read the relevant goose docs before answering. You MUST NOT rely on training data or assumptions for any goose-specific fields, values, names, syntax, or commands.",
+              "_meta": {
+                "commandType": "Skill"
+              }
+            },
+            {
+              "name": "web-search",
+              "description": "Search the web and extract page content using DuckDuckGo (no API key required), Tavily, or SearXNG. Use whenever the task needs current information, facts not in training data, or content from a specific URL.",
+              "_meta": {
+                "commandType": "Skill"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "direction": "sent",
+    "at": 1790753533242,
+    "message": {
+      "jsonrpc": "2.0",
+      "id": 106,
+      "method": "session/prompt",
+      "params": {
+        "sessionId": "20260930_1",
+        "prompt": [
+          {
+            "type": "resource",
+            "annotations": {
+              "audience": [
+                "assistant"
+              ]
+            },
+            "resource": {
+              "uri": "orqaly://conversation/20260930_1/desktop-routing",
+              "mimeType": "application/json",
+              "text": "{\"kind\":\"orqaly.desktop-routing.v1\",\"guidance\":\"Desktop capabilities are tools, not a mandatory workflow or action permission. Choose available tools to serve the current user request and respect local approvals. Read tool results before deciding whether to answer or continue; a tool cannot finish the conversation for you. Follow-ups such as \\\"go deeper\\\" or \\\"more detail\\\" refer to the latest unambiguous conversational subject. A previous specialist task does not override a later topic change. Depth words, an attached project or the word \\\"research\\\" alone do not justify specialist delegation. If several subjects plausibly fit, ask which one the user means before choosing tools. If no conversational subject is available, ask what topic they mean; do not inspect a project to invent a subject. When the user explicitly returns to earlier work, reuse its exact saved artifact reference only if available in the conversation; never guess missing references. For follow-ups, reuse the latest unambiguous user-supplied location, dates and other constraints. Do not carry stale filters into unrelated requests. Ask only for missing or ambiguous details. Preserve source links and distinguish verified findings from incomplete or failed retrieval. If retrieval fails, you may try another relevant permitted query or tool within a modest time and call budget; report any remaining uncertainty instead of inventing results.\\n\\nNative engineering tools are available in this conversation for requested repository work:\\n- `ast_search` queries code syntax trees. `lsp_query` requests information from a configured language server; report unavailable servers honestly.\\n- `hashline_edit` reads line hashes and applies exact edits only while those hashes still match. Re-read changed files before retrying a stale edit.\\n- `safe_edit_and_test` applies hash-checked edits and runs explicit tests, returning the actual command results. Inspect its receipt before describing checks as passed.\\n- These tools run directly in the current Goose conversation. Use ordinary local tools when appropriate, respect local approvals and keep changes within the user's request.\\n- A passing test receipt is evidence for the checks that ran, never independent proof or absolute verification. Native edit receipts record local checks; they do not include a remote JEV review.\",\"conversationId\":\"20260930_1\"}"
+            }
+          },
+          {
+            "type": "text",
+            "text": "Fix taskLabel in src/labels.ts so completed tasks get the prefix [x] and incomplete tasks keep [ ]. Preserve the supplied name exactly and keep the exported signature. Add regression tests in tests/regression.test.mjs, then run tests and type check.\nRead README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results."
+          }
+        ]
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753533243,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "session_info_update",
+          "_meta": {
+            "goose": {
+              "activeRunId": "run_7486f85a-9a53-4d4b-8b7d-fd661ecc87b9"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753536045,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_324369",
+          "title": "todo: todo write",
+          "rawInput": {
+            "content": "- [ ] Read README.md for the workspace contract\n- [ ] Inspect src/labels.ts and existing tests\n- [ ] Fix taskLabel in src/labels.ts (completed tasks get '[x] ', incomplete get '[ ] ')\n- [ ] Add regression tests in tests/regression.test.mjs\n- [ ] Run tests and type check\n- [ ] Verify test and type check results and report findings"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "todo__todo_write",
+                "extensionName": "todo"
+              },
+              "created": 1790753536,
+              "messageId": "_bq8apmTL73Yxs0P7dmuqAs"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753536056,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_324369",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "Updated (331 chars)"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753536130,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "session_info_update",
+          "title": "TaskLabel completion prefix",
+          "updatedAt": "2026-09-30T07:32:16+00:00",
+          "_meta": {
+            "messageCount": 3,
+            "userSetName": false
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753538430,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_336036",
+          "title": "shell · cat README.md",
+          "rawInput": {
+            "command": "cat README.md"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790753538,
+              "messageId": "ALu8apCEC6HwnsEPu5ulkAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753538443,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_336036",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "# Completed task label\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753538449,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_336036",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "\nFix taskLabel in src/labels.ts so completed tasks get the prefix [x] and incomplete tasks keep [ ]. Preserve the supplied name exactly and keep the exported signature. Add regression tests in tests/regression.test.mjs, then run tests and type check.\nRead README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results.\n\nPermitted changes: src/labels.ts and tests/regression.test.mjs (create it). All other files are immutable inputs. Keep the implementation in its current modules.\n\nTests: node --experimental-strip-types --test tests/*.test.mjs\nType check: node \"/private/tmp/orqanix-native-v6p1-app-20260930/Orqanix Native v6.1 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json\nDependencies and language servers are already supplied by the app. This workspace is an initialized Git repository; do not change Git metadata.\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753538449,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_336036",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "# Completed task label\n\nFix taskLabel in src/labels.ts so completed tasks get the prefix [x] and incomplete tasks keep [ ]. Preserve the supplied name exactly and keep the exported signature. Add regression tests in tests/regression.test.mjs, then run tests and type check.\nRead README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results.\n\nPermitted changes: src/labels.ts and tests/regression.test.mjs (create it). All other files are immutable inputs. Keep the implementation in its current modules.\n\nTests: node --experimental-strip-types --test tests/*.test.mjs\nType check: node \"/private/tmp/orqanix-native-v6p1-app-20260930/Orqanix Native v6.1 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json\nDependencies and language servers are already supplied by the app. This workspace is an initialized Git repository; do not change Git metadata."
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "# Completed task label\n\nFix taskLabel in src/labels.ts so completed tasks get the prefix [x] and incomplete tasks keep [ ]. Preserve the supplied name exactly and keep the exported signature. Add regression tests in tests/regression.test.mjs, then run tests and type check.\nRead README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results.\n\nPermitted changes: src/labels.ts and tests/regression.test.mjs (create it). All other files are immutable inputs. Keep the implementation in its current modules.\n\nTests: node --experimental-strip-types --test tests/*.test.mjs\nType check: node \"/private/tmp/orqanix-native-v6p1-app-20260930/Orqanix Native v6.1 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json\nDependencies and language servers are already supplied by the app. This workspace is an initialized Git repository; do not change Git metadata.",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753539978,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_477245",
+          "title": "shell · cat src/labels.ts",
+          "rawInput": {
+            "command": "cat src/labels.ts"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790753539,
+              "messageId": "Aru8avywIt2xnsEP89OA8QE"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753539995,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_477245",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "export function taskLabel(name: string, completed: boolean): string { return '[ ] '+name; }\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753539998,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_477245",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "export function taskLabel(name: string, completed: boolean): string { return '[ ] '+name; }"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "export function taskLabel(name: string, completed: boolean): string { return '[ ] '+name; }",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753541713,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_377256",
+          "title": "shell · ls -la tests",
+          "rawInput": {
+            "command": "ls -la tests"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790753541,
+              "messageId": "BLu8aqHYGragnsEPxuCEuAE"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753541730,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_377256",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "total 8\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753541733,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_377256",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "total 8\ndrwxr-xr-x@ 3 admin  wheel   96 Sep 30 09:32 .\ndrwx------@ 8 admin  wheel  256 Sep 30 09:32 ..\n-rw-------@ 1 admin  wheel  197 Sep 30 09:32 public.test.mjs"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "total 8\ndrwxr-xr-x@ 3 admin  wheel   96 Sep 30 09:32 .\ndrwx------@ 8 admin  wheel  256 Sep 30 09:32 ..\n-rw-------@ 1 admin  wheel  197 Sep 30 09:32 public.test.mjs",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753545173,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_340655",
+          "title": "shell · cat tests/public.test.mjs",
+          "rawInput": {
+            "command": "cat tests/public.test.mjs"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790753545,
+              "messageId": "Bbu8avX8MoO_nsEPp--fyAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753545194,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_340655",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "import assert from 'node:assert/strict';\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753545198,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_340655",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "import assert from 'node:assert/strict';\nimport {test} from 'node:test';\nimport {taskLabel} from '../src/labels.ts';\ntest('incomplete task',()=>assert.equal(taskLabel('draft',false),'[ ] draft'));"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "import assert from 'node:assert/strict';\nimport {test} from 'node:test';\nimport {taskLabel} from '../src/labels.ts';\ntest('incomplete task',()=>assert.equal(taskLabel('draft',false),'[ ] draft'));",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753548071,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_342197",
+          "title": "shell · node --experimental-strip-types --test tests/*.test.mjs",
+          "rawInput": {
+            "command": "node --experimental-strip-types --test tests/*.test.mjs"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790753548,
+              "messageId": "Cbu8aunnEregnsEPtfeD0A8"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753548126,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_342197",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "TAP version 13\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753548187,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_342197",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "# Subtest: incomplete task\nok 1 - incomplete task\n  ---\n  duration_ms: 0.28525\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 62.510625\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753548189,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_342197",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "TAP version 13\n# Subtest: incomplete task\nok 1 - incomplete task\n  ---\n  duration_ms: 0.28525\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 62.510625"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "TAP version 13\n# Subtest: incomplete task\nok 1 - incomplete task\n  ---\n  duration_ms: 0.28525\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 62.510625",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753549709,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_443962",
+          "title": "shell · node \"/private/tmp/orqanix-native-v6p1-app-20260930/Or...…",
+          "rawInput": {
+            "command": "node \"/private/tmp/orqanix-native-v6p1-app-20260930/Orqanix Native v6.1 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790753549,
+              "messageId": "DLu8aom1JoCykdUP1J_liQg"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753550154,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_443962",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "(no output)"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753552231,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_324944",
+          "title": "shell · git status",
+          "rawInput": {
+            "command": "git status"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790753552,
+              "messageId": "Dru8asLjDtOjnsEPlsnxcA"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753552257,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_324944",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stderr",
+                    "output": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-zJ5se5Uk' (errno=Operation not permitted)\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753552707,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_324944",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stderr",
+                    "output": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-I0B2YHKk' (errno=Operation not permitted)\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753553183,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_324944",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-zJ5se5Uk' (errno=Operation not permitted)\ngit: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-I0B2YHKk' (errno=Operation not permitted)\nOn branch master\nnothing to commit, working tree clean"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "On branch master\nnothing to commit, working tree clean",
+            "stderr": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-zJ5se5Uk' (errno=Operation not permitted)\ngit: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-I0B2YHKk' (errno=Operation not permitted)",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753554761,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_546396",
+          "title": "shell · git log -n 5",
+          "rawInput": {
+            "command": "git log -n 5"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790753554,
+              "messageId": "Ebu8asmbNNrqnsEPw-vBwQE"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753554780,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_546396",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stderr",
+                    "output": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-GRHSYyX2' (errno=Operation not permitted)\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753555235,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_546396",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stderr",
+                    "output": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-nejJEU1f' (errno=Operation not permitted)\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753555758,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_546396",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-GRHSYyX2' (errno=Operation not permitted)\ngit: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-nejJEU1f' (errno=Operation not permitted)\ncommit 6d602362f7095c2eec2d5a2c198aa7f28b7e3aca\nAuthor: Benchmark <benchmark@localhost>\nDate:   Wed Sep 30 09:32:10 2026 +0200\n\n    Synthetic fixture"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "commit 6d602362f7095c2eec2d5a2c198aa7f28b7e3aca\nAuthor: Benchmark <benchmark@localhost>\nDate:   Wed Sep 30 09:32:10 2026 +0200\n\n    Synthetic fixture",
+            "stderr": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-GRHSYyX2' (errno=Operation not permitted)\ngit: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-nejJEU1f' (errno=Operation not permitted)",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753556813,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_423753",
+          "title": "shell · cat package.json",
+          "rawInput": {
+            "command": "cat package.json"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790753556,
+              "messageId": "E7u8aqmFNIzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753556836,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_423753",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "{\"private\":true,\"type\":\"module\"}\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753556841,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_423753",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "{\"private\":true,\"type\":\"module\"}"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "{\"private\":true,\"type\":\"module\"}",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753557722,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_401844",
+          "title": "shell · cat tsconfig.json",
+          "rawInput": {
+            "command": "cat tsconfig.json"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790753557,
+              "messageId": "Fbu8appkjYeewQ-n-PbYBQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753557736,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_401844",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "{\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753557742,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_401844",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"NodeNext\",\n    \"strict\": true,\n    \"noEmit\": true,\n    \"allowImportingTsExtensions\": true\n  },\n  \"include\": [\n    \"src/**/*.ts\"\n  ]\n}"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"NodeNext\",\n    \"strict\": true,\n    \"noEmit\": true,\n    \"allowImportingTsExtensions\": true\n  },\n  \"include\": [\n    \"src/**/*.ts\"\n  ]\n}",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753560349,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_278959",
+          "title": "write · src/labels.ts",
+          "rawInput": {
+            "content": "export function taskLabel(name: string, completed: boolean): string {\n  return (completed ? '[x] ' : '[ ] ') + name;\n}\n",
+            "path": "src/labels.ts"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "write",
+                "extensionName": "developer"
+              },
+              "created": 1790753560,
+              "messageId": "Fbu8apDuM9agnsEPka6D0AE"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753560365,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_278959",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "Wrote src/labels.ts (3 lines)"
+              }
+            }
+          ],
+          "locations": [
+            {
+              "path": "src/labels.ts",
+              "line": 1
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753563147,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_332940",
+          "title": "write · tests/regression.test.mjs",
+          "rawInput": {
+            "path": "tests/regression.test.mjs",
+            "content": "import assert from 'node:assert/strict';\nimport {test} from 'node:test';\nimport {taskLabel} from '../src/labels.ts';\n\ntest('completed task has [x] prefix', () => {\n  assert.equal(taskLabel('deploy service', true), '[x] deploy service');\n});\n\ntest('incomplete task retains [ ] prefix', () => {\n  assert.equal(taskLabel('write documentation', false), '[ ] write documentation');\n});\n\ntest('preserves exact name including spaces and special characters', () => {\n  assert.equal(taskLabel('  trimmed? no!  ', true), '[x]   trimmed? no!  ');\n  assert.equal(taskLabel('', true), '[x] ');\n  assert.equal(taskLabel('', false), '[ ] ');\n  assert.equal(taskLabel('task [1]', true), '[x] task [1]');\n});\n"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "write",
+                "extensionName": "developer"
+              },
+              "created": 1790753563,
+              "messageId": "GLu8aramNIzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753563147,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_332940",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "Created tests/regression.test.mjs (18 lines)"
+              }
+            }
+          ],
+          "locations": [
+            {
+              "path": "tests/regression.test.mjs",
+              "line": 1
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753564274,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_263334",
+          "title": "shell · node --experimental-strip-types --test tests/*.test.mjs",
+          "rawInput": {
+            "command": "node --experimental-strip-types --test tests/*.test.mjs"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790753564,
+              "messageId": "G7u8avjAEo2HnsEPp_j22AU"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753564339,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_263334",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "TAP version 13\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753564409,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_263334",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "# Subtest: incomplete task\nok 1 - incomplete task\n  ---\n  duration_ms: 0.332834\n  type: 'test'\n  ...\n# Subtest: completed task has [x] prefix\nok 2 - completed task has [x] prefix\n  ---\n  duration_ms: 0.769792\n  type: 'test'\n  ...\n# Subtest: incomplete task retains [ ] prefix\nok 3 - incomplete task retains [ ] prefix\n  ---\n  duration_ms: 0.050166\n  type: 'test'\n  ...\n# Subtest: preserves exact name including spaces and special characters\nok 4 - preserves exact name including spaces and special characters\n  ---\n  duration_ms: 0.040666\n  type: 'test'\n  ...\n1..4\n# tests 4\n# suites 0\n# pass 4\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 72.256291\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753564412,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_263334",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "TAP version 13\n# Subtest: incomplete task\nok 1 - incomplete task\n  ---\n  duration_ms: 0.332834\n  type: 'test'\n  ...\n# Subtest: completed task has [x] prefix\nok 2 - completed task has [x] prefix\n  ---\n  duration_ms: 0.769792\n  type: 'test'\n  ...\n# Subtest: incomplete task retains [ ] prefix\nok 3 - incomplete task retains [ ] prefix\n  ---\n  duration_ms: 0.050166\n  type: 'test'\n  ...\n# Subtest: preserves exact name including spaces and special characters\nok 4 - preserves exact name including spaces and special characters\n  ---\n  duration_ms: 0.040666\n  type: 'test'\n  ...\n1..4\n# tests 4\n# suites 0\n# pass 4\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 72.256291"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "TAP version 13\n# Subtest: incomplete task\nok 1 - incomplete task\n  ---\n  duration_ms: 0.332834\n  type: 'test'\n  ...\n# Subtest: completed task has [x] prefix\nok 2 - completed task has [x] prefix\n  ---\n  duration_ms: 0.769792\n  type: 'test'\n  ...\n# Subtest: incomplete task retains [ ] prefix\nok 3 - incomplete task retains [ ] prefix\n  ---\n  duration_ms: 0.050166\n  type: 'test'\n  ...\n# Subtest: preserves exact name including spaces and special characters\nok 4 - preserves exact name including spaces and special characters\n  ---\n  duration_ms: 0.040666\n  type: 'test'\n  ...\n1..4\n# tests 4\n# suites 0\n# pass 4\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 72.256291",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753565598,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_500885",
+          "title": "shell · node \"/private/tmp/orqanix-native-v6p1-app-20260930/Or...…",
+          "rawInput": {
+            "command": "node \"/private/tmp/orqanix-native-v6p1-app-20260930/Orqanix Native v6.1 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790753565,
+              "messageId": "HLu8avzYIoOunsEPh6uDuA0"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753566039,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_500885",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "(no output)"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753567415,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_402011",
+          "title": "shell · git status --porcelain",
+          "rawInput": {
+            "command": "git status --porcelain"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790753567,
+              "messageId": "Hru8arDyGri-nsEP6vqIyA0"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753567439,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_402011",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stderr",
+                    "output": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-mHIzbaoo' (errno=Operation not permitted)\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753567890,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_402011",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stderr",
+                    "output": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-gGu52Z20' (errno=Operation not permitted)\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753568354,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_402011",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-mHIzbaoo' (errno=Operation not permitted)\ngit: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-gGu52Z20' (errno=Operation not permitted)\n M src/labels.ts\n?? tests/regression.test.mjs"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": " M src/labels.ts\n?? tests/regression.test.mjs",
+            "stderr": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-mHIzbaoo' (errno=Operation not permitted)\ngit: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-gGu52Z20' (errno=Operation not permitted)",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753569296,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_399688",
+          "title": "shell · git diff src/labels.ts",
+          "rawInput": {
+            "command": "git diff src/labels.ts"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790753569,
+              "messageId": "ILu8arHLIIXknsEPworZ2QQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753569311,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_399688",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stderr",
+                    "output": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-3eqT1iE2' (errno=Operation not permitted)\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753569763,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_399688",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stderr",
+                    "output": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-Xmjgqc0u' (errno=Operation not permitted)\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753570214,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_399688",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 3,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "diff --git a/src/labels.ts b/src/labels.ts\nindex 4487221..c669243 100644\n--- a/src/labels.ts\n+++ b/src/labels.ts\n@@ -1 +1,3 @@\n-export function taskLabel(name: string, completed: boolean): string { return '[ ] '+name; }\n+export function taskLabel(name: string, completed: boolean): string {\n+  return (completed ? '[x] ' : '[ ] ') + name;\n+}\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753570217,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_399688",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-3eqT1iE2' (errno=Operation not permitted)\ngit: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-Xmjgqc0u' (errno=Operation not permitted)\ndiff --git a/src/labels.ts b/src/labels.ts\nindex 4487221..c669243 100644\n--- a/src/labels.ts\n+++ b/src/labels.ts\n@@ -1 +1,3 @@\n-export function taskLabel(name: string, completed: boolean): string { return '[ ] '+name; }\n+export function taskLabel(name: string, completed: boolean): string {\n+  return (completed ? '[x] ' : '[ ] ') + name;\n+}"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "diff --git a/src/labels.ts b/src/labels.ts\nindex 4487221..c669243 100644\n--- a/src/labels.ts\n+++ b/src/labels.ts\n@@ -1 +1,3 @@\n-export function taskLabel(name: string, completed: boolean): string { return '[ ] '+name; }\n+export function taskLabel(name: string, completed: boolean): string {\n+  return (completed ? '[x] ' : '[ ] ') + name;\n+}",
+            "stderr": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-3eqT1iE2' (errno=Operation not permitted)\ngit: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-Xmjgqc0u' (errno=Operation not permitted)",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753571302,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_521204",
+          "title": "shell · cat tests/regression.test.mjs",
+          "rawInput": {
+            "command": "cat tests/regression.test.mjs"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790753571,
+              "messageId": "Iru8ao7tGMK_kdUP7dSDeA"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753571322,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_521204",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "import assert from 'node:assert/strict';\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753571328,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_521204",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "import {test} from 'node:test';\nimport {taskLabel} from '../src/labels.ts';\n\ntest('completed task has [x] prefix', () => {\n  assert.equal(taskLabel('deploy service', true), '[x] deploy service');\n});\n\ntest('incomplete task retains [ ] prefix', () => {\n  assert.equal(taskLabel('write documentation', false), '[ ] write documentation');\n});\n\ntest('preserves exact name including spaces and special characters', () => {\n  assert.equal(taskLabel('  trimmed? no!  ', true), '[x]   trimmed? no!  ');\n  assert.equal(taskLabel('', true), '[x] ');\n  assert.equal(taskLabel('', false), '[ ] ');\n  assert.equal(taskLabel('task [1]', true), '[x] task [1]');\n});\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753571333,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_521204",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "import assert from 'node:assert/strict';\nimport {test} from 'node:test';\nimport {taskLabel} from '../src/labels.ts';\n\ntest('completed task has [x] prefix', () => {\n  assert.equal(taskLabel('deploy service', true), '[x] deploy service');\n});\n\ntest('incomplete task retains [ ] prefix', () => {\n  assert.equal(taskLabel('write documentation', false), '[ ] write documentation');\n});\n\ntest('preserves exact name including spaces and special characters', () => {\n  assert.equal(taskLabel('  trimmed? no!  ', true), '[x]   trimmed? no!  ');\n  assert.equal(taskLabel('', true), '[x] ');\n  assert.equal(taskLabel('', false), '[ ] ');\n  assert.equal(taskLabel('task [1]', true), '[x] task [1]');\n});"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "import assert from 'node:assert/strict';\nimport {test} from 'node:test';\nimport {taskLabel} from '../src/labels.ts';\n\ntest('completed task has [x] prefix', () => {\n  assert.equal(taskLabel('deploy service', true), '[x] deploy service');\n});\n\ntest('incomplete task retains [ ] prefix', () => {\n  assert.equal(taskLabel('write documentation', false), '[ ] write documentation');\n});\n\ntest('preserves exact name including spaces and special characters', () => {\n  assert.equal(taskLabel('  trimmed? no!  ', true), '[x]   trimmed? no!  ');\n  assert.equal(taskLabel('', true), '[x] ');\n  assert.equal(taskLabel('', false), '[ ] ');\n  assert.equal(taskLabel('task [1]', true), '[x] task [1]');\n});",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753572772,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_373950",
+          "title": "todo: todo write",
+          "rawInput": {
+            "content": "- [x] Read README.md for the workspace contract\n- [x] Inspect src/labels.ts and existing tests\n- [x] Fix taskLabel in src/labels.ts (completed tasks get '[x] ', incomplete get '[ ] ')\n- [x] Add regression tests in tests/regression.test.mjs\n- [x] Run tests and type check\n- [x] Verify test and type check results and report findings"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "todo__todo_write",
+                "extensionName": "todo"
+              },
+              "created": 1790753572,
+              "messageId": "I7u8atP1K6XnnsEPl6y8sAU"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753572787,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_373950",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "Updated (331 chars)"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753574210,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "I have updated `src/labels.ts"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753574,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753574230,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "`, added regression tests in `tests/regression.test.mjs`, and executed the test suite and type check according"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753574,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753574379,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " to the workspace contract.\n\n### Changes Made\n1. **`src/labels.ts`**: Updated `taskLabel` to"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753574,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753574576,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " prepend `[x] ` when `completed` is `true`, while retaining `[ ] ` when `false`,"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753574,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753574675,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " preserving the exported function signature and the task name unchanged.\n2. **`tests/regression.test.mjs`**: Added regression test cases verifying"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753574,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753574766,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": ":\n   - Completed tasks receive the `[x] ` prefix.\n   - Incomplete tasks retain the `[ ] "
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753574,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753574817,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "` prefix.\n   - Exact input names (including leading/trailing whitespace, empty strings, and special characters) are preserved"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753574,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753574905,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": ".\n\n### Verification Results\n\n- **Test suite (`node --experimental-strip-types --test tests/*.test.mjs"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753574,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753574981,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "`)**:\n  ```\n  TAP version 13\n  # Subtest: incomplete task\n  ok "
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753574,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753575050,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "1 - incomplete task\n    ---\n    duration_ms: 0.332834\n    "
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753575,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753575122,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "type: 'test'\n    ...\n  # Subtest: completed task has [x] prefix\n  ok 2 - completed task has"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753575,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753575192,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " [x] prefix\n    ---\n    duration_ms: 0.769792\n    type"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753575,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753575266,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": ": 'test'\n    ...\n  # Subtest: incomplete task retains [ ] prefix\n  ok 3"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753575,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753575308,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " - incomplete task retains [ ] prefix\n    ---\n    duration_ms: 0.05016"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753575,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753575373,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "6\n    type: 'test'\n    ...\n  # Subtest: preserves exact name including spaces and special"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753575,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753575419,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " characters\n  ok 4 - preserves exact name including spaces and special characters\n    ---\n    duration_ms:"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753575,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753575486,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " 0.040666\n    type: 'test'\n    ...\n  1..4"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753575,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753575595,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "\n  # tests 4\n  # suites 0\n  # pass 4\n  # fail 0\n  # cancelled"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753575,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753575643,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " 0\n  # skipped 0\n  # todo 0\n  # duration_ms 72.2562"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753575,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753575757,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "91\n  ```\n\n- **Type check (`tsc --noEmit -p tsconfig.json`)**:\n  Completed with 0"
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753575,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753575808,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " errors (exit status 0)."
+          },
+          "messageId": "JLu8asfzOZmzkdUPoZjq4QI",
+          "_meta": {
+            "goose": {
+              "created": 1790753575,
+              "messageId": "JLu8asfzOZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753575842,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "session_info_update",
+          "_meta": {
+            "goose": {
+              "activeRunId": null
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753575845,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "usage_update",
+          "used": 14953,
+          "size": 1048576,
+          "cost": {
+            "amount": 0.1843605,
+            "currency": "USD"
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790753575846,
+    "message": {
+      "jsonrpc": "2.0",
+      "id": 106,
+      "result": {
+        "stopReason": "end_turn",
+        "usage": {
+          "totalTokens": 14953,
+          "inputTokens": 14358,
+          "outputTokens": 507
+        }
+      }
+    }
+  }
+]

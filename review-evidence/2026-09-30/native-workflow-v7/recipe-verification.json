@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "checks": {
+    "cleanExit": true,
+    "boundary": true,
+    "allFourToolsExercised": true,
+    "successfulAst": true,
+    "successfulNamedReferences": true,
+    "reviewedRenameAppliedAndTestsPassed": true,
+    "failedSingleAndBatchTestsRollback": true,
+    "staleGuardsRejected": true,
+    "invalidPlanRejected": true,
+    "ambiguousSymbolRejected": true,
+    "modelIdentity": true
+  },
+  "modelRequests": 42,
+  "kind": "Functional recipe receipt validation, not end-to-end performance or an independent quality benchmark. Negative test rejections are expected."
+}

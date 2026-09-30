@@ -1,0 +1,123 @@
+{
+  "summary": "Acceptance plan for warehouse order allocation and inventory reservation implementing atomic reservations, priority handling, idempotency, and immutability.",
+  "requirements": [
+    {
+      "id": "atomic_reservation",
+      "description": "Reserve all lines of an order together or reserve nothing, aggregating quantities for repeated SKUs before checking availability against stock.",
+      "sources": [
+        {
+          "id": "E1",
+          "quote": "Reserve all lines of an order together or reserve nothing; repeated SKU lines must be added together before checking stock."
+        }
+      ],
+      "acceptance": {
+        "given": "Current warehouse stock levels and order lines containing items with potentially repeated SKUs",
+        "when": "A reservation request is evaluated",
+        "then": "Either all aggregated SKU quantities are deducted atomically from stock, or no stock is consumed if any line is insufficient or unknown"
+      }
+    },
+    {
+      "id": "expedited_first",
+      "description": "Process expedited orders before normal orders, retaining the original input arrival order within each priority tier.",
+      "sources": [
+        {
+          "id": "E2",
+          "quote": "Expedited orders get stock before normal orders; preserve arrival order within each priority."
+        }
+      ],
+      "acceptance": {
+        "given": "A sequence of orders with mixed expedited and normal priorities",
+        "when": "Fulfill orders is executed against stock",
+        "then": "All expedited orders are evaluated for reservation in their arrival order before any normal orders are evaluated"
+      }
+    },
+    {
+      "id": "idempotent_ids",
+      "description": "Order identifiers are idempotent; process only the first occurrence of an ID and ignore any later occurrences entirely.",
+      "sources": [
+        {
+          "id": "E3",
+          "quote": "An order ID is idempotent: process only its first occurrence and ignore later duplicates."
+        }
+      ],
+      "acceptance": {
+        "given": "An order sequence containing duplicate order IDs",
+        "when": "The orders are processed for fulfillment",
+        "then": "The first occurrence claims the ID and all subsequent occurrences with that ID are completely ignored"
+      }
+    },
+    {
+      "id": "invalid_immutable",
+      "description": "Invalid order lines and invalid orders are rejected without altering stock, and caller input objects are never mutated.",
+      "sources": [
+        {
+          "id": "E4",
+          "quote": "Invalid order lines must be rejected without changing stock, and callers must retain their original input objects."
+        }
+      ],
+      "acceptance": {
+        "given": "Input stock and order objects, including invalid lines or invalid order configurations",
+        "when": "Reservation or order fulfillment is evaluated",
+        "then": "Invalid lines or orders are rejected without consuming stock, and the caller's input objects remain unmutated"
+      }
+    }
+  ],
+  "assumptions": [
+    "Stock is provided as a plain object mapping nonempty SKU strings to nonnegative safe-integer quantities.",
+    "Order priority values must be either 'expedited' or 'normal'.",
+    "Invalid or missing order IDs are rejected with id: null and reason: 'invalid_order'.",
+    "Invalid order rejections are recorded in input order before reservation failures in processing order."
+  ],
+  "scenarios": [
+    {
+      "id": "priority_and_atomicity",
+      "input": {
+        "stock": {
+          "a": 3,
+          "b": 1
+        },
+        "orders": [
+          {
+            "id": "normal",
+            "priority": "normal",
+            "lines": [
+              {
+                "sku": "a",
+                "quantity": 2
+              }
+            ]
+          },
+          {
+            "id": "fast",
+            "priority": "expedited",
+            "lines": [
+              {
+                "sku": "a",
+                "quantity": 2
+              },
+              {
+                "sku": "b",
+                "quantity": 1
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "acceptedIds": [
+          "fast"
+        ],
+        "rejected": [
+          {
+            "id": "normal",
+            "reason": "insufficient_stock"
+          }
+        ],
+        "remaining": {
+          "a": 1,
+          "b": 0
+        }
+      }
+    }
+  ]
+}

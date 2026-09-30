@@ -1,0 +1,22 @@
+{
+  "kind": "independent-functional-fixture-grading",
+  "passed": false,
+  "checks": {
+    "lfBoundaryDeletionAndExactBytes": true,
+    "crlfBoundaryAndEof": true,
+    "projectTypecheck": false
+  },
+  "typecheck": {
+    "command": [
+      "/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/node/bin/node",
+      "/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/bin/tsc",
+      "--noEmit",
+      "--project",
+      "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/tsconfig.json"
+    ],
+    "exitCode": 2,
+    "stdout": "consumer.ts(7,12): error TS2554: Expected 2 arguments, but got 1.\n",
+    "stderr": ""
+  },
+  "meaning": "Independent grading, distinct from recipe receipt verification. A successful supplied command does not establish command quality; console.log checks in the model-generated recipe do not substitute for this compiler check."
+}

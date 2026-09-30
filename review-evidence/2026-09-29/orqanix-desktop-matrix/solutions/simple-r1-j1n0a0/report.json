@@ -1,0 +1,15 @@
+{
+  "summary": "Fixed lineTotal to validate inputs as safe nonnegative integers with discountBps in 0..10000, enforce safe integer intermediate checks, and calculate total using Math.floor(product * (10000 - discountBps) / 10000).",
+  "examples": [
+    {
+      "id": "zero",
+      "input": [1250, 0, 0],
+      "expected": 0
+    },
+    {
+      "id": "rounding",
+      "input": [199, 3, 1250],
+      "expected": 522
+    }
+  ]
+}

@@ -1,0 +1,257 @@
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/selection.md
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/selection.md
+@@ -1,12 +1,12 @@
+-Native engineering selection policy v6
++Native engineering selection policy v6.1
+ 
+-Choose tools by task; simple unique textual changes use ordinary search/edit. Native tools are not a checklist.
++Choose tools by task. For a small unique text replacement, use shell (rg/cat) and ordinary edit/write; do not add AST/LSP or guarded reads/tests unless semantic discovery or preimage protection is needed. Read-only exploration uses shell; gather required guards in one read_many batch. Native tools are not a checklist.
+ 
+ - Structural discovery: start with one scoped ast_search preset. For direct async TS/JS handlers use preset=calls, receiver (e.g. router), async_argument=true and language. This excludes unrelated receivers, synchronous handlers and nested callbacks. Inspect syntax context/truncation; AST does not resolve bindings. Reuse returned snapshot_id and L<line> anchors for guarded edits; read only missing context.
+ - Source API rename: locate the declaration, then lsp_query action=rename with path, qualified symbol (or line/character), new_name and optional scope before manually editing consumers. Scope bounds edits; analysis includes workspace sources/configs. A tsconfig/jsconfig is required for TS/JS. Inspect all preview pages via action=rename_preview, plan_id, path and next_offset; preserve aliases, public/wire keys and unrelated bindings. Apply the reviewed plan_id once with safe_edit_and_test and relevant tests/typecheck. Language-server project coverage still needs validation.
+ - Semantic navigation: lsp_query references/definition with path and qualified symbol. Resolve ambiguity and follow pagination.
+-- Custom batches: reuse AST/read snapshots, or hashline_edit read_many; safe_edit_and_test files applies/checks the batch. Use compact=true for hashline/safe tools. Reconcile stale guards; never bypass them. Write new files normally. Add requested regression tests before planning/applying guarded renames.
++- Custom batches: reuse AST/read snapshots, or hashline_edit read_many; safe_edit_and_test files applies/checks the batch. Use compact=true for hashline/safe tools. Reconcile stale guards; never bypass them. Do not reread unchanged files just to refresh snapshots. Write new files normally. Add requested regression tests before planning/applying guarded renames.
+ 
+ Example rename: {"action":"rename","path":"src/api.ts","symbol":"RequestContext.requestId","new_name":"traceId","scope":"src"}.
+ 
+-Configured servers start on demand and are reused; no prerequisite probes, installation or extra model. Unsupported/unsafe/oversized results use bounded ordinary alternatives. Reuse unchanged context and applicable successful checks; never cache test success automatically. Unversioned diagnostics do not prove freshness. RECOVERY_REQUIRED needs explicit hashline_edit action=recover; unresolved conflicts require reconciliation.
++Configured servers start on demand and are reused; no prerequisite probes, installation or extra model. Unsupported/unsafe/oversized results use bounded ordinary alternatives. Reuse unchanged context and applicable successful checks; never cache test success automatically. Do not add routine diagnostics after successful compiler/tests. Diagnostics are optional and wait at most 750 ms for a report; pending is unknown, never clean. Retry only when needed. Unversioned diagnostics do not prove freshness. RECOVERY_REQUIRED needs explicit hashline_edit action=recover; unresolved conflicts require reconciliation.
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/README.md
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/README.md
+@@ -14,7 +14,7 @@
+ | `hashline_edit` | `action: "read"` returns the whole-file SHA-256 and per-line anchors. `action: "read_many"` gathers up to 16 independent snapshots, with a 64 KiB combined line-data limit and per-file errors/pagination. `action: "edit"` requires that digest and exact boundary anchors before applying ranges to one file. |
+ | `safe_edit_and_test` | Applies the same guarded edit, runs literal `test_command` argv in the workspace, and returns the exit status and captured output. A failed, timed out or cancelled test rolls back only if the edited file still matches the tool's postimage. |
+ 
+-When this host-mounted extension is active, both Goose loops use selection policy v6.
++When this host-mounted extension is active, both Goose loops use selection policy v6.1.
+ The shared extension-info builder replaces the developer extension's blanket
+ write/edit preference with task-based native guidance; removing the extension
+ restores the original guidance on the next turn. AST serves structural search,
+@@ -103,7 +103,7 @@
+ 
+ ## Native operations v4
+ 
+-The host still mounts exactly four tools under the existing feature flag. Efficient ordinary developer instructions remain available for simple changes; structural and semantic operations follow conditional policy v6. No OMP process or extra model performs these operations.
++The host still mounts exactly four tools under the existing feature flag. Efficient ordinary developer instructions remain available for simple changes; structural and semantic operations follow conditional policy v6.1. No OMP process or extra model performs these operations.
+ 
+ `lsp_query` supports read-only `action=rename` with `path`, qualified `symbol` (or a position), `new_name`, and optional `scope`. Scope limits edits, while analysis guards workspace source/configuration inputs. The language server discovers consumers from its project graph; the client opens only the declaration and other queried documents, rather than opening every workspace file. TypeScript/JavaScript rename requires an ancestor tsconfig/jsconfig. Configured projects, project references and tests still determine semantic coverage; no response claims that every workspace file participates in the graph.
+ 
+@@ -121,7 +121,7 @@
+ 
+ ## AST selection and compact output
+ 
+-Both agent loops and Code Mode carry the host-owned selection policy v6. Structural tasks use scoped AST presets; direct TS/JS async handlers can filter `receiver` and `async_argument=true`. The latter matches direct inline async arrows/function expressions, excluding nested callbacks and synchronous handlers. Receivers are exact syntax, not semantic types. Presets provide line ranges, bounded syntax context and session/workspace snapshot IDs; reuse these with `L<line>` anchors rather than rereading complete files. Truncated snippets or scans require additional context.
++Both agent loops and Code Mode carry the host-owned selection policy v6.1. Structural tasks use scoped AST presets; direct TS/JS async handlers can filter `receiver` and `async_argument=true`. The latter matches direct inline async arrows/function expressions, excluding nested callbacks and synchronous handlers. Receivers are exact syntax, not semantic types. Presets provide line ranges, bounded syntax context and session/workspace snapshot IDs; reuse these with `L<line>` anchors rather than rereading complete files. Truncated snippets or scans require additional context.
+ 
+ `compact=true` on hashline/safe tools projects reads to anchor-tab-text and shortens successful test output to a 2,048-character tail per stream with original byte counts. Canonical structured receipts retain the complete bounded output, guards, rollback and test evidence. Failures retain diagnostics. The default output contract remains compatible; Code Mode intentionally consumes visible content rather than hidden structured metadata.
+ 
+@@ -130,3 +130,5 @@
+ Before publishing a batch, owner-private `.goose-native-recovery` records persist exact dirty preimages and owned postimage hashes. Successful verification writes a durable commit marker; normal failure/cancellation restores owned bytes and clears the record. After an abrupt process termination, new native writes return `RECOVERY_REQUIRED`. Explicit `hashline_edit {"action":"recover"}` restores only files still equal to owned postimages, leaves intervening modifications untouched, and reports unresolved conflicts. Recovery does not mark the operation verified and does not undo test side effects outside owned files. Keep recovery records private: they contain source preimages.
+ 
+ The deterministic tests cover preview pagination, mixed-language hash guards, an actual SIGKILL before batch commit, conflict preservation, AST snapshot reuse, and both primary loops. The opt-in `real_large_sparse_rename_handles_unopened_ts_js_consumers_and_pages` test uses bundled TypeScript LSP against 1,000 source files and 100 unopened consumers, then checks types and wire contracts. Actual desktop timing remains a separate acceptance gate; tool integration alone is not evidence of a speed or quality improvement.
++
++Diagnostics wait at most 750 ms for a report after server initialization. Absent reports return `status=pending`, `diagnostics=null` and `versionVerified=false`, preserving the warm server. Timed-out pull requests are cancelled; late replies are discarded. Pending results never prove a clean workspace. Compiler/tests remain the correctness gate.
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/mod.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/mod.rs
+@@ -44,7 +44,7 @@
+         );
+         let info = InitializeResult::new(ServerCapabilities::builder().enable_tools().build())
+             .with_server_info(
+-                Implementation::new(EXTENSION_NAME, "1.5.0").with_title("Native Engineering"),
++                Implementation::new(EXTENSION_NAME, "1.5.1").with_title("Native Engineering"),
+             )
+             .with_instructions(instructions);
+         Ok(Self {
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/lsp.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/lsp.rs
+@@ -1059,7 +1059,7 @@
+                 );
+             }
+             Ok(
+-                json!({"status":if value.get("truncated")==Some(&Value::Bool(true)) {"partial"} else {"completed"}, "action":query.action, "language":language,
++                json!({"status":if value.get("freshness").and_then(Value::as_str)==Some("pending") {"pending"} else if value.get("truncated")==Some(&Value::Bool(true)) {"partial"} else {"completed"}, "action":query.action, "language":language,
+                 "path":query.path, "documentVersion":version, "positionEncoding":"utf-16", "result":value}),
+             )
+         };
+@@ -1080,7 +1080,10 @@
+                         "The result exceeded 64 KiB; narrow the query.",
+                     );
+                 }
+-                let is_error = !matches!(value["status"].as_str(), Some("completed" | "partial"));
++                let is_error = !matches!(
++                    value["status"].as_str(),
++                    Some("completed" | "partial" | "pending")
++                );
+                 json_result(value, is_error)
+             }
+             Err(error) => {
+@@ -1582,7 +1585,10 @@
+     }
+ 
+     async fn handle_server_message(&mut self, message: Value) -> Result<(), String> {
+-        let method = message.get("method").and_then(Value::as_str).unwrap_or("");
++        let Some(method) = message.get("method").and_then(Value::as_str) else {
++            // Ignore late replies to a cancelled read-only request.
++            return Ok(());
++        };
+         if let Some(id) = message.get("id") {
+             let result = match method {
+                 "workspace/applyEdit" => json!({"applied":false,"failureReason":"This read-only client rejects server edits."}),
+@@ -1792,13 +1798,25 @@
+ 
+     async fn query(&mut self, query: &Query, uri: &str) -> Result<Value, String> {
+         if query.action == "diagnostics" {
++            let wait = Duration::from_millis(750);
++            let pending = |version: i64| json!({"diagnostics":null,"freshness":"pending","versionVerified":false,"documentVersion":version,"waitBudgetMs":750,"note":"No current report arrived within the budget. This does not mean clean. Use compiler/tests; retry only if diagnostics are needed."});
+             if self.supports("diagnosticProvider") {
+-                let result = self
+-                    .request(
++                let id = self.next_id;
++                let result = match tokio::time::timeout(
++                    wait,
++                    self.request(
+                         "textDocument/diagnostic",
+                         json!({"textDocument":{"uri":uri}}),
+-                    )
+-                    .await?;
++                    ),
++                )
++                .await
++                {
++                    Ok(result) => result?,
++                    Err(_) => {
++                        self.notify("$/cancelRequest", json!({"id":id})).await?;
++                        return Ok(pending(self.documents[uri].version));
++                    }
++                };
+                 if result.get("kind").and_then(Value::as_str) != Some("full")
+                     || !result.get("items").is_some_and(Value::is_array)
+                 {
+@@ -1810,6 +1828,7 @@
+                     json!({"diagnostics":result["items"],"freshness":"requested_current_version","documentVersion":self.documents[uri].version}),
+                 );
+             }
++            let deadline = tokio::time::Instant::now() + wait;
+             loop {
+                 if let Some(report) = self.documents[uri].diagnostics.clone() {
+                     let versioned = report.get("version").and_then(Value::as_i64)
+@@ -1818,7 +1837,10 @@
+                         "freshness":if versioned {"current_version"} else {"server_unversioned"},
+                         "versionVerified":versioned,"documentVersion":report.get("version")}));
+                 }
+-                let message = self.receive().await?;
++                let message = match tokio::time::timeout_at(deadline, self.receive()).await {
++                    Ok(message) => message?,
++                    Err(_) => return Ok(pending(self.documents[uri].version)),
++                };
+                 self.handle_server_message(message).await?;
+             }
+         }
+@@ -2383,6 +2405,59 @@
+                 assert_eq!(result["status"], "unavailable", "{result}");
+                 assert!(client.sessions.lock().await.is_empty());
+             }
++        }
++    }
++
++    #[tokio::test]
++    async fn pending_diagnostics_are_bounded_unknown_and_keep_warm_protocol_usable() {
++        for mode in ["silent", "slow_pull"] {
++            let root = tempfile::tempdir().unwrap();
++            let log = root.path().join("log");
++            let Some(argv) = fixture(mode, &log) else {
++                return;
++            };
++            std::fs::write(root.path().join("fixture.rs"), "fn fixture() {}\n").unwrap();
++            let client = client(argv);
++            let started = std::time::Instant::now();
++            let result = query(&client, root.path(), "diagnostics").await;
++            assert_eq!(result["status"], "pending", "{result}");
++            assert_eq!(result["result"]["diagnostics"], Value::Null);
++            assert_eq!(result["result"]["versionVerified"], false);
++            assert!(started.elapsed() < Duration::from_secs(3));
++            let session = client
++                .sessions
++                .lock()
++                .await
++                .values()
++                .next()
++                .unwrap()
++                .clone();
++            let pid = session.lock().await.process_id;
++            tokio::time::sleep(Duration::from_millis(350)).await;
++            assert_eq!(
++                query(&client, root.path(), "symbols").await["status"],
++                "completed"
++            );
++            assert_eq!(session.lock().await.process_id, pid);
++            let messages: Vec<Value> = std::fs::read_to_string(&log)
++                .unwrap()
++                .lines()
++                .map(|line| serde_json::from_str(line).unwrap())
++                .collect();
++            if mode == "slow_pull" {
++                let cancel = messages
++                    .iter()
++                    .find(|message| message["method"] == "$/cancelRequest")
++                    .unwrap();
++                assert!(
++                    !messages
++                        .iter()
++                        .any(|message| message["id"] == cancel["params"]["id"]
++                            && message.get("error").is_some()),
++                    "Late response was answered as a request: {messages:?}"
++                );
++            }
++            session.lock().await.stop().await;
+         }
+     }
+ 
+--- a/crates/goose/src/agents/extension_manager.rs
++++ b/crates/goose/src/agents/extension_manager.rs
+@@ -2833,7 +2833,7 @@
+             )
+             .await;
+         let (_, prompt) = manager.code_mode_capability_prompt().await.unwrap();
+-        assert!(prompt.contains("Native engineering selection policy v6"));
++        assert!(prompt.contains("Native engineering selection policy v6.1"));
+         assert!(!prompt.contains("Use write and edit to efficiently make changes"));
+         manager
+             .remove_extension("native_engineering")
+--- a/crates/goose/tests/native_engineering_integration.rs
++++ b/crates/goose/tests/native_engineering_integration.rs
+@@ -89,7 +89,7 @@
+     assert_eq!(observations.len(), 1);
+     let (prompt, tools) = &observations[0];
+     assert_eq!(
+-        prompt.contains("Native engineering selection policy v6"),
++        prompt.contains("Native engineering selection policy v6.1"),
+         native
+     );
+     assert!(prompt.contains("Use write and edit to efficiently make changes"));
+--- a/crates/goose/tests/fixtures/native_lsp_server.mjs
++++ b/crates/goose/tests/fixtures/native_lsp_server.mjs
+@@ -17,10 +17,10 @@
+   if (method === 'initialize') {
+     send({ id, result: { capabilities: { textDocumentSync: { openClose: true, change: 2 },
+       documentSymbolProvider: true, hoverProvider: true, definitionProvider: true,
+-      referencesProvider: true, ...(mode === 'pull' ? { diagnosticProvider: { interFileDependencies: false, workspaceDiagnostics: false } } : {}) } } });
++      referencesProvider: true, ...(['pull','slow_pull'].includes(mode) ? { diagnosticProvider: { interFileDependencies: false, workspaceDiagnostics: false } } : {}) } } });
+   } else if (method === 'textDocument/didOpen') {
+     documents.set(params.textDocument.uri, { text: params.textDocument.text, version: params.textDocument.version });
+-    send({ method: 'textDocument/publishDiagnostics', params: { uri: params.textDocument.uri,
++    if(mode!=='silent')send({ method: 'textDocument/publishDiagnostics', params: { uri: params.textDocument.uri,
+       version: params.textDocument.version, diagnostics: [] } });
+   } else if (method === 'textDocument/didChange') {
+     const doc = { text: params.contentChanges[0].text, version: params.textDocument.version };
+@@ -40,7 +40,8 @@
+       range: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } },
+       selectionRange: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } } }] });
+   } else if (method === 'textDocument/diagnostic') {
+-    send({ id, result: { kind: 'full', items: [{ message: 'pull diagnostic' }] } });
++    if(mode==='slow_pull')setTimeout(()=>send({ id, result: { kind: 'full', items: [{ message: 'late pull' }] } }),1000);
++    else send({ id, result: { kind: 'full', items: [{ message: 'pull diagnostic' }] } });
+   } else if (method === 'textDocument/hover') {
+     send({ id, result: { contents: { kind: 'plaintext', value: 'fixture hover' } } });
+   } else if (method === 'textDocument/definition' || method === 'textDocument/references') {

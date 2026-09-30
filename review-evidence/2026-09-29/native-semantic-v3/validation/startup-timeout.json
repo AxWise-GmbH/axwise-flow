@@ -1,0 +1,378 @@
+{
+  "phase": "zero-inference preflight",
+  "reason": "Backend health probe timed out after 30 seconds during Keychain approval wait; SIGTERM by desktop startup controller.",
+  "diagnostics": {
+    "attemptId": "goose-serve-startup-2026-09-29T19-59-27.801Z-27563.json",
+    "startedAt": "2026-09-29T19:59:27.801Z",
+    "binaryPath": "/private/tmp/orqanix-semantic-v3-app-20260929/Orqanix Semantic Test.app/Contents/Resources/bin/goose",
+    "workingDir": "/private/tmp/orqanix-semantic-v3-final-preflight-20260929/ast-candidate-1/fixture/workspace",
+    "httpBaseUrl": "https://127.0.0.1:58006",
+    "readinessUrl": "https://127.0.0.1:58006/status",
+    "statusUrl": "https://127.0.0.1:58006/status",
+    "healthUrl": "https://127.0.0.1:58006/health",
+    "acpUrl": "wss://127.0.0.1:58006/acp?token=REDACTED",
+    "pid": 27605,
+    "healthCheckSucceeded": false,
+    "childExitCode": null,
+    "childExitSignal": "SIGTERM",
+    "stderrTail": [],
+    "events": [
+      {
+        "name": "spawn_start",
+        "at": "2026-09-29T19:59:27.805Z",
+        "elapsedMs": 4,
+        "details": {
+          "binaryPath": "/private/tmp/orqanix-semantic-v3-app-20260929/Orqanix Semantic Test.app/Contents/Resources/bin/goose",
+          "port": 58006,
+          "tls": true,
+          "workingDir": "/private/tmp/orqanix-semantic-v3-final-preflight-20260929/ast-candidate-1/fixture/workspace",
+          "args": [
+            "serve",
+            "--tls",
+            "--platform",
+            "desktop",
+            "--enable-scheduler",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "58006"
+          ]
+        }
+      },
+      {
+        "name": "spawn_success",
+        "at": "2026-09-29T19:59:27.853Z",
+        "elapsedMs": 52,
+        "details": {
+          "pid": 27605
+        }
+      },
+      {
+        "name": "healthcheck_start",
+        "at": "2026-09-29T19:59:27.853Z",
+        "elapsedMs": 52,
+        "details": {
+          "transport": "https",
+          "method": "GET",
+          "path": "/status",
+          "url": "https://127.0.0.1:58006/status",
+          "statusUrl": "https://127.0.0.1:58006/status",
+          "healthUrl": "https://127.0.0.1:58006/health",
+          "timeoutMs": 30000,
+          "intervalMs": 100
+        }
+      },
+      {
+        "name": "fingerprint_received",
+        "at": "2026-09-29T19:59:28.648Z",
+        "elapsedMs": 847,
+        "details": {
+          "certFingerprint": "FA:49:DD:E0:BC:8E:80:7F:4C:9B:1A:B9:22:87:A3:CB:54:03:7B:C6:C5:C8:A9:36:B1:63:6F:CE:0E:4A:21:EE"
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:28.857Z",
+        "elapsedMs": 1056,
+        "details": {
+          "attempt": 1,
+          "category": "probe_timeout",
+          "elapsedMs": 1004
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:29.962Z",
+        "elapsedMs": 2161,
+        "details": {
+          "attempt": 2,
+          "category": "probe_timeout",
+          "elapsedMs": 1002
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:31.068Z",
+        "elapsedMs": 3268,
+        "details": {
+          "attempt": 3,
+          "category": "probe_timeout",
+          "elapsedMs": 1003
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:32.174Z",
+        "elapsedMs": 4373,
+        "details": {
+          "attempt": 4,
+          "category": "probe_timeout",
+          "elapsedMs": 1002
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:33.280Z",
+        "elapsedMs": 5479,
+        "details": {
+          "attempt": 5,
+          "category": "probe_timeout",
+          "elapsedMs": 1003
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:34.384Z",
+        "elapsedMs": 6583,
+        "details": {
+          "attempt": 6,
+          "category": "probe_timeout",
+          "elapsedMs": 1002
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:35.488Z",
+        "elapsedMs": 7687,
+        "details": {
+          "attempt": 7,
+          "category": "probe_timeout",
+          "elapsedMs": 1001
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:36.594Z",
+        "elapsedMs": 8793,
+        "details": {
+          "attempt": 8,
+          "category": "probe_timeout",
+          "elapsedMs": 1002
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:37.700Z",
+        "elapsedMs": 9899,
+        "details": {
+          "attempt": 9,
+          "category": "probe_timeout",
+          "elapsedMs": 1003
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:38.805Z",
+        "elapsedMs": 11004,
+        "details": {
+          "attempt": 10,
+          "category": "probe_timeout",
+          "elapsedMs": 1004
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:39.910Z",
+        "elapsedMs": 12109,
+        "details": {
+          "attempt": 11,
+          "category": "probe_timeout",
+          "elapsedMs": 1003
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:41.015Z",
+        "elapsedMs": 13214,
+        "details": {
+          "attempt": 12,
+          "category": "probe_timeout",
+          "elapsedMs": 1003
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:42.118Z",
+        "elapsedMs": 14317,
+        "details": {
+          "attempt": 13,
+          "category": "probe_timeout",
+          "elapsedMs": 1001
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:43.224Z",
+        "elapsedMs": 15423,
+        "details": {
+          "attempt": 14,
+          "category": "probe_timeout",
+          "elapsedMs": 1002
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:44.330Z",
+        "elapsedMs": 16529,
+        "details": {
+          "attempt": 15,
+          "category": "probe_timeout",
+          "elapsedMs": 1002
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:45.436Z",
+        "elapsedMs": 17635,
+        "details": {
+          "attempt": 16,
+          "category": "probe_timeout",
+          "elapsedMs": 1002
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:46.542Z",
+        "elapsedMs": 18741,
+        "details": {
+          "attempt": 17,
+          "category": "probe_timeout",
+          "elapsedMs": 1003
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:47.648Z",
+        "elapsedMs": 19847,
+        "details": {
+          "attempt": 18,
+          "category": "probe_timeout",
+          "elapsedMs": 1003
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:48.752Z",
+        "elapsedMs": 20951,
+        "details": {
+          "attempt": 19,
+          "category": "probe_timeout",
+          "elapsedMs": 1002
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:49.857Z",
+        "elapsedMs": 22056,
+        "details": {
+          "attempt": 20,
+          "category": "probe_timeout",
+          "elapsedMs": 1003
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:50.962Z",
+        "elapsedMs": 23161,
+        "details": {
+          "attempt": 21,
+          "category": "probe_timeout",
+          "elapsedMs": 1002
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:52.067Z",
+        "elapsedMs": 24266,
+        "details": {
+          "attempt": 22,
+          "category": "probe_timeout",
+          "elapsedMs": 1001
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:53.173Z",
+        "elapsedMs": 25372,
+        "details": {
+          "attempt": 23,
+          "category": "probe_timeout",
+          "elapsedMs": 1002
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:54.279Z",
+        "elapsedMs": 26478,
+        "details": {
+          "attempt": 24,
+          "category": "probe_timeout",
+          "elapsedMs": 1003
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:55.383Z",
+        "elapsedMs": 27582,
+        "details": {
+          "attempt": 25,
+          "category": "probe_timeout",
+          "elapsedMs": 1001
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:56.489Z",
+        "elapsedMs": 28688,
+        "details": {
+          "attempt": 26,
+          "category": "probe_timeout",
+          "elapsedMs": 1002
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:57.594Z",
+        "elapsedMs": 29793,
+        "details": {
+          "attempt": 27,
+          "category": "probe_timeout",
+          "elapsedMs": 1001
+        }
+      },
+      {
+        "name": "healthcheck_probe_failed",
+        "at": "2026-09-29T19:59:58.700Z",
+        "elapsedMs": 30899,
+        "details": {
+          "attempt": 28,
+          "category": "probe_timeout",
+          "elapsedMs": 1003
+        }
+      },
+      {
+        "name": "healthcheck_timeout",
+        "at": "2026-09-29T19:59:58.804Z",
+        "elapsedMs": 31003,
+        "details": {
+          "transport": "https",
+          "method": "GET",
+          "path": "/status",
+          "url": "https://127.0.0.1:58006/status",
+          "statusUrl": "https://127.0.0.1:58006/status",
+          "healthUrl": "https://127.0.0.1:58006/health",
+          "timeoutMs": 30000
+        }
+      },
+      {
+        "name": "child_exit",
+        "at": "2026-09-29T19:59:58.810Z",
+        "elapsedMs": 31009,
+        "details": {
+          "code": null,
+          "signal": "SIGTERM"
+        }
+      }
+    ]
+  }
+}

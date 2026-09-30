@@ -1,0 +1,7 @@
+{
+  "scripts/summarize-release242-native.mjs": "7d22b44caef263be7ca5e458c14078ca60f4ddb1a2f17b8c22435bb2890bf6f4",
+  "scripts/verify-release242-native.mjs": "2f33db059161edadb08038a08e6ee6a29f0ed8ffbf31302c61d776a2015e9b20",
+  "ORQANIX_RELEASE_242_COMPARISON_2026-09-29.md": "f461d8c56c53fdfe4e5456f961703a8b48e4f18a3766d89574ed5c446e60250a",
+  "review-evidence/2026-09-29/release-242-comparison/results/summary.json": "6f107cf8f760ecf31e9b2a93b035ac4b8da30b762407e7fd306726380f9ff785",
+  "review-evidence/2026-09-29/release-242-comparison/verification.json": "7a5535049945e4e977674e164147bda50231291e1f63573c1fe4d44207e45526"
+}

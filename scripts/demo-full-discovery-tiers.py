@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """
-Full End-to-End AxWise Product Discovery Demonstration across 3 Complexity Tiers:
+Offline deterministic kernel-fixture demonstration across three scenario labels:
   1. Simple Task: Shared Handoff Checklist Tracker
   2. Middle Task: Smart Solar Carport Energy Monitoring Dashboard
   3. Complicated Task: Autonomous Solar Harbor Cleaning Boat & Telemetry
 
-Demonstrates:
+No live generation, quality review, persistence, or complexity performance is measured.
+The scenario labels reuse fixed test candidates. Demonstrates:
   - 01/FRAME: prepare_discovery -> Discovery brief & stakeholder questions
   - 02/EXPLORE: generate_personas -> Synthetic persona generation (bound via SQLite)
   - 03/SIMULATE: simulate_interviews -> Cohort interview simulation
   - 04/ANALYZE: analyze_interviews -> Qualitative thematic synthesis & quotes
-  - 05/SHAPE: create_prd -> Evidence-linked Product Requirements Document (Jev Fast-Path Review)
+  - 05/SHAPE: create_prd -> Evidence-linked Product Requirements Document fixture (not quality reviewed)
 """
 
 import sys
@@ -23,7 +24,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from backend.services.local_axwise.kernel import prepare, finalize
 from backend.services.local_axwise.storage import save_operation, check_artifact_safety_with_jev
-from backend.services.local_axwise.engine import validate_deliverable_with_jev
 
 from backend.tests.local_axwise.test_discovery import discovery_input, discovery_candidate, source
 from backend.tests.local_axwise.test_pipeline_integration import (
@@ -77,7 +77,7 @@ TIERS = [
 
 def run_tier_discovery(tier_spec):
     print("\n" + "=" * 95)
-    print(f"🌟 E2E DISCOVERY PIPELINE: [{tier_spec['id'].upper()}] - {tier_spec['title']}")
+    print(f"🌟 KERNEL FIXTURE PIPELINE: [{tier_spec['id'].upper()}] - {tier_spec['title']}")
     print(f"Domain: {tier_spec['domain']} | Region: {tier_spec['region']}")
     print(f"Brief: \"{tier_spec['brief']}\"")
     print("=" * 95)
@@ -119,40 +119,24 @@ def run_tier_discovery(tier_spec):
     t0 = time.perf_counter()
     p_host = prd_host(ana_host)
 
-    # Jev Fast-Path Review Gate
-    t_jev0 = time.perf_counter()
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-    jev_verdict = loop.run_until_complete(
-        validate_deliverable_with_jev(
-            p_host["markdown"],
-            acceptance_criteria=[{"code": "AC-1", "description": "traceability verified"}],
-            evidence={"claims": ["Audit handoff prototype"]},
-            timeout_seconds=2.0
-        )
-    )
-    t_jev = (time.perf_counter() - t_jev0) * 1000
+    # This is an offline fixture demonstration, not a live quality review.
+    t_jev = 0.0
     t_shape = (time.perf_counter() - t0) * 1000
-
-    print(f"  ├─ 05 / SHAPE (create_prd + Jev):    {t_shape:.1f} ms  [Op: {p_host['reference']['operationId'][:8]}, Jev Review: {t_jev:.1f}ms - {getattr(jev_verdict, 'status', 'PASSED').upper()}]")
+    print(f"  ├─ 05 / SHAPE (PRD fixture):       {t_shape:.1f} ms  [Quality review: NOT_EVALUATED]")
 
     # 6. DELIVER (create_delivery_brief)
     t0 = time.perf_counter()
     del_host = delivery_host(p_host, disc_host)
     t_deliver = (time.perf_counter() - t0) * 1000
 
-    print(f"  └─ 06 / DELIVER (delivery_brief):    {t_deliver:.1f} ms  [Op: {del_host['reference']['operationId'][:8]}, Test Matrix & Handoff sealed]")
+    print(f"  └─ 06 / DELIVER (delivery_brief):    {t_deliver:.1f} ms  [Op: {del_host['reference']['operationId'][:8]}, Delivery fixture validated]")
 
     t_total = (time.perf_counter() - t_start) * 1000
 
     print(f"  ───────────────────────────────────────────────────────────────────────────────────")
-    print(f"  ⚡ TOTAL 6-STAGE E2E DISCOVERY TIME:  {t_total:.1f} ms  (~{(t_total/1000):.2f} seconds)")
+    print(f"  ⚡ TOTAL 6-STAGE FIXTURE TIME:  {t_total:.1f} ms  (~{(t_total/1000):.2f} seconds)")
     print(f"  📜 PRD Title:                        {p_host['artifact'].get('title', 'Software PRD')}")
-    print(f"  🔒 Immutable Evidence Lineage:       {disc_host['reference']['operationId'][:6]} -> {pers_host['reference']['operationId'][:6]} -> {sim_host['reference']['operationId'][:6]} -> {ana_host['reference']['operationId'][:6]} -> {p_host['reference']['operationId'][:6]} -> {del_host['reference']['operationId'][:6]}")
+    print(f"  🔒 Synthetic test reference chain:       {disc_host['reference']['operationId'][:6]} -> {pers_host['reference']['operationId'][:6]} -> {sim_host['reference']['operationId'][:6]} -> {ana_host['reference']['operationId'][:6]} -> {p_host['reference']['operationId'][:6]} -> {del_host['reference']['operationId'][:6]}")
 
     return {
         "tier": tier_spec["id"],
@@ -167,8 +151,8 @@ def run_tier_discovery(tier_spec):
 
 def main():
     print("=" * 95)
-    print("🚀 AXWISE E2E FULL PRODUCT DISCOVERY DEMONSTRATION")
-    print("Executing Complete 6-Stage Autonomous Discovery Lifecycle Across 3 Tiers")
+    print("🚀 AXWISE OFFLINE KERNEL FIXTURE DEMONSTRATION")
+    print("Fixed synthetic candidates across three scenario labels; no live inference or quality measurement")
     print("=" * 95)
 
     results = []
@@ -177,12 +161,12 @@ def main():
         results.append(res)
 
     print("\n" + "=" * 95)
-    print("📊 COMPLETE E2E DISCOVERY SUMMARY SCORECARD")
+    print("📊 OFFLINE FIXTURE TIMING SCORECARD")
     print("=" * 95)
-    print(f"{'Tier':<13} | {'Domain':<30} | {'Stages':<8} | {'Jev Review':<12} | {'E2E Time'}")
+    print(f"{'Tier':<13} | {'Domain':<30} | {'Stages':<8} | {'Review':<12} | {'Fixture Time'}")
     print("-" * 95)
     for r in results:
-        print(f"{r['tier'].upper():<13} | {r['domain']:<30} | {r['stages']} stages | {r['jevReviewMs']:.1f} ms      | {r['totalMs']:.1f} ms (~{(r['totalMs']/1000):.2f}s)")
+        print(f"{r['tier'].upper():<13} | {r['domain']:<30} | {r['stages']} stages | not evaluated | {r['totalMs']:.1f} ms (~{(r['totalMs']/1000):.2f}s)")
     print("=" * 95)
 
 

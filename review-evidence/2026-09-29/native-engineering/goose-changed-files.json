@@ -1,0 +1,691 @@
+{
+  "baseCommit": "76ba53c1d23a342d0f3f7a8b1f3b57044977fbbb",
+  "source": "/private/tmp/orqaly-goose-verified-fixes",
+  "repository": "/Users/admin/axwise-opensource/orqaly-goose",
+  "files": [
+    {
+      "path": "crates/goose/src/agents/platform_extensions/ext_manager.rs",
+      "beforeSha256": "23d24131325ca4704ff715ef1eb684b56bbb98a680c79d1f8a5c56528efd3e31",
+      "afterSha256": "11533cd5d9a0a56515d77ab5b2c4d79e99bd98de2e51631b74a563dda9746454",
+      "action": "write"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/mod.rs",
+      "beforeSha256": "cb578bbe8eab9d9f5c2ba9547e8d7b08b7582814a25e4e4870b9ca3dc07d388b",
+      "afterSha256": "cd3cc1b9e02331c6bb34a46740852d77eac2605f3f7edd027bef712a178c2e7b",
+      "action": "write"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/README.md",
+      "beforeSha256": null,
+      "afterSha256": "5171a4d2f47ce2ba050dd8fda5960307a3a33f990241a31fabbf4cb97f04965d",
+      "action": "write"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/ast.rs",
+      "beforeSha256": null,
+      "afterSha256": "fe1b9db3d0b0241b22b2c5bffdcc83d0c8e66156827107233385a6066c56d2c7",
+      "action": "write"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/edits.rs",
+      "beforeSha256": null,
+      "afterSha256": "e7703dd78cdfc33ccf772d461c695237714f74f9b330f0215ae8b9fef00809a0",
+      "action": "write"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/lsp.rs",
+      "beforeSha256": null,
+      "afterSha256": "43d2d3477870d26e5416a3df9e687c416e6c9ca6fb0d6401ce02d35dfc210073",
+      "action": "write"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/mod.rs",
+      "beforeSha256": null,
+      "afterSha256": "e63766a7b4c2df12a348841e389057e19a838a29131f623bead0d8a96bacc3a5",
+      "action": "write"
+    },
+    {
+      "path": "crates/goose/src/agents/tool_execution.rs",
+      "beforeSha256": "eba1308011c5a9af789842d21babe714a3e1f1a6e2bd3a9c8015426a7956251a",
+      "afterSha256": "35ddb9a2db83439903f386bf67d6816d7ddb5b444a5aea08870d3e55519ba722",
+      "action": "write"
+    },
+    {
+      "path": "crates/goose/src/security/adversary_inspector.rs",
+      "beforeSha256": "08c7ecf5af18afa1d65e33d7fb2382917af23bb819859a5b9b267e21bc05e735",
+      "afterSha256": "f7a7277f3f75d37b9a5350f87122474be2051202a5c151553381dc3a5c0e5750",
+      "action": "write"
+    },
+    {
+      "path": "crates/goose/src/security/egress_inspector.rs",
+      "beforeSha256": "b58a2805362fd74e85c58dc1044c77c30d5babba8d91aa3065bd05b1a9f4b0cf",
+      "afterSha256": "abcc562ae7b3157edddf569968935a452efee057840e276ddabe55009f510d00",
+      "action": "write"
+    },
+    {
+      "path": "crates/goose/src/security/mod.rs",
+      "beforeSha256": "5513857724b6bfb3ff3bd08a8e39d673af9f57534794d19bb7e9e0581c7ab935",
+      "afterSha256": "423d7ad4c2c88d8363c165ada82b6718a121dbf0b82c8d39495622b34fbf6b0d",
+      "action": "write"
+    },
+    {
+      "path": "crates/goose/src/security/scanner.rs",
+      "beforeSha256": "919e9c978d76f4002fe1255ae34546e8058dbc4ad90c5aefb5645b1a2d67b744",
+      "afterSha256": "f2368d8f0870907bcaf5b9356bf413f78b2e4ff3f5a52dbb7badc0b19260c4e1",
+      "action": "write"
+    },
+    {
+      "path": "crates/goose/src/security/tool_command.rs",
+      "beforeSha256": null,
+      "afterSha256": "38086f9a3298f93c8d9b0738060bfa638e8dd3361f6846fa8994c12d982b94cd",
+      "action": "write"
+    },
+    {
+      "path": "crates/goose/tests/fixtures/native_lsp_server.mjs",
+      "beforeSha256": null,
+      "afterSha256": "712623742e8e5e21aa7e089225fe1253fc2205f6b04b4b13ee1b05dcd938eab8",
+      "action": "write"
+    },
+    {
+      "path": "crates/goose/tests/native_engineering_integration.rs",
+      "beforeSha256": null,
+      "afterSha256": "ea2671e89f55f22dccd621c519888063cb54a651f23a80c37357fab4eefa1e53",
+      "action": "write"
+    },
+    {
+      "path": "goose-self-test.yaml",
+      "beforeSha256": "bc06b4a55c5ab8743b7a5343a96fcae804dc69124557db351651605e5f9594bc",
+      "afterSha256": "c75648ff42ecccc55548671973b18ad2abb0d8aa40cc409c8575a2557ad14dc4",
+      "action": "write"
+    },
+    {
+      "path": "scripts/jev-lint-precommit.mjs",
+      "beforeSha256": "8a61cd68e761b407a67ae895e28e53bdef4ccb3d0a153a1b6c10982eccaa435f",
+      "afterSha256": "9e485d7d88f5501288ea1fe08980c7b962f839184d21de7e33fa6ffda7c9b37f",
+      "action": "write"
+    },
+    {
+      "path": "scripts/lib/jev-lint-models.mjs",
+      "beforeSha256": null,
+      "afterSha256": "0109efa3d198e09c3e6d31b2e07dbc4e15be68feca99a594fa47f95bc35dbe6b",
+      "action": "write"
+    },
+    {
+      "path": "scripts/lib/jev-lint-models.test.mjs",
+      "beforeSha256": null,
+      "afterSha256": "30b146b791833f12ba2ea5178f7ff42a9cd15283ba9702463de2ce52ac0dec69",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/forge.config.ts",
+      "beforeSha256": "4a70ba9b6127da27ef672064ea7d2fb3cbad84db322ec99319022394b14b0b26",
+      "afterSha256": "4a259fda90a4da17543cddc19ba753f269cf921d5ea767c726ddf24b21e4301f",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/scripts/LOCAL_AXWISE_PACKAGING.md",
+      "beforeSha256": "3ab0c1cbf10a68dbf344f6d146cf7c3e1be92763566a698b0600e6f2721c7c6a",
+      "afterSha256": "9a53c48042043753b5019a832399ddac5247e48256d793c42b8ca290e8faddaf",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/scripts/check-orqanix-capabilities.mjs",
+      "beforeSha256": "7c37d67b613dad611c848f1983ab588bbdd20290e0933a0fc5b06bb4f11d4ae2",
+      "afterSha256": "c1f0e5300297967a02f5c3c8f5e3d23e050bd50ecccd16eb3dbdf672e7f2b4b4",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/scripts/lib/release-eligibility.mjs",
+      "beforeSha256": null,
+      "afterSha256": "c1ccae63d49f35db0ef8152f4dba7763e0cffedc56e7898c0eaf7adfe92837bc",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/scripts/make-orqanix-dmg.mjs",
+      "beforeSha256": "c665441c88e72472a00cfd39e70c9e0af1de898bf90b678289abbc14fd8243fa",
+      "afterSha256": "785a77047df6858075ce2fce2efc74bfe77f77c3fda3ad468d9b176645a732c2",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/scripts/make-orqanix-dmg.test.mjs",
+      "beforeSha256": null,
+      "afterSha256": "62e26cde3e33b259a2d0d8f4e59ab4d458e5e557eb55701d5b9544ce27a67a33",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/scripts/prepare-orqaly-runtime.mjs",
+      "beforeSha256": "872c06b293a0a0b4245c2fa9e7ff8f385e2026956f7a94ec1a7e692e5d35da38",
+      "afterSha256": "41e937f0c05a89aeb6508faefa838bdebe3bb368a1c00620d8d3ae1b3d005188",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/scripts/prepare-orqaly-runtime.test.mjs",
+      "beforeSha256": "9b617838419b9cc48fd5327b3a15003149c5eb98697fbe8d43d545ce2c1991b5",
+      "afterSha256": "740738598775e74c99b2415cfd6988d7964b6da47ee0a96a567e1ced5af90e4e",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/scripts/run-desktop-user-acceptance.mjs",
+      "beforeSha256": "e4eed9690f43b00aad3fa174501e24f38c9c18ebabe4a4d1710a25613c0e05fc",
+      "afterSha256": "52bf7b088728f7ac2f82fd251cf2987e82fbd0ecbda0ec42081723d59119d6f2",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/acp/__tests__/orqaly-prompt.test.ts",
+      "beforeSha256": "cf0da262d5ffcd16f5aebec54f0ddf63289cf013cf47673cb1253d457e683051",
+      "afterSha256": "26baeb7cb111a18f0f2a2cd5a46dceb5df139065b377e2980e5a387e17a0dddd",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/acp/prompt.ts",
+      "beforeSha256": "35103f58515942c18475554275e5a3491ce2fe16d2e413fb3645bba7b828cd86",
+      "afterSha256": "c64c35956fa24a7c635290e67b31b68f42b1e2b31532b2888ea2119c85f2de5d",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/components/BaseChat.tsx",
+      "beforeSha256": "b713dee77a65d6be04493e318563d579367f3c1e74bfa5d96d9f1ca96bb96806",
+      "afterSha256": "796f9d88aa7b263b733b949a926fdd5f681d816fb3e91f0d18a67231cdffa8f8",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/components/MarkdownContent.test.tsx",
+      "beforeSha256": "76349293c4a4ea004f7c20f1bf8828a8595e76b235d2eeaf0c92e872d681ef96",
+      "afterSha256": "76349293c4a4ea004f7c20f1bf8828a8595e76b235d2eeaf0c92e872d681ef96",
+      "action": "unchanged"
+    },
+    {
+      "path": "ui/desktop/src/components/ToolCallWithResponse.tsx",
+      "beforeSha256": "491812edeef0b9ad7f01cdd2f6b045425316ce7040bd23b20430f46772eaadca",
+      "afterSha256": "3e7d7e054294a68d455d3bb087a43a9cc7a0a709dfa67b954c0e2a3620d6da2f",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/components/settings/auth/AuthSettingsSection.test.tsx",
+      "beforeSha256": "62ef1357aed5f5956ffa1c043715a31241f149f18c12e26cc6ba1212f1120181",
+      "afterSha256": "62ef1357aed5f5956ffa1c043715a31241f149f18c12e26cc6ba1212f1120181",
+      "action": "unchanged"
+    },
+    {
+      "path": "ui/desktop/src/components/settings/auth/AuthSettingsSection.tsx",
+      "beforeSha256": "413252b5a2a78fe7ac19751f84095aabaae3fff4296b536e1092a30866c92269",
+      "afterSha256": "413252b5a2a78fe7ac19751f84095aabaae3fff4296b536e1092a30866c92269",
+      "action": "unchanged"
+    },
+    {
+      "path": "ui/desktop/src/components/settings/chat/EngineeringCapabilitiesSection.test.tsx",
+      "beforeSha256": "d6634a6abc3b29f5a78bdc9d16e73464223f103075aa99f1d51af52d165682b3",
+      "afterSha256": "f1b55e1e7fbe8f367793abbdd977d28ed6e268e3502b7935fc4e992adb836469",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/components/settings/chat/EngineeringCapabilitiesSection.tsx",
+      "beforeSha256": "6effb74a07ee9c2e40911cd89b3d7ca2c68140cedd53c2dbe4fa8a948ee96a7d",
+      "afterSha256": "dba9a0daca363ef57b8a46e023c80145a3f09e0e191426a401ae37a480667684",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/gooseServe.test.ts",
+      "beforeSha256": "bf6012dafa65b8520b636a68f5cb49b46e7dcc20f079af345ed8954810761012",
+      "afterSha256": "18039db479720f96636ff31296589310793c8b377a3ee3de853387df1a568ab2",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/gooseServe.ts",
+      "beforeSha256": "d6d80daef8a67eadc58e258243ffdf38d2ad27f2389e7f109b83daa86a93e91e",
+      "afterSha256": "0f450f8cfd1d8b7263c49780f565d588f9f509bca9785c67332f6adf486b2372",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/i18n/messages/de.json",
+      "beforeSha256": "82abbb5fd33695d7eac9194f6db57df60cf9daac6112a7897ad29211b5563a0a",
+      "afterSha256": "637f513c0d382df8cd96fbbf32bf509e167f6893c4332b6ee1ca0d6946bff049",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/i18n/messages/en.json",
+      "beforeSha256": "991d0481acb8b434e959f814a2257f43d236f9cd038a16de05011171ac8759a3",
+      "afterSha256": "92f50a3209068885b9f73cfb9d385a3abce42d7ee8f0b89c8706a68fad6f8b8d",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/i18n/messages/es.json",
+      "beforeSha256": "7279ce5ff81a3a1e9262aa08f3b6488a61dd6180bd16f71afc659465cefad4c2",
+      "afterSha256": "9627204faa7f29e56999895e998a6e614ea9d35bedd5a12909873dce5c7f88bb",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/i18n/messages/fr.json",
+      "beforeSha256": "d836102876dfe6140d4487f7dfd5ee1efdd26a1d175a20ec995c2901b0679640",
+      "afterSha256": "da5fcf99ad84d97717217c4aae94d47fea3bbb806a21d53e5984b569f2dad7f4",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/i18n/messages/hi.json",
+      "beforeSha256": "3e327f84642844ae0dd02a31ae11a74a6eb34f6cf150b2ce39a5b3fd05515a6d",
+      "afterSha256": "c47ac184981bc2f5eb30625a7808275a413799905c6cffdc860cf434e29d8e10",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/i18n/messages/id.json",
+      "beforeSha256": "85df3cc4245ffc0a3aca3b6daebb1c6d3a4d4207e523b4c4a13ca7e1ac172ad2",
+      "afterSha256": "571c4af668bd4fdd40e7018b1bf856dd18542832361821ace8bd09dbcbb722eb",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/i18n/messages/it.json",
+      "beforeSha256": "b04a21bc402b595878fe1132ffc936a3414869c9bb54546471ff49184b55c083",
+      "afterSha256": "3a9d4c6e46cf34c3c0f1fd7a81a1bd6a26685af59ddde47b33e733a85d6e659d",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/i18n/messages/ja.json",
+      "beforeSha256": "e6e940ac1cc3f2b24cf261e4f0e79624bb79f4d98288c282051728717c214e10",
+      "afterSha256": "d2fac04ecbab11fe3a9a305c76ab9c3baece247115c51f69e8717e16be3ce5b7",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/i18n/messages/ko.json",
+      "beforeSha256": "d3caed991f44ee3bdb09c98324b79d59870b77d72456eb44cf6d56917a4d35e6",
+      "afterSha256": "41102fe34fb037a85a5c0194863565ff466cc23f324d190d23c27efb0fce52e8",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/i18n/messages/ms.json",
+      "beforeSha256": "4048a0cbdb7eefe143ad7d4b7ec151e74cf15e4c8069f460d18453e78dfe16e9",
+      "afterSha256": "9a45f9ea411d48a9150386a31aa40798855a0cb282651f56bf876c1bbfe1f3da",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/i18n/messages/pt.json",
+      "beforeSha256": "8e2f43d0dc79973ac2e68298a29b01709f1086a4bb8762e481ad01f272a6bd83",
+      "afterSha256": "d243b17780136b502247038f04b5a8d830fa68c4397fe1930b1876d91e2075f1",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/i18n/messages/ru.json",
+      "beforeSha256": "4a66d09a5c3e55e6132052df4702d82311061f9b194f2a63083d284a3225b10a",
+      "afterSha256": "79eb0f698cbe1a0b948f5276961ddf7ec9db020fe75c54c53a58574f70459802",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/i18n/messages/tr.json",
+      "beforeSha256": "193386926d18158ffb8e33ea267bdc68298f8899deb758ae76ee184034173cf3",
+      "afterSha256": "c5e75a9d08d0f1ea3282dcc8cc1df3d516a63a017346e85a2d8925d2336e6bea",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/i18n/messages/vi.json",
+      "beforeSha256": "b83adf6413397edb65b334a0681b466add98c7f997718b1c6077af1e09fc79b6",
+      "afterSha256": "74327526019906caaff84e02533a8fb334a6c94194dea87bd7bd0576520d9515",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/i18n/messages/zh-CN.json",
+      "beforeSha256": "614c67117df6803d94b73c6d7a64c117a5edce0712c958110c9e0524cbc6d476",
+      "afterSha256": "0cc8e198ed34f76d1eabafdaa0f434a359257044a68816fc351e1b26ff000bdd",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/i18n/messages/zh-TW.json",
+      "beforeSha256": "f5e235f492e63a18d8f04c98022272ec2822ea7d614d7a483b40d73b2f0e3dfa",
+      "afterSha256": "17c79c5a91db7ba176feb9a8140f7923f38a7497eb7a5ddf884681c35918ece2",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/main.ts",
+      "beforeSha256": "831d9109ca9be5d0a70bc4e50601931342cdb0c38d4fb50bb61e50c642d47f5f",
+      "afterSha256": "e1fa0bf168e0962ae5d170edc2ccd71e8934d9d5303332668b3289dac8401164",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly-notices/NOTICE.txt",
+      "beforeSha256": "fa0b886c6d1eb8b09fc9c113724c883fb346ad6f4a2a7618a9908fbfe4cbfe8a",
+      "afterSha256": "e160a730da48f6f0ea0301854f3306817812194ebe249bf5d8b36e5ff8300fbb",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/WorkspacePanel.tsx",
+      "beforeSha256": "f59de107f0101794a7089819ada601faa82c3bcf38117e230ffee150525af274",
+      "afterSha256": "40489d24198e47d7dbcf95f4386f45f5db7c3fcfd5d877f7fac1099f619c051f",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/connection.test.ts",
+      "beforeSha256": "c4643f65b8a39b73b3fb2f70981fc3f102b8e160a647166556b0b82fd7f2d7f3",
+      "afterSha256": "c4643f65b8a39b73b3fb2f70981fc3f102b8e160a647166556b0b82fd7f2d7f3",
+      "action": "unchanged"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/connection.ts",
+      "beforeSha256": "b88f364a7310156895996ef5a7e1decfbe3f89c7575f118f9d226f31b09e091f",
+      "afterSha256": "b88f364a7310156895996ef5a7e1decfbe3f89c7575f118f9d226f31b09e091f",
+      "action": "unchanged"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/decisionTypes.ts",
+      "beforeSha256": "14dd702ba2b18d68327ce83431541ecb641ee28c41cdf94d59393215ea425fac",
+      "afterSha256": "60770a964be722e05679eb7a05810b82f2bcd61a3c363823ebdfa6f505eba127",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/nativeLanguageServers.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "ac6094f296b8aede02e45c3a69582b4117e78c1e5218186a9624dcb17410dc72",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/nativeLanguageServers.ts",
+      "beforeSha256": null,
+      "afterSha256": "22dec7a67f343980f2db4dcf1eb619bbd81765424285b5c32f7cbc724020be9f",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/replyQuestionPrompt.test.ts",
+      "beforeSha256": "fba7a363a5079606ab417c9642ff6cffde0777af5c1b5c0dafbe4bf3e6773ca2",
+      "afterSha256": "219fbdbe66b4030510c16f72540062814e38aeddbc208a6dc1033f65dafc2f5e",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/replyQuestionPrompt.ts",
+      "beforeSha256": "ac7b7ba8a46589cf18ad76a853a0c7ee79971c0388ef56d5666adeb90bc09b5b",
+      "afterSha256": "8b0688044985e58fb5376b357f408779fefed7a490a453189c968170a412f4f6",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/sync/__tests__/eventLedger.test.ts",
+      "beforeSha256": "f22c4b49491437e43d419a31f3ea7c4a561a56e471192f1dde5bb909e12a6b4d",
+      "afterSha256": "f22c4b49491437e43d419a31f3ea7c4a561a56e471192f1dde5bb909e12a6b4d",
+      "action": "unchanged"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/sync/__tests__/syncManager.test.ts",
+      "beforeSha256": "a679544a82132b7c8ef325d9be5105580eea8737ef996c9fd42c5ed90700b146",
+      "afterSha256": "a679544a82132b7c8ef325d9be5105580eea8737ef996c9fd42c5ed90700b146",
+      "action": "unchanged"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/sync/eventLedger.ts",
+      "beforeSha256": "f5c1c6e8366fe1b4feba3ce3cf8f790af4a810c8cfbc38ee9f3a04083ff996f3",
+      "afterSha256": "f5c1c6e8366fe1b4feba3ce3cf8f790af4a810c8cfbc38ee9f3a04083ff996f3",
+      "action": "unchanged"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/sync/syncManager.ts",
+      "beforeSha256": "49258c41433f6bf99dee1523e3d174260dc5b029ea26af7167025f9542e909ec",
+      "afterSha256": "49258c41433f6bf99dee1523e3d174260dc5b029ea26af7167025f9542e909ec",
+      "action": "unchanged"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/sync/types.ts",
+      "beforeSha256": "c8a3929362d735c2cf7df51f2d37fa1cc304903037a5616e7173999efe5a36ce",
+      "afterSha256": "c8a3929362d735c2cf7df51f2d37fa1cc304903037a5616e7173999efe5a36ce",
+      "action": "unchanged"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/workspace.test.ts",
+      "beforeSha256": "807c9a4566584ba93601228255ece57d041b347cf7e027a2b7488b73b793cab2",
+      "afterSha256": "4c226d6e0057c35e06949af768ce5b823908440b8a9c37fc4f2f20d43814d546",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/workspace.ts",
+      "beforeSha256": "b50bc4fa65d7c678a0a468a0628c226c50a2a92ec687abc725f15d063322955e",
+      "afterSha256": "51453645e68a0aa2da77ec745885eea5bdbc94bd3c59ec53c5b0c8ed34ed8859",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/workspace/ActivityView.tsx",
+      "beforeSha256": "72ed71c2f0100db57444eda60e7890d773eacf846097de10a3d2d15f3704ad1f",
+      "afterSha256": "599ff8829c674f2be1bf195fe0388082debd2599a19e396f14e58fdacf04f342",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/workspace/StatusCard.tsx",
+      "beforeSha256": "c2573df52fe4c709b9d206f4e8b596bced18f1ee786f2e120242839bf8dfbc9a",
+      "afterSha256": "456dedb2fb0e00a9efe3d228a7d16f05a02dfb20f3d2a227787f5d263eaa94be",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/workspace/WorkspaceRedesign.test.tsx",
+      "beforeSha256": "e09b850d188531a1112e4ec6228992cf17067ee9253f3845510eff4c74487386",
+      "afterSha256": "c58407ded910862665af6a1bcf3bb7a6962cd78b4321c485177acfbf1418704c",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/workspace/repair.test.ts",
+      "beforeSha256": "69d29a9248012494dc54316cf4d9b3469b7e590c628fc9a0da0b5352a25b1501",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/workspace/repair.ts",
+      "beforeSha256": "325829045dae6dfa49e90c54c7fb69e542c2097c707cd88fb2d70d8fe6db477c",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/workspace/results.ts",
+      "beforeSha256": "73d62d7f252ee96218a79505e0c06a5778529c730d74f84a59beb39dd50b6423",
+      "afterSha256": "f1c464510fa2b4ff3d4c4bd97a114902b1a771a744ba7e2470f0e13e3689133d",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/workspace/roadmap.ts",
+      "beforeSha256": "223e3f4555c8a77a1bbcbb6e90ee8aaa15c0d868c1504543e5a18cbec02c4604",
+      "afterSha256": "20f0b213b18a0d582b374be907511a572fb73cd3eece2f725f94c07646de3a49",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/workspace/workspaceData.test.ts",
+      "beforeSha256": "675cd78593cef5aaa63e6e682cc937048165ce7bd9e8316c1b5760a7b25c962c",
+      "afterSha256": "42028c7e505686fc7e5924a9318a860752af060ac7f26c40fcc2d18425cf0ca2",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/workspaceProjection.test.ts",
+      "beforeSha256": "c5a6d8976ef27b7c03ff3ec921e3fe1f4891398c33ba59ad998a90200eb3049c",
+      "afterSha256": "6dc3ae328a7316c43ef064908cde3604b996740c4668cdb744443878f8173884",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/workspaceProjection.ts",
+      "beforeSha256": "001c124eb2ed829d7590ab43de5f71ea46cb1263a7f3b865ffc55ffa7e7683b7",
+      "afterSha256": "e33a9a63cc3c69535c68087f1f6768b30c81fbfdd57b7c93dd18ec8cd8bdbae0",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/orqaly/workspaceTypes.ts",
+      "beforeSha256": "8c4fdccd8daac2bc5e3a3b97b90f477e4cccb12f554a4d2aaf12fcc7087b46cb",
+      "afterSha256": "b013cdfbc4d54d86cb7e0e0e84b6eeaf7ac808e757a5f1f2ea37e86564f568fa",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/preload.ts",
+      "beforeSha256": "a275741f9dde08b140487ba70c81d9fd4af226139e8d5be48754e0b622bb351c",
+      "afterSha256": "a275741f9dde08b140487ba70c81d9fd4af226139e8d5be48754e0b622bb351c",
+      "action": "unchanged"
+    },
+    {
+      "path": "ui/desktop/src/test/setup.ts",
+      "beforeSha256": "4670868aa408f5016a4d9c30e1df37b372e09c0c3e06bccbfbcf0b379e6316eb",
+      "afterSha256": "25882c7ed820fa1f43772f651e68b9abeedb74efa881b550ffad98b826533848",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/utils/__tests__/settings.test.ts",
+      "beforeSha256": "6648bce4a320af0167411c9873f5f92d2fcd0cc887c25620f7fc450621832805",
+      "afterSha256": "58cb481cf70143cd793b0f752879d6660d2f9984bac54fdb4d16fc0f170338c6",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/src/utils/markdownNormalize.test.ts",
+      "beforeSha256": "ac0a2c3bdeda050b2f417eee530507220f1f146f3bef42c41a41f9bb6ee2d292",
+      "afterSha256": "ac0a2c3bdeda050b2f417eee530507220f1f146f3bef42c41a41f9bb6ee2d292",
+      "action": "unchanged"
+    },
+    {
+      "path": "ui/desktop/src/utils/markdownNormalize.ts",
+      "beforeSha256": "fe7ab59f258ea46b40ba2ed2707d573f6cdd9f2916de8c7898cf9b2b0c7b8aae",
+      "afterSha256": "fe7ab59f258ea46b40ba2ed2707d573f6cdd9f2916de8c7898cf9b2b0c7b8aae",
+      "action": "unchanged"
+    },
+    {
+      "path": "ui/desktop/src/utils/settings.ts",
+      "beforeSha256": "d5af8e67dd42258a159aa80b17ffcbddc2e27264bbb1434b1f312ec8ec7fb741",
+      "afterSha256": "a1c4d81c43737cd23179c67c89cbe7dd0a9f0e50234346648ed3d173a31f6000",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/tests/e2e/orqanix-native-engineering-live.spec.ts",
+      "beforeSha256": null,
+      "afterSha256": "93a1692960c71d93d642b42dfa24fcee966026975962886074984babc8d1a31c",
+      "action": "write"
+    },
+    {
+      "path": "ui/desktop/tests/e2e/orqanix-omp-live.spec.ts",
+      "beforeSha256": "a14a53b5277faf29307a656b12a4346b5c2912ae0962e08180d988f9c97b9539",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "vendor/orqaly-goose-connector/PACKAGING.md",
+      "beforeSha256": "c09d14f5835a809b6228fdd8b506276589c6d92f5bb3930ca4cc4fbb388ea242",
+      "afterSha256": "658ce2d9e336936b4f5fc163b4b6f79a83c8ff1b1308a5597eed38eef71aaed8",
+      "action": "write"
+    },
+    {
+      "path": "vendor/orqaly-goose-connector/README.md",
+      "beforeSha256": "f38b891473a9ccfa44c88c366f2c0adb9ddfdbba42d86c5e732f716efb421eab",
+      "afterSha256": "d9a55bd8411f4f13582f75b3b62a6e0bf8398ea5355cf48282e21f5c713e9551",
+      "action": "write"
+    },
+    {
+      "path": "vendor/orqaly-goose-connector/SOURCE_PROVENANCE.json",
+      "beforeSha256": "2db405f893602b5a047ec695df54b19d61ea28e73974730bc25502a9631cb986",
+      "afterSha256": "a46cb28a6e303d0264cbc4fe03345d3848dbe80b159c87f6cf9fcf30adf791b9",
+      "action": "write"
+    },
+    {
+      "path": "vendor/orqaly-goose-connector/src/mcp.mjs",
+      "beforeSha256": "ae0c8614bc9070db5c9ff33cc3519ca715c65be6b15554c71e242091313b5d6d",
+      "afterSha256": "32c2c67a364ef82adbfe7fadfcc9b9985b6ba31ac54b1b57150e6467dacfc251",
+      "action": "write"
+    },
+    {
+      "path": "vendor/orqaly-goose-connector/test/mcp.test.mjs",
+      "beforeSha256": "93c70b93ff3689f283c5941afa963d3223fe9ebec9edbb627a50f2f21f63672c",
+      "afterSha256": "5ea411647091dfe665e1f224e09b362326d1e169e5ce5f078f8dddf3d6ff4223",
+      "action": "write"
+    },
+    {
+      "path": "vendor/orqanix-language-servers/README.md",
+      "beforeSha256": null,
+      "afterSha256": "4d75584f21c511c2ec6f367939f8b7b4de86cb6cff89f96dff4e9f7500aa0167",
+      "action": "write"
+    },
+    {
+      "path": "vendor/orqanix-language-servers/package-lock.json",
+      "beforeSha256": null,
+      "afterSha256": "4a57b560786494ce047c5081bc9b3899b881531107ce956ef06a2ba5743d0988",
+      "action": "write"
+    },
+    {
+      "path": "vendor/orqanix-language-servers/package.json",
+      "beforeSha256": null,
+      "afterSha256": "47f692b803949f431b9f6e2b88815c3e8e85b833beac442c94443a505fb68d12",
+      "action": "write"
+    },
+    {
+      "path": "vendor/orqanix-omp-mcp-server/PACKAGING.md",
+      "beforeSha256": "cb88f910a8539cb5ee92c64832949104c4685392a3a744d822929e2f71eee552",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "vendor/orqanix-omp-mcp-server/README.md",
+      "beforeSha256": "fd7077b94002dc8a4cf8de716b674409f9d7307506997bd18bbf11ad8a8a945d",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "vendor/orqanix-omp-mcp-server/SOURCE_PROVENANCE.json",
+      "beforeSha256": "ea8c242113c763bd96d2df2059651f61eb3f4b6b1d58df69472c6c5bdb69d8c5",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "vendor/orqanix-omp-mcp-server/package-lock.json",
+      "beforeSha256": "7bad85b451b01614e0c9ff928dd6c0fd68bde2512d0e95640d69435ab9ff140b",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "vendor/orqanix-omp-mcp-server/package.json",
+      "beforeSha256": "19016dba3102bab95f240e252918372984c7b0a6e1045fb1f0469b4b2324bf20",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "vendor/orqanix-omp-mcp-server/src/config.mjs",
+      "beforeSha256": "e23078fb2fb15342e5100d679f2682011c5ddb51518490ac526841218ff7d8c1",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "vendor/orqanix-omp-mcp-server/src/evidence.mjs",
+      "beforeSha256": "69c00309495917178d09150f1a5a0b68f994fe9e88b7721a0d2422382730d281",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "vendor/orqanix-omp-mcp-server/src/jev-lint-models.mjs",
+      "beforeSha256": "0109efa3d198e09c3e6d31b2e07dbc4e15be68feca99a594fa47f95bc35dbe6b",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "vendor/orqanix-omp-mcp-server/src/mcp.mjs",
+      "beforeSha256": "6b51438f600b8f35ffdf4b61b7a76eb77184d4354b2cfa8301ee832ad8da5773",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "vendor/orqanix-omp-mcp-server/src/omp-client.mjs",
+      "beforeSha256": "c5d253b68676977b108b89e7a827cc53dce96a630f9b6ec89f431ccbeb7034f9",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "vendor/orqanix-omp-mcp-server/test/evidence.test.mjs",
+      "beforeSha256": "c41eec88fbb667297bc6ddad194dd6c70071147d0cf9361d240dd984f53f200c",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "vendor/orqanix-omp-mcp-server/test/fixtures/fake-omp.mjs",
+      "beforeSha256": "665757374d65ab0c16978bf7e4449007c824202bf77245eb0a34555d76c05cb2",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "vendor/orqanix-omp-mcp-server/test/jev-lint.test.mjs",
+      "beforeSha256": "7bc75031185d68590d57f362dea19c995f1ec5f72bf5570d801ae0d4788478f4",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "vendor/orqanix-omp-mcp-server/test/mcp.test.mjs",
+      "beforeSha256": "acfd1b7e0251bf11140b6e5a1bef091b98536673c0515d7a647ad1e32e007f32",
+      "afterSha256": null,
+      "action": "delete"
+    },
+    {
+      "path": "vendor/orqanix-omp-mcp-server/test/omp-client.test.mjs",
+      "beforeSha256": "155539ea3f03296e3c52b4f6aea4f616bd4ae2b33a9aac5338543bcae94a7df2",
+      "afterSha256": null,
+      "action": "delete"
+    }
+  ]
+}

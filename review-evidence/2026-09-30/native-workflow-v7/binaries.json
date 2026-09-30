@@ -1,0 +1,19 @@
+{
+  "schema": "orqanix.native-workflow-v7-build.v1",
+  "profile": "release",
+  "features": [
+    "rustls-tls"
+  ],
+  "codeMode": false,
+  "releaseEligible": false,
+  "baselineSha256": "10c5e5b7b37c17f962e5b316103efdd26dbcb5e880717732f36d882e54882bae",
+  "candidateSha256": "10c5e5b7b37c17f962e5b316103efdd26dbcb5e880717732f36d882e54882bae",
+  "arms": {
+    "default": "same rebuilt Goose binary, native tools mode off",
+    "candidate": "same rebuilt Goose binary, optional native tools workflow v7 on"
+  },
+  "otherFlags": {
+    "jev": false,
+    "axwise": false
+  }
+}

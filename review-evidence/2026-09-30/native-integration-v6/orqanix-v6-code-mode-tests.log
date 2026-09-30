@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.82s
+     Running unittests src/lib.rs (target/debug/deps/goose-74791959b85261c3)
+
+running 1 test
+test agents::extension_manager::tests::test_mcp_app_tools_identified_for_code_mode_exclusion ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2259 filtered out; finished in 0.04s
+

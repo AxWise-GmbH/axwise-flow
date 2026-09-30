@@ -1,0 +1,1069 @@
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/ast.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/ast.rs
+@@ -31,9 +31,12 @@
+ struct AstSearchParams {
+     /// Existing file or directory inside the session working directory.
+     path: String,
+-    /// Real Tree-sitter S-expression query with at least one @capture. Example:
+-    /// (function_declaration name: (identifier) @name). This is not a text pattern.
+-    query: String,
++    /// Raw Tree-sitter query with @captures; use either query or preset.
++    query: Option<String>,
++    /// Built-in syntax query; no Tree-sitter syntax required.
++    preset: Option<Preset>,
++    /// Exact captured name for a preset. Calls match terminal names, not bindings.
++    name: Option<String>,
+     /// Required for directories; optional override for a file. Supported: rust,
+     /// python, javascript, typescript, tsx, go, java, kotlin, swift, ruby.
+     #[serde(default)]
+@@ -46,6 +49,24 @@
+     max_files: usize,
+ }
+ 
++#[derive(Debug, Clone, Copy, Deserialize, JsonSchema)]
++#[serde(rename_all = "snake_case")]
++enum Preset {
++    Functions,
++    Classes,
++    Calls,
++}
++
++impl Preset {
++    fn query(self, language: &LangInfo) -> &str {
++        match self {
++            Self::Functions => language.queries.functions,
++            Self::Classes => language.queries.classes,
++            Self::Calls => language.queries.calls,
++        }
++    }
++}
++
+ fn default_max_results() -> usize {
+     50
+ }
+@@ -61,7 +82,7 @@
+         .clone();
+     vec![Tool::new(
+         "ast_search".to_string(),
+-        "Prefer for structural code questions (declarations/call shapes) where text search would match comments or strings. Search real syntax-tree captures using a Tree-sitter query. Reads workspace files and respects ignored files when walking directories. Supply language for a directory. Returns exact node ranges (1-based lines, 0-based UTF-8 byte columns; exclusive end), bounded snippets and the full saved-file SHA-256. Unsupported languages, invalid queries, partial scans and cancellation are explicit; this is not an LSP or regex search.".to_string(),
++        "Find real function/class declarations or calls, excluding comments and strings. Use preset (functions/classes/calls) and optional exact name; supply language for directories. Presets return compact syntax context and zero-based UTF-16 positions usable by lsp_query. Names are syntactic, not semantic bindings: use LSP references for aliases/shadowing. Alternatively supply a raw Tree-sitter query; its ranges are 1-based lines and UTF-8 byte columns. Ignored files and scan limits are explicit.".to_string(),
+         schema,
+     ).annotate(ToolAnnotations::from_raw(
+         Some("AST Search".into()), Some(true), Some(false), Some(true), Some(false),
+@@ -78,14 +99,21 @@
+             Ok(params) => params,
+             Err(error) => return failure("INVALID_ARGUMENTS", &error.to_string()),
+         };
+-    if params.query.is_empty()
+-        || params.query.len() > MAX_QUERY_BYTES
++    if params.query.is_some() == params.preset.is_some()
++        || params
++            .query
++            .as_ref()
++            .is_some_and(|q| q.is_empty() || q.len() > MAX_QUERY_BYTES)
++        || params
++            .name
++            .as_ref()
++            .is_some_and(|name| name.is_empty() || name.len() > 256 || params.preset.is_none())
+         || !(1..=100).contains(&params.max_results)
+         || !(1..=256).contains(&params.max_files)
+     {
+         return failure(
+             "INVALID_ARGUMENTS",
+-            "Require a nonempty query up to 16384 bytes, max_results 1..100 and max_files 1..256",
++            "Use exactly one of query/preset; name is an optional exact preset name (1..256 bytes). max_results 1..100, max_files 1..256.",
+         );
+     }
+     let root = match workspace_root(ctx) {
+@@ -214,7 +242,12 @@
+     let deadline = Instant::now() + SEARCH_DEADLINE;
+     check_cancel(&cancellation, deadline)?;
+     let grammar = (language.language)();
+-    let query = Query::new(&grammar, &params.query).map_err(|error| {
++    let query_text = params
++        .preset
++        .map(|preset| preset.query(language))
++        .or(params.query.as_deref())
++        .expect("validated query or preset");
++    let query = Query::new(&grammar, query_text).map_err(|error| {
+         (
+             "INVALID_QUERY",
+             format!(
+@@ -297,6 +330,7 @@
+         )
+     })?;
+     let mut results = Vec::new();
++    let mut files = serde_json::Map::new();
+     let mut bytes_scanned = 0;
+     let mut files_scanned = 0;
+     let mut syntax_error_files = Vec::new();
+@@ -375,13 +409,43 @@
+         while let Some(found) = matches.next() {
+             check_cancel(&cancellation, deadline)?;
+             for capture in found.captures {
++                let node = capture.node;
++                let text = node.utf8_text(bytes).unwrap_or_default();
++                if params.name.as_ref().is_some_and(|name| name != text) {
++                    continue;
++                }
+                 if results.len() >= params.max_results {
+                     truncated = true;
+                     limit_reason = Some("result_limit");
+                     break 'files;
+                 }
+-                let node = capture.node;
+-                let text = node.utf8_text(bytes).unwrap_or_default();
++                if params.preset.is_some() {
++                    let mut context = node.parent().unwrap_or(node);
++                    if matches!(
++                        context.kind(),
++                        "member_expression" | "field_expression" | "attribute"
++                    ) {
++                        context = context.parent().unwrap_or(context);
++                    }
++                    let context_text = context.utf8_text(bytes).unwrap_or(text);
++                    let snippet: String = context_text.chars().take(MAX_SNIPPET_CHARS).collect();
++                    let line_start = node.start_byte() - node.start_position().column;
++                    let character = source
++                        .get(line_start..node.start_byte())
++                        .ok_or_else(|| {
++                            (
++                                "INVALID_POSITION",
++                                "Parser returned an invalid UTF-8 position".into(),
++                            )
++                        })?
++                        .encode_utf16()
++                        .count();
++                    files.insert(rel.clone(), json!({"sha256":file_sha256}));
++                    results.push(json!({"path":rel,"name":text,"kind":context.kind(),
++                        "position":{"line":node.start_position().row,"character":character},
++                        "snippet":snippet,"snippet_truncated":snippet.len()<context_text.len()}));
++                    continue;
++                }
+                 let snippet: String = text.chars().take(MAX_SNIPPET_CHARS).collect();
+                 results.push(json!({
+                     "path": rel, "language": language.name, "capture": query.capture_names()[capture.index as usize],
+@@ -399,13 +463,16 @@
+             limit_reason = Some("query_match_limit");
+         }
+     }
+-    Ok(
+-        json!({"status": if truncated || !skipped.is_empty() { "partial" } else { "completed" },
++    let mut result = json!({"status": if truncated || !skipped.is_empty() { "partial" } else { "completed" },
+         "engine": "tree-sitter", "language": language.name, "matches": results,
+         "scope": {"max_depth": 12, "respects_ignore_rules": true},
+         "files_scanned": files_scanned, "bytes_scanned": bytes_scanned, "truncated": truncated,
+-        "limit_reason": limit_reason, "skipped": skipped, "syntax_error_files": syntax_error_files}),
+-    )
++        "limit_reason": limit_reason, "skipped": skipped, "syntax_error_files": syntax_error_files});
++    if params.preset.is_some() {
++        result["files"] = Value::Object(files);
++        result["positionEncoding"] = json!("utf-16");
++    }
++    Ok(result)
+ }
+ 
+ #[cfg(test)]
+@@ -419,6 +486,79 @@
+             .await
+             .structured_content
+             .unwrap()
++    }
++
++    #[test]
++    fn presets_compile_for_every_supported_grammar() {
++        for name in [
++            "rust",
++            "python",
++            "javascript",
++            "typescript",
++            "tsx",
++            "go",
++            "java",
++            "kotlin",
++            "swift",
++            "ruby",
++        ] {
++            let language = language_by_name(name).unwrap();
++            for preset in [Preset::Functions, Preset::Classes, Preset::Calls] {
++                let query = Query::new(&(language.language)(), preset.query(language))
++                    .unwrap_or_else(|error| panic!("{name} {preset:?}: {error}"));
++                assert!(!query.capture_names().is_empty(), "{name} {preset:?}");
++            }
++        }
++    }
++
++    #[tokio::test]
++    async fn preset_names_filter_syntax_and_return_lsp_compatible_unicode_positions() {
++        let root = tempdir().unwrap();
++        std::fs::write(
++            root.path().join("code.js"),
++            "\"😀\"; run();\n// run();\nconst text = 'run()';\nother(); object.run();\n",
++        )
++        .unwrap();
++        let result = invoke(
++            root.path(),
++            json!({"path":"code.js","preset":"calls","name":"run"}),
++        )
++        .await;
++        assert_eq!(result["status"], "completed");
++        let matches = result["matches"].as_array().unwrap();
++        assert_eq!(matches.len(), 2, "{result}");
++        assert_eq!(matches[0]["position"], json!({"line":0,"character":6}));
++        assert_eq!(matches[0]["snippet"], "run()");
++        assert_eq!(matches[1]["snippet"], "object.run()");
++        assert_eq!(result["files"].as_object().unwrap().len(), 1);
++        assert!(matches[0].get("file_sha256").is_none());
++    }
++
++    #[tokio::test]
++    async fn preset_filters_before_result_limit_and_rejects_conflicting_query_modes() {
++        let root = tempdir().unwrap();
++        std::fs::write(
++            root.path().join("code.ts"),
++            "function other() {}\nfunction wanted() {}\nfunction wanted2() {}\n",
++        )
++        .unwrap();
++        let result = invoke(
++            root.path(),
++            json!({"path":"code.ts","preset":"functions","name":"wanted","max_results":1}),
++        )
++        .await;
++        assert_eq!(result["status"], "completed");
++        assert_eq!(result["matches"][0]["name"], "wanted");
++        for input in [
++            json!({"path":"code.ts"}),
++            json!({"path":"code.ts","query":"(identifier) @name","preset":"calls"}),
++            json!({"path":"code.ts","query":"(identifier) @name","name":"wanted"}),
++        ] {
++            assert_eq!(
++                invoke(root.path(), input).await["code"],
++                "INVALID_ARGUMENTS"
++            );
++        }
+     }
+ 
+     #[tokio::test]
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/lsp.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/lsp.rs
+@@ -7,6 +7,7 @@
+ use rmcp::model::{CallToolResult, JsonObject, Tool, ToolAnnotations};
+ use serde::Deserialize;
+ use serde_json::{json, Value};
++use sha2::{Digest, Sha256};
+ use std::collections::HashMap;
+ use std::path::{Path, PathBuf};
+ use std::process::Stdio;
+@@ -35,6 +36,9 @@
+     language: Option<String>,
+     line: Option<u32>,
+     character: Option<u32>,
++    symbol: Option<String>,
++    #[serde(default)]
++    offset: usize,
+     #[serde(default = "default_true")]
+     include_declaration: bool,
+ }
+@@ -82,7 +86,7 @@
+                 } else {
+                     languages.join(", ")
+                 };
+-                format!("Host-configured LSP languages: {configured}. Configuration is not a startup check: a successful lsp_query confirms that server answered. Other supported languages use known host PATH commands, whose availability is unverified. Never install a server automatically. LSP input limit: 2 MiB; response limit: 64 KiB; query deadline: 30 seconds. Diagnostics are current-document results; unversioned results are not proof of freshness or project-wide correctness.")
++                format!("Host-configured LSP languages: {configured}. Servers start lazily and are reused; availability is confirmed by a successful query. Unversioned diagnostics do not prove freshness. No automatic installation.")
+             }
+             Err(_) => "Host LSP configuration is invalid; lsp_query is unavailable until the host configuration is corrected. Use bounded local alternatives and report this limitation; do not guess or install a server.".to_string(),
+         }
+@@ -96,14 +100,16 @@
+                 "action":{"type":"string","enum":["symbols","definition","references","hover","diagnostics"]},
+                 "path":{"type":"string","description":"Existing file inside this conversation's workspace; relative paths are preferred."},
+                 "language":{"type":"string","enum":["typescript","typescriptreact","javascript","javascriptreact","python","rust","go","c","cpp","json"],"description":"Optional language override; never an executable or command."},
+-                "line":{"type":"integer","minimum":0,"description":"Zero-based line, required for definition/references/hover."},
+-                "character":{"type":"integer","minimum":0,"description":"Zero-based UTF-16 character offset, required for definition/references/hover."},
++                "line":{"type":"integer","minimum":0,"description":"Zero-based line for a use-site query. Omit when symbol is supplied. Required with character only when symbol is absent."},
++                "character":{"type":"integer","minimum":0,"description":"Zero-based UTF-16 offset for a use-site query. Omit when symbol is supplied. Required with line only when symbol is absent."},
++                "symbol":{"type":"string","maxLength":256,"description":"Instead of line/character: exact declaration name in this file, optionally qualified as Class.member. Resolves position and runs the semantic query in one call; ambiguity returns candidates. Named references/definition return up to 40 compact locations with saved-line context."},
++                "offset":{"type":"integer","minimum":0,"default":0,"description":"Named references/definition pagination; use returned next_offset. Each page queries current saved state."},
+                 "include_declaration":{"type":"boolean","default":true}
+             }
+         });
+         vec![Tool::new(
+             "lsp_query",
+-            "Prefer for semantic definitions, references, types and diagnostics. Query a real local language server for symbols, definition, references, hover, or current-document diagnostics. If the position is unknown, call symbols for the file first and use the returned selectionRange. Positions use zero-based lines and UTF-16 characters. Requires a server installed by the user or bundled by the host; unavailable servers are reported, never installed. Read-only protocol: server edits and commands are rejected. Diagnostics without a document version are explicitly unverified. This runs a trusted host-configured language-server process, not a model or delegated agent.",
++            "Find semantic references/definitions/types across aliases and shadowed names using a real language server. For a known declaration use path + symbol, without first calling symbols. Otherwise use zero-based line and UTF-16 character. Use symbols for an outline; diagnostics only when needed. Read-only; servers are host-configured and reused. Inspect partial/ambiguous results; no automatic installation or model delegation.",
+             schema.as_object().expect("literal object").clone(),
+         ).annotate(ToolAnnotations::from_raw(Some("Language intelligence".into()), Some(true), Some(false), Some(true), Some(true))) ]
+     }
+@@ -114,7 +120,7 @@
+         ctx: &ToolCallContext,
+         cancellation_token: CancellationToken,
+     ) -> CallToolResult {
+-        let query: Query =
++        let mut query: Query =
+             match serde_json::from_value(Value::Object(arguments.unwrap_or_default())) {
+                 Ok(query) => query,
+                 Err(_) => {
+@@ -129,6 +135,25 @@
+             "symbols" | "definition" | "references" | "hover" | "diagnostics"
+         ) {
+             return failure("invalid_arguments", "Unsupported language-server action.");
++        }
++        if query.symbol.as_ref().is_some_and(|symbol| {
++            symbol.is_empty()
++                || symbol.len() > 256
++                || query.line.is_some()
++                || query.character.is_some()
++                || !matches!(query.action.as_str(), "definition" | "references" | "hover")
++        }) {
++            return failure("invalid_arguments", "Use symbol only for definition/references/hover, instead of line/character (1..256 bytes).");
++        }
++        if query.offset > 100_000
++            || (query.offset != 0
++                && (query.symbol.is_none()
++                    || !matches!(query.action.as_str(), "definition" | "references")))
++        {
++            return failure(
++                "invalid_arguments",
++                "offset is only available for named references/definition (0..100000).",
++            );
+         }
+         let root = match workspace_root(ctx) {
+             Ok(root) => root,
+@@ -152,6 +177,7 @@
+             Err(error) => return failure("invalid_document", &error),
+         };
+         if matches!(query.action.as_str(), "definition" | "references" | "hover")
++            && query.symbol.is_none()
+             && !valid_position(&content, query.line, query.character)
+         {
+             return failure(
+@@ -201,7 +227,32 @@
+             server.refresh_open_documents(&uri).await?;
+             server.sync_document(&uri, language, content).await?;
+             let version = server.documents.get(&uri).expect("opened document").version;
++            if let Some(symbol) = &query.symbol {
++                if !server.supports("documentSymbolProvider") {
++                    return Err("unsupported_capability: Name lookup requires document symbols; use line/character.".into());
++                }
++                let symbols = server
++                    .request(
++                        "textDocument/documentSymbol",
++                        json!({"textDocument":{"uri":uri}}),
++                    )
++                    .await?;
++                let position =
++                    match resolve_symbol(&symbols, symbol, &uri, &server.documents[&uri].text) {
++                        Ok(position) => position,
++                        Err(value) => return Ok(value),
++                    };
++                query.line = Some(position.0);
++                query.character = Some(position.1);
++            }
+             let value = server.query(&query, &uri).await?;
++            let value = if query.symbol.is_some()
++                && matches!(query.action.as_str(), "references" | "definition")
++            {
++                compact_locations(value, ctx, query.offset).await?
++            } else {
++                value
++            };
+             if serde_json::to_vec(&value)
+                 .map_err(|_| "invalid_result".to_string())?
+                 .len()
+@@ -213,7 +264,7 @@
+                 );
+             }
+             Ok(
+-                json!({"status":"completed", "action":query.action, "language":language,
++                json!({"status":if value.get("truncated")==Some(&Value::Bool(true)) {"partial"} else {"completed"}, "action":query.action, "language":language,
+                 "path":query.path, "documentVersion":version, "positionEncoding":"utf-16", "result":value}),
+             )
+         };
+@@ -224,7 +275,19 @@
+             result = tokio::time::timeout(CALL_TIMEOUT, operation) => result.unwrap_or_else(|_| Err("timeout: Language-server query exceeded 30 seconds.".into())),
+         };
+         match outcome {
+-            Ok(value) => json_result(value, false),
++            Ok(value) => {
++                if serde_json::to_vec(&value)
++                    .map(|bytes| bytes.len() > MAX_RESULT)
++                    .unwrap_or(true)
++                {
++                    return failure(
++                        "output_too_large",
++                        "The result exceeded 64 KiB; narrow the query.",
++                    );
++                }
++                let is_error = !matches!(value["status"].as_str(), Some("completed" | "partial"));
++                json_result(value, is_error)
++            }
+             Err(error) => {
+                 // A timed-out/cancelled request may have unread responses or partial frames.
+                 // Retire that entire process; the next turn gets a fresh protocol session.
+@@ -375,6 +438,186 @@
+         last = next;
+     }
+     json!({"line":line,"character":last.trim_end_matches('\r').encode_utf16().count()})
++}
++
++fn resolve_symbol(
++    symbols: &Value,
++    selected: &str,
++    uri: &str,
++    text: &str,
++) -> Result<(u32, u32), Value> {
++    let mut stack: Vec<(&Value, String)> = symbols
++        .as_array()
++        .into_iter()
++        .flatten()
++        .map(|value| (value, String::new()))
++        .collect();
++    let mut matches = Vec::new();
++    let mut available = Vec::new();
++    let mut visited = 0;
++    while let Some((value, parent)) = stack.pop() {
++        visited += 1;
++        if visited > 2048 {
++            return Err(
++                json!({"status":"failed","code":"symbol_limit","message":"Use an explicit line/character; the symbol outline exceeds 2048 entries."}),
++            );
++        }
++        let Some(name) = value["name"].as_str() else {
++            continue;
++        };
++        if value
++            .pointer("/location/uri")
++            .and_then(Value::as_str)
++            .is_some_and(|location| location != uri)
++        {
++            continue;
++        }
++        let container = value["containerName"].as_str().unwrap_or(&parent);
++        let qualified = if container.is_empty() {
++            name.to_string()
++        } else {
++            format!("{container}.{name}")
++        };
++        let range = value
++            .get("selectionRange")
++            .or_else(|| value.pointer("/location/range"));
++        if let Some(range) = range {
++            if available.len() < 8 {
++                available.push(qualified.clone());
++            }
++            if selected == name || selected == qualified {
++                if value.get("selectionRange").is_none() {
++                    return Err(
++                        json!({"status":"failed","code":"symbol_position_unavailable","message":"The server returned a declaration range, not an exact name position. Use an explicit line/character."}),
++                    );
++                }
++                let line = range
++                    .pointer("/start/line")
++                    .and_then(Value::as_u64)
++                    .and_then(|n| u32::try_from(n).ok());
++                let character = range
++                    .pointer("/start/character")
++                    .and_then(Value::as_u64)
++                    .and_then(|n| u32::try_from(n).ok());
++                if !valid_position(text, line, character) {
++                    return Err(
++                        json!({"status":"failed","code":"invalid_symbol_position","message":"The server returned an invalid symbol position."}),
++                    );
++                }
++                matches.push(json!({"symbol":qualified,"line":line,"character":character}));
++            }
++        }
++        if let Some(children) = value["children"].as_array() {
++            stack.extend(children.iter().map(|child| (child, qualified.clone())));
++        }
++    }
++    match matches.len() {
++        1 => Ok((
++            matches[0]["line"].as_u64().unwrap() as u32,
++            matches[0]["character"].as_u64().unwrap() as u32,
++        )),
++        0 => Err(
++            json!({"status":"failed","code":"symbol_not_found","symbol":selected,"available":available,"message":"Use a declaration name in this file, or an explicit line/character for a use site."}),
++        ),
++        total => Err(
++            json!({"status":"failed","code":"ambiguous_symbol","symbol":selected,"total":total,"candidates":matches.into_iter().take(8).collect::<Vec<_>>(),"message":"Choose a qualified name or an explicit line/character; no symbol was selected."}),
++        ),
++    }
++}
++
++async fn compact_locations(
++    value: Value,
++    ctx: &ToolCallContext,
++    offset: usize,
++) -> Result<Value, String> {
++    let mut values = match value {
++        Value::Null => Vec::new(),
++        Value::Array(values) => values,
++        value if value.is_object() => vec![value],
++        _ => return Err("protocol_error: Invalid location response.".into()),
++    };
++    values.sort_by_cached_key(|value| {
++        let uri = value
++            .get("uri")
++            .or_else(|| value.get("targetUri"))
++            .and_then(Value::as_str)
++            .unwrap_or("");
++        let range = value
++            .get("range")
++            .or_else(|| value.get("targetSelectionRange"))
++            .unwrap_or(&Value::Null);
++        (
++            uri.to_owned(),
++            range
++                .pointer("/start/line")
++                .and_then(Value::as_u64)
++                .unwrap_or(0),
++            range
++                .pointer("/start/character")
++                .and_then(Value::as_u64)
++                .unwrap_or(0),
++        )
++    });
++    let total = values.len();
++    let root = workspace_root(ctx).map_err(|e| format!("invalid_workspace: {e}"))?;
++    let mut documents: HashMap<PathBuf, String> = HashMap::new();
++    let mut files = serde_json::Map::new();
++    let mut bytes_read = 0;
++    let mut locations = Vec::new();
++    for value in values.into_iter().skip(offset).take(40) {
++        let uri = value
++            .get("uri")
++            .or_else(|| value.get("targetUri"))
++            .and_then(Value::as_str)
++            .ok_or("protocol_error: Location has no URI.")?;
++        let range = value
++            .get("range")
++            .or_else(|| value.get("targetSelectionRange"))
++            .filter(|r| r.is_object())
++            .ok_or("protocol_error: Location has no range.")?;
++        let path = Url::parse(uri).ok().and_then(|url| url.to_file_path().ok());
++        let path = path.and_then(|p| workspace_path(ctx, &p.to_string_lossy()).ok());
++        let Some(path) = path else {
++            locations.push(json!({"uri":uri,"range":range,"external_or_unavailable":true}));
++            continue;
++        };
++        let relative = path
++            .strip_prefix(&root)
++            .map_err(|_| "invalid_path: Reference left the workspace.")?
++            .to_string_lossy()
++            .to_string();
++        if !documents.contains_key(&path) && bytes_read < 8 * 1024 * 1024 {
++            if let Ok(text) = bounded_document(&path).await {
++                bytes_read += text.len();
++                let sha = Sha256::digest(text.as_bytes())
++                    .iter()
++                    .map(|byte| format!("{byte:02x}"))
++                    .collect::<String>();
++                files.insert(relative.clone(), json!({"sha256":sha}));
++                documents.insert(path.clone(), text);
++            }
++        }
++        let line = range
++            .pointer("/start/line")
++            .and_then(Value::as_u64)
++            .and_then(|line| usize::try_from(line).ok());
++        let context = documents
++            .get(&path)
++            .and_then(|text| line.and_then(|line| text.lines().nth(line)));
++        let mut location = json!({"path":relative,"range":range});
++        if let Some(context) = context {
++            let snippet: String = context.chars().take(256).collect();
++            location["line_text"] = json!(snippet);
++            location["line_truncated"] = json!(snippet.len() < context.len());
++        } else {
++            location["context_unavailable"] = json!(true);
++        }
++        locations.push(location);
++    }
++    let next = offset.saturating_add(locations.len());
++    Ok(
++        json!({"locations":locations,"files":files,"total":total,"offset":offset,"truncated":next<total,"next_offset":if next<total {Some(next)} else {None},"context":"saved file snapshots; not an atomic project snapshot"}),
++    )
+ }
+ 
+ struct Document {
+@@ -945,9 +1188,11 @@
+                 continue;
+             };
+             if tsserver.is_file() {
++                // The server's auto mode may answer early semantic requests from
++                // a partial-semantic process that has not loaded other project files.
+                 return Ok(
+                     json!({"disableAutomaticTypingAcquisition":true,"plugins":[],
+-                    "tsserver":{"path":tsserver,"fallbackPath":tsserver}}),
++                    "tsserver":{"path":tsserver,"fallbackPath":tsserver,"useSyntaxServer":"never"}}),
+                 );
+             }
+         }
+@@ -1030,14 +1275,14 @@
+             .insert("python".into(), vec!["private-argument".into()]);
+         let summary = tools.configuration_summary();
+         assert!(summary.contains("Host-configured LSP languages: python, rust."));
+-        assert!(summary.contains("Configuration is not a startup check"));
++        assert!(summary.contains("Servers start lazily and are reused"));
+         assert!(!summary.contains("host-secret-command"));
+         assert!(!summary.contains("private-argument"));
+         tools.configured = Ok(HashMap::new());
+         assert!(tools.configuration_summary().contains("languages: none."));
+         assert!(tools
+             .configuration_summary()
+-            .contains("availability is unverified"));
++            .contains("availability is confirmed by a successful query"));
+         tools.configured = Err("private-malformed-configuration".into());
+         let invalid = tools.configuration_summary();
+         assert!(invalid.contains("configuration is invalid"));
+@@ -1077,6 +1322,80 @@
+ 
+     fn context(root: &Path) -> ToolCallContext {
+         ToolCallContext::new("lsp-fixture".into(), Some(root.to_path_buf()), None)
++    }
++
++    #[test]
++    fn named_symbols_require_unique_in_bounds_semantic_declarations() {
++        let range = |line, character| json!({"start":{"line":line,"character":character},"end":{"line":line,"character":character+1}});
++        let symbols = json!([
++            {"name":"One","children":[{"name":"value","selectionRange":range(0,6)}]},
++            {"name":"Two","children":[{"name":"value","selectionRange":range(1,0)}]}
++        ]);
++        let source = "\"😀\"; value\nvalue\n";
++        assert_eq!(
++            resolve_symbol(&symbols, "One.value", "file:///test", source).unwrap(),
++            (0, 6)
++        );
++        let ambiguous = resolve_symbol(&symbols, "value", "file:///test", source).unwrap_err();
++        assert_eq!(ambiguous["code"], "ambiguous_symbol");
++        assert_eq!(ambiguous["total"], 2);
++        assert_eq!(
++            resolve_symbol(&symbols, "absent", "file:///test", source).unwrap_err()["code"],
++            "symbol_not_found"
++        );
++        let invalid = json!([{"name":"value","selectionRange":range(0,2)}]);
++        assert_eq!(
++            resolve_symbol(&invalid, "value", "file:///test", source).unwrap_err()["code"],
++            "invalid_symbol_position"
++        );
++        let flat = json!([{"name":"value","containerName":"One","location":{"uri":"file:///test","range":range(1,0)}}]);
++        assert_eq!(
++            resolve_symbol(&flat, "One.value", "file:///test", source).unwrap_err()["code"],
++            "symbol_position_unavailable"
++        );
++        assert_eq!(
++            resolve_symbol(&flat, "One.value", "file:///other", source).unwrap_err()["code"],
++            "symbol_not_found"
++        );
++    }
++
++    #[tokio::test]
++    async fn named_locations_page_without_reading_external_files_and_refresh_saved_context() {
++        let root = tempfile::tempdir().unwrap();
++        let file = root.path().join("code.ts");
++        std::fs::write(&file, "export const value = 1;\n").unwrap();
++        let uri = file_uri(&file).unwrap();
++        let range = json!({"start":{"line":0,"character":13},"end":{"line":0,"character":18}});
++        let values: Vec<_> = (0..41).map(|_| json!({"uri":uri,"range":range})).collect();
++        let first = compact_locations(json!(values), &context(root.path()), 0)
++            .await
++            .unwrap();
++        assert_eq!(first["locations"].as_array().unwrap().len(), 40);
++        assert_eq!(first["next_offset"], 40);
++        assert_eq!(first["files"].as_object().unwrap().len(), 1);
++        std::fs::write(&file, "export const value = 2;\n").unwrap();
++        let second = compact_locations(json!(values), &context(root.path()), 40)
++            .await
++            .unwrap();
++        assert_eq!(second["locations"].as_array().unwrap().len(), 1);
++        assert!(second["next_offset"].is_null());
++        assert_eq!(
++            second["locations"][0]["line_text"],
++            "export const value = 2;"
++        );
++        assert_ne!(
++            first["files"]["code.ts"]["sha256"],
++            second["files"]["code.ts"]["sha256"]
++        );
++        let outside = compact_locations(
++            json!([{"uri":"file:///etc/passwd","range":range}]),
++            &context(root.path()),
++            0,
++        )
++        .await
++        .unwrap();
++        assert_eq!(outside["locations"][0]["external_or_unavailable"], true);
++        assert!(outside["locations"][0].get("line_text").is_none());
+     }
+ 
+     async fn query(client: &LspTools, root: &Path, action: &str) -> Value {
+@@ -1371,6 +1690,116 @@
+         assert_eq!(server.documents[&uri].version, 2);
+     }
+ 
++    #[tokio::test]
++    #[ignore = "set GOOSE_REAL_LSP_RUNTIME to the prepared orqaly-runtime directory"]
++    async fn real_named_references_follow_aliases_exclude_shadowing_and_refresh_open_files() {
++        let runtime =
++            PathBuf::from(std::env::var_os("GOOSE_REAL_LSP_RUNTIME").expect("runtime required"));
++        let root = tempfile::tempdir().unwrap();
++        std::fs::write(root.path().join("tsconfig.json"), r#"{"compilerOptions":{"target":"ES2022","module":"commonjs","strict":true,"noEmit":true},"include":["*.ts"]}"#).unwrap();
++        std::fs::write(root.path().join("api.ts"), "export function convert(value: number): number { return value + 1; }\nexport class First { read() { return 1; } }\nexport class Second { read() { return 2; } }\n").unwrap();
++        let original = "import { convert as alias } from './api';\nexport const result = alias(2);\nexport function local(convert: (v: number) => number) { return convert(7); }\n";
++        std::fs::write(root.path().join("client.ts"), original).unwrap();
++        std::fs::write(
++            root.path().join("barrel.ts"),
++            "export { convert as translated } from './api';\n",
++        )
++        .unwrap();
++        std::fs::write(
++            root.path().join("consumer.ts"),
++            "import { translated } from './barrel';\nexport const result = translated(3);\n",
++        )
++        .unwrap();
++        let client = LspTools {
++            configured: Ok(HashMap::from([(
++                "typescript".into(),
++                vec![
++                    runtime.join("node/bin/node").to_string_lossy().into(),
++                    runtime
++                        .join(
++                            "language-servers/node_modules/typescript-language-server/lib/cli.mjs",
++                        )
++                        .to_string_lossy()
++                        .into(),
++                    "--stdio".into(),
++                ],
++            )])),
++            sessions: Mutex::new(HashMap::new()),
++            lifetime: CancellationToken::new(),
++        };
++        let ctx = context(root.path());
++        let invoke = |input: Value| {
++            client.call_tool(input.as_object().cloned(), &ctx, CancellationToken::new())
++        };
++        let started = std::time::Instant::now();
++        let cold = invoke(json!({"action":"references","path":"api.ts","symbol":"convert"}))
++            .await
++            .structured_content
++            .unwrap();
++        let cold_ms = started.elapsed().as_millis();
++        assert_eq!(cold["status"], "completed", "{cold}");
++        let locations = cold["result"]["locations"].as_array().unwrap();
++        for file in ["api.ts", "client.ts", "barrel.ts", "consumer.ts"] {
++            assert!(
++                locations.iter().any(|p| p["path"] == file),
++                "missing {file}: {cold}"
++            );
++        }
++        assert!(
++            !locations
++                .iter()
++                .any(|p| p["path"] == "client.ts" && p["range"]["start"]["line"] == 2),
++            "shadowed name matched: {cold}"
++        );
++        let session = client
++            .sessions
++            .lock()
++            .await
++            .values()
++            .next()
++            .unwrap()
++            .clone();
++        let pid = session.lock().await.process_id;
++        let ambiguous =
++            invoke(json!({"action":"references","path":"api.ts","symbol":"read"})).await;
++        assert_eq!(ambiguous.is_error, Some(true));
++        assert_eq!(
++            ambiguous.structured_content.unwrap()["code"],
++            "ambiguous_symbol"
++        );
++        assert_eq!(client.sessions.lock().await.len(), 1);
++        assert_eq!(session.lock().await.process_id, pid);
++        let opened = invoke(json!({"action":"symbols","path":"client.ts"})).await;
++        assert_ne!(opened.is_error, Some(true));
++        std::fs::write(
++            root.path().join("client.ts"),
++            original.replace("alias(2)", "alias(2) + alias(4)"),
++        )
++        .unwrap();
++        let started = std::time::Instant::now();
++        let warm = invoke(json!({"action":"references","path":"api.ts","symbol":"convert"}))
++            .await
++            .structured_content
++            .unwrap();
++        let warm_ms = started.elapsed().as_millis();
++        assert_eq!(warm["status"], "completed", "{warm}");
++        assert_eq!(
++            warm["result"]["total"].as_u64().unwrap(),
++            cold["result"]["total"].as_u64().unwrap() + 1,
++            "{warm}"
++        );
++        assert_ne!(
++            warm["result"]["files"]["client.ts"]["sha256"],
++            cold["result"]["files"]["client.ts"]["sha256"]
++        );
++        assert_eq!(session.lock().await.process_id, pid);
++        session.lock().await.stop().await;
++        println!(
++            "REAL_NAMED_LSP {}",
++            json!({"coldMs":cold_ms,"warmMs":warm_ms,"coldReferences":cold["result"]["total"],"warmReferences":warm["result"]["total"],"reusedServer":true,"modelCalls":0})
++        );
++    }
++
+     /// Opt-in real server integration; no model calls or dependency installation.
+     #[tokio::test]
+     #[ignore = "set GOOSE_REAL_LSP_RUNTIME to the prepared orqaly-runtime directory"]
+@@ -1406,11 +1835,18 @@
+             }
+             std::fs::write(root.path().join(filename), changed).unwrap();
+             let started = std::time::Instant::now();
+-            let diagnostics = client.call_tool(Some(json!({"action":"diagnostics","path":filename}).as_object().unwrap().clone()), &context(root.path()), CancellationToken::new()).await.structured_content.unwrap();
+-            assert_eq!(diagnostics["status"], "completed", "{language}: {diagnostics}");
+-            assert_eq!(diagnostics["documentVersion"], 2);
+-            assert!(diagnostics["result"]["diagnostics"].as_array().is_some_and(|items| !items.is_empty()), "{language}: injected type error was not diagnosed: {diagnostics}");
+-            metrics.push(json!({"language":language,"action":"diagnostics_after_edit","elapsedMs":started.elapsed().as_millis(),"result":diagnostics["result"]}));
++            let expected_code = if language == "typescript" { json!(2322) } else { json!("reportReturnType") };
++            let mut attempts = 0;
++            let diagnostics = loop {
++                attempts += 1;
++                let result = client.call_tool(Some(json!({"action":"diagnostics","path":filename}).as_object().unwrap().clone()), &context(root.path()), CancellationToken::new()).await.structured_content.unwrap();
++                assert_eq!(result["status"], "completed", "{language}: {result}");
++                assert_eq!(result["documentVersion"], 2);
++                if result["result"]["diagnostics"].as_array().is_some_and(|items| items.iter().any(|item| item["code"] == expected_code)) { break result; }
++                assert!(started.elapsed() < Duration::from_secs(3), "{language}: injected type error {expected_code} was not diagnosed: {result}");
++                tokio::time::sleep(Duration::from_millis(50)).await;
++            };
++            metrics.push(json!({"language":language,"action":"diagnostics_after_edit","elapsedMs":started.elapsed().as_millis(),"attempts":attempts,"result":diagnostics["result"]}));
+             let session = client.sessions.lock().await.values().next().unwrap().clone();
+             session.lock().await.stop().await;
+         }
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/mod.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/mod.rs
+@@ -38,7 +38,7 @@
+         );
+         let info = InitializeResult::new(ServerCapabilities::builder().enable_tools().build())
+             .with_server_info(
+-                Implementation::new(EXTENSION_NAME, "1.2.0").with_title("Native Engineering"),
++                Implementation::new(EXTENSION_NAME, "1.3.0").with_title("Native Engineering"),
+             )
+             .with_instructions(instructions);
+         Ok(Self {
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/selection.md
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/selection.md
+@@ -1,11 +1,8 @@
+-Native engineering selection policy v2
++Native engineering selection policy v3
+ 
+-Complete the requested change with few model/tool round trips. Gather related context together, make a coherent change, and verify it. Native tools are optional aids, not a checklist.
++Choose tools that reduce work for this task; native tools are not a checklist.
+ 
+-- Use ordinary text/path search and batch plain reads for exploration, documentation and files you will not edit. Use `ast_search` for structural matches where text search would include irrelevant strings/comments; it requires a Tree-sitter query and an explicit language for directories. Use `lsp_query` definitions/references for ambiguous symbol relationships. Request symbols first only when the position is unknown (positions are zero-based UTF-16). Inspect partial results; use local alternatives when unsupported/unavailable.
+-- For existing-file edit targets, gather content and anchors together with `hashline_edit` `{"action":"read_many","paths":["src/a.ts","src/b.ts"]}` (up to 16 files). Single-file `action:read` also works. Inspect each file's errors, `has_more` and `next_line`; fetch only missing context. Reuse snapshots already in the conversation. Do not reread an unchanged file just before editing: the edit checks its full SHA-256 and boundary anchors. On a stale conflict, reread the affected file and reconcile; never bypass the guard through another tool.
+-- Combine known edits to the same file in one call. Copy the returned SHA and anchors exactly; preserve replacement newlines. Successful edits include bounded `post_edit` context and fresh anchors for follow-up changes; do not reread merely to confirm success. These snapshots remain subject to the same conflict checks. Native edits support existing regular UTF-8 files up to 1 MiB inside the workspace. Use ordinary write for new files and ordinary tools for unsupported operations.
+-- For a single-file change with a relevant bounded check, `safe_edit_and_test` combines the guarded edit and literal test argv, with conditional rollback. Inspect its receipt. For interdependent files, apply guarded edits, add meaningful regression tests, then run the relevant tests/type check together after the change is coherent. Individual edits are not a multi-file transaction.
+-- Verify the requirements, including boundaries and preserved behavior; tests should challenge assumptions, not encode an invented restriction. Reuse a successful check result while its relevant code, tests and configuration are unchanged. Rerun after relevant changes, inconclusive results or a specific new concern. LSP diagnostics can help investigate a problem; do not routinely add them after a successful compiler check. Unversioned diagnostics do not prove freshness, and tests do not prove all requirements.
+-
+-Use only available tools within the user's scope and normal permissions. No tool adds remote review or OS sandboxing. Preserve conflict checks, inspect failures and never silently bypass a failed test.
++- For code structure obscured by comments, strings or formatting, use `ast_search` with a preset: `{"path":"src","language":"typescript","preset":"calls","name":"parse"}`. Presets also include functions/classes. These match syntax, not symbol bindings.
++- For references through aliases or shadowed names, use `lsp_query` on the declaration: `{"action":"references","path":"src/client.ts","symbol":"Client.send"}`. It resolves the declaration and queries references in one call, returning compact locations and saved-line context. Inspect ambiguity/partial results and follow `next_offset` when present. Use explicit zero-based UTF-16 positions for use sites. Servers start only on demand and are reused. Use ordinary search if unsupported; do not install servers or repeatedly retry unavailable ones.
++- For simple unique textual edits, ordinary read/edit is sufficient. Use guarded hashline edits when exact snapshot protection is useful; gather only edit targets with `read_many`, reuse snapshots, and group edits per file. Never bypass a stale guard: reread and reconcile. Use write for new files. A relevant single-file check can be combined with a guarded change via `safe_edit_and_test`; interdependent edits need verification after all changes.
++- Verify behavior and regression cases. Reuse valid tool results and successful checks until relevant inputs change. Do not add routine AST queries, LSP diagnostics, rereads or duplicate tests after success. No result proves all requirements; unversioned diagnostics do not prove freshness. Respect scope and normal permissions.
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/README.md
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/README.md
+@@ -14,18 +14,18 @@
+ | `hashline_edit` | `action: "read"` returns the whole-file SHA-256 and per-line anchors. `action: "read_many"` gathers up to 16 independent snapshots, with a 256 KiB combined line-data limit and per-file errors/pagination. `action: "edit"` requires that digest and exact boundary anchors before applying ranges to one file. |
+ | `safe_edit_and_test` | Applies the same guarded edit, runs literal `test_command` argv in the workspace, and returns the exit status and captured output. A failed, timed out or cancelled test rolls back only if the edited file still matches the tool's postimage. |
+ 
+-When this host-mounted extension is active, both Goose loops use selection policy v2.
++When this host-mounted extension is active, both Goose loops use selection policy v3.
+ The shared extension-info builder replaces the developer extension's blanket
+ write/edit preference with task-based native guidance; removing the extension
+ restores the original guidance on the next turn. AST serves structural search,
+-LSP semantic navigation, and hashline reads guard existing-file edits. Ordinary
++LSP semantic navigation, and hashline reads guard edits that need snapshot protection. Simple unique changes may use ordinary edit. Ordinary
+ text/path search and new-file writes remain available. Instructions list only
+ host-configured LSP language names, never server commands, and distinguish
+ configuration from a successful query. Code Mode carries this host-owned native
+ policy separately because its normal extension-instruction block is omitted;
+ other extension descriptions remain discovery metadata.
+ 
+-Read the current file before every edit attempt. A stale digest or anchor is a
++Read relevant context before editing; reuse snapshots while unchanged. A stale digest or anchor is a
+ failure, not permission to guess a replacement. After a failed test, the same
+ Goose agent can inspect the result and choose another edit. A successful receipt
+ only establishes that the supplied command succeeded; it is not an independent
+@@ -79,3 +79,23 @@
+ post-edit snapshot. Batch reads do not create a shared filesystem transaction, and
+ all subsequent writes still check each complete preimage. Reuse snapshots and checks
+ when applicable; no tool skips validation or automatically caches test success.
++
++## Semantic query shortcuts
++
++`ast_search` accepts either a raw `query` or a built-in `preset` (`functions`, `classes`, `calls`). An optional exact `name` filters captured names before result limits. Presets reuse the bundled grammars, return bounded syntax snippets and zero-based UTF-16 positions, and share full file hashes in a `files` map. Call presets match terminal syntactic names, including member calls; they do not resolve bindings or aliases. Raw-query output remains compatible.
++
++For a known declaration, `lsp_query` accepts `symbol` instead of `line`/`character` for references, definitions or hover. Qualified names such as `Client.send` disambiguate nested declarations. Resolution uses the server's exact selection range; ambiguous names and flat outlines without an exact name position return explicit errors, never a guessed binding. No extra model turn is needed for successful lookup. Servers remain lazy and reused.
++
++Named references/definitions return pages of 40 compact locations, bounded saved-line context and per-file hashes. Follow `next_offset`; each page re-queries current state. External, unavailable or symlinked targets are not read. Context and references are not an atomic project snapshot. Explicit-position queries keep their existing raw response format. Regular compiler/tests remain the correctness gate; diagnostics are not a mandatory extra step.
++
++### Project scope and recipe validation
++
++LSP references describe the language server's project graph, not every file under the workspace directory. In particular, a TypeScript inferred project without an appropriate tsconfig/jsconfig may omit unopened consumer files. A completed request is not evidence of complete workspace coverage. Validate changes with project tests/typechecking and use ordinary search when project coverage is uncertain.
++
++The self-test recipe supplies its own extension list, overriding profile defaults. Host-enable this optional extension explicitly when validating it:
++
++```sh
++goose run --with-builtin native_engineering --recipe goose-self-test.yaml --params test_phases=native-engineering
++```
++
++The host must also supply its pinned language-server configuration. This command is functional validation, not a performance benchmark.
+--- a/crates/goose/src/agents/platform_extensions/developer/mod.rs
++++ b/crates/goose/src/agents/platform_extensions/developer/mod.rs
+@@ -43,13 +43,10 @@
+     if native_engineering {
+         return indoc! {"
+             Use the developer extension for requested software work and terminal commands.
+-            Gather related context in as few iterations as possible; minimize unnecessary
+-            model turns and repeated output. Native engineering selection policy v2 is active.
+-            Follow its guidance for guarded edits, batch reads and task-specific AST/LSP use.
+-            Use ordinary text/path search and plain reads for exploration, write for new files,
+-            and ordinary tools for unsupported operations. Reuse successful verification while
+-            relevant inputs are unchanged. Preserve conflict checks; never bypass stale hashes
+-            or failed tests by blindly overwriting files. Respect scope and permissions.
++            Read relevant context, make the requested change and verify it efficiently.
++            Native engineering selection policy v3 describes optional semantic queries and
++            guarded edits. Ordinary read/edit remains appropriate for simple unique changes.
++            Reuse current results; respect scope, permissions and failed conflict/test checks.
+             Use python3 for Python commands.
+         "};
+     }
+--- a/crates/goose/tests/native_engineering_integration.rs
++++ b/crates/goose/tests/native_engineering_integration.rs
+@@ -89,7 +89,7 @@
+     assert_eq!(observations.len(), 1);
+     let (prompt, tools) = &observations[0];
+     assert_eq!(
+-        prompt.contains("Native engineering selection policy v2"),
++        prompt.contains("Native engineering selection policy v3"),
+         native
+     );
+     assert_eq!(
+@@ -446,40 +446,57 @@
+ async fn both_primary_loops_execute_native_ast_read_edit_and_test_with_approval() -> Result<()> {
+     for state_machine in ["0", "1"] {
+         let temp = tempfile::tempdir()?;
++        let server =
++            Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/native_lsp_server.mjs");
++        let node = std::env::var("GOOSE_TEST_NODE").unwrap_or_else(|_| "node".into());
++        let lsp_config =
++            json!({"python":[node,server,temp.path().join("lsp.log"),"semantic"]}).to_string();
+         let _env = env_lock::lock_env([
+             ("GOOSE_PATH_ROOT", Some(temp.path().to_str().unwrap())),
+             ("GOOSE_STATE_MACHINE", Some(state_machine)),
++            ("GOOSE_NATIVE_LSP_SERVERS", Some(lsp_config.as_str())),
+         ]);
+         let (agent, session) = fixture(temp.path(), GooseMode::Approve).await?;
+         agent.add_extension(extension(), &session.id).await?;
+         let edit = guarded_request(&agent, &session).await?;
++        std::fs::write(
++            session.working_dir.join("queries.py"),
++            "# def decoy(): pass\ndef helper():\n    return 1\n",
++        )?;
+         let (provider, confirmations) = run_loop(
+             &agent,
+             &session,
+             vec![
+                 request(
+                     "ast_search",
+-                    json!({"path":"source.py", "query":"(assignment left: (identifier) @name)"}),
++                    json!({"path":"queries.py", "preset":"functions","name":"helper"}),
+                 ),
+                 request(
+                     "hashline_edit",
+                     json!({"action":"read", "path":"source.py"}),
+                 ),
++                request(
++                    "lsp_query",
++                    json!({"action":"references","path":"source.py","symbol":"value"}),
++                ),
+                 edit,
+             ],
+             Decision::Allow,
+         )
+         .await?;
+         assert_eq!(
+-            confirmations, 3,
++            confirmations, 4,
+             "all native actions participate in Approve mode"
+         );
+-        assert_eq!(provider.calls.load(Ordering::SeqCst), 4);
++        assert_eq!(provider.calls.load(Ordering::SeqCst), 5);
+         let results = provider.seen_results.lock().unwrap();
+         assert_eq!(result_json(&results[0])["engine"], "tree-sitter");
+-        assert_eq!(result_json(&results[0])["matches"][0]["snippet"], "value");
++        assert_eq!(result_json(&results[0])["matches"][0]["name"], "helper");
+         assert_eq!(result_json(&results[1])["status"], "read");
+-        let outcome = result_json(&results[2]);
++        let semantic = result_json(&results[2]);
++        assert_eq!(semantic["status"], "completed", "{semantic}");
++        assert_eq!(semantic["result"]["locations"][0]["path"], "source.py");
++        let outcome = result_json(&results[3]);
+         assert_eq!(outcome["verified"], true, "{outcome}");
+         assert_eq!(outcome["test"]["exit_code"], 0);
+         assert_eq!(
+--- a/goose-self-test.yaml
++++ b/goose-self-test.yaml
+@@ -197,10 +197,16 @@
+   as skipped (feature disabled). Their absence is expected when the host feature flag is off.
+   If all four are available, use them directly in this conversation:
+   1. Create a disposable source fixture under the session workspace with a real declaration plus
+-     a comment and string containing declaration-shaped decoys. Use a real Tree-sitter capture
+-     query in ast_search and verify it finds the declaration and excludes both decoys.
+-  2. Ask lsp_query for document symbols and a definition. Check that the response identifies a
+-     real language server. If that language server is unavailable, record the LSP check as skipped;
++     a comment and string containing declaration-shaped decoys. Use ast_search preset=functions with the exact declaration name and verify it finds
++     the declaration and excludes both decoys. Also check preset=calls against comment/string decoys.
++  2. Initialize the disposable fixture's language project before cross-file checks (for TypeScript,
++     create a tsconfig.json including the fixture files). LSP references cover the server project graph;
++     a completed query in an unconfigured/inferred project may omit unopened consumers.
++     Ask lsp_query for references using path and symbol (without first asking for positions).
++     Include an import alias and an unrelated shadowed name: references must follow the alias and
++     exclude the shadow. Confirm an ambiguous unqualified name returns choices, then select its
++     qualified name. Modify a previously opened file and repeat the query to check synchronization.
++     Inspect pagination and source snapshots. Check that the response comes from a real language server. If that language server is unavailable, record the LSP check as skipped;
+      never report heuristic text search as a successful LSP check.
+   3. Read the source and another existing text file together with hashline_edit action=read_many.
+      Inspect per-file results and pagination. Copy its full digest and line anchors into
+@@ -210,7 +216,9 @@
+      preimage. Exercise a stale digest and verify it changes no file and starts no test process.
+   5. Respect normal approvals and cancellation. Repair any real failure through a later tool call
+      in this same conversation; there is no separate coding agent or automatic model repair.
+-  When a source checkout and Rust toolchain are available, also run
++  Check Rust prerequisites only with `command -v cargo` and a Cargo.toml in the current workspace.
++  Never search parent directories or the filesystem for a toolchain or source checkout. If either
++  prerequisite is absent, record this cargo subcheck as skipped immediately. If both are present, run
+   `cargo test -p goose --test native_engineering_integration` for deterministic coverage of both
+   agent loops, host mount/remove, session resume, native selection guidance, permission denial,
+   and cancellation before mutation. A configured LSP language alone is not evidence that its
+--- a/crates/goose/src/agents/extension_manager.rs
++++ b/crates/goose/src/agents/extension_manager.rs
+@@ -2833,7 +2833,7 @@
+             )
+             .await;
+         let (_, prompt) = manager.code_mode_capability_prompt().await.unwrap();
+-        assert!(prompt.contains("Native engineering selection policy v2"));
++        assert!(prompt.contains("Native engineering selection policy v3"));
+         assert!(!prompt.contains("Use write and edit to efficiently make changes"));
+         manager
+             .remove_extension("native_engineering")
+--- a/crates/goose/tests/fixtures/native_lsp_server.mjs
++++ b/crates/goose/tests/fixtures/native_lsp_server.mjs
+@@ -36,7 +36,7 @@
+     if (mode === 'oversized') { process.stdout.write('Content-Length: 1048577\r\n\r\n'); return; }
+     send({ id: 'forbidden-edit', method: 'workspace/applyEdit', params: { edit: { changes: {} } } });
+     send({ id: 'forbidden-command', method: 'workspace/executeCommand', params: { command: 'should-never-run' } });
+-    send({ id, result: [{ name: documents.get(params.textDocument.uri)?.text || 'missing', kind: 12,
++    send({ id, result: [{ name: mode === 'semantic' ? 'value' : documents.get(params.textDocument.uri)?.text || 'missing', kind: 12,
+       range: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } },
+       selectionRange: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } } }] });
+   } else if (method === 'textDocument/diagnostic') {

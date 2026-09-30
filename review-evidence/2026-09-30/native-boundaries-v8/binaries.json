@@ -1,0 +1,19 @@
+{
+  "schema": "orqanix.native-boundaries-v8-build.v1",
+  "profile": "release",
+  "features": [
+    "rustls-tls"
+  ],
+  "codeMode": false,
+  "releaseEligible": false,
+  "baselineSha256": "e49b4615023b592f415050ab0a407e05ba0fe93d7e1e7057609e631a0780b162",
+  "candidateSha256": "e49b4615023b592f415050ab0a407e05ba0fe93d7e1e7057609e631a0780b162",
+  "arms": {
+    "default": "same rebuilt Goose binary, native tools mode off",
+    "candidate": "same rebuilt Goose binary, optional native tools workflow v8 on"
+  },
+  "otherFlags": {
+    "jev": false,
+    "axwise": false
+  }
+}

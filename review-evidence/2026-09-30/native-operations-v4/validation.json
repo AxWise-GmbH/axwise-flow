@@ -1,0 +1,59 @@
+{
+  "nativeUnitAndRealServer": {
+    "passed": 61,
+    "failed": 0,
+    "ignored": 0,
+    "log": "native-tests.log"
+  },
+  "bothLoopIntegration": {
+    "passed": 4,
+    "failed": 0,
+    "checks": [
+      "mount/remove/resume and restored baseline guidance",
+      "primary loop continuation and permission approval",
+      "denial and cancellation before mutation"
+    ]
+  },
+  "codeModeCompatibility": {
+    "passed": 6,
+    "failed": 0,
+    "localMockPortRequiredOuterSandboxException": true
+  },
+  "clippy": {
+    "passed": true,
+    "log": "clippy.log"
+  },
+  "harnessAndScopedRelay": {
+    "passed": 4,
+    "failed": 0
+  },
+  "fixtureCalibration": {
+    "passed": true,
+    "fixtures": 3
+  },
+  "desktopPreflight": "preflight_ready",
+  "timedBenchmarkCompleted": true,
+  "functionalRecipe": {
+    "initial": {
+      "requests": 45,
+      "cleanRecipePass": false
+    },
+    "final": {
+      "requests": 41,
+      "cleanRecipePass": false,
+      "receiptChecks": "all except successful generic batch; covered in initial run and deterministic tests",
+      "unnecessaryProbe": true
+    }
+  },
+  "finalDesktopPreflight": {
+    "status": "preflight_ready",
+    "providerRequests": 0
+  },
+  "timedBenchmark": {
+    "passed": 12,
+    "failed": 0,
+    "screeningAccepted": true,
+    "provenanceVerified": true,
+    "semanticCalls": 0
+  }
+}

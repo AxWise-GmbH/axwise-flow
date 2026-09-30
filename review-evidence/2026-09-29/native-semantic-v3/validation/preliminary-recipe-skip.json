@@ -1,0 +1,9 @@
+{
+  "disposition": "skipped native validation; not counted as a pass",
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "modelRequests": 12,
+  "reason": "Recipe explicit extension list overrode profile native mount"
+}

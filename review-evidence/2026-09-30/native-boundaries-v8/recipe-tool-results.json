@@ -1,0 +1,1990 @@
+[
+  {
+    "name": "ast_search",
+    "args": {
+      "path": "fixture/service.ts",
+      "preset": "functions",
+      "language": "typescript",
+      "name": "processOrder"
+    },
+    "result": {
+      "status": "completed",
+      "engine": "tree-sitter",
+      "language": "typescript",
+      "matches": [
+        {
+          "path": "fixture/service.ts",
+          "name": "processOrder",
+          "kind": "function_declaration",
+          "position": {
+            "line": 3,
+            "character": 16
+          },
+          "lines": {
+            "start": 4,
+            "end": 6
+          },
+          "snippet": "function processOrder(item: string): string {\n    return `processed: ${item}`;\n}",
+          "snippet_truncated": false
+        }
+      ],
+      "scope": {
+        "max_depth": 12,
+        "respects_ignore_rules": true
+      },
+      "files_scanned": 1,
+      "bytes_scanned": 1071,
+      "truncated": false,
+      "limit_reason": null,
+      "skipped": [],
+      "syntax_error_files": [],
+      "files": {
+        "fixture/service.ts": {
+          "sha256": "94700798ae6606b3b9eac2ec021b38821037880ba8be9cb1732765d4e64ae50e",
+          "snapshot_id": "4de487e4344e4f9d9090290790077b07"
+        }
+      },
+      "positionEncoding": "utf-16"
+    }
+  },
+  {
+    "name": "ast_search",
+    "args": {
+      "language": "typescript",
+      "receiver": "router",
+      "name": "post",
+      "preset": "calls",
+      "path": "fixture/service.ts",
+      "async_argument": true
+    },
+    "result": {
+      "status": "completed",
+      "engine": "tree-sitter",
+      "language": "typescript",
+      "matches": [
+        {
+          "path": "fixture/service.ts",
+          "name": "post",
+          "kind": "call_expression",
+          "position": {
+            "line": 27,
+            "character": 7
+          },
+          "lines": {
+            "start": 28,
+            "end": 30
+          },
+          "snippet": "router.post(\"/async\", async (req: any, res: any) => {\n    return res;\n})",
+          "snippet_truncated": false
+        }
+      ],
+      "scope": {
+        "max_depth": 12,
+        "respects_ignore_rules": true
+      },
+      "files_scanned": 1,
+      "bytes_scanned": 1071,
+      "truncated": false,
+      "limit_reason": null,
+      "skipped": [],
+      "syntax_error_files": [],
+      "files": {
+        "fixture/service.ts": {
+          "sha256": "94700798ae6606b3b9eac2ec021b38821037880ba8be9cb1732765d4e64ae50e",
+          "snapshot_id": "8cedb21b5e514885b7ee84d04e1cb737"
+        }
+      },
+      "positionEncoding": "utf-16"
+    }
+  },
+  {
+    "name": "ast_search",
+    "args": {
+      "language": "typescript",
+      "preset": "calls",
+      "async_argument": false,
+      "path": "fixture/service.ts",
+      "name": "post",
+      "receiver": "router"
+    },
+    "result": {
+      "status": "completed",
+      "engine": "tree-sitter",
+      "language": "typescript",
+      "matches": [
+        {
+          "path": "fixture/service.ts",
+          "name": "post",
+          "kind": "call_expression",
+          "position": {
+            "line": 27,
+            "character": 7
+          },
+          "lines": {
+            "start": 28,
+            "end": 30
+          },
+          "snippet": "router.post(\"/async\", async (req: any, res: any) => {\n    return res;\n})",
+          "snippet_truncated": false
+        },
+        {
+          "path": "fixture/service.ts",
+          "name": "post",
+          "kind": "call_expression",
+          "position": {
+            "line": 32,
+            "character": 7
+          },
+          "lines": {
+            "start": 33,
+            "end": 35
+          },
+          "snippet": "router.post(\"/sync\", (req: any, res: any) => {\n    return res;\n})",
+          "snippet_truncated": false
+        },
+        {
+          "path": "fixture/service.ts",
+          "name": "post",
+          "kind": "call_expression",
+          "position": {
+            "line": 37,
+            "character": 7
+          },
+          "lines": {
+            "start": 38,
+            "end": 43
+          },
+          "snippet": "router.post(\"/nested\", (req: any, res: any) => {\n    setTimeout(async () => {\n        // nested async\n    }, 100);\n    return res;\n})",
+          "snippet_truncated": false
+        }
+      ],
+      "scope": {
+        "max_depth": 12,
+        "respects_ignore_rules": true
+      },
+      "files_scanned": 1,
+      "bytes_scanned": 1071,
+      "truncated": false,
+      "limit_reason": null,
+      "skipped": [],
+      "syntax_error_files": [],
+      "files": {
+        "fixture/service.ts": {
+          "sha256": "94700798ae6606b3b9eac2ec021b38821037880ba8be9cb1732765d4e64ae50e",
+          "snapshot_id": "0896fee097cb4adcb807623541a764eb"
+        }
+      },
+      "positionEncoding": "utf-16"
+    }
+  },
+  {
+    "name": "hashline_edit",
+    "args": {
+      "read_max_lines": 10,
+      "action": "read",
+      "read_start_line": 1,
+      "compact": true,
+      "path": "fixture/service.ts"
+    },
+    "result": {
+      "status": "read",
+      "sha256": "94700798ae6606b3b9eac2ec021b38821037880ba8be9cb1732765d4e64ae50e",
+      "total_lines": 48,
+      "start_line": 1,
+      "has_more": true,
+      "next_line": 11,
+      "truncation_reason": null,
+      "lines": [
+        {
+          "line": 1,
+          "anchor": "L1",
+          "text": "// function processOrder() { decoy in comment }\n"
+        },
+        {
+          "line": 2,
+          "anchor": "L2",
+          "text": "const decoyStr = \"function processOrder() { decoy in string }\";\n"
+        },
+        {
+          "line": 3,
+          "anchor": "L3",
+          "text": "\n"
+        },
+        {
+          "line": 4,
+          "anchor": "L4",
+          "text": "export function processOrder(item: string): string {\n"
+        },
+        {
+          "line": 5,
+          "anchor": "L5",
+          "text": "    return `processed: ${item}`;\n"
+        },
+        {
+          "line": 6,
+          "anchor": "L6",
+          "text": "}\n"
+        },
+        {
+          "line": 7,
+          "anchor": "L7",
+          "text": "\n"
+        },
+        {
+          "line": 8,
+          "anchor": "L8",
+          "text": "export class OrderService {\n"
+        },
+        {
+          "line": 9,
+          "anchor": "L9",
+          "text": "    validate(id: string): boolean {\n"
+        },
+        {
+          "line": 10,
+          "anchor": "L10",
+          "text": "        return id.length > 0;\n"
+        }
+      ],
+      "verified": false,
+      "snapshot_id": "a6551d6c62c745c59eea4dd16657a15c",
+      "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/service.ts"
+    }
+  },
+  {
+    "name": "hashline_edit",
+    "args": {
+      "path": "fixture/service.ts",
+      "edits": [
+        {
+          "start_line": 5,
+          "end_anchor": "L5",
+          "start_anchor": "L5",
+          "replacement": "    return `order processed: ${item}`;",
+          "end_line": 5
+        }
+      ],
+      "snapshot_id": "0896fee097cb4adcb807623541a764eb",
+      "action": "edit",
+      "compact": true
+    },
+    "result": {
+      "status": "edited",
+      "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/service.ts",
+      "before_sha256": "94700798ae6606b3b9eac2ec021b38821037880ba8be9cb1732765d4e64ae50e",
+      "sha256": "1d20b39622e29296990a58786aafd1836b6dda713cc1fa65e92c7c68c609b267",
+      "verified": false,
+      "tests_executed": false,
+      "post_edit": {
+        "status": "read",
+        "sha256": "1d20b39622e29296990a58786aafd1836b6dda713cc1fa65e92c7c68c609b267",
+        "total_lines": 48,
+        "start_line": 3,
+        "has_more": true,
+        "next_line": 8,
+        "truncation_reason": null,
+        "lines": [
+          {
+            "line": 3,
+            "anchor": "L3",
+            "text": "\n"
+          },
+          {
+            "line": 4,
+            "anchor": "L4",
+            "text": "export function processOrder(item: string): string {\n"
+          },
+          {
+            "line": 5,
+            "anchor": "L5",
+            "text": "    return `order processed: ${item}`;\n"
+          },
+          {
+            "line": 6,
+            "anchor": "L6",
+            "text": "}\n"
+          },
+          {
+            "line": 7,
+            "anchor": "L7",
+            "text": "\n"
+          }
+        ],
+        "verified": false,
+        "changed_context_truncated": false
+      }
+    }
+  },
+  {
+    "name": "lsp_query",
+    "args": {
+      "action": "references",
+      "symbol": "validate",
+      "path": "fixture/service.ts"
+    },
+    "result": {
+      "status": "failed",
+      "code": "ambiguous_symbol",
+      "symbol": "validate",
+      "total": 2,
+      "candidates": [
+        {
+          "symbol": "UserService.validate",
+          "line": 14,
+          "character": 4
+        },
+        {
+          "symbol": "OrderService.validate",
+          "line": 8,
+          "character": 4
+        }
+      ],
+      "message": "Choose a qualified name or an explicit line/character; no symbol was selected."
+    }
+  },
+  {
+    "name": "lsp_query",
+    "args": {
+      "action": "references",
+      "symbol": "OrderService.validate",
+      "path": "fixture/service.ts"
+    },
+    "result": {
+      "status": "completed",
+      "action": "references",
+      "language": "typescript",
+      "path": "fixture/service.ts",
+      "documentVersion": 1,
+      "positionEncoding": "utf-16",
+      "result": {
+        "locations": [
+          {
+            "path": "fixture/consumer.ts",
+            "range": {
+              "start": {
+                "line": 4,
+                "character": 12
+              },
+              "end": {
+                "line": 4,
+                "character": 20
+              }
+            },
+            "line_text": "    service.validate(\"order-1\");",
+            "line_truncated": false
+          },
+          {
+            "path": "fixture/service.ts",
+            "range": {
+              "start": {
+                "line": 8,
+                "character": 4
+              },
+              "end": {
+                "line": 8,
+                "character": 12
+              }
+            },
+            "line_text": "    validate(id: string): boolean {",
+            "line_truncated": false
+          }
+        ],
+        "files": {
+          "fixture/consumer.ts": {
+            "sha256": "bece216565d7d3fdfabf9e7162c6e1746a0125cb1918fda9d9a67be92dad3366"
+          },
+          "fixture/service.ts": {
+            "sha256": "1d20b39622e29296990a58786aafd1836b6dda713cc1fa65e92c7c68c609b267"
+          }
+        },
+        "total": 2,
+        "offset": 0,
+        "truncated": false,
+        "next_offset": null,
+        "context": "saved file snapshots; not an atomic project snapshot"
+      }
+    }
+  },
+  {
+    "name": "lsp_query",
+    "args": {
+      "path": "fixture/service.ts",
+      "action": "references",
+      "symbol": "processOrder"
+    },
+    "result": {
+      "status": "completed",
+      "action": "references",
+      "language": "typescript",
+      "path": "fixture/service.ts",
+      "documentVersion": 1,
+      "positionEncoding": "utf-16",
+      "result": {
+        "locations": [
+          {
+            "path": "fixture/consumer.ts",
+            "range": {
+              "start": {
+                "line": 0,
+                "character": 9
+              },
+              "end": {
+                "line": 0,
+                "character": 21
+              }
+            },
+            "line_text": "import { processOrder as executeOrder, OrderService } from \"./service\";",
+            "line_truncated": false
+          },
+          {
+            "path": "fixture/consumer.ts",
+            "range": {
+              "start": {
+                "line": 0,
+                "character": 25
+              },
+              "end": {
+                "line": 0,
+                "character": 37
+              }
+            },
+            "line_text": "import { processOrder as executeOrder, OrderService } from \"./service\";",
+            "line_truncated": false
+          },
+          {
+            "path": "fixture/consumer.ts",
+            "range": {
+              "start": {
+                "line": 5,
+                "character": 11
+              },
+              "end": {
+                "line": 5,
+                "character": 23
+              }
+            },
+            "line_text": "    return executeOrder(\"item-1\");",
+            "line_truncated": false
+          },
+          {
+            "path": "fixture/service.ts",
+            "range": {
+              "start": {
+                "line": 3,
+                "character": 16
+              },
+              "end": {
+                "line": 3,
+                "character": 28
+              }
+            },
+            "line_text": "export function processOrder(item: string): string {",
+            "line_truncated": false
+          }
+        ],
+        "files": {
+          "fixture/consumer.ts": {
+            "sha256": "bece216565d7d3fdfabf9e7162c6e1746a0125cb1918fda9d9a67be92dad3366"
+          },
+          "fixture/service.ts": {
+            "sha256": "1d20b39622e29296990a58786aafd1836b6dda713cc1fa65e92c7c68c609b267"
+          }
+        },
+        "total": 4,
+        "offset": 0,
+        "truncated": false,
+        "next_offset": null,
+        "context": "saved file snapshots; not an atomic project snapshot"
+      }
+    }
+  },
+  {
+    "name": "lsp_query",
+    "args": {
+      "path": "fixture/service.ts",
+      "symbol": "processOrder",
+      "action": "references"
+    },
+    "result": {
+      "status": "completed",
+      "action": "references",
+      "language": "typescript",
+      "path": "fixture/service.ts",
+      "documentVersion": 1,
+      "positionEncoding": "utf-16",
+      "result": {
+        "locations": [
+          {
+            "path": "fixture/consumer.ts",
+            "range": {
+              "start": {
+                "line": 0,
+                "character": 9
+              },
+              "end": {
+                "line": 0,
+                "character": 21
+              }
+            },
+            "line_text": "import { processOrder as executeOrder, OrderService } from \"./service\";",
+            "line_truncated": false
+          },
+          {
+            "path": "fixture/consumer.ts",
+            "range": {
+              "start": {
+                "line": 0,
+                "character": 25
+              },
+              "end": {
+                "line": 0,
+                "character": 37
+              }
+            },
+            "line_text": "import { processOrder as executeOrder, OrderService } from \"./service\";",
+            "line_truncated": false
+          },
+          {
+            "path": "fixture/consumer.ts",
+            "range": {
+              "start": {
+                "line": 5,
+                "character": 4
+              },
+              "end": {
+                "line": 5,
+                "character": 16
+              }
+            },
+            "line_text": "    executeOrder(\"first\");",
+            "line_truncated": false
+          },
+          {
+            "path": "fixture/consumer.ts",
+            "range": {
+              "start": {
+                "line": 6,
+                "character": 11
+              },
+              "end": {
+                "line": 6,
+                "character": 23
+              }
+            },
+            "line_text": "    return executeOrder(\"item-1\");",
+            "line_truncated": false
+          },
+          {
+            "path": "fixture/service.ts",
+            "range": {
+              "start": {
+                "line": 3,
+                "character": 16
+              },
+              "end": {
+                "line": 3,
+                "character": 28
+              }
+            },
+            "line_text": "export function processOrder(item: string): string {",
+            "line_truncated": false
+          }
+        ],
+        "files": {
+          "fixture/consumer.ts": {
+            "sha256": "bb50acd91e4c37757e06e78cd584090f12189cb1da2682e64eda597ac536d328"
+          },
+          "fixture/service.ts": {
+            "sha256": "1d20b39622e29296990a58786aafd1836b6dda713cc1fa65e92c7c68c609b267"
+          }
+        },
+        "total": 5,
+        "offset": 0,
+        "truncated": false,
+        "next_offset": null,
+        "context": "saved file snapshots; not an atomic project snapshot"
+      }
+    }
+  },
+  {
+    "name": "hashline_edit",
+    "args": {
+      "paths": [
+        "fixture/test_lf.txt",
+        "fixture/test_crlf.txt"
+      ],
+      "action": "read_many",
+      "compact": true
+    },
+    "result": {
+      "status": "read_many",
+      "files": [
+        {
+          "status": "read",
+          "sha256": "dfc394fefebb245fdc6339434da33a516cc7b10cef512ee9a9fe213140b4dd60",
+          "total_lines": 6,
+          "start_line": 1,
+          "has_more": false,
+          "next_line": null,
+          "truncation_reason": null,
+          "lines": [
+            {
+              "line": 1,
+              "anchor": "L1",
+              "text": "line one\n"
+            },
+            {
+              "line": 2,
+              "anchor": "L2",
+              "text": "line two to replace\n"
+            },
+            {
+              "line": 3,
+              "anchor": "L3",
+              "text": "line three to delete\n"
+            },
+            {
+              "line": 4,
+              "anchor": "L4",
+              "text": "line four\n"
+            },
+            {
+              "line": 5,
+              "anchor": "L5",
+              "text": "line five join a\n"
+            },
+            {
+              "line": 6,
+              "anchor": "L6",
+              "text": "line six join b\n"
+            }
+          ],
+          "verified": false,
+          "snapshot_id": "f7d931c3927b4d16a2e91cd753b7cc82",
+          "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/test_lf.txt"
+        },
+        {
+          "status": "read",
+          "sha256": "11484739c1536d775e25c19d33facf3668fbd41dedcd91abc6e6d5d7cc8a7344",
+          "total_lines": 3,
+          "start_line": 1,
+          "has_more": false,
+          "next_line": null,
+          "truncation_reason": null,
+          "lines": [
+            {
+              "line": 1,
+              "anchor": "L1",
+              "text": "crlf one\r\n"
+            },
+            {
+              "line": 2,
+              "anchor": "L2",
+              "text": "crlf two to replace\r\n"
+            },
+            {
+              "line": 3,
+              "anchor": "L3",
+              "text": "crlf three\r\n"
+            }
+          ],
+          "verified": false,
+          "snapshot_id": "ac09a930bbd14021aba48860e3be87f1",
+          "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/test_crlf.txt"
+        }
+      ],
+      "verified": false,
+      "line_bytes_returned": 454,
+      "note": "Independent file snapshots; inspect every file for errors and has_more."
+    }
+  },
+  {
+    "name": "safe_edit_and_test",
+    "args": {
+      "test_command": [
+        "node",
+        "-e",
+        "console.log('batch test passed')"
+      ],
+      "compact": true,
+      "files": [
+        {
+          "path": "fixture/test_lf.txt",
+          "edits": [
+            {
+              "end_line": 2,
+              "end_anchor": "L2",
+              "replacement_mode": "lines",
+              "start_line": 2,
+              "replacement": "line two replaced without newline",
+              "start_anchor": "L2"
+            },
+            {
+              "start_anchor": "L3",
+              "end_line": 3,
+              "start_line": 3,
+              "replacement": "",
+              "replacement_mode": "lines",
+              "end_anchor": "L3"
+            },
+            {
+              "start_anchor": "L5",
+              "end_line": 6,
+              "end_anchor": "L6",
+              "replacement_mode": "exact",
+              "replacement": "line five joined with line six\n",
+              "start_line": 5
+            }
+          ],
+          "snapshot_id": "f7d931c3927b4d16a2e91cd753b7cc82"
+        },
+        {
+          "snapshot_id": "ac09a930bbd14021aba48860e3be87f1",
+          "edits": [
+            {
+              "end_anchor": "L2",
+              "replacement_mode": "lines",
+              "replacement": "crlf two replaced without newline",
+              "end_line": 2,
+              "start_line": 2,
+              "start_anchor": "L2"
+            }
+          ],
+          "path": "fixture/test_crlf.txt"
+        }
+      ]
+    },
+    "result": {
+      "status": "verified",
+      "verified": true,
+      "files": [
+        {
+          "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/test_crlf.txt",
+          "before_sha256": "11484739c1536d775e25c19d33facf3668fbd41dedcd91abc6e6d5d7cc8a7344",
+          "edited_sha256": "8862e363469a8258c0d2c2e6f1c38aa85b303724e123f4ef55833b70d0571382",
+          "current_sha256": "8862e363469a8258c0d2c2e6f1c38aa85b303724e123f4ef55833b70d0571382"
+        },
+        {
+          "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/test_lf.txt",
+          "before_sha256": "dfc394fefebb245fdc6339434da33a516cc7b10cef512ee9a9fe213140b4dd60",
+          "edited_sha256": "2b83e77e1f1488813afcec4151ce85bb7fcf064c0f2987d4f0097009cfc7d703",
+          "current_sha256": "2b83e77e1f1488813afcec4151ce85bb7fcf064c0f2987d4f0097009cfc7d703"
+        }
+      ],
+      "targets_unchanged_during_test": true,
+      "scope_unchanged_during_test": true,
+      "test": {
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "cancelled": false,
+        "stdout": "batch test passed\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_error": null
+      },
+      "rollback": {
+        "attempted": false,
+        "restored": false,
+        "reason": "tests_passed"
+      }
+    }
+  },
+  {
+    "name": "hashline_edit",
+    "args": {
+      "compact": true,
+      "path": "fixture/test_lf.txt",
+      "action": "read"
+    },
+    "result": {
+      "status": "read",
+      "sha256": "2b83e77e1f1488813afcec4151ce85bb7fcf064c0f2987d4f0097009cfc7d703",
+      "total_lines": 4,
+      "start_line": 1,
+      "has_more": false,
+      "next_line": null,
+      "truncation_reason": null,
+      "lines": [
+        {
+          "line": 1,
+          "anchor": "L1",
+          "text": "line one\n"
+        },
+        {
+          "line": 2,
+          "anchor": "L2",
+          "text": "line two replaced without newline\n"
+        },
+        {
+          "line": 3,
+          "anchor": "L3",
+          "text": "line four\n"
+        },
+        {
+          "line": 4,
+          "anchor": "L4",
+          "text": "line five joined with line six\n"
+        }
+      ],
+      "verified": false,
+      "snapshot_id": "df26b698c92048e09076af5bc4e283ee",
+      "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/test_lf.txt"
+    }
+  },
+  {
+    "name": "safe_edit_and_test",
+    "args": {
+      "edits": [
+        {
+          "replacement_mode": "lines",
+          "start_line": 1,
+          "end_anchor": "L1",
+          "end_line": 1,
+          "replacement": "mutated line one",
+          "start_anchor": "L1"
+        }
+      ],
+      "snapshot_id": "df26b698c92048e09076af5bc4e283ee",
+      "path": "fixture/test_lf.txt",
+      "compact": true,
+      "test_command": [
+        "node",
+        "-e",
+        "process.exit(42)"
+      ]
+    },
+    "result": {
+      "status": "failed",
+      "verified": false,
+      "files": [
+        {
+          "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/test_lf.txt",
+          "before_sha256": "2b83e77e1f1488813afcec4151ce85bb7fcf064c0f2987d4f0097009cfc7d703",
+          "edited_sha256": "2e7018bb9862dfd178cf0522102e5984ad8a130b92a43ab9e859e0a6daa23805",
+          "current_sha256": "2b83e77e1f1488813afcec4151ce85bb7fcf064c0f2987d4f0097009cfc7d703"
+        }
+      ],
+      "targets_unchanged_during_test": true,
+      "scope_unchanged_during_test": true,
+      "test": {
+        "executed": true,
+        "exit_code": 42,
+        "timed_out": false,
+        "cancelled": false,
+        "stdout": "",
+        "stderr": "",
+        "output_truncated": false,
+        "output_error": null
+      },
+      "rollback": {
+        "attempted": true,
+        "restored": true,
+        "sha256": "2b83e77e1f1488813afcec4151ce85bb7fcf064c0f2987d4f0097009cfc7d703",
+        "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/test_lf.txt"
+      },
+      "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/test_lf.txt",
+      "before_sha256": "2b83e77e1f1488813afcec4151ce85bb7fcf064c0f2987d4f0097009cfc7d703",
+      "edited_sha256": "2e7018bb9862dfd178cf0522102e5984ad8a130b92a43ab9e859e0a6daa23805",
+      "current_sha256": "2b83e77e1f1488813afcec4151ce85bb7fcf064c0f2987d4f0097009cfc7d703",
+      "target_unchanged_during_test": true,
+      "post_edit": null
+    }
+  },
+  {
+    "name": "safe_edit_and_test",
+    "args": {
+      "path": "fixture/test_lf.txt",
+      "compact": true,
+      "test_command": [
+        "node",
+        "-e",
+        "process.exit(0)"
+      ],
+      "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "edits": [
+        {
+          "start_line": 1,
+          "end_line": 1,
+          "start_anchor": "L1",
+          "end_anchor": "L1",
+          "replacement_mode": "lines",
+          "replacement": "stale write"
+        }
+      ]
+    },
+    "result": {
+      "status": "error",
+      "error": "STALE_PREIMAGE: Read the current file and regenerate anchors.",
+      "verified": false
+    }
+  },
+  {
+    "name": "lsp_query",
+    "args": {
+      "path": "fixture/service.ts",
+      "symbol": "processOrder",
+      "scope": "fixture",
+      "action": "rename",
+      "new_name": "fulfillOrder"
+    },
+    "result": {
+      "status": "completed",
+      "action": "rename",
+      "language": "typescript",
+      "path": "fixture/service.ts",
+      "documentVersion": 1,
+      "positionEncoding": "utf-16",
+      "result": {
+        "plan_id": "b47df9b09753431581461315e3ee5507",
+        "preview": [
+          {
+            "path": "fixture/consumer.ts",
+            "line": 1,
+            "before": "processOrder",
+            "after": "fulfillOrder",
+            "context": "import { processOrder as executeOrder, OrderService } from \"./service\";",
+            "context_truncated": false
+          },
+          {
+            "path": "fixture/service.ts",
+            "line": 4,
+            "before": "processOrder",
+            "after": "fulfillOrder",
+            "context": "export function processOrder(item: string): string {",
+            "context_truncated": false
+          }
+        ],
+        "offset": 0,
+        "total_edits": 2,
+        "next_offset": null,
+        "preview_complete": true,
+        "files_changed": 2,
+        "analysis_inputs": 4,
+        "analysis_root": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace",
+        "edit_scope": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture",
+        "coverage": "guarded_workspace_source_and_configuration_excluding_dependency_build_directories; language-server graph determines semantic coverage",
+        "note": "Read all preview pages before safe_edit_and_test. Public contracts require review and tests."
+      }
+    }
+  },
+  {
+    "name": "lsp_query",
+    "args": {
+      "offset": 0,
+      "plan_id": "b47df9b09753431581461315e3ee5507",
+      "action": "rename_preview",
+      "path": "fixture/service.ts"
+    },
+    "result": {
+      "status": "completed",
+      "action": "rename_preview",
+      "result": {
+        "plan_id": "b47df9b09753431581461315e3ee5507",
+        "preview": [
+          {
+            "path": "fixture/consumer.ts",
+            "line": 1,
+            "before": "processOrder",
+            "after": "fulfillOrder",
+            "context": "import { processOrder as executeOrder, OrderService } from \"./service\";",
+            "context_truncated": false
+          },
+          {
+            "path": "fixture/service.ts",
+            "line": 4,
+            "before": "processOrder",
+            "after": "fulfillOrder",
+            "context": "export function processOrder(item: string): string {",
+            "context_truncated": false
+          }
+        ],
+        "offset": 0,
+        "total_edits": 2,
+        "next_offset": null,
+        "preview_complete": true,
+        "files_changed": 2,
+        "analysis_inputs": 4,
+        "analysis_root": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace",
+        "edit_scope": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture",
+        "coverage": "guarded_workspace_source_and_configuration_excluding_dependency_build_directories; language-server graph determines semantic coverage",
+        "note": "Read all preview pages before safe_edit_and_test. Public contracts require review and tests."
+      }
+    }
+  },
+  {
+    "name": "safe_edit_and_test",
+    "args": {
+      "compact": true,
+      "test_command": [
+        "node",
+        "-e",
+        "console.log('ok')"
+      ],
+      "plan_id": "invalid_plan_id"
+    },
+    "result": {
+      "status": "error",
+      "error": "PLAN_UNAVAILABLE: Prepare a fresh plan in this session and workspace.",
+      "verified": false
+    }
+  },
+  {
+    "name": "safe_edit_and_test",
+    "args": {
+      "plan_id": "b47df9b09753431581461315e3ee5507",
+      "compact": true,
+      "test_command": [
+        "node",
+        "-e",
+        "console.log('rename applied successfully')"
+      ]
+    },
+    "result": {
+      "status": "verified",
+      "verified": true,
+      "files": [
+        {
+          "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/consumer.ts",
+          "before_sha256": "bb50acd91e4c37757e06e78cd584090f12189cb1da2682e64eda597ac536d328",
+          "edited_sha256": "38615a806b5e281b3dab159cbce55d115bccbf281bc251a9c320a09abe0fe3b3",
+          "current_sha256": "38615a806b5e281b3dab159cbce55d115bccbf281bc251a9c320a09abe0fe3b3"
+        },
+        {
+          "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/service.ts",
+          "before_sha256": "1d20b39622e29296990a58786aafd1836b6dda713cc1fa65e92c7c68c609b267",
+          "edited_sha256": "18ac9d5b6e0352883945c59283477aa3f552ec3a32b92fe27835ee59fb700388",
+          "current_sha256": "18ac9d5b6e0352883945c59283477aa3f552ec3a32b92fe27835ee59fb700388"
+        }
+      ],
+      "targets_unchanged_during_test": true,
+      "scope_unchanged_during_test": true,
+      "test": {
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "cancelled": false,
+        "stdout": "rename applied successfully\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_error": null
+      },
+      "rollback": {
+        "attempted": false,
+        "restored": false,
+        "reason": "tests_passed"
+      }
+    }
+  },
+  {
+    "name": "hashline_edit",
+    "args": {
+      "paths": [
+        "fixture/service.ts",
+        "fixture/consumer.ts"
+      ],
+      "compact": true,
+      "action": "read_many"
+    },
+    "result": {
+      "status": "read_many",
+      "files": [
+        {
+          "status": "read",
+          "sha256": "18ac9d5b6e0352883945c59283477aa3f552ec3a32b92fe27835ee59fb700388",
+          "total_lines": 48,
+          "start_line": 1,
+          "has_more": false,
+          "next_line": null,
+          "truncation_reason": null,
+          "lines": [
+            {
+              "line": 1,
+              "anchor": "L1",
+              "text": "// function processOrder() { decoy in comment }\n"
+            },
+            {
+              "line": 2,
+              "anchor": "L2",
+              "text": "const decoyStr = \"function processOrder() { decoy in string }\";\n"
+            },
+            {
+              "line": 3,
+              "anchor": "L3",
+              "text": "\n"
+            },
+            {
+              "line": 4,
+              "anchor": "L4",
+              "text": "export function fulfillOrder(item: string): string {\n"
+            },
+            {
+              "line": 5,
+              "anchor": "L5",
+              "text": "    return `order processed: ${item}`;\n"
+            },
+            {
+              "line": 6,
+              "anchor": "L6",
+              "text": "}\n"
+            },
+            {
+              "line": 7,
+              "anchor": "L7",
+              "text": "\n"
+            },
+            {
+              "line": 8,
+              "anchor": "L8",
+              "text": "export class OrderService {\n"
+            },
+            {
+              "line": 9,
+              "anchor": "L9",
+              "text": "    validate(id: string): boolean {\n"
+            },
+            {
+              "line": 10,
+              "anchor": "L10",
+              "text": "        return id.length > 0;\n"
+            },
+            {
+              "line": 11,
+              "anchor": "L11",
+              "text": "    }\n"
+            },
+            {
+              "line": 12,
+              "anchor": "L12",
+              "text": "}\n"
+            },
+            {
+              "line": 13,
+              "anchor": "L13",
+              "text": "\n"
+            },
+            {
+              "line": 14,
+              "anchor": "L14",
+              "text": "export class UserService {\n"
+            },
+            {
+              "line": 15,
+              "anchor": "L15",
+              "text": "    validate(id: string): boolean {\n"
+            },
+            {
+              "line": 16,
+              "anchor": "L16",
+              "text": "        return id.startsWith(\"user_\");\n"
+            },
+            {
+              "line": 17,
+              "anchor": "L17",
+              "text": "    }\n"
+            },
+            {
+              "line": 18,
+              "anchor": "L18",
+              "text": "}\n"
+            },
+            {
+              "line": 19,
+              "anchor": "L19",
+              "text": "\n"
+            },
+            {
+              "line": 20,
+              "anchor": "L20",
+              "text": "const router = {\n"
+            },
+            {
+              "line": 21,
+              "anchor": "L21",
+              "text": "    post: (path: string, handler: any) => ({ path, handler })\n"
+            },
+            {
+              "line": 22,
+              "anchor": "L22",
+              "text": "};\n"
+            },
+            {
+              "line": 23,
+              "anchor": "L23",
+              "text": "const otherRouter = {\n"
+            },
+            {
+              "line": 24,
+              "anchor": "L24",
+              "text": "    post: (path: string, handler: any) => ({ path, handler })\n"
+            },
+            {
+              "line": 25,
+              "anchor": "L25",
+              "text": "};\n"
+            },
+            {
+              "line": 26,
+              "anchor": "L26",
+              "text": "\n"
+            },
+            {
+              "line": 27,
+              "anchor": "L27",
+              "text": "// 1. Direct async handler\n"
+            },
+            {
+              "line": 28,
+              "anchor": "L28",
+              "text": "router.post(\"/async\", async (req: any, res: any) => {\n"
+            },
+            {
+              "line": 29,
+              "anchor": "L29",
+              "text": "    return res;\n"
+            },
+            {
+              "line": 30,
+              "anchor": "L30",
+              "text": "});\n"
+            },
+            {
+              "line": 31,
+              "anchor": "L31",
+              "text": "\n"
+            },
+            {
+              "line": 32,
+              "anchor": "L32",
+              "text": "// 2. Synchronous handler\n"
+            },
+            {
+              "line": 33,
+              "anchor": "L33",
+              "text": "router.post(\"/sync\", (req: any, res: any) => {\n"
+            },
+            {
+              "line": 34,
+              "anchor": "L34",
+              "text": "    return res;\n"
+            },
+            {
+              "line": 35,
+              "anchor": "L35",
+              "text": "});\n"
+            },
+            {
+              "line": 36,
+              "anchor": "L36",
+              "text": "\n"
+            },
+            {
+              "line": 37,
+              "anchor": "L37",
+              "text": "// 3. Nested callback with outer sync handler\n"
+            },
+            {
+              "line": 38,
+              "anchor": "L38",
+              "text": "router.post(\"/nested\", (req: any, res: any) => {\n"
+            },
+            {
+              "line": 39,
+              "anchor": "L39",
+              "text": "    setTimeout(async () => {\n"
+            },
+            {
+              "line": 40,
+              "anchor": "L40",
+              "text": "        // nested async\n"
+            },
+            {
+              "line": 41,
+              "anchor": "L41",
+              "text": "    }, 100);\n"
+            },
+            {
+              "line": 42,
+              "anchor": "L42",
+              "text": "    return res;\n"
+            },
+            {
+              "line": 43,
+              "anchor": "L43",
+              "text": "});\n"
+            },
+            {
+              "line": 44,
+              "anchor": "L44",
+              "text": "\n"
+            },
+            {
+              "line": 45,
+              "anchor": "L45",
+              "text": "// 4. Unrelated receiver\n"
+            },
+            {
+              "line": 46,
+              "anchor": "L46",
+              "text": "otherRouter.post(\"/unrelated\", async (req: any, res: any) => {\n"
+            },
+            {
+              "line": 47,
+              "anchor": "L47",
+              "text": "    return res;\n"
+            },
+            {
+              "line": 48,
+              "anchor": "L48",
+              "text": "});"
+            }
+          ],
+          "verified": false,
+          "snapshot_id": "69ecaaac9be144dab43e9ba335952b25",
+          "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/service.ts"
+        },
+        {
+          "status": "read",
+          "sha256": "38615a806b5e281b3dab159cbce55d115bccbf281bc251a9c320a09abe0fe3b3",
+          "total_lines": 8,
+          "start_line": 1,
+          "has_more": false,
+          "next_line": null,
+          "truncation_reason": null,
+          "lines": [
+            {
+              "line": 1,
+              "anchor": "L1",
+              "text": "import { fulfillOrder as executeOrder, OrderService } from \"./service\";\n"
+            },
+            {
+              "line": 2,
+              "anchor": "L2",
+              "text": "\n"
+            },
+            {
+              "line": 3,
+              "anchor": "L3",
+              "text": "export function runOrder() {\n"
+            },
+            {
+              "line": 4,
+              "anchor": "L4",
+              "text": "    const service = new OrderService();\n"
+            },
+            {
+              "line": 5,
+              "anchor": "L5",
+              "text": "    service.validate(\"order-1\");\n"
+            },
+            {
+              "line": 6,
+              "anchor": "L6",
+              "text": "    executeOrder(\"first\");\n"
+            },
+            {
+              "line": 7,
+              "anchor": "L7",
+              "text": "    return executeOrder(\"item-1\");\n"
+            },
+            {
+              "line": 8,
+              "anchor": "L8",
+              "text": "}"
+            }
+          ],
+          "verified": false,
+          "snapshot_id": "4748418f87b641c490104a5b90495849",
+          "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/consumer.ts"
+        }
+      ],
+      "verified": false,
+      "line_bytes_returned": 3371,
+      "note": "Independent file snapshots; inspect every file for errors and has_more."
+    }
+  },
+  {
+    "name": "safe_edit_and_test",
+    "args": {
+      "test_command": [
+        "node",
+        "-e",
+        "process.exit(99)"
+      ],
+      "files": [
+        {
+          "edits": [
+            {
+              "end_line": 4,
+              "replacement": "export function fulfillOrder(item: string, count: number): string {",
+              "start_anchor": "L4",
+              "replacement_mode": "lines",
+              "start_line": 4,
+              "end_anchor": "L4"
+            }
+          ],
+          "path": "fixture/service.ts",
+          "snapshot_id": "69ecaaac9be144dab43e9ba335952b25"
+        },
+        {
+          "edits": [
+            {
+              "start_anchor": "L6",
+              "start_line": 6,
+              "end_line": 6,
+              "end_anchor": "L6",
+              "replacement": "    executeOrder(\"first\", 1);",
+              "replacement_mode": "lines"
+            }
+          ],
+          "path": "fixture/consumer.ts",
+          "snapshot_id": "4748418f87b641c490104a5b90495849"
+        }
+      ],
+      "compact": true
+    },
+    "result": {
+      "status": "failed",
+      "verified": false,
+      "files": [
+        {
+          "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/consumer.ts",
+          "before_sha256": "38615a806b5e281b3dab159cbce55d115bccbf281bc251a9c320a09abe0fe3b3",
+          "edited_sha256": "817a4278a96f2ff1ddf1a9d6f06548c90b3d4dcba44583a21ed453159b45bb0e",
+          "current_sha256": "38615a806b5e281b3dab159cbce55d115bccbf281bc251a9c320a09abe0fe3b3"
+        },
+        {
+          "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/service.ts",
+          "before_sha256": "18ac9d5b6e0352883945c59283477aa3f552ec3a32b92fe27835ee59fb700388",
+          "edited_sha256": "c038e1822cad3f7866d619f20149ebf13ec6bbb098520cc4c09de3bae3dec9e2",
+          "current_sha256": "18ac9d5b6e0352883945c59283477aa3f552ec3a32b92fe27835ee59fb700388"
+        }
+      ],
+      "targets_unchanged_during_test": true,
+      "scope_unchanged_during_test": true,
+      "test": {
+        "executed": true,
+        "exit_code": 99,
+        "timed_out": false,
+        "cancelled": false,
+        "stdout": "",
+        "stderr": "",
+        "output_truncated": false,
+        "output_error": null
+      },
+      "rollback": {
+        "attempted": true,
+        "restored": true,
+        "files": [
+          {
+            "attempted": true,
+            "restored": true,
+            "sha256": "38615a806b5e281b3dab159cbce55d115bccbf281bc251a9c320a09abe0fe3b3",
+            "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/consumer.ts"
+          },
+          {
+            "attempted": true,
+            "restored": true,
+            "sha256": "18ac9d5b6e0352883945c59283477aa3f552ec3a32b92fe27835ee59fb700388",
+            "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/service.ts"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "safe_edit_and_test",
+    "args": {
+      "files": [
+        {
+          "path": "fixture/service.ts",
+          "snapshot_id": "69ecaaac9be144dab43e9ba335952b25",
+          "edits": [
+            {
+              "end_line": 4,
+              "start_line": 4,
+              "end_anchor": "L4",
+              "replacement_mode": "lines",
+              "replacement": "export function fulfillOrder(item: string, count: number): string {",
+              "start_anchor": "L4"
+            }
+          ]
+        },
+        {
+          "path": "fixture/consumer.ts",
+          "edits": [
+            {
+              "start_line": 6,
+              "end_anchor": "L6",
+              "replacement_mode": "lines",
+              "end_line": 6,
+              "replacement": "    executeOrder(\"first\", 1);",
+              "start_anchor": "L6"
+            }
+          ],
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "test_command": [
+        "node",
+        "-e",
+        "console.log('should not run')"
+      ],
+      "compact": true
+    },
+    "result": {
+      "status": "error",
+      "error": "STALE_PREIMAGE: Read the current file and regenerate anchors.",
+      "verified": false
+    }
+  },
+  {
+    "name": "hashline_edit",
+    "args": {
+      "compact": true,
+      "paths": [
+        "fixture/service.ts",
+        "fixture/consumer.ts"
+      ],
+      "action": "read_many"
+    },
+    "result": {
+      "status": "read_many",
+      "files": [
+        {
+          "status": "read",
+          "sha256": "18ac9d5b6e0352883945c59283477aa3f552ec3a32b92fe27835ee59fb700388",
+          "total_lines": 48,
+          "start_line": 1,
+          "has_more": false,
+          "next_line": null,
+          "truncation_reason": null,
+          "lines": [
+            {
+              "line": 1,
+              "anchor": "L1",
+              "text": "// function processOrder() { decoy in comment }\n"
+            },
+            {
+              "line": 2,
+              "anchor": "L2",
+              "text": "const decoyStr = \"function processOrder() { decoy in string }\";\n"
+            },
+            {
+              "line": 3,
+              "anchor": "L3",
+              "text": "\n"
+            },
+            {
+              "line": 4,
+              "anchor": "L4",
+              "text": "export function fulfillOrder(item: string): string {\n"
+            },
+            {
+              "line": 5,
+              "anchor": "L5",
+              "text": "    return `order processed: ${item}`;\n"
+            },
+            {
+              "line": 6,
+              "anchor": "L6",
+              "text": "}\n"
+            },
+            {
+              "line": 7,
+              "anchor": "L7",
+              "text": "\n"
+            },
+            {
+              "line": 8,
+              "anchor": "L8",
+              "text": "export class OrderService {\n"
+            },
+            {
+              "line": 9,
+              "anchor": "L9",
+              "text": "    validate(id: string): boolean {\n"
+            },
+            {
+              "line": 10,
+              "anchor": "L10",
+              "text": "        return id.length > 0;\n"
+            },
+            {
+              "line": 11,
+              "anchor": "L11",
+              "text": "    }\n"
+            },
+            {
+              "line": 12,
+              "anchor": "L12",
+              "text": "}\n"
+            },
+            {
+              "line": 13,
+              "anchor": "L13",
+              "text": "\n"
+            },
+            {
+              "line": 14,
+              "anchor": "L14",
+              "text": "export class UserService {\n"
+            },
+            {
+              "line": 15,
+              "anchor": "L15",
+              "text": "    validate(id: string): boolean {\n"
+            },
+            {
+              "line": 16,
+              "anchor": "L16",
+              "text": "        return id.startsWith(\"user_\");\n"
+            },
+            {
+              "line": 17,
+              "anchor": "L17",
+              "text": "    }\n"
+            },
+            {
+              "line": 18,
+              "anchor": "L18",
+              "text": "}\n"
+            },
+            {
+              "line": 19,
+              "anchor": "L19",
+              "text": "\n"
+            },
+            {
+              "line": 20,
+              "anchor": "L20",
+              "text": "const router = {\n"
+            },
+            {
+              "line": 21,
+              "anchor": "L21",
+              "text": "    post: (path: string, handler: any) => ({ path, handler })\n"
+            },
+            {
+              "line": 22,
+              "anchor": "L22",
+              "text": "};\n"
+            },
+            {
+              "line": 23,
+              "anchor": "L23",
+              "text": "const otherRouter = {\n"
+            },
+            {
+              "line": 24,
+              "anchor": "L24",
+              "text": "    post: (path: string, handler: any) => ({ path, handler })\n"
+            },
+            {
+              "line": 25,
+              "anchor": "L25",
+              "text": "};\n"
+            },
+            {
+              "line": 26,
+              "anchor": "L26",
+              "text": "\n"
+            },
+            {
+              "line": 27,
+              "anchor": "L27",
+              "text": "// 1. Direct async handler\n"
+            },
+            {
+              "line": 28,
+              "anchor": "L28",
+              "text": "router.post(\"/async\", async (req: any, res: any) => {\n"
+            },
+            {
+              "line": 29,
+              "anchor": "L29",
+              "text": "    return res;\n"
+            },
+            {
+              "line": 30,
+              "anchor": "L30",
+              "text": "});\n"
+            },
+            {
+              "line": 31,
+              "anchor": "L31",
+              "text": "\n"
+            },
+            {
+              "line": 32,
+              "anchor": "L32",
+              "text": "// 2. Synchronous handler\n"
+            },
+            {
+              "line": 33,
+              "anchor": "L33",
+              "text": "router.post(\"/sync\", (req: any, res: any) => {\n"
+            },
+            {
+              "line": 34,
+              "anchor": "L34",
+              "text": "    return res;\n"
+            },
+            {
+              "line": 35,
+              "anchor": "L35",
+              "text": "});\n"
+            },
+            {
+              "line": 36,
+              "anchor": "L36",
+              "text": "\n"
+            },
+            {
+              "line": 37,
+              "anchor": "L37",
+              "text": "// 3. Nested callback with outer sync handler\n"
+            },
+            {
+              "line": 38,
+              "anchor": "L38",
+              "text": "router.post(\"/nested\", (req: any, res: any) => {\n"
+            },
+            {
+              "line": 39,
+              "anchor": "L39",
+              "text": "    setTimeout(async () => {\n"
+            },
+            {
+              "line": 40,
+              "anchor": "L40",
+              "text": "        // nested async\n"
+            },
+            {
+              "line": 41,
+              "anchor": "L41",
+              "text": "    }, 100);\n"
+            },
+            {
+              "line": 42,
+              "anchor": "L42",
+              "text": "    return res;\n"
+            },
+            {
+              "line": 43,
+              "anchor": "L43",
+              "text": "});\n"
+            },
+            {
+              "line": 44,
+              "anchor": "L44",
+              "text": "\n"
+            },
+            {
+              "line": 45,
+              "anchor": "L45",
+              "text": "// 4. Unrelated receiver\n"
+            },
+            {
+              "line": 46,
+              "anchor": "L46",
+              "text": "otherRouter.post(\"/unrelated\", async (req: any, res: any) => {\n"
+            },
+            {
+              "line": 47,
+              "anchor": "L47",
+              "text": "    return res;\n"
+            },
+            {
+              "line": 48,
+              "anchor": "L48",
+              "text": "});"
+            }
+          ],
+          "verified": false,
+          "snapshot_id": "79c8f7d785864b269099842f663edcab",
+          "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/service.ts"
+        },
+        {
+          "status": "read",
+          "sha256": "38615a806b5e281b3dab159cbce55d115bccbf281bc251a9c320a09abe0fe3b3",
+          "total_lines": 8,
+          "start_line": 1,
+          "has_more": false,
+          "next_line": null,
+          "truncation_reason": null,
+          "lines": [
+            {
+              "line": 1,
+              "anchor": "L1",
+              "text": "import { fulfillOrder as executeOrder, OrderService } from \"./service\";\n"
+            },
+            {
+              "line": 2,
+              "anchor": "L2",
+              "text": "\n"
+            },
+            {
+              "line": 3,
+              "anchor": "L3",
+              "text": "export function runOrder() {\n"
+            },
+            {
+              "line": 4,
+              "anchor": "L4",
+              "text": "    const service = new OrderService();\n"
+            },
+            {
+              "line": 5,
+              "anchor": "L5",
+              "text": "    service.validate(\"order-1\");\n"
+            },
+            {
+              "line": 6,
+              "anchor": "L6",
+              "text": "    executeOrder(\"first\");\n"
+            },
+            {
+              "line": 7,
+              "anchor": "L7",
+              "text": "    return executeOrder(\"item-1\");\n"
+            },
+            {
+              "line": 8,
+              "anchor": "L8",
+              "text": "}"
+            }
+          ],
+          "verified": false,
+          "snapshot_id": "99ebfea46ebd4f09a0382591da09dc84",
+          "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/consumer.ts"
+        }
+      ],
+      "verified": false,
+      "line_bytes_returned": 3371,
+      "note": "Independent file snapshots; inspect every file for errors and has_more."
+    }
+  },
+  {
+    "name": "safe_edit_and_test",
+    "args": {
+      "compact": true,
+      "test_command": [
+        "node",
+        "-e",
+        "console.log('interdependent changes applied')"
+      ],
+      "files": [
+        {
+          "snapshot_id": "79c8f7d785864b269099842f663edcab",
+          "edits": [
+            {
+              "replacement": "export function fulfillOrder(item: string, count: number): string {",
+              "replacement_mode": "lines",
+              "start_line": 4,
+              "end_anchor": "L4",
+              "end_line": 4,
+              "start_anchor": "L4"
+            }
+          ],
+          "path": "fixture/service.ts"
+        },
+        {
+          "path": "fixture/consumer.ts",
+          "snapshot_id": "99ebfea46ebd4f09a0382591da09dc84",
+          "edits": [
+            {
+              "replacement_mode": "lines",
+              "start_line": 6,
+              "end_line": 6,
+              "end_anchor": "L6",
+              "start_anchor": "L6",
+              "replacement": "    executeOrder(\"first\", 1);"
+            }
+          ]
+        }
+      ]
+    },
+    "result": {
+      "status": "verified",
+      "verified": true,
+      "files": [
+        {
+          "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/consumer.ts",
+          "before_sha256": "38615a806b5e281b3dab159cbce55d115bccbf281bc251a9c320a09abe0fe3b3",
+          "edited_sha256": "817a4278a96f2ff1ddf1a9d6f06548c90b3d4dcba44583a21ed453159b45bb0e",
+          "current_sha256": "817a4278a96f2ff1ddf1a9d6f06548c90b3d4dcba44583a21ed453159b45bb0e"
+        },
+        {
+          "path": "/private/tmp/orqanix-native-v8-recipe-20260930/workspace/fixture/service.ts",
+          "before_sha256": "18ac9d5b6e0352883945c59283477aa3f552ec3a32b92fe27835ee59fb700388",
+          "edited_sha256": "c038e1822cad3f7866d619f20149ebf13ec6bbb098520cc4c09de3bae3dec9e2",
+          "current_sha256": "c038e1822cad3f7866d619f20149ebf13ec6bbb098520cc4c09de3bae3dec9e2"
+        }
+      ],
+      "targets_unchanged_during_test": true,
+      "scope_unchanged_during_test": true,
+      "test": {
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "cancelled": false,
+        "stdout": "interdependent changes applied\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_error": null
+      },
+      "rollback": {
+        "attempted": false,
+        "restored": false,
+        "reason": "tests_passed"
+      }
+    }
+  },
+  {
+    "name": "lsp_query",
+    "args": {
+      "symbol": "hello_world",
+      "language": "python",
+      "action": "definition",
+      "path": "fixture/test_py.py"
+    },
+    "result": {
+      "status": "completed",
+      "action": "definition",
+      "language": "python",
+      "path": "fixture/test_py.py",
+      "documentVersion": 1,
+      "positionEncoding": "utf-16",
+      "result": {
+        "locations": [
+          {
+            "path": "fixture/test_py.py",
+            "range": {
+              "start": {
+                "line": 0,
+                "character": 4
+              },
+              "end": {
+                "line": 0,
+                "character": 15
+              }
+            },
+            "line_text": "def hello_world(name: str) -> str:",
+            "line_truncated": false
+          }
+        ],
+        "files": {
+          "fixture/test_py.py": {
+            "sha256": "aad97bb8357bec780ddc4618673b8541be9ddc182acdb6f4ac0ab05d499e2517"
+          }
+        },
+        "total": 1,
+        "offset": 0,
+        "truncated": false,
+        "next_offset": null,
+        "context": "saved file snapshots; not an atomic project snapshot"
+      }
+    }
+  }
+]

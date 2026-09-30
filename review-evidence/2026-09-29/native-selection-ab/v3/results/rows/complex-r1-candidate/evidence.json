@@ -1,0 +1,5444 @@
+{
+  "key": "complex-r1-candidate",
+  "tools": [
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_324615",
+      "title": "todo: todo write",
+      "rawInput": {
+        "content": "- [ ] Read README.md for workspace contract, scripts, and guidelines\n- [ ] Inspect existing codebase structure under src/ and tests/\n- [ ] Identify RequestContext definition and all occurrences of requestId under src/\n- [ ] Distinguish RequestContext.requestId from unrelated Job.requestId, audit requestId variables, and wire/output keys named requestId\n- [ ] Rename RequestContext field requestId -> traceId, update construction, aliases, destructuring, and propagation across all consumers under src\n- [ ] Verify forkContext suffixes, non-mutation behavior, and wire/output keys remain intact\n- [ ] Add regression tests in tests/regression.test.mjs for end-to-end propagation and unrelated Job identifier\n- [ ] Run test suite and type checks, verify everything passes\n- [ ] Report actual test results and summary of changes"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "todo__todo_write",
+            "extensionName": "todo"
+          },
+          "created": 1790692212,
+          "messageId": "cMu7aqGsGumWvdIP7uzzSA"
+        }
+      },
+      "firstAt": 1790692212470,
+      "lastAt": 1790692212481,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "Updated (826 chars)"
+          }
+        }
+      ]
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_309038",
+      "title": "hashline edit · README.md",
+      "rawInput": {
+        "path": "README.md",
+        "action": "read"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692216,
+          "messageId": "dMu7apP-KJLZxs0PqKmwmQs"
+        }
+      },
+      "firstAt": 1790692216189,
+      "lastAt": 1790692216208,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"read\",\"path\":\"<workspace>/README.md\",\"sha256\":\"f2734f6ac3c56a5a6781c00d50c840d02d95082894114db7eb3623e0ceb8c1d3\",\"total_lines\":10,\"start_line\":1,\"has_more\":false,\"lines\":[{\"line\":1,\"anchor\":\"1:5b1f80354bf30898447e20579bac97043e62228c136bab01ba03c66338192492\",\"text\":\"# Rename a shared context field across a typed request pipeline\\n\"},{\"line\":2,\"anchor\":\"2:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b\",\"text\":\"\\n\"},{\"line\":3,\"anchor\":\"3:73ae2f1a5b7cefab9e8a9edc7eb570e663c7a6c208f61d8df9896ba9e4242f07\",\"text\":\"Rename the RequestContext field requestId to traceId throughout its definition and all consumers under src. This is a source-level API rename: do not keep a requestId compatibility member on RequestContext. Update context construction, aliases, destructuring and propagation so a trace identifier reaches every stage. Keep all public function names and signatures apart from that context field, existing wire/output keys named requestId, and the unrelated Job.requestId and audit requestId variables unchanged. Keep the current output values and non-mutation behavior, including forkContext suffixes. Add regression tests in tests/regression.test.mjs for end-to-end propagation and the unrelated Job identifier; run the tests and type check. Start from the app entry point and trace the relevant references as needed.\\n\"},{\"line\":4,\"anchor\":\"4:86beca7163c1050fcbc3364f1c2cc888efd4eed156e91b56e9d7e36216929b1e\",\"text\":\"Read README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results.\\n\"},{\"line\":5,\"anchor\":\"5:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b\",\"text\":\"\\n\"},{\"line\":6,\"anchor\":\"6:719fdaa6d404721ad260ffa274edba615344fe914e644173654e17dc8a206899\",\"text\":\"Permitted changes: src/context.ts, src/context-factory.ts, src/logging.ts, src/middleware.ts, src/jobs.ts, src/response.ts, src/worker.ts, src/app.ts and tests/regression.test.mjs (create it). All other files are immutable inputs. Keep the implementation in its current modules.\\n\"},{\"line\":7,\"anchor\":\"7:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b\",\"text\":\"\\n\"},{\"line\":8,\"anchor\":\"8:f3f1ea9ac0e3cab778e789e55ec34e85f381b9683e2462bfe813219614ddc60c\",\"text\":\"Tests: node --experimental-strip-types --test tests/*.test.mjs\\n\"},{\"line\":9,\"anchor\":\"9:237a318d1201dab3087ff7a686422203077efa4c70e4bd932bf87478ac6e9606\",\"text\":\"Type check: node \\\"/private/tmp/orqanix-selection-ab-app-v3-20260929/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\\\" --noEmit -p tsconfig.json\\n\"},{\"line\":10,\"anchor\":\"10:cc5d765adbb5fd33898dd9b8635a13a649f1c023ca13ef7219a9c42a5b7a7fb8\",\"text\":\"Dependencies and language servers are already supplied by the app.\\n\"}],\"verified\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "read",
+        "path": "<workspace>/README.md",
+        "sha256": "f2734f6ac3c56a5a6781c00d50c840d02d95082894114db7eb3623e0ceb8c1d3",
+        "total_lines": 10,
+        "start_line": 1,
+        "has_more": false,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:5b1f80354bf30898447e20579bac97043e62228c136bab01ba03c66338192492",
+            "text": "# Rename a shared context field across a typed request pipeline\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+            "text": "\n"
+          },
+          {
+            "line": 3,
+            "anchor": "3:73ae2f1a5b7cefab9e8a9edc7eb570e663c7a6c208f61d8df9896ba9e4242f07",
+            "text": "Rename the RequestContext field requestId to traceId throughout its definition and all consumers under src. This is a source-level API rename: do not keep a requestId compatibility member on RequestContext. Update context construction, aliases, destructuring and propagation so a trace identifier reaches every stage. Keep all public function names and signatures apart from that context field, existing wire/output keys named requestId, and the unrelated Job.requestId and audit requestId variables unchanged. Keep the current output values and non-mutation behavior, including forkContext suffixes. Add regression tests in tests/regression.test.mjs for end-to-end propagation and the unrelated Job identifier; run the tests and type check. Start from the app entry point and trace the relevant references as needed.\n"
+          },
+          {
+            "line": 4,
+            "anchor": "4:86beca7163c1050fcbc3364f1c2cc888efd4eed156e91b56e9d7e36216929b1e",
+            "text": "Read README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results.\n"
+          },
+          {
+            "line": 5,
+            "anchor": "5:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+            "text": "\n"
+          },
+          {
+            "line": 6,
+            "anchor": "6:719fdaa6d404721ad260ffa274edba615344fe914e644173654e17dc8a206899",
+            "text": "Permitted changes: src/context.ts, src/context-factory.ts, src/logging.ts, src/middleware.ts, src/jobs.ts, src/response.ts, src/worker.ts, src/app.ts and tests/regression.test.mjs (create it). All other files are immutable inputs. Keep the implementation in its current modules.\n"
+          },
+          {
+            "line": 7,
+            "anchor": "7:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+            "text": "\n"
+          },
+          {
+            "line": 8,
+            "anchor": "8:f3f1ea9ac0e3cab778e789e55ec34e85f381b9683e2462bfe813219614ddc60c",
+            "text": "Tests: node --experimental-strip-types --test tests/*.test.mjs\n"
+          },
+          {
+            "line": 9,
+            "anchor": "9:237a318d1201dab3087ff7a686422203077efa4c70e4bd932bf87478ac6e9606",
+            "text": "Type check: node \"/private/tmp/orqanix-selection-ab-app-v3-20260929/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json\n"
+          },
+          {
+            "line": 10,
+            "anchor": "10:cc5d765adbb5fd33898dd9b8635a13a649f1c023ca13ef7219a9c42a5b7a7fb8",
+            "text": "Dependencies and language servers are already supplied by the app.\n"
+          }
+        ],
+        "verified": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_358804",
+      "title": "shell · node --experimental-strip-types --test tests/*.test.mjs",
+      "rawInput": {
+        "command": "node --experimental-strip-types --test tests/*.test.mjs"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "shell",
+            "extensionName": "developer"
+          },
+          "created": 1790692218,
+          "messageId": "eMu7au7yKfKPxN8Pkce2kQY"
+        },
+        "toolNotification": {
+          "type": "live_output",
+          "params": {
+            "sequence": 2,
+            "chunks": [
+              {
+                "stream": "stdout",
+                "output": "# Subtest: wire identifier\nok 1 - wire identifier\n  ---\n  duration_ms: 1.281167\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 148.015583\n"
+              }
+            ],
+            "truncated": false
+          }
+        }
+      },
+      "firstAt": 1790692218267,
+      "lastAt": 1790692218535,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "TAP version 13\n# Subtest: wire identifier\nok 1 - wire identifier\n  ---\n  duration_ms: 1.281167\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 148.015583"
+          }
+        }
+      ],
+      "rawOutput": {
+        "stdout": "TAP version 13\n# Subtest: wire identifier\nok 1 - wire identifier\n  ---\n  duration_ms: 1.281167\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 148.015583",
+        "stderr": "",
+        "exit_code": 0
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_384982",
+      "title": "shell · node \"/private/tmp/orqanix-selection-ab-app-v3-2026092...…",
+      "rawInput": {
+        "command": "node \"/private/tmp/orqanix-selection-ab-app-v3-20260929/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "shell",
+            "extensionName": "developer"
+          },
+          "created": 1790692222,
+          "messageId": "esu7arfgK8HYxs0P25yj4Aw"
+        }
+      },
+      "firstAt": 1790692222725,
+      "lastAt": 1790692223788,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "(no output)"
+          }
+        }
+      ],
+      "rawOutput": {
+        "stdout": "",
+        "stderr": "",
+        "exit_code": 0
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_446650",
+      "title": "tree · .",
+      "rawInput": {
+        "path": ".",
+        "depth": 3
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "tree",
+            "extensionName": "developer"
+          },
+          "created": 1790692226,
+          "messageId": "gMu7aqKvD-quxN8P8sW2-AY"
+        }
+      },
+      "firstAt": 1790692226257,
+      "lastAt": 1790692226266,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "src/  [29]\n  app.ts  [7]\n  context-factory.ts  [3]\n  context.ts  [2]\n  job-types.ts  [2]\n  jobs.ts  [4]\n  logging.ts  [2]\n  middleware.ts  [2]\n  response.ts  [2]\n  worker.ts  [5]\ntests/  [4]\n  public.test.mjs  [4]\nREADME.md  [10]\npackage.json  [1]\ntsconfig.json  [13]\n"
+          }
+        }
+      ]
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_338686",
+      "title": "hashline edit · tests/public.test.mjs",
+      "rawInput": {
+        "action": "read",
+        "path": "tests/public.test.mjs"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692227,
+          "messageId": "gsu7ari5G4rmvdIP4s-3mQg"
+        }
+      },
+      "firstAt": 1790692227998,
+      "lastAt": 1790692228014,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"read\",\"path\":\"<workspace>/tests/public.test.mjs\",\"sha256\":\"10e8fa1767340cc4a3497f5bddc3347ed085c58c457cc600c9576ee4ccaa073c\",\"total_lines\":4,\"start_line\":1,\"has_more\":false,\"lines\":[{\"line\":1,\"anchor\":\"1:70662fbcc0d4d8c119683da1947b12046803d48b447988197ec3092ffe5a8b4a\",\"text\":\"import assert from 'node:assert/strict';\\n\"},{\"line\":2,\"anchor\":\"2:c147e225066f4dc62051ff5fd5dc27cbaa6c3d28692ade88f588eda860c87d2a\",\"text\":\"import {test} from 'node:test';\\n\"},{\"line\":3,\"anchor\":\"3:bff92c5f042184c70119fede979cb293c144a9accf1a16cdd3681daa5250c033\",\"text\":\"import {handle} from '../src/app.ts';\\n\"},{\"line\":4,\"anchor\":\"4:9954dafd3d30f2b98e2fec47b24373fa4ff1a4e21ac7ffa7b83041fd14e43820\",\"text\":\"test('wire identifier',()=>assert.equal(handle('t','u',{requestId:'j',name:'test'}).body.requestId,'t'));\\n\"}],\"verified\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "read",
+        "path": "<workspace>/tests/public.test.mjs",
+        "sha256": "10e8fa1767340cc4a3497f5bddc3347ed085c58c457cc600c9576ee4ccaa073c",
+        "total_lines": 4,
+        "start_line": 1,
+        "has_more": false,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:70662fbcc0d4d8c119683da1947b12046803d48b447988197ec3092ffe5a8b4a",
+            "text": "import assert from 'node:assert/strict';\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:c147e225066f4dc62051ff5fd5dc27cbaa6c3d28692ade88f588eda860c87d2a",
+            "text": "import {test} from 'node:test';\n"
+          },
+          {
+            "line": 3,
+            "anchor": "3:bff92c5f042184c70119fede979cb293c144a9accf1a16cdd3681daa5250c033",
+            "text": "import {handle} from '../src/app.ts';\n"
+          },
+          {
+            "line": 4,
+            "anchor": "4:9954dafd3d30f2b98e2fec47b24373fa4ff1a4e21ac7ffa7b83041fd14e43820",
+            "text": "test('wire identifier',()=>assert.equal(handle('t','u',{requestId:'j',name:'test'}).body.requestId,'t'));\n"
+          }
+        ],
+        "verified": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_310528",
+      "title": "hashline edit · src/context.ts",
+      "rawInput": {
+        "action": "read",
+        "path": "src/context.ts"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692230,
+          "messageId": "hMu7aoDVC_XkxN8Pt9efmAQ"
+        }
+      },
+      "firstAt": 1790692230535,
+      "lastAt": 1790692230548,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"read\",\"path\":\"<workspace>/src/context.ts\",\"sha256\":\"5879dc0e7c6f310d2bf0176e4899174e9881c130ccdfcf813a9361f4fa25d6d6\",\"total_lines\":2,\"start_line\":1,\"has_more\":false,\"lines\":[{\"line\":1,\"anchor\":\"1:502508c8661a4e6fcdd98bcb03288d32977a511ab9e08c36ddb699988ed65d79\",\"text\":\"export interface RequestContext { readonly requestId: string; readonly userId: string; }\\n\"},{\"line\":2,\"anchor\":\"2:96392613e1f421de0e9fc906cda109a1df05016c47e82d1826a2ec72e513d1e5\",\"text\":\"export type ActiveContext = RequestContext;\\n\"}],\"verified\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "read",
+        "path": "<workspace>/src/context.ts",
+        "sha256": "5879dc0e7c6f310d2bf0176e4899174e9881c130ccdfcf813a9361f4fa25d6d6",
+        "total_lines": 2,
+        "start_line": 1,
+        "has_more": false,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:502508c8661a4e6fcdd98bcb03288d32977a511ab9e08c36ddb699988ed65d79",
+            "text": "export interface RequestContext { readonly requestId: string; readonly userId: string; }\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:96392613e1f421de0e9fc906cda109a1df05016c47e82d1826a2ec72e513d1e5",
+            "text": "export type ActiveContext = RequestContext;\n"
+          }
+        ],
+        "verified": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_519029",
+      "title": "hashline edit · src/context-factory.ts",
+      "rawInput": {
+        "action": "read",
+        "path": "src/context-factory.ts"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692232,
+          "messageId": "h8u7avHFAe_EvdIPyuaGMQ"
+        }
+      },
+      "firstAt": 1790692232100,
+      "lastAt": 1790692232115,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"read\",\"path\":\"<workspace>/src/context-factory.ts\",\"sha256\":\"dcf9236758f2abd07044e75d1efafffc9fb9935d8a3ac79876a412ea969cf161\",\"total_lines\":3,\"start_line\":1,\"has_more\":false,\"lines\":[{\"line\":1,\"anchor\":\"1:d27f965d46c2987ad80d17a4058c74850ed87957acaded6d4da62160c876fe48\",\"text\":\"import type {RequestContext} from './context.ts';\\n\"},{\"line\":2,\"anchor\":\"2:2d43a589e3d70716b02cf68454e33e22bfd06c5bd562ec8e2c256c1646c64ebb\",\"text\":\"export function createContext(value: string, userId: string): RequestContext {return {requestId:value,userId};}\\n\"},{\"line\":3,\"anchor\":\"3:f67f3f9deba6019e755cef2a55b794fb7084c03c1738134c3c16f80be5eb312f\",\"text\":\"export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\\n\"}],\"verified\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "read",
+        "path": "<workspace>/src/context-factory.ts",
+        "sha256": "dcf9236758f2abd07044e75d1efafffc9fb9935d8a3ac79876a412ea969cf161",
+        "total_lines": 3,
+        "start_line": 1,
+        "has_more": false,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:d27f965d46c2987ad80d17a4058c74850ed87957acaded6d4da62160c876fe48",
+            "text": "import type {RequestContext} from './context.ts';\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:2d43a589e3d70716b02cf68454e33e22bfd06c5bd562ec8e2c256c1646c64ebb",
+            "text": "export function createContext(value: string, userId: string): RequestContext {return {requestId:value,userId};}\n"
+          },
+          {
+            "line": 3,
+            "anchor": "3:f67f3f9deba6019e755cef2a55b794fb7084c03c1738134c3c16f80be5eb312f",
+            "text": "export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\n"
+          }
+        ],
+        "verified": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_373562",
+      "title": "hashline edit · src/job-types.ts",
+      "rawInput": {
+        "path": "src/job-types.ts",
+        "action": "read"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692233,
+          "messageId": "iMu7aqK9ENy-xN8P2uiIyAY"
+        }
+      },
+      "firstAt": 1790692233357,
+      "lastAt": 1790692233370,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"read\",\"path\":\"<workspace>/src/job-types.ts\",\"sha256\":\"9179d1d48afaf1487af87983124409372935b5fafc697d2ae59ef2c9a514f9a9\",\"total_lines\":2,\"start_line\":1,\"has_more\":false,\"lines\":[{\"line\":1,\"anchor\":\"1:91e2a91be7a08de535d66f84b07a9065021f95ffd988313adfb616733ae597cc\",\"text\":\"export interface Job {requestId: string; name: string;}\\n\"},{\"line\":2,\"anchor\":\"2:d5829423f02123b1d06c1c57c679d32be0f04134a65e89465b17d4ea3f64d556\",\"text\":\"export function auditLabel(requestId: string) {return 'job:'+requestId;}\\n\"}],\"verified\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "read",
+        "path": "<workspace>/src/job-types.ts",
+        "sha256": "9179d1d48afaf1487af87983124409372935b5fafc697d2ae59ef2c9a514f9a9",
+        "total_lines": 2,
+        "start_line": 1,
+        "has_more": false,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:91e2a91be7a08de535d66f84b07a9065021f95ffd988313adfb616733ae597cc",
+            "text": "export interface Job {requestId: string; name: string;}\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:d5829423f02123b1d06c1c57c679d32be0f04134a65e89465b17d4ea3f64d556",
+            "text": "export function auditLabel(requestId: string) {return 'job:'+requestId;}\n"
+          }
+        ],
+        "verified": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_526027",
+      "title": "hashline edit · src/jobs.ts",
+      "rawInput": {
+        "path": "src/jobs.ts",
+        "action": "read"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692237,
+          "messageId": "icu7avfUIPKPxN8Pkce2kQY"
+        }
+      },
+      "firstAt": 1790692237063,
+      "lastAt": 1790692237082,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"read\",\"path\":\"<workspace>/src/jobs.ts\",\"sha256\":\"c93baf0d1f3055bd201be1e7b590edcfbae602458e35bcb427dd7754e7749999\",\"total_lines\":4,\"start_line\":1,\"has_more\":false,\"lines\":[{\"line\":1,\"anchor\":\"1:d27f965d46c2987ad80d17a4058c74850ed87957acaded6d4da62160c876fe48\",\"text\":\"import type {RequestContext} from './context.ts';\\n\"},{\"line\":2,\"anchor\":\"2:973a31bfc5fb09a6a2f03e4322766e4bcdc6972c317b50418dadd636ca4cf1b7\",\"text\":\"import {auditLabel} from './job-types.ts';\\n\"},{\"line\":3,\"anchor\":\"3:74872f60f84c8d69fd0728a51fed488592af5439bda09f04fe0c8b7cce188f4a\",\"text\":\"import type {Job} from './job-types.ts';\\n\"},{\"line\":4,\"anchor\":\"4:c2595a936ffb68a8b52a0dfbb3ca7f3aefcd5b5de6a227ca34c1623402d20062\",\"text\":\"export function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.requestId,audit:auditLabel(job.requestId),name:job.name};}\\n\"}],\"verified\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "read",
+        "path": "<workspace>/src/jobs.ts",
+        "sha256": "c93baf0d1f3055bd201be1e7b590edcfbae602458e35bcb427dd7754e7749999",
+        "total_lines": 4,
+        "start_line": 1,
+        "has_more": false,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:d27f965d46c2987ad80d17a4058c74850ed87957acaded6d4da62160c876fe48",
+            "text": "import type {RequestContext} from './context.ts';\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:973a31bfc5fb09a6a2f03e4322766e4bcdc6972c317b50418dadd636ca4cf1b7",
+            "text": "import {auditLabel} from './job-types.ts';\n"
+          },
+          {
+            "line": 3,
+            "anchor": "3:74872f60f84c8d69fd0728a51fed488592af5439bda09f04fe0c8b7cce188f4a",
+            "text": "import type {Job} from './job-types.ts';\n"
+          },
+          {
+            "line": 4,
+            "anchor": "4:c2595a936ffb68a8b52a0dfbb3ca7f3aefcd5b5de6a227ca34c1623402d20062",
+            "text": "export function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.requestId,audit:auditLabel(job.requestId),name:job.name};}\n"
+          }
+        ],
+        "verified": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_326018",
+      "title": "hashline edit · src/logging.ts",
+      "rawInput": {
+        "action": "read",
+        "path": "src/logging.ts"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692239,
+          "messageId": "jcu7auSOLbXYxN8Po-Gx-AM"
+        }
+      },
+      "firstAt": 1790692239209,
+      "lastAt": 1790692239225,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"read\",\"path\":\"<workspace>/src/logging.ts\",\"sha256\":\"c53cb28371ab3c08952d49320b46e1723ec546d2bacdca9c1d3a37fb9542095d\",\"total_lines\":2,\"start_line\":1,\"has_more\":false,\"lines\":[{\"line\":1,\"anchor\":\"1:fb278333ad93921989e0c57d026999c7aeaaddf4361a2bbaa6dee511b2b410b1\",\"text\":\"import type {ActiveContext as Context} from './context.ts';\\n\"},{\"line\":2,\"anchor\":\"2:355b503342e2adbc19d6b8dd651cc20d7bdebeb5af086584f2b546b33b2a30b3\",\"text\":\"export function logFields(context: Context) {const {requestId,userId}=context;return {requestId,userId};}\\n\"}],\"verified\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "read",
+        "path": "<workspace>/src/logging.ts",
+        "sha256": "c53cb28371ab3c08952d49320b46e1723ec546d2bacdca9c1d3a37fb9542095d",
+        "total_lines": 2,
+        "start_line": 1,
+        "has_more": false,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:fb278333ad93921989e0c57d026999c7aeaaddf4361a2bbaa6dee511b2b410b1",
+            "text": "import type {ActiveContext as Context} from './context.ts';\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:355b503342e2adbc19d6b8dd651cc20d7bdebeb5af086584f2b546b33b2a30b3",
+            "text": "export function logFields(context: Context) {const {requestId,userId}=context;return {requestId,userId};}\n"
+          }
+        ],
+        "verified": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_326963",
+      "title": "hashline edit · src/middleware.ts",
+      "rawInput": {
+        "action": "read",
+        "path": "src/middleware.ts"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692242,
+          "messageId": "j8u7aqP6F8b8xN8P4qGE2AY"
+        }
+      },
+      "firstAt": 1790692242396,
+      "lastAt": 1790692242414,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"read\",\"path\":\"<workspace>/src/middleware.ts\",\"sha256\":\"5f3a43f6ed2de6f5c74024c20398f002f36d71f6a142493e67ee112929e5616d\",\"total_lines\":2,\"start_line\":1,\"has_more\":false,\"lines\":[{\"line\":1,\"anchor\":\"1:d27f965d46c2987ad80d17a4058c74850ed87957acaded6d4da62160c876fe48\",\"text\":\"import type {RequestContext} from './context.ts';\\n\"},{\"line\":2,\"anchor\":\"2:7cc1e4431b8ae13290184ed55ab93bcad62bf7afb668e82d5308e7593c8ca03f\",\"text\":\"export function headers(context: RequestContext) {return {'x-request-id':context.requestId};}\\n\"}],\"verified\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "read",
+        "path": "<workspace>/src/middleware.ts",
+        "sha256": "5f3a43f6ed2de6f5c74024c20398f002f36d71f6a142493e67ee112929e5616d",
+        "total_lines": 2,
+        "start_line": 1,
+        "has_more": false,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:d27f965d46c2987ad80d17a4058c74850ed87957acaded6d4da62160c876fe48",
+            "text": "import type {RequestContext} from './context.ts';\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:7cc1e4431b8ae13290184ed55ab93bcad62bf7afb668e82d5308e7593c8ca03f",
+            "text": "export function headers(context: RequestContext) {return {'x-request-id':context.requestId};}\n"
+          }
+        ],
+        "verified": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_321536",
+      "title": "hashline edit · src/response.ts",
+      "rawInput": {
+        "action": "read",
+        "path": "src/response.ts"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692243,
+          "messageId": "ksu7avnlJLC3vdIP66-_6QY"
+        }
+      },
+      "firstAt": 1790692243914,
+      "lastAt": 1790692243930,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"read\",\"path\":\"<workspace>/src/response.ts\",\"sha256\":\"4da35570cba7dbb39abeeed00e8da42daa597d7e5fbfde3cfc8a70a911facb57\",\"total_lines\":2,\"start_line\":1,\"has_more\":false,\"lines\":[{\"line\":1,\"anchor\":\"1:af681e0d428c090d64337078b6d3cedc0e4729e6d752300aa1c7881179dc30c8\",\"text\":\"import type {ActiveContext} from './context.ts';\\n\"},{\"line\":2,\"anchor\":\"2:e4cf9482c2f13e03e562983d6964955d17a0063d184e979fc44c84defd227f2e\",\"text\":\"export function response(context: ActiveContext, payload: unknown) {return {requestId:context.requestId,payload};}\\n\"}],\"verified\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "read",
+        "path": "<workspace>/src/response.ts",
+        "sha256": "4da35570cba7dbb39abeeed00e8da42daa597d7e5fbfde3cfc8a70a911facb57",
+        "total_lines": 2,
+        "start_line": 1,
+        "has_more": false,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:af681e0d428c090d64337078b6d3cedc0e4729e6d752300aa1c7881179dc30c8",
+            "text": "import type {ActiveContext} from './context.ts';\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:e4cf9482c2f13e03e562983d6964955d17a0063d184e979fc44c84defd227f2e",
+            "text": "export function response(context: ActiveContext, payload: unknown) {return {requestId:context.requestId,payload};}\n"
+          }
+        ],
+        "verified": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_328047",
+      "title": "hashline edit · src/worker.ts",
+      "rawInput": {
+        "path": "src/worker.ts",
+        "action": "read"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692246,
+          "messageId": "lMu7asO3GZKcvdIP4OHVgQY"
+        }
+      },
+      "firstAt": 1790692246440,
+      "lastAt": 1790692246455,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"read\",\"path\":\"<workspace>/src/worker.ts\",\"sha256\":\"6cfc66389efe5686e6a61d2764570b7b710c94f2b32f9199d733e6dafce91ace\",\"total_lines\":5,\"start_line\":1,\"has_more\":false,\"lines\":[{\"line\":1,\"anchor\":\"1:d829eee0068b94101d864f85356c2c4ba9963b612b5ee28a1cd2c6dd9e1b021f\",\"text\":\"import {forkContext} from './context-factory.ts';\\n\"},{\"line\":2,\"anchor\":\"2:d27f965d46c2987ad80d17a4058c74850ed87957acaded6d4da62160c876fe48\",\"text\":\"import type {RequestContext} from './context.ts';\\n\"},{\"line\":3,\"anchor\":\"3:74872f60f84c8d69fd0728a51fed488592af5439bda09f04fe0c8b7cce188f4a\",\"text\":\"import type {Job} from './job-types.ts';\\n\"},{\"line\":4,\"anchor\":\"4:ff1f6f0f0e0955459bfc450b09d76804f1f6980543244c53fa004896e2a839c4\",\"text\":\"import {describeJob} from './jobs.ts';\\n\"},{\"line\":5,\"anchor\":\"5:34a6d65af8f852194b09d27d97230a2558ee94f8f9d8d8e2f2dced08121a8def\",\"text\":\"export function work(context: RequestContext, job: Job) {const child=forkContext(context,'worker');return describeJob(job,child);}\\n\"}],\"verified\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "read",
+        "path": "<workspace>/src/worker.ts",
+        "sha256": "6cfc66389efe5686e6a61d2764570b7b710c94f2b32f9199d733e6dafce91ace",
+        "total_lines": 5,
+        "start_line": 1,
+        "has_more": false,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:d829eee0068b94101d864f85356c2c4ba9963b612b5ee28a1cd2c6dd9e1b021f",
+            "text": "import {forkContext} from './context-factory.ts';\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:d27f965d46c2987ad80d17a4058c74850ed87957acaded6d4da62160c876fe48",
+            "text": "import type {RequestContext} from './context.ts';\n"
+          },
+          {
+            "line": 3,
+            "anchor": "3:74872f60f84c8d69fd0728a51fed488592af5439bda09f04fe0c8b7cce188f4a",
+            "text": "import type {Job} from './job-types.ts';\n"
+          },
+          {
+            "line": 4,
+            "anchor": "4:ff1f6f0f0e0955459bfc450b09d76804f1f6980543244c53fa004896e2a839c4",
+            "text": "import {describeJob} from './jobs.ts';\n"
+          },
+          {
+            "line": 5,
+            "anchor": "5:34a6d65af8f852194b09d27d97230a2558ee94f8f9d8d8e2f2dced08121a8def",
+            "text": "export function work(context: RequestContext, job: Job) {const child=forkContext(context,'worker');return describeJob(job,child);}\n"
+          }
+        ],
+        "verified": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_360638",
+      "title": "hashline edit · src/app.ts",
+      "rawInput": {
+        "action": "read",
+        "path": "src/app.ts"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692247,
+          "messageId": "lsu7atiPJun6xN8P7IKemQc"
+        }
+      },
+      "firstAt": 1790692247856,
+      "lastAt": 1790692247869,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"read\",\"path\":\"<workspace>/src/app.ts\",\"sha256\":\"8c704e05885686b30b4a721a9f98aac48d715525ddc5c08b58579650815866f4\",\"total_lines\":7,\"start_line\":1,\"has_more\":false,\"lines\":[{\"line\":1,\"anchor\":\"1:dd64554acbfeb8ccf1ef8ca8ab930355c00726be870f0bbc6fa09a4129067d7a\",\"text\":\"import {createContext} from './context-factory.ts';\\n\"},{\"line\":2,\"anchor\":\"2:b378e0c31adce4200c372c2d9a494134a281e4e6f681a1ee44ec4dea45e9a2e9\",\"text\":\"import {headers} from './middleware.ts';\\n\"},{\"line\":3,\"anchor\":\"3:dbcbffe51d015c3c5afac3a6e865528fd4cf6c4229c16ed26bbf9f3942734221\",\"text\":\"import {logFields} from './logging.ts';\\n\"},{\"line\":4,\"anchor\":\"4:6487b1a2bc6dbb0fdb97c935fa0a49f80277b7303c1b334ce0fb4476bc5b0359\",\"text\":\"import {response} from './response.ts';\\n\"},{\"line\":5,\"anchor\":\"5:e36c15ee06b7539df6db0ac456495e1c1460944c0e2cfa4db89d499dc3d48450\",\"text\":\"import {work} from './worker.ts';\\n\"},{\"line\":6,\"anchor\":\"6:74872f60f84c8d69fd0728a51fed488592af5439bda09f04fe0c8b7cce188f4a\",\"text\":\"import type {Job} from './job-types.ts';\\n\"},{\"line\":7,\"anchor\":\"7:be6c6046a4129ecd857e274345e5fc2eb4d2b90eb8a3be93efebec79511e45b3\",\"text\":\"export function handle(trace: string,user: string,job: Job) {const context=createContext(trace,user);return {context,headers:headers(context),logs:logFields(context),body:response(context,work(context,job))};}\\n\"}],\"verified\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "read",
+        "path": "<workspace>/src/app.ts",
+        "sha256": "8c704e05885686b30b4a721a9f98aac48d715525ddc5c08b58579650815866f4",
+        "total_lines": 7,
+        "start_line": 1,
+        "has_more": false,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:dd64554acbfeb8ccf1ef8ca8ab930355c00726be870f0bbc6fa09a4129067d7a",
+            "text": "import {createContext} from './context-factory.ts';\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:b378e0c31adce4200c372c2d9a494134a281e4e6f681a1ee44ec4dea45e9a2e9",
+            "text": "import {headers} from './middleware.ts';\n"
+          },
+          {
+            "line": 3,
+            "anchor": "3:dbcbffe51d015c3c5afac3a6e865528fd4cf6c4229c16ed26bbf9f3942734221",
+            "text": "import {logFields} from './logging.ts';\n"
+          },
+          {
+            "line": 4,
+            "anchor": "4:6487b1a2bc6dbb0fdb97c935fa0a49f80277b7303c1b334ce0fb4476bc5b0359",
+            "text": "import {response} from './response.ts';\n"
+          },
+          {
+            "line": 5,
+            "anchor": "5:e36c15ee06b7539df6db0ac456495e1c1460944c0e2cfa4db89d499dc3d48450",
+            "text": "import {work} from './worker.ts';\n"
+          },
+          {
+            "line": 6,
+            "anchor": "6:74872f60f84c8d69fd0728a51fed488592af5439bda09f04fe0c8b7cce188f4a",
+            "text": "import type {Job} from './job-types.ts';\n"
+          },
+          {
+            "line": 7,
+            "anchor": "7:be6c6046a4129ecd857e274345e5fc2eb4d2b90eb8a3be93efebec79511e45b3",
+            "text": "export function handle(trace: string,user: string,job: Job) {const context=createContext(trace,user);return {context,headers:headers(context),logs:logFields(context),body:response(context,work(context,job))};}\n"
+          }
+        ],
+        "verified": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_295759",
+      "title": "shell · grep -rn \"requestId\" src/",
+      "rawInput": {
+        "command": "grep -rn \"requestId\" src/"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "shell",
+            "extensionName": "developer"
+          },
+          "created": 1790692257,
+          "messageId": "mMu7asLcBJLYvdIPmvqC4AI"
+        },
+        "toolNotification": {
+          "type": "live_output",
+          "params": {
+            "sequence": 2,
+            "chunks": [
+              {
+                "stream": "stdout",
+                "output": "src/context-factory.ts:2:export function createContext(value: string, userId: string): RequestContext {return {requestId:value,userId};}\nsrc/context-factory.ts:3:export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\nsrc/context.ts:1:export interface RequestContext { readonly requestId: string; readonly userId: string; }\nsrc/jobs.ts:4:export function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.requestId,audit:auditLabel(job.requestId),name:job.name};}\nsrc/response.ts:2:export function response(context: ActiveContext, payload: unknown) {return {requestId:context.requestId,payload};}\nsrc/job-types.ts:1:export interface Job {requestId: string; name: string;}\nsrc/job-types.ts:2:export function auditLabel(requestId: string) {return 'job:'+requestId;}\nsrc/logging.ts:2:export function logFields(context: Context) {const {requestId,userId}=context;return {requestId,userId};}\n"
+              }
+            ],
+            "truncated": false
+          }
+        }
+      },
+      "firstAt": 1790692257753,
+      "lastAt": 1790692257785,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "src/middleware.ts:2:export function headers(context: RequestContext) {return {'x-request-id':context.requestId};}\nsrc/context-factory.ts:2:export function createContext(value: string, userId: string): RequestContext {return {requestId:value,userId};}\nsrc/context-factory.ts:3:export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\nsrc/context.ts:1:export interface RequestContext { readonly requestId: string; readonly userId: string; }\nsrc/jobs.ts:4:export function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.requestId,audit:auditLabel(job.requestId),name:job.name};}\nsrc/response.ts:2:export function response(context: ActiveContext, payload: unknown) {return {requestId:context.requestId,payload};}\nsrc/job-types.ts:1:export interface Job {requestId: string; name: string;}\nsrc/job-types.ts:2:export function auditLabel(requestId: string) {return 'job:'+requestId;}\nsrc/logging.ts:2:export function logFields(context: Context) {const {requestId,userId}=context;return {requestId,userId};}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "stdout": "src/middleware.ts:2:export function headers(context: RequestContext) {return {'x-request-id':context.requestId};}\nsrc/context-factory.ts:2:export function createContext(value: string, userId: string): RequestContext {return {requestId:value,userId};}\nsrc/context-factory.ts:3:export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\nsrc/context.ts:1:export interface RequestContext { readonly requestId: string; readonly userId: string; }\nsrc/jobs.ts:4:export function describeJob(job: Job, context: RequestContext) {return {requestId:job.requestId,trace:context.requestId,audit:auditLabel(job.requestId),name:job.name};}\nsrc/response.ts:2:export function response(context: ActiveContext, payload: unknown) {return {requestId:context.requestId,payload};}\nsrc/job-types.ts:1:export interface Job {requestId: string; name: string;}\nsrc/job-types.ts:2:export function auditLabel(requestId: string) {return 'job:'+requestId;}\nsrc/logging.ts:2:export function logFields(context: Context) {const {requestId,userId}=context;return {requestId,userId};}",
+        "stderr": "",
+        "exit_code": 0
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_259867",
+      "title": "shell · git status",
+      "rawInput": {
+        "command": "git status"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "shell",
+            "extensionName": "developer"
+          },
+          "created": 1790692276,
+          "messageId": "osu7aoGwEc7VxN8Pxuvr4QE"
+        },
+        "toolNotification": {
+          "type": "live_output",
+          "params": {
+            "sequence": 2,
+            "chunks": [
+              {
+                "stream": "stderr",
+                "output": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-2c36Svi4' (errno=Operation not permitted)\n"
+              }
+            ],
+            "truncated": false
+          }
+        }
+      },
+      "firstAt": 1790692276644,
+      "lastAt": 1790692284343,
+      "status": "failed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-HVHk7Tgq' (errno=Operation not permitted)\ngit: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-2c36Svi4' (errno=Operation not permitted)\nfatal: not a git repository (or any of the parent directories): .git\n\nCommand exited with code 128"
+          }
+        }
+      ],
+      "rawOutput": {
+        "stdout": "",
+        "stderr": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-HVHk7Tgq' (errno=Operation not permitted)\ngit: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-2c36Svi4' (errno=Operation not permitted)\nfatal: not a git repository (or any of the parent directories): .git",
+        "exit_code": 128
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_219562",
+      "title": "hashline edit · src/context.ts",
+      "rawInput": {
+        "action": "read",
+        "path": "src/context.ts"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692290,
+          "messageId": "vcu7asjrIYrxkdUP9qWl8Qo"
+        }
+      },
+      "firstAt": 1790692290141,
+      "lastAt": 1790692290182,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"read\",\"path\":\"<workspace>/src/context.ts\",\"sha256\":\"5879dc0e7c6f310d2bf0176e4899174e9881c130ccdfcf813a9361f4fa25d6d6\",\"total_lines\":2,\"start_line\":1,\"has_more\":false,\"lines\":[{\"line\":1,\"anchor\":\"1:502508c8661a4e6fcdd98bcb03288d32977a511ab9e08c36ddb699988ed65d79\",\"text\":\"export interface RequestContext { readonly requestId: string; readonly userId: string; }\\n\"},{\"line\":2,\"anchor\":\"2:96392613e1f421de0e9fc906cda109a1df05016c47e82d1826a2ec72e513d1e5\",\"text\":\"export type ActiveContext = RequestContext;\\n\"}],\"verified\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "read",
+        "path": "<workspace>/src/context.ts",
+        "sha256": "5879dc0e7c6f310d2bf0176e4899174e9881c130ccdfcf813a9361f4fa25d6d6",
+        "total_lines": 2,
+        "start_line": 1,
+        "has_more": false,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:502508c8661a4e6fcdd98bcb03288d32977a511ab9e08c36ddb699988ed65d79",
+            "text": "export interface RequestContext { readonly requestId: string; readonly userId: string; }\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:96392613e1f421de0e9fc906cda109a1df05016c47e82d1826a2ec72e513d1e5",
+            "text": "export type ActiveContext = RequestContext;\n"
+          }
+        ],
+        "verified": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_301006",
+      "title": "hashline edit · src/context.ts",
+      "rawInput": {
+        "expected_sha256": "5879dc0e7c6f310d2bf0176e4899174e9881c130ccdfcf813a9361f4fa25d6d6",
+        "path": "src/context.ts",
+        "edits": [
+          {
+            "replacement": "export interface RequestContext { readonly traceId: string; readonly userId: string; }\n",
+            "end_anchor": "1:502508c8661a4e6fcdd98bcb03288d32977a511ab9e08c36ddb699988ed65d79",
+            "end_line": 1,
+            "start_line": 1,
+            "start_anchor": "1:502508c8661a4e6fcdd98bcb03288d32977a511ab9e08c36ddb699988ed65d79"
+          }
+        ],
+        "action": "edit"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692293,
+          "messageId": "wsu7avKiOeCS3boPiqDh0Ao"
+        }
+      },
+      "firstAt": 1790692293136,
+      "lastAt": 1790692293159,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"edited\",\"path\":\"<workspace>/src/context.ts\",\"before_sha256\":\"5879dc0e7c6f310d2bf0176e4899174e9881c130ccdfcf813a9361f4fa25d6d6\",\"sha256\":\"e11e5bd855a571dd320a0423faabfb8acef5a8fef4cd062475ea07ad208c9958\",\"verified\":false,\"tests_executed\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "edited",
+        "path": "<workspace>/src/context.ts",
+        "before_sha256": "5879dc0e7c6f310d2bf0176e4899174e9881c130ccdfcf813a9361f4fa25d6d6",
+        "sha256": "e11e5bd855a571dd320a0423faabfb8acef5a8fef4cd062475ea07ad208c9958",
+        "verified": false,
+        "tests_executed": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_257633",
+      "title": "hashline edit · src/context-factory.ts",
+      "rawInput": {
+        "path": "src/context-factory.ts",
+        "action": "read"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692297,
+          "messageId": "xcu7apezILma3boPrN6y8QQ"
+        }
+      },
+      "firstAt": 1790692297102,
+      "lastAt": 1790692297123,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"read\",\"path\":\"<workspace>/src/context-factory.ts\",\"sha256\":\"dcf9236758f2abd07044e75d1efafffc9fb9935d8a3ac79876a412ea969cf161\",\"total_lines\":3,\"start_line\":1,\"has_more\":false,\"lines\":[{\"line\":1,\"anchor\":\"1:d27f965d46c2987ad80d17a4058c74850ed87957acaded6d4da62160c876fe48\",\"text\":\"import type {RequestContext} from './context.ts';\\n\"},{\"line\":2,\"anchor\":\"2:2d43a589e3d70716b02cf68454e33e22bfd06c5bd562ec8e2c256c1646c64ebb\",\"text\":\"export function createContext(value: string, userId: string): RequestContext {return {requestId:value,userId};}\\n\"},{\"line\":3,\"anchor\":\"3:f67f3f9deba6019e755cef2a55b794fb7084c03c1738134c3c16f80be5eb312f\",\"text\":\"export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\\n\"}],\"verified\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "read",
+        "path": "<workspace>/src/context-factory.ts",
+        "sha256": "dcf9236758f2abd07044e75d1efafffc9fb9935d8a3ac79876a412ea969cf161",
+        "total_lines": 3,
+        "start_line": 1,
+        "has_more": false,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:d27f965d46c2987ad80d17a4058c74850ed87957acaded6d4da62160c876fe48",
+            "text": "import type {RequestContext} from './context.ts';\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:2d43a589e3d70716b02cf68454e33e22bfd06c5bd562ec8e2c256c1646c64ebb",
+            "text": "export function createContext(value: string, userId: string): RequestContext {return {requestId:value,userId};}\n"
+          },
+          {
+            "line": 3,
+            "anchor": "3:f67f3f9deba6019e755cef2a55b794fb7084c03c1738134c3c16f80be5eb312f",
+            "text": "export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, requestId: context.requestId+'/'+suffix};}\n"
+          }
+        ],
+        "verified": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_232471",
+      "title": "hashline edit · src/context-factory.ts",
+      "rawInput": {
+        "edits": [
+          {
+            "end_line": 2,
+            "end_anchor": "2:2d43a589e3d70716b02cf68454e33e22bfd06c5bd562ec8e2c256c1646c64ebb",
+            "start_anchor": "2:2d43a589e3d70716b02cf68454e33e22bfd06c5bd562ec8e2c256c1646c64ebb",
+            "start_line": 2,
+            "replacement": "export function createContext(value: string, userId: string): RequestContext {return {traceId:value,userId};}\n"
+          },
+          {
+            "start_line": 3,
+            "replacement": "export function forkContext(context: RequestContext, suffix: string): RequestContext {return {...context, traceId: context.traceId+'/'+suffix};}\n",
+            "end_anchor": "3:f67f3f9deba6019e755cef2a55b794fb7084c03c1738134c3c16f80be5eb312f",
+            "start_anchor": "3:f67f3f9deba6019e755cef2a55b794fb7084c03c1738134c3c16f80be5eb312f",
+            "end_line": 3
+          }
+        ],
+        "expected_sha256": "dcf9236758f2abd07044e75d1efafffc9fb9935d8a3ac79876a412ea969cf161",
+        "path": "src/context-factory.ts",
+        "action": "edit"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692299,
+          "messageId": "ycu7ar6_L5b4nsEPxK2l8AQ"
+        }
+      },
+      "firstAt": 1790692299730,
+      "lastAt": 1790692299755,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"edited\",\"path\":\"<workspace>/src/context-factory.ts\",\"before_sha256\":\"dcf9236758f2abd07044e75d1efafffc9fb9935d8a3ac79876a412ea969cf161\",\"sha256\":\"51035f156c1fec8675d12d37dff62fe97ab2de7125c5a3ba301fac21d397ac24\",\"verified\":false,\"tests_executed\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "edited",
+        "path": "<workspace>/src/context-factory.ts",
+        "before_sha256": "dcf9236758f2abd07044e75d1efafffc9fb9935d8a3ac79876a412ea969cf161",
+        "sha256": "51035f156c1fec8675d12d37dff62fe97ab2de7125c5a3ba301fac21d397ac24",
+        "verified": false,
+        "tests_executed": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_286525",
+      "title": "hashline edit · src/logging.ts",
+      "rawInput": {
+        "action": "read",
+        "path": "src/logging.ts"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692302,
+          "messageId": "y8u7aqeOOeuinsEP15aI2AQ"
+        }
+      },
+      "firstAt": 1790692302850,
+      "lastAt": 1790692302938,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"read\",\"path\":\"<workspace>/src/logging.ts\",\"sha256\":\"c53cb28371ab3c08952d49320b46e1723ec546d2bacdca9c1d3a37fb9542095d\",\"total_lines\":2,\"start_line\":1,\"has_more\":false,\"lines\":[{\"line\":1,\"anchor\":\"1:fb278333ad93921989e0c57d026999c7aeaaddf4361a2bbaa6dee511b2b410b1\",\"text\":\"import type {ActiveContext as Context} from './context.ts';\\n\"},{\"line\":2,\"anchor\":\"2:355b503342e2adbc19d6b8dd651cc20d7bdebeb5af086584f2b546b33b2a30b3\",\"text\":\"export function logFields(context: Context) {const {requestId,userId}=context;return {requestId,userId};}\\n\"}],\"verified\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "read",
+        "path": "<workspace>/src/logging.ts",
+        "sha256": "c53cb28371ab3c08952d49320b46e1723ec546d2bacdca9c1d3a37fb9542095d",
+        "total_lines": 2,
+        "start_line": 1,
+        "has_more": false,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:fb278333ad93921989e0c57d026999c7aeaaddf4361a2bbaa6dee511b2b410b1",
+            "text": "import type {ActiveContext as Context} from './context.ts';\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:355b503342e2adbc19d6b8dd651cc20d7bdebeb5af086584f2b546b33b2a30b3",
+            "text": "export function logFields(context: Context) {const {requestId,userId}=context;return {requestId,userId};}\n"
+          }
+        ],
+        "verified": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_455106",
+      "title": "hashline edit · src/logging.ts",
+      "rawInput": {
+        "action": "edit",
+        "expected_sha256": "c53cb28371ab3c08952d49320b46e1723ec546d2bacdca9c1d3a37fb9542095d",
+        "edits": [
+          {
+            "start_line": 2,
+            "end_anchor": "2:355b503342e2adbc19d6b8dd651cc20d7bdebeb5af086584f2b546b33b2a30b3",
+            "end_line": 2,
+            "start_anchor": "2:355b503342e2adbc19d6b8dd651cc20d7bdebeb5af086584f2b546b33b2a30b3",
+            "replacement": "export function logFields(context: Context) {const {traceId,userId}=context;return {requestId:traceId,userId};}\n"
+          }
+        ],
+        "path": "src/logging.ts"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692306,
+          "messageId": "z8u7avLrKfDf7M8PpOrxqQw"
+        }
+      },
+      "firstAt": 1790692306478,
+      "lastAt": 1790692306508,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"edited\",\"path\":\"<workspace>/src/logging.ts\",\"before_sha256\":\"c53cb28371ab3c08952d49320b46e1723ec546d2bacdca9c1d3a37fb9542095d\",\"sha256\":\"78d2b040c2b60d5901ca0d84446f0d2c7612febd2be60e7c05de7c791f964a65\",\"verified\":false,\"tests_executed\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "edited",
+        "path": "<workspace>/src/logging.ts",
+        "before_sha256": "c53cb28371ab3c08952d49320b46e1723ec546d2bacdca9c1d3a37fb9542095d",
+        "sha256": "78d2b040c2b60d5901ca0d84446f0d2c7612febd2be60e7c05de7c791f964a65",
+        "verified": false,
+        "tests_executed": false
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_241474",
+      "title": "hashline edit · src/middleware.ts",
+      "rawInput": {
+        "action": "read",
+        "path": "src/middleware.ts"
+      },
+      "_meta": {
+        "goose": {
+          "toolCall": {
+            "toolName": "hashline_edit",
+            "extensionName": "native_engineering"
+          },
+          "created": 1790692308,
+          "messageId": "0su7arKxK_GDkdUP7aCY2A4"
+        }
+      },
+      "firstAt": 1790692308105,
+      "lastAt": 1790692308135,
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "{\"status\":\"read\",\"path\":\"<workspace>/src/middleware.ts\",\"sha256\":\"5f3a43f6ed2de6f5c74024c20398f002f36d71f6a142493e67ee112929e5616d\",\"total_lines\":2,\"start_line\":1,\"has_more\":false,\"lines\":[{\"line\":1,\"anchor\":\"1:d27f965d46c2987ad80d17a4058c74850ed87957acaded6d4da62160c876fe48\",\"text\":\"import type {RequestContext} from './context.ts';\\n\"},{\"line\":2,\"anchor\":\"2:7cc1e4431b8ae13290184ed55ab93bcad62bf7afb668e82d5308e7593c8ca03f\",\"text\":\"export function headers(context: RequestContext) {return {'x-request-id':context.requestId};}\\n\"}],\"verified\":false}"
+          }
+        }
+      ],
+      "rawOutput": {
+        "status": "read",
+        "path": "<workspace>/src/middleware.ts",
+        "sha256": "5f3a43f6ed2de6f5c74024c20398f002f36d71f6a142493e67ee112929e5616d",
+        "total_lines": 2,
+        "start_line": 1,
+        "has_more": false,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:d27f965d46c2987ad80d17a4058c74850ed87957acaded6d4da62160c876fe48",
+            "text": "import type {RequestContext} from './context.ts';\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:7cc1e4431b8ae13290184ed55ab93bcad62bf7afb668e82d5308e7593c8ca03f",
+            "text": "export function headers(context: RequestContext) {return {'x-request-id':context.requestId};}\n"
+          }
+        ],
+        "verified": false
+      }
+    }
+  ],
+  "transcript": [
+    "I've reached the maximum number of actions I can do without user input. Would you like me to continue?"
+  ],
+  "oracle": {
+    "passed": false,
+    "behavior": {
+      "passed": false,
+      "checks": [
+        {
+          "name": "new context shape",
+          "passed": true
+        },
+        {
+          "name": "fork propagation and immutability",
+          "passed": true
+        },
+        {
+          "name": "destructuring keeps wire names",
+          "passed": true
+        },
+        {
+          "name": "header and body propagation",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ {}\n- {\n-   'x-request-id': 't'\n- }\n"
+        },
+        {
+          "name": "Job requestId remains independent",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n    audit: 'job:job1',\n    name: 'send',\n    requestId: 'job1',\n-   trace: 'trace1'\n  }\n"
+        },
+        {
+          "name": "end-to-end \"trace\"",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n    body: {\n      payload: {\n        audit: 'job:different',\n        name: 'send',\n        requestId: 'different',\n-       trace: 'trace/worker'\n      },\n-     requestId: 'trace'\n    },\n    context: {\n      traceId: 'trace',\n      userId: 'u'\n    },\n+   headers: {},\n-   headers: {\n-     'x-request-id': 'trace'\n-   },\n    logs: {\n      requestId: 'trace',\n      userId: 'u'\n    }\n  }\n"
+        },
+        {
+          "name": "end-to-end \"\"",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n    body: {\n      payload: {\n        audit: 'job:different',\n        name: 'send',\n        requestId: 'different',\n-       trace: '/worker'\n      },\n-     requestId: ''\n    },\n    context: {\n      traceId: '',\n      userId: 'u'\n    },\n+   headers: {},\n-   headers: {\n-     'x-request-id': ''\n-   },\n    logs: {\n      requestId: '',\n      userId: 'u'\n    }\n  }\n"
+        },
+        {
+          "name": "end-to-end \"__proto__\"",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n    body: {\n      payload: {\n        audit: 'job:different',\n        name: 'send',\n        requestId: 'different',\n-       trace: '__proto__/worker'\n      },\n-     requestId: '__proto__'\n    },\n    context: {\n      traceId: '__proto__',\n      userId: 'u'\n    },\n+   headers: {},\n-   headers: {\n-     'x-request-id': '__proto__'\n-   },\n    logs: {\n      requestId: '__proto__',\n      userId: 'u'\n    }\n  }\n"
+        },
+        {
+          "name": "end-to-end \"x/y\"",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n    body: {\n      payload: {\n        audit: 'job:different',\n        name: 'send',\n        requestId: 'different',\n-       trace: 'x/y/worker'\n      },\n-     requestId: 'x/y'\n    },\n    context: {\n      traceId: 'x/y',\n      userId: 'u'\n    },\n+   headers: {},\n-   headers: {\n-     'x-request-id': 'x/y'\n-   },\n    logs: {\n      requestId: 'x/y',\n      userId: 'u'\n    }\n  }\n"
+        }
+      ]
+    },
+    "types": {
+      "passed": false,
+      "exitCode": 2,
+      "signal": null,
+      "stdout": "src/jobs.ts(4,111): error TS2339: Property 'requestId' does not exist on type 'RequestContext'.\nsrc/middleware.ts(2,82): error TS2339: Property 'requestId' does not exist on type 'RequestContext'.\nsrc/response.ts(2,95): error TS2339: Property 'requestId' does not exist on type 'RequestContext'.\n",
+      "stderr": "Command failed: /usr/bin/sandbox-exec -f <row>/filesystem-boundary.sb /private/tmp/orqanix-selection-ab-app-v3-20260929/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime/node/bin/node /private/tmp/orqanix-selection-ab-app-v3-20260929/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js --noEmit -p tsconfig.json\n"
+    },
+    "publicTests": {
+      "passed": false,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "TAP version 13\n# Subtest: wire identifier\nnot ok 1 - wire identifier\n  ---\n  duration_ms: 2.433417\n  type: 'test'\n  location: '<workspace>/tests/public.test.mjs:4:1'\n  failureType: 'testCodeFailure'\n  error: |-\n    Expected values to be strictly equal:\n    \n    undefined !== 't'\n    \n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected: 't'\n  operator: 'strictEqual'\n  stack: |-\n    TestContext.<anonymous> (file://<workspace>/tests/public.test.mjs:4:35)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.start (node:internal/test_runner/test:944:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 269.924333\n",
+      "stderr": "Command failed: /usr/bin/sandbox-exec -f <row>/filesystem-boundary.sb /private/tmp/orqanix-selection-ab-app-v3-20260929/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime/node/bin/node --experimental-strip-types --test tests/public.test.mjs\n"
+    },
+    "regression": {
+      "passed": false,
+      "error": "MISSING_REGRESSION_TEST"
+    },
+    "originalMutation": null,
+    "immutableFailures": [],
+    "unexpectedFiles": []
+  },
+  "telemetry": {
+    "trial": "complex-r1-candidate",
+    "provenance": {
+      "schemaVersion": "orqanix.benchmark-relay.v2",
+      "model": "gemini-3.8-flash",
+      "authMethod": "packaged_authenticated_session_endpoint",
+      "oauthClientId": "nhI2YnrzeTP2mk2X",
+      "issuer": "https://clerk.orqanix.com",
+      "authenticatedApiOrigin": "https://orqaly-v2-api-preview-161074549006.europe-west4.run.app",
+      "connectorConfigSha256": "aedca9e1e55efe5b1cd8f785bd815efc2d33348b5feb6c50cb15b952f79640df",
+      "authCacheMs": 5000,
+      "providerRouter": "apps/orqaly/server/workflow-v2/goose-provider-http.js",
+      "jevMethod": "forwarded_authenticated_packaged_endpoint",
+      "jevProviderHttpVisible": false,
+      "jevFallbackOnError": false,
+      "legacyCloudAxwiseRoutes": false,
+      "chatAttribution": "axwise_specialist_artifact response-format marker; remaining chat requests primary"
+    },
+    "records": [
+      {
+        "id": 313,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:07.837Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 1736
+      },
+      {
+        "id": 314,
+        "trial": "complex-r1-candidate",
+        "kind": "identity_http",
+        "startedAt": "2026-09-29T14:30:07.837Z",
+        "status": "completed",
+        "route": "/session",
+        "authMethod": "packaged_authenticated_endpoint",
+        "httpStatus": 200,
+        "elapsedMs": 371
+      },
+      {
+        "id": 315,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:07.932Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 4520
+      },
+      {
+        "id": 316,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:08.208Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "8a1a9ccc92580b43ec0753c3ec955df2de54f8c32b0c2ffb27b15b8ba26a7e04",
+        "toolDefinitionsSha256": null,
+        "nativeSelectionPolicy": null,
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 4,
+          "prompt_tokens": 614,
+          "total_tokens": 652
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 4,
+            "prompt_tokens": 614,
+            "total_tokens": 652
+          },
+          {
+            "completion_tokens": 4,
+            "prompt_tokens": 614,
+            "total_tokens": 652
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1013,
+        "elapsedMs": 1364
+      },
+      {
+        "id": 317,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:08.211Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 191,
+          "prompt_tokens": 8933,
+          "prompt_tokens_details": {
+            "cached_tokens": 4032
+          },
+          "total_tokens": 9398
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 191,
+            "prompt_tokens": 8933,
+            "prompt_tokens_details": {
+              "cached_tokens": 4032
+            },
+            "total_tokens": 9398
+          },
+          {
+            "completion_tokens": 191,
+            "prompt_tokens": 8933,
+            "prompt_tokens_details": {
+              "cached_tokens": 4032
+            },
+            "total_tokens": 9398
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 3949,
+        "elapsedMs": 4242
+      },
+      {
+        "id": 318,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:12.533Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 3640
+      },
+      {
+        "id": 319,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:12.537Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 25,
+          "prompt_tokens": 9420,
+          "total_tokens": 9498
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 25,
+            "prompt_tokens": 9420,
+            "total_tokens": 9498
+          },
+          {
+            "completion_tokens": 25,
+            "prompt_tokens": 9420,
+            "total_tokens": 9498
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1182,
+        "elapsedMs": 3636
+      },
+      {
+        "id": 320,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:16.248Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 2007
+      },
+      {
+        "id": 321,
+        "trial": "complex-r1-candidate",
+        "kind": "identity_http",
+        "startedAt": "2026-09-29T14:30:16.248Z",
+        "status": "completed",
+        "route": "/session",
+        "authMethod": "packaged_authenticated_endpoint",
+        "httpStatus": 200,
+        "elapsedMs": 289
+      },
+      {
+        "id": 322,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:16.540Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 28,
+          "prompt_tokens": 10761,
+          "total_tokens": 11017
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 28,
+            "prompt_tokens": 10761,
+            "total_tokens": 11017
+          },
+          {
+            "completion_tokens": 28,
+            "prompt_tokens": 10761,
+            "total_tokens": 11017
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 2039,
+        "elapsedMs": 1715
+      },
+      {
+        "id": 323,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:18.574Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 4121
+      },
+      {
+        "id": 324,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:18.576Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 85,
+          "prompt_tokens": 11130,
+          "total_tokens": 11232
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 85,
+            "prompt_tokens": 11130,
+            "total_tokens": 11232
+          },
+          {
+            "completion_tokens": 85,
+            "prompt_tokens": 11130,
+            "total_tokens": 11232
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1156,
+        "elapsedMs": 4119
+      },
+      {
+        "id": 325,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:23.838Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 2396
+      },
+      {
+        "id": 326,
+        "trial": "complex-r1-candidate",
+        "kind": "identity_http",
+        "startedAt": "2026-09-29T14:30:23.838Z",
+        "status": "completed",
+        "route": "/session",
+        "authMethod": "packaged_authenticated_endpoint",
+        "httpStatus": 200,
+        "elapsedMs": 267
+      },
+      {
+        "id": 327,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:24.107Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 18,
+          "prompt_tokens": 11247,
+          "total_tokens": 11290
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 18,
+            "prompt_tokens": 11247,
+            "total_tokens": 11290
+          },
+          {
+            "completion_tokens": 18,
+            "prompt_tokens": 11247,
+            "total_tokens": 11290
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1017,
+        "elapsedMs": 2126
+      },
+      {
+        "id": 328,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:26.289Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 1700
+      },
+      {
+        "id": 329,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:26.291Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 30,
+          "prompt_tokens": 11439,
+          "total_tokens": 11647
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 30,
+            "prompt_tokens": 11439,
+            "total_tokens": 11647
+          },
+          {
+            "completion_tokens": 30,
+            "prompt_tokens": 11439,
+            "total_tokens": 11647
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1734,
+        "elapsedMs": 1698
+      },
+      {
+        "id": 330,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:28.048Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 2474
+      },
+      {
+        "id": 331,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:28.050Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 12140,
+          "total_tokens": 12331
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 12140,
+            "total_tokens": 12331
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 12140,
+            "total_tokens": 12331
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1887,
+        "elapsedMs": 2473
+      },
+      {
+        "id": 332,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:30.578Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 1512
+      },
+      {
+        "id": 333,
+        "trial": "complex-r1-candidate",
+        "kind": "identity_http",
+        "startedAt": "2026-09-29T14:30:30.578Z",
+        "status": "completed",
+        "route": "/session",
+        "authMethod": "packaged_authenticated_endpoint",
+        "httpStatus": 200,
+        "elapsedMs": 310
+      },
+      {
+        "id": 334,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:30.891Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 29,
+          "prompt_tokens": 12650,
+          "total_tokens": 12734
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 29,
+            "prompt_tokens": 12650,
+            "total_tokens": 12734
+          },
+          {
+            "completion_tokens": 29,
+            "prompt_tokens": 12650,
+            "total_tokens": 12734
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1249,
+        "elapsedMs": 1198
+      },
+      {
+        "id": 335,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:32.143Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 1198
+      },
+      {
+        "id": 336,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:32.145Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 29,
+          "prompt_tokens": 13161,
+          "total_tokens": 13204
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 29,
+            "prompt_tokens": 13161,
+            "total_tokens": 13204
+          },
+          {
+            "completion_tokens": 29,
+            "prompt_tokens": 13161,
+            "total_tokens": 13204
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 961,
+        "elapsedMs": 1195
+      },
+      {
+        "id": 337,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:33.399Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 3650
+      },
+      {
+        "id": 338,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:33.403Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 13533,
+          "total_tokens": 13792
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 13533,
+            "total_tokens": 13792
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 13533,
+            "total_tokens": 13792
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 2236,
+        "elapsedMs": 3647
+      },
+      {
+        "id": 339,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:37.132Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 2061
+      },
+      {
+        "id": 340,
+        "trial": "complex-r1-candidate",
+        "kind": "identity_http",
+        "startedAt": "2026-09-29T14:30:37.132Z",
+        "status": "completed",
+        "route": "/session",
+        "authMethod": "packaged_authenticated_endpoint",
+        "httpStatus": 200,
+        "elapsedMs": 457
+      },
+      {
+        "id": 341,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:37.592Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 14302,
+          "total_tokens": 14502
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 14302,
+            "total_tokens": 14502
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 14302,
+            "total_tokens": 14502
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1855,
+        "elapsedMs": 1600
+      },
+      {
+        "id": 342,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:39.259Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 3125
+      },
+      {
+        "id": 343,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:39.261Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 14830,
+          "total_tokens": 15404
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 14830,
+            "total_tokens": 15404
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 14830,
+            "total_tokens": 15404
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 4490,
+        "elapsedMs": 3122
+      },
+      {
+        "id": 344,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:42.452Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 1453
+      },
+      {
+        "id": 345,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:42.454Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 15732,
+          "total_tokens": 15836
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 15732,
+            "total_tokens": 15836
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 15732,
+            "total_tokens": 15836
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1312,
+        "elapsedMs": 1451
+      },
+      {
+        "id": 346,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:43.967Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 2464
+      },
+      {
+        "id": 347,
+        "trial": "complex-r1-candidate",
+        "kind": "identity_http",
+        "startedAt": "2026-09-29T14:30:43.967Z",
+        "status": "completed",
+        "route": "/session",
+        "authMethod": "packaged_authenticated_endpoint",
+        "httpStatus": 200,
+        "elapsedMs": 284
+      },
+      {
+        "id": 348,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:44.256Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 16163,
+          "total_tokens": 16377
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 16163,
+            "total_tokens": 16377
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 16163,
+            "total_tokens": 16377
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 2018,
+        "elapsedMs": 2174
+      },
+      {
+        "id": 349,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:46.483Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 1347
+      },
+      {
+        "id": 350,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:46.487Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 16967,
+          "prompt_tokens_details": {
+            "cached_tokens": 12088
+          },
+          "total_tokens": 17006
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 16967,
+            "prompt_tokens_details": {
+              "cached_tokens": 12088
+            },
+            "total_tokens": 17006
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 16967,
+            "prompt_tokens_details": {
+              "cached_tokens": 12088
+            },
+            "total_tokens": 17006
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1043,
+        "elapsedMs": 1344
+      },
+      {
+        "id": 351,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:47.894Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 9836
+      },
+      {
+        "id": 352,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:47.898Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 21,
+          "prompt_tokens": 17773,
+          "prompt_tokens_details": {
+            "cached_tokens": 12090
+          },
+          "total_tokens": 20485
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 21,
+            "prompt_tokens": 17773,
+            "prompt_tokens_details": {
+              "cached_tokens": 12090
+            },
+            "total_tokens": 20485
+          },
+          {
+            "completion_tokens": 21,
+            "prompt_tokens": 17773,
+            "prompt_tokens_details": {
+              "cached_tokens": 12090
+            },
+            "total_tokens": 20485
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 17263,
+        "elapsedMs": 9831
+      },
+      {
+        "id": 353,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:30:57.813Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 18819
+      },
+      {
+        "id": 354,
+        "trial": "complex-r1-candidate",
+        "kind": "identity_http",
+        "startedAt": "2026-09-29T14:30:57.813Z",
+        "status": "completed",
+        "route": "/session",
+        "authMethod": "packaged_authenticated_endpoint",
+        "httpStatus": 200,
+        "elapsedMs": 308
+      },
+      {
+        "id": 355,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:58.125Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 15,
+          "prompt_tokens": 20801,
+          "prompt_tokens_details": {
+            "cached_tokens": 16151
+          },
+          "total_tokens": 23796
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 15,
+            "prompt_tokens": 15875,
+            "total_tokens": 18870
+          },
+          {
+            "completion_tokens": 15,
+            "prompt_tokens": 20801,
+            "prompt_tokens_details": {
+              "cached_tokens": 16151
+            },
+            "total_tokens": 23796
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 18682,
+        "elapsedMs": 18506
+      },
+      {
+        "id": 356,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:31:24.746Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 5343
+      },
+      {
+        "id": 357,
+        "trial": "complex-r1-candidate",
+        "kind": "identity_http",
+        "startedAt": "2026-09-29T14:31:24.747Z",
+        "status": "completed",
+        "route": "/session",
+        "authMethod": "packaged_authenticated_endpoint",
+        "httpStatus": 200,
+        "elapsedMs": 348
+      },
+      {
+        "id": 358,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:31:25.111Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 23965,
+          "prompt_tokens_details": {
+            "cached_tokens": 20218
+          },
+          "total_tokens": 24289
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 23965,
+            "prompt_tokens_details": {
+              "cached_tokens": 20218
+            },
+            "total_tokens": 24289
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 23965,
+            "prompt_tokens_details": {
+              "cached_tokens": 20218
+            },
+            "total_tokens": 24289
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 2859,
+        "elapsedMs": 4977
+      },
+      {
+        "id": 359,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:31:30.294Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 2803
+      },
+      {
+        "id": 360,
+        "trial": "complex-r1-candidate",
+        "kind": "identity_http",
+        "startedAt": "2026-09-29T14:31:30.295Z",
+        "status": "completed",
+        "route": "/session",
+        "authMethod": "packaged_authenticated_endpoint",
+        "httpStatus": 200,
+        "elapsedMs": 332
+      },
+      {
+        "id": 361,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:31:30.631Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 266,
+          "prompt_tokens": 24608,
+          "prompt_tokens_details": {
+            "cached_tokens": 20217
+          },
+          "total_tokens": 24892
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 266,
+            "prompt_tokens": 24608,
+            "prompt_tokens_details": {
+              "cached_tokens": 20217
+            },
+            "total_tokens": 24892
+          },
+          {
+            "completion_tokens": 266,
+            "prompt_tokens": 24608,
+            "prompt_tokens_details": {
+              "cached_tokens": 20217
+            },
+            "total_tokens": 24892
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1496,
+        "elapsedMs": 2465
+      },
+      {
+        "id": 362,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:31:33.187Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 3901
+      },
+      {
+        "id": 363,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:31:33.191Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 29,
+          "prompt_tokens": 25091,
+          "prompt_tokens_details": {
+            "cached_tokens": 20214
+          },
+          "total_tokens": 25134
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 29,
+            "prompt_tokens": 25091,
+            "prompt_tokens_details": {
+              "cached_tokens": 20214
+            },
+            "total_tokens": 25134
+          },
+          {
+            "completion_tokens": 29,
+            "prompt_tokens": 25091,
+            "prompt_tokens_details": {
+              "cached_tokens": 20214
+            },
+            "total_tokens": 25134
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1071,
+        "elapsedMs": 3897
+      },
+      {
+        "id": 364,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:31:37.155Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 2561
+      },
+      {
+        "id": 365,
+        "trial": "complex-r1-candidate",
+        "kind": "identity_http",
+        "startedAt": "2026-09-29T14:31:37.155Z",
+        "status": "completed",
+        "route": "/session",
+        "authMethod": "packaged_authenticated_endpoint",
+        "httpStatus": 200,
+        "elapsedMs": 272
+      },
+      {
+        "id": 366,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:31:37.431Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 456,
+          "prompt_tokens": 25561,
+          "prompt_tokens_details": {
+            "cached_tokens": 20211
+          },
+          "total_tokens": 26037
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 456,
+            "prompt_tokens": 25561,
+            "prompt_tokens_details": {
+              "cached_tokens": 20211
+            },
+            "total_tokens": 26037
+          },
+          {
+            "completion_tokens": 456,
+            "prompt_tokens": 25561,
+            "prompt_tokens_details": {
+              "cached_tokens": 20211
+            },
+            "total_tokens": 26037
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1915,
+        "elapsedMs": 2285
+      },
+      {
+        "id": 367,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:31:39.794Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 3039
+      },
+      {
+        "id": 368,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:31:39.797Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 26235,
+          "prompt_tokens_details": {
+            "cached_tokens": 20210
+          },
+          "total_tokens": 26274
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 26235,
+            "prompt_tokens_details": {
+              "cached_tokens": 20210
+            },
+            "total_tokens": 26274
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 26235,
+            "prompt_tokens_details": {
+              "cached_tokens": 20210
+            },
+            "total_tokens": 26274
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1051,
+        "elapsedMs": 3036
+      },
+      {
+        "id": 369,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:31:43.156Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 3266
+      },
+      {
+        "id": 370,
+        "trial": "complex-r1-candidate",
+        "kind": "identity_http",
+        "startedAt": "2026-09-29T14:31:43.156Z",
+        "status": "completed",
+        "route": "/session",
+        "authMethod": "packaged_authenticated_endpoint",
+        "httpStatus": 200,
+        "elapsedMs": 376
+      },
+      {
+        "id": 371,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:31:43.542Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 275,
+          "prompt_tokens": 26602,
+          "prompt_tokens_details": {
+            "cached_tokens": 24247
+          },
+          "total_tokens": 26962
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 275,
+            "prompt_tokens": 26602,
+            "prompt_tokens_details": {
+              "cached_tokens": 24247
+            },
+            "total_tokens": 26962
+          },
+          {
+            "completion_tokens": 275,
+            "prompt_tokens": 26602,
+            "prompt_tokens_details": {
+              "cached_tokens": 24247
+            },
+            "total_tokens": 26962
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1905,
+        "elapsedMs": 2879
+      },
+      {
+        "id": 372,
+        "trial": "complex-r1-candidate",
+        "kind": "inbound_http",
+        "startedAt": "2026-09-29T14:31:46.565Z",
+        "status": "completed",
+        "route": "/chat/completions",
+        "method": "POST",
+        "httpStatus": 200,
+        "elapsedMs": 1491
+      },
+      {
+        "id": 373,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:31:46.572Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 27166,
+          "prompt_tokens_details": {
+            "cached_tokens": 24245
+          },
+          "total_tokens": 27205
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 27166,
+            "prompt_tokens_details": {
+              "cached_tokens": 24245
+            },
+            "total_tokens": 27205
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 27166,
+            "prompt_tokens_details": {
+              "cached_tokens": 24245
+            },
+            "total_tokens": 27205
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1058,
+        "elapsedMs": 1483
+      }
+    ],
+    "modelRequests": [
+      {
+        "id": 316,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:08.208Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "8a1a9ccc92580b43ec0753c3ec955df2de54f8c32b0c2ffb27b15b8ba26a7e04",
+        "toolDefinitionsSha256": null,
+        "nativeSelectionPolicy": null,
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 4,
+          "prompt_tokens": 614,
+          "total_tokens": 652
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 4,
+            "prompt_tokens": 614,
+            "total_tokens": 652
+          },
+          {
+            "completion_tokens": 4,
+            "prompt_tokens": 614,
+            "total_tokens": 652
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1013,
+        "elapsedMs": 1364
+      },
+      {
+        "id": 317,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:08.211Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 191,
+          "prompt_tokens": 8933,
+          "prompt_tokens_details": {
+            "cached_tokens": 4032
+          },
+          "total_tokens": 9398
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 191,
+            "prompt_tokens": 8933,
+            "prompt_tokens_details": {
+              "cached_tokens": 4032
+            },
+            "total_tokens": 9398
+          },
+          {
+            "completion_tokens": 191,
+            "prompt_tokens": 8933,
+            "prompt_tokens_details": {
+              "cached_tokens": 4032
+            },
+            "total_tokens": 9398
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 3949,
+        "elapsedMs": 4242
+      },
+      {
+        "id": 319,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:12.537Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 25,
+          "prompt_tokens": 9420,
+          "total_tokens": 9498
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 25,
+            "prompt_tokens": 9420,
+            "total_tokens": 9498
+          },
+          {
+            "completion_tokens": 25,
+            "prompt_tokens": 9420,
+            "total_tokens": 9498
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1182,
+        "elapsedMs": 3636
+      },
+      {
+        "id": 322,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:16.540Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 28,
+          "prompt_tokens": 10761,
+          "total_tokens": 11017
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 28,
+            "prompt_tokens": 10761,
+            "total_tokens": 11017
+          },
+          {
+            "completion_tokens": 28,
+            "prompt_tokens": 10761,
+            "total_tokens": 11017
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 2039,
+        "elapsedMs": 1715
+      },
+      {
+        "id": 324,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:18.576Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 85,
+          "prompt_tokens": 11130,
+          "total_tokens": 11232
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 85,
+            "prompt_tokens": 11130,
+            "total_tokens": 11232
+          },
+          {
+            "completion_tokens": 85,
+            "prompt_tokens": 11130,
+            "total_tokens": 11232
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1156,
+        "elapsedMs": 4119
+      },
+      {
+        "id": 327,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:24.107Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 18,
+          "prompt_tokens": 11247,
+          "total_tokens": 11290
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 18,
+            "prompt_tokens": 11247,
+            "total_tokens": 11290
+          },
+          {
+            "completion_tokens": 18,
+            "prompt_tokens": 11247,
+            "total_tokens": 11290
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1017,
+        "elapsedMs": 2126
+      },
+      {
+        "id": 329,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:26.291Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 30,
+          "prompt_tokens": 11439,
+          "total_tokens": 11647
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 30,
+            "prompt_tokens": 11439,
+            "total_tokens": 11647
+          },
+          {
+            "completion_tokens": 30,
+            "prompt_tokens": 11439,
+            "total_tokens": 11647
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1734,
+        "elapsedMs": 1698
+      },
+      {
+        "id": 331,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:28.050Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 12140,
+          "total_tokens": 12331
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 12140,
+            "total_tokens": 12331
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 12140,
+            "total_tokens": 12331
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1887,
+        "elapsedMs": 2473
+      },
+      {
+        "id": 334,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:30.891Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 29,
+          "prompt_tokens": 12650,
+          "total_tokens": 12734
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 29,
+            "prompt_tokens": 12650,
+            "total_tokens": 12734
+          },
+          {
+            "completion_tokens": 29,
+            "prompt_tokens": 12650,
+            "total_tokens": 12734
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1249,
+        "elapsedMs": 1198
+      },
+      {
+        "id": 336,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:32.145Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 29,
+          "prompt_tokens": 13161,
+          "total_tokens": 13204
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 29,
+            "prompt_tokens": 13161,
+            "total_tokens": 13204
+          },
+          {
+            "completion_tokens": 29,
+            "prompt_tokens": 13161,
+            "total_tokens": 13204
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 961,
+        "elapsedMs": 1195
+      },
+      {
+        "id": 338,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:33.403Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 13533,
+          "total_tokens": 13792
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 13533,
+            "total_tokens": 13792
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 13533,
+            "total_tokens": 13792
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 2236,
+        "elapsedMs": 3647
+      },
+      {
+        "id": 341,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:37.592Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 14302,
+          "total_tokens": 14502
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 14302,
+            "total_tokens": 14502
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 14302,
+            "total_tokens": 14502
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1855,
+        "elapsedMs": 1600
+      },
+      {
+        "id": 343,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:39.261Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 14830,
+          "total_tokens": 15404
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 14830,
+            "total_tokens": 15404
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 14830,
+            "total_tokens": 15404
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 4490,
+        "elapsedMs": 3122
+      },
+      {
+        "id": 345,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:42.454Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 15732,
+          "total_tokens": 15836
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 15732,
+            "total_tokens": 15836
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 15732,
+            "total_tokens": 15836
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1312,
+        "elapsedMs": 1451
+      },
+      {
+        "id": 348,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:44.256Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 16163,
+          "total_tokens": 16377
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 16163,
+            "total_tokens": 16377
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 16163,
+            "total_tokens": 16377
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 2018,
+        "elapsedMs": 2174
+      },
+      {
+        "id": 350,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:46.487Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 16967,
+          "prompt_tokens_details": {
+            "cached_tokens": 12088
+          },
+          "total_tokens": 17006
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 16967,
+            "prompt_tokens_details": {
+              "cached_tokens": 12088
+            },
+            "total_tokens": 17006
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 16967,
+            "prompt_tokens_details": {
+              "cached_tokens": 12088
+            },
+            "total_tokens": 17006
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1043,
+        "elapsedMs": 1344
+      },
+      {
+        "id": 352,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:47.898Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 21,
+          "prompt_tokens": 17773,
+          "prompt_tokens_details": {
+            "cached_tokens": 12090
+          },
+          "total_tokens": 20485
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 21,
+            "prompt_tokens": 17773,
+            "prompt_tokens_details": {
+              "cached_tokens": 12090
+            },
+            "total_tokens": 20485
+          },
+          {
+            "completion_tokens": 21,
+            "prompt_tokens": 17773,
+            "prompt_tokens_details": {
+              "cached_tokens": 12090
+            },
+            "total_tokens": 20485
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 17263,
+        "elapsedMs": 9831
+      },
+      {
+        "id": 355,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:30:58.125Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 15,
+          "prompt_tokens": 20801,
+          "prompt_tokens_details": {
+            "cached_tokens": 16151
+          },
+          "total_tokens": 23796
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 15,
+            "prompt_tokens": 15875,
+            "total_tokens": 18870
+          },
+          {
+            "completion_tokens": 15,
+            "prompt_tokens": 20801,
+            "prompt_tokens_details": {
+              "cached_tokens": 16151
+            },
+            "total_tokens": 23796
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 18682,
+        "elapsedMs": 18506
+      },
+      {
+        "id": 358,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:31:25.111Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 23965,
+          "prompt_tokens_details": {
+            "cached_tokens": 20218
+          },
+          "total_tokens": 24289
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 23965,
+            "prompt_tokens_details": {
+              "cached_tokens": 20218
+            },
+            "total_tokens": 24289
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 23965,
+            "prompt_tokens_details": {
+              "cached_tokens": 20218
+            },
+            "total_tokens": 24289
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 2859,
+        "elapsedMs": 4977
+      },
+      {
+        "id": 361,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:31:30.631Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 266,
+          "prompt_tokens": 24608,
+          "prompt_tokens_details": {
+            "cached_tokens": 20217
+          },
+          "total_tokens": 24892
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 266,
+            "prompt_tokens": 24608,
+            "prompt_tokens_details": {
+              "cached_tokens": 20217
+            },
+            "total_tokens": 24892
+          },
+          {
+            "completion_tokens": 266,
+            "prompt_tokens": 24608,
+            "prompt_tokens_details": {
+              "cached_tokens": 20217
+            },
+            "total_tokens": 24892
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1496,
+        "elapsedMs": 2465
+      },
+      {
+        "id": 363,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:31:33.191Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 29,
+          "prompt_tokens": 25091,
+          "prompt_tokens_details": {
+            "cached_tokens": 20214
+          },
+          "total_tokens": 25134
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 29,
+            "prompt_tokens": 25091,
+            "prompt_tokens_details": {
+              "cached_tokens": 20214
+            },
+            "total_tokens": 25134
+          },
+          {
+            "completion_tokens": 29,
+            "prompt_tokens": 25091,
+            "prompt_tokens_details": {
+              "cached_tokens": 20214
+            },
+            "total_tokens": 25134
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1071,
+        "elapsedMs": 3897
+      },
+      {
+        "id": 366,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:31:37.431Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 456,
+          "prompt_tokens": 25561,
+          "prompt_tokens_details": {
+            "cached_tokens": 20211
+          },
+          "total_tokens": 26037
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 456,
+            "prompt_tokens": 25561,
+            "prompt_tokens_details": {
+              "cached_tokens": 20211
+            },
+            "total_tokens": 26037
+          },
+          {
+            "completion_tokens": 456,
+            "prompt_tokens": 25561,
+            "prompt_tokens_details": {
+              "cached_tokens": 20211
+            },
+            "total_tokens": 26037
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1915,
+        "elapsedMs": 2285
+      },
+      {
+        "id": 368,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:31:39.797Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 26235,
+          "prompt_tokens_details": {
+            "cached_tokens": 20210
+          },
+          "total_tokens": 26274
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 26235,
+            "prompt_tokens_details": {
+              "cached_tokens": 20210
+            },
+            "total_tokens": 26274
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 26235,
+            "prompt_tokens_details": {
+              "cached_tokens": 20210
+            },
+            "total_tokens": 26274
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1051,
+        "elapsedMs": 3036
+      },
+      {
+        "id": 371,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:31:43.542Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 275,
+          "prompt_tokens": 26602,
+          "prompt_tokens_details": {
+            "cached_tokens": 24247
+          },
+          "total_tokens": 26962
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 275,
+            "prompt_tokens": 26602,
+            "prompt_tokens_details": {
+              "cached_tokens": 24247
+            },
+            "total_tokens": 26962
+          },
+          {
+            "completion_tokens": 275,
+            "prompt_tokens": 26602,
+            "prompt_tokens_details": {
+              "cached_tokens": 24247
+            },
+            "total_tokens": 26962
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1905,
+        "elapsedMs": 2879
+      },
+      {
+        "id": 373,
+        "trial": "complex-r1-candidate",
+        "kind": "model_http",
+        "startedAt": "2026-09-29T14:31:46.572Z",
+        "status": "completed",
+        "source": "primary",
+        "attribution": "no_axwise_artifact_schema",
+        "systemPromptSha256": "eced68e3952e9152ceb87d5debf644320e802b76a04057ae065c8024c2eeac3a",
+        "toolDefinitionsSha256": "4d29df9fda9ba9ba4df2947610712c5ccdef0bed95bd15945dfbe206bcc7fd46",
+        "nativeSelectionPolicy": "v1",
+        "legacyWritePreferencePresent": false,
+        "route": "/chat/completions",
+        "requestedAlias": "orqaly-gemini",
+        "requestedModel": "gemini-3.8-flash",
+        "requestedEffort": null,
+        "toolNames": [
+          "analyze",
+          "apps__create_app",
+          "apps__delete_app",
+          "apps__iterate_app",
+          "apps__list_apps",
+          "ast_search",
+          "delegate",
+          "desktop-utilities__convert_currency",
+          "desktop-utilities__get_weather",
+          "desktop-utilities__search_web",
+          "edit",
+          "extensionmanager__list_resources",
+          "extensionmanager__manage_extensions",
+          "extensionmanager__read_resource",
+          "extensionmanager__search_available_extensions",
+          "hashline_edit",
+          "load",
+          "load_skill",
+          "lsp_query",
+          "read_image",
+          "safe_edit_and_test",
+          "scheduler__manage_schedule",
+          "shell",
+          "todo__todo_write",
+          "tree",
+          "write"
+        ],
+        "streamed": true,
+        "responseModels": [
+          "gemini-3.8-flash"
+        ],
+        "usage": {
+          "completion_tokens": 27,
+          "prompt_tokens": 27166,
+          "prompt_tokens_details": {
+            "cached_tokens": 24245
+          },
+          "total_tokens": 27205
+        },
+        "usageSnapshots": [
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 27166,
+            "prompt_tokens_details": {
+              "cached_tokens": 24245
+            },
+            "total_tokens": 27205
+          },
+          {
+            "completion_tokens": 27,
+            "prompt_tokens": 27166,
+            "prompt_tokens_details": {
+              "cached_tokens": 24245
+            },
+            "total_tokens": 27205
+          }
+        ],
+        "modelIdentity": "verified",
+        "httpStatus": 200,
+        "responseBytes": 1058,
+        "elapsedMs": 1483
+      }
+    ],
+    "jevRequests": [],
+    "jevProviderRequests": [],
+    "pending": 0,
+    "primaryHttpAttempts": 25,
+    "axwiseHttpAttempts": 0,
+    "jevHttpAttempts": 0
+  },
+  "persistedFlags": {
+    "nativeGemsEnabled": true,
+    "jevReviewEnabled": false,
+    "axwiseLocalEnabled": false
+  },
+  "mounts": [
+    "apps",
+    "summon",
+    "todo",
+    "scheduler",
+    "Extension Manager",
+    "tom",
+    "native_engineering",
+    "desktop-utilities",
+    "developer",
+    "analyze",
+    "skills"
+  ]
+}

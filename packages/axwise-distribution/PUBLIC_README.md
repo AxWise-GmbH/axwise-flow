@@ -18,6 +18,7 @@ For the desktop application with managed sign-in and model access, use [Orqanix]
 | `create_prd` | Produce an evidence-linked PRD; preserve previous content during additive revisions. |
 | `chat_with_persona` | Discuss an exact selected document with a saved persona. |
 | `create_delivery_brief` | Turn a selected PRD into a scoped engineering or outsourcing handoff. |
+| `run_full_discovery` | Run framing, personas, simulation, analysis and PRD tools sequentially in the configured scope. |
 
 The host assistant chooses when to call a tool. Ordinary chat, news, weather, search and coding do not need AxWise. Asking to “go deeper” is not by itself permission to start product discovery. AxWise does not browse the computer or web on its own: the host selects input and retains its tool ownership and approvals.
 
@@ -95,13 +96,17 @@ The generic OpenAI-compatible adapter uses non-strict JSON-schema responses to r
 }
 ```
 
-Set the named key in the launching host's environment using its secure configuration mechanism. The extension does not discover credentials in a browser, `.env`, another assistant or Orqanix. It reads the configured key only when inference is requested; initialization and tool listing need no key. HTTPS is required by default. HTTP loopback is allowed only with the explicit `allowLoopback: true` option for a local model or test endpoint; redirects are not followed.
+Set the named key in the launching host's environment using its secure configuration mechanism. With `--config`, the named environment key is authoritative: the extension does not read `.env`, keychains or another assistant's credentials. A missing named key produces an error when inference is requested; initialization and tool listing need no key. HTTPS is required by default. HTTP loopback is allowed only with the explicit `allowLoopback: true` option for a local model or test endpoint; redirects are not followed.
 
-`profileId`, `workspaceId` and `sessionId` are explicit local scope identifiers, not authentication or authorization. Use distinct scopes for unrelated work and separate OS accounts for mutually untrusted users. A static MCP config uses a static session: it **cannot automatically detect the current chat**. Hosts that need per-chat isolation must supply a new config/session ID when launching that chat's extension. API keys, provider and model changes do not select a different local artifact scope. Back up saved artifacts deliberately; uninstalling the executable does not erase your state directory.
+`--state-dir` overrides the JSON state directory; JSON settings override environment defaults. `AXWISE_CONFIG` can supply the config path when `--config` is omitted. Invalid explicit JSON is rejected during startup.
+
+Without a config file, the canonical launch directory determines the workspace, with profile `personal` and session `main`. Hosts launched from a shared working directory must set distinct `AXWISE_WORKSPACE_ID` values or use explicit JSON. `AXWISE_PROFILE_ID` and `AXWISE_SESSION_ID` can also override zero-config identity. Reconnecting from the same scope retains artifacts. Old unscoped `default` artifacts are not automatically assigned to a new workspace.
+
+`profileId`, `workspaceId` and `sessionId` are explicit local scope identifiers, not authentication or authorization. Use distinct scopes for unrelated work and separate OS accounts for mutually untrusted users. A static MCP config uses a static session: it **cannot automatically detect the current chat**. Hosts that need per-chat isolation must supply a new config/session ID when launching that chat's extension. API keys, provider and model changes do not select a different local artifact scope. Historical artifacts with inconsistent file hashes require explicit migration or recreation; they are never silently rehashed. Back up saved artifacts deliberately; uninstalling the executable does not erase your state directory.
 
 ## Connect a host
 
-Any compatible **stdio MCP** host can launch the command above and discover the eight tools. In Goose, add a custom stdio extension. In Codex or another MCP wrapper, use that host's MCP configuration with the command, arguments and explicit key environment. This is an interoperable MCP server, not an embedded UI or a claim of native marketplace installation in every wrapper.
+Any compatible **stdio MCP** host can launch the command above and discover the nine tools. In Goose, add a custom stdio extension. In Codex or another MCP wrapper, use that host's MCP configuration with the command, arguments and explicit key environment. This is an interoperable MCP server, not an embedded UI or a claim of native marketplace installation in every wrapper.
 
 Generic launch configuration (adapt the surrounding keys to your host):
 
@@ -110,7 +115,7 @@ Generic launch configuration (adapt the surrounding keys to your host):
   "command": "uvx",
   "args": [
     "--from",
-    "/absolute/path/axwise_extension-0.3.0-py3-none-any.whl",
+    "/absolute/path/axwise_extension-0.4.0-py3-none-any.whl",
     "axwise",
     "--config",
     "/absolute/path/axwise.json"
@@ -118,13 +123,13 @@ Generic launch configuration (adapt the surrounding keys to your host):
 }
 ```
 
-The MCP connection owns one active operation at a time. The host controls tool calls and cancellation. Do not point unrelated concurrent hosts at the same static session unless you intentionally want shared artifacts.
+The host controls tool calls and cancellation. Run dependent pipeline steps sequentially. Do not point unrelated concurrent hosts at the same static session unless you intentionally want shared artifacts.
 
 Installation has been verified on macOS Apple Silicon. Linux and Windows installation still need platform-specific verification. MCP protocol checks do not replace an end-to-end check of tool selection and rendering in your chosen host.
 
 ## Source, tests and reproducible builds
 
-The runtime is hybrid: Node handles MCP, provider calls and local state; a small Python/Pydantic kernel prepares and validates the discovery artifacts. There is one implementation, not a separate npm engine and Python engine. The `backend/` namespace contains only allowlisted pure kernel contracts retained for import compatibility—not the former web backend.
+The public runtime is Python: FastMCP exposes tools, a provider adapter makes model calls, SQLite indexes local artifacts, and the Pydantic kernel prepares and validates them. The npm launcher starts the identical bundled Python wheel using uvx. The managed desktop continues to use the Node adapter with the shared Python kernel. The public `backend/` namespace contains only allowlisted runtime and kernel dependencies; it does not start the former web backend.
 
 ```sh
 uv venv --python 3.13 .venv
@@ -151,3 +156,7 @@ Licensed under Apache-2.0. See [LICENSE](LICENSE).
 This is the same AxWise repository, now focused on the local extension. Existing stars, forks, contributors and Git history are retained. The previous web platform remains available in the repository history; it is not shipped in this package. The original AxWise project was supported by [AI Nation](https://www.ai-nation.de/).
 
 [![Contributors](https://contrib.rocks/image?repo=AxWise-GmbH/axwise-flow)](https://github.com/AxWise-GmbH/axwise-flow/graphs/contributors)
+
+## Artifact safety policy
+
+Before persistence, a local full-record scan blocks known credential patterns. Remote Jev checking is optional and requires both `AXWISE_REMOTE_ARTIFACT_SAFETY=true` and `TYPESAFE_API_KEY`; this sends the artifact record to TypeSafe. Missing, unavailable, malformed or oversized remote evaluations remain `not_evaluated`, not passed. An explicit failed verdict blocks publication. Local scanning is limited to known patterns and does not establish that a record contains no secrets.

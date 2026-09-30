@@ -1,0 +1,3 @@
+[Main] Enabling Playwright remote debugging on port 56729
+
+DevTools listening on ws://127.0.0.1:56729/devtools/browser/1546a76d-ba73-4971-93cf-ddabbb96dfa3

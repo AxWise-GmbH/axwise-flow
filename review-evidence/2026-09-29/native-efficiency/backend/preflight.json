@@ -1,0 +1,1195 @@
+{
+  "schema": "orqanix.goose-backend-native-efficiency.v1",
+  "startedAt": "2026-09-29T15:47:21.734Z",
+  "fingerprint": {
+    "preflight": true,
+    "timeoutSeconds": 360,
+    "languageServers": {
+      "kind": "manifest-verified-entrypoints",
+      "manifestSha256": "e38d3f4f898efc9c1dd0a83659aff0cac1a0012a6159b33c643ffaee8440dd1a",
+      "versions": {
+        "pyright": "1.1.414",
+        "typescript": "5.9.3",
+        "typescript-language-server": "6.0.1"
+      },
+      "runtime": "/private/tmp/orqanix-efficiency-app-20260929/Orqanix Benchmark.app/Contents/Resources/orqaly-runtime"
+    },
+    "bin/goose": "6e85d92ac6b38ec5ef8514de7e40d291b2d554e5ab56e7a59d8a730aac6cea2f",
+    "bin/goose-baseline": "ff80a98ec86c080d63894aaa15f419f20fae3b78967e211d33b1cd02f0f446a2",
+    "bin/goose-candidate": "0daf15f4e437d45101e0ed402ffa003d610ba6c4bddc6c4c03b95d85faeda605",
+    "orqaly-runtime/connector/src/cli.mjs": "9155c13abf6ebea1de8426e593f4f09d9f659af95bd251516908a8cc2354e564",
+    "orqaly-runtime/runtime-manifest.json": "e38d3f4f898efc9c1dd0a83659aff0cac1a0012a6159b33c643ffaee8440dd1a",
+    "benchmark-goose-efficiency.mjs": "aa056e76f75100e8861fcf84ca104454e680753b0d61fbdbf2fb5e7a4357fc3d",
+    "benchmark-orqanix-efficiency.mjs": "33205b1734e7ff928b4097bd140842571d5f02572a1d1fa70663da2876a2c8ed",
+    "benchmark-goose-reset.mjs": "382fc2bebb2912826c3234285067e050c9e3224b0c433267d340c0053ed47c92",
+    "benchmark-local-axwise.mjs": "98e57f620d5776e11b259201f3612b945a9cb9f08f575af38868f2cc130f3a4e",
+    "benchmark-native-engineering.mjs": "b05b60a2d2e21e8c74502f892a4d7eebc4d4eed99184425005970ef86930934d",
+    "lib/orqanix-efficiency-tasks.mjs": "cde46e999894298d2fdcb2af08b40f4192002471b49a3e9e6780ff6e4aa73d6c",
+    "lib/orqanix-selection-sandbox.mjs": "4ed8381b593405bf387f17b1e320cf9c2e22a79d7c5586482dcd13b5740977d7",
+    "lib/orqanix-specialist-sandbox.mjs": "41758dd153febf772d16114b4b44e2d7b97f0cc6c205cf1adf461d29122075f1",
+    "lib/orqanix-benchmark-relay.mjs": "df1cfed8cdf028f9449abdf93fe1535ae5506bdbe63c76d08270f28d80a18b3b",
+    "lib/orqanix-scoped-benchmark-relay.mjs": "aba5480368486ce42a8ae7dded4472f90d9ee1dd82dd86550bf50e93032fe0dd",
+    "providerTemplate": "a0c552781a6187465f066387838cc0495eede4e88f80a862bdc8930616439b4d"
+  },
+  "schedule": [
+    {
+      "key": "simple-default",
+      "difficulty": "simple",
+      "arm": "default",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": false,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "simple-previous",
+      "difficulty": "simple",
+      "arm": "previous",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": true,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "simple-candidate",
+      "difficulty": "simple",
+      "arm": "candidate",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": true,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "medium-previous",
+      "difficulty": "medium",
+      "arm": "previous",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": true,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "medium-candidate",
+      "difficulty": "medium",
+      "arm": "candidate",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": true,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "medium-default",
+      "difficulty": "medium",
+      "arm": "default",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": false,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "complex-candidate",
+      "difficulty": "complex",
+      "arm": "candidate",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": true,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "complex-default",
+      "difficulty": "complex",
+      "arm": "default",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": false,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "complex-previous",
+      "difficulty": "complex",
+      "arm": "previous",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": true,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "large-default",
+      "difficulty": "large",
+      "arm": "default",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": false,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "large-candidate",
+      "difficulty": "large",
+      "arm": "candidate",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": true,
+        "axwiseLocalEnabled": false
+      }
+    },
+    {
+      "key": "large-previous",
+      "difficulty": "large",
+      "arm": "previous",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": true,
+        "axwiseLocalEnabled": false
+      }
+    }
+  ],
+  "rows": [
+    {
+      "key": "simple-default",
+      "difficulty": "simple",
+      "arm": "default",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": false,
+        "axwiseLocalEnabled": false
+      },
+      "startedAt": "2026-09-29T15:47:23.793Z",
+      "directory": "/private/tmp/orqanix-efficiency-backend-preflight-20260929/simple-default",
+      "workspace": "/private/tmp/orqanix-efficiency-backend-preflight-20260929/simple-default/fixture/workspace",
+      "decisions": [],
+      "confinedAuthVerified": true,
+      "flagsAppliedVia": "Goose ACP platform extension mount",
+      "boundary": {
+        "sha256": "a95ba819f672ae8170fc15483049eb427dd7f035494347ca70e1fc974cd607ea",
+        "checks": [
+          {
+            "name": "workspace read",
+            "passed": true
+          },
+          {
+            "name": "workspace write and remove",
+            "passed": true
+          },
+          {
+            "name": "profile write",
+            "passed": true
+          },
+          {
+            "name": "own temp write",
+            "passed": true
+          },
+          {
+            "name": "other temp read denied",
+            "passed": true
+          },
+          {
+            "name": "other temp write denied",
+            "passed": true
+          },
+          {
+            "name": "user directory listing denied",
+            "passed": true
+          },
+          {
+            "name": "child inherits restriction",
+            "passed": true
+          },
+          {
+            "name": "symlink read escape denied",
+            "passed": true
+          },
+          {
+            "name": "symlink write escape denied",
+            "passed": true
+          },
+          {
+            "name": "hardlink escape denied",
+            "passed": true
+          },
+          {
+            "name": "app binary readable",
+            "passed": true
+          },
+          {
+            "name": "app resources immutable",
+            "passed": true
+          }
+        ],
+        "description": "Goose backend and descendants cannot read/write unrelated user, volume or temp trees; app resources read-only; own synthetic workspace/profile/temp writable. Electron remains outside this added filesystem boundary. Network/IPC remain available; this is not complete process or network isolation."
+      },
+      "configOptions": [
+        {
+          "id": "mode",
+          "name": "Mode",
+          "category": "mode",
+          "type": "select",
+          "currentValue": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "name": "auto",
+              "description": "Automatically approve tool calls"
+            },
+            {
+              "value": "approve",
+              "name": "approve",
+              "description": "Ask before every tool call"
+            },
+            {
+              "value": "smart_approve",
+              "name": "smart_approve",
+              "description": "Ask only for sensitive tool calls"
+            },
+            {
+              "value": "chat",
+              "name": "chat",
+              "description": "Chat only, no tool calls"
+            }
+          ]
+        },
+        {
+          "id": "model",
+          "name": "Model",
+          "category": "model",
+          "type": "select",
+          "currentValue": "orqaly-gemini",
+          "options": [
+            {
+              "value": "orqaly-gemini",
+              "name": "orqaly-gemini"
+            }
+          ]
+        },
+        {
+          "id": "thinking_effort",
+          "name": "Thinking effort",
+          "description": "Controls reasoning effort for models that support extended thinking.",
+          "category": "thought_level",
+          "type": "select",
+          "currentValue": "off",
+          "options": [
+            {
+              "value": "off",
+              "name": "off"
+            }
+          ]
+        }
+      ],
+      "inventory": {
+        "extensions": [
+          {
+            "key": "analyze",
+            "name": "analyze",
+            "type": "platform"
+          },
+          {
+            "key": "apps",
+            "name": "apps",
+            "type": "platform"
+          },
+          {
+            "key": "desktop-utilities",
+            "name": "desktop-utilities",
+            "type": "mcp"
+          },
+          {
+            "key": "developer",
+            "name": "developer",
+            "type": "platform"
+          },
+          {
+            "key": "extensionmanager",
+            "name": "Extension Manager",
+            "type": "platform"
+          },
+          {
+            "key": "scheduler",
+            "name": "scheduler",
+            "type": "platform"
+          },
+          {
+            "key": "skills",
+            "name": "skills",
+            "type": "platform"
+          },
+          {
+            "key": "summon",
+            "name": "summon",
+            "type": "platform"
+          },
+          {
+            "key": "todo",
+            "name": "todo",
+            "type": "platform"
+          },
+          {
+            "key": "tom",
+            "name": "tom",
+            "type": "platform"
+          }
+        ],
+        "tools": [
+          {
+            "name": "analyze",
+            "permission": null,
+            "schemaSha256": "df743083b9f8c3d6cc006c41bfed7587afb8979d589da8477cdca6eac8e16034"
+          },
+          {
+            "name": "apps__create_app",
+            "permission": null,
+            "schemaSha256": "086a60fa66b91fe17f785b3f92799964784d378c400f6b67f61022aff78c7ed2"
+          },
+          {
+            "name": "apps__delete_app",
+            "permission": null,
+            "schemaSha256": "b757aae602cea7efda0030948dcca5d8697ff2d9de158143982f433738f5b98f"
+          },
+          {
+            "name": "apps__iterate_app",
+            "permission": null,
+            "schemaSha256": "d8e9ddcf4657db8c39b45493920d0b6c2b6f996840b8240212e5cd314240cffe"
+          },
+          {
+            "name": "apps__list_apps",
+            "permission": null,
+            "schemaSha256": "afb28f250c5001b1f58021742cf56912c211915782cf7c0d423366a718e7222c"
+          },
+          {
+            "name": "delegate",
+            "permission": null,
+            "schemaSha256": "1b7b5e23224949499f9973b62123fd5b47111d31228fe04f2ae1cc32fc015f2a"
+          },
+          {
+            "name": "desktop-utilities__convert_currency",
+            "permission": null,
+            "schemaSha256": "10ac3f4ae129a3e733d8f2c8db570cceacf56fdd0c363001d806c982647c02be"
+          },
+          {
+            "name": "desktop-utilities__get_weather",
+            "permission": null,
+            "schemaSha256": "b17811acb7a8d8cc769525cce056fbd8fffb9ce95016fae06ad9148aca19031b"
+          },
+          {
+            "name": "desktop-utilities__search_web",
+            "permission": null,
+            "schemaSha256": "a6203ff6c5c9fc189b54390e88434ad4081f42e4c3d14e6f165c8f8bc0d15e1b"
+          },
+          {
+            "name": "edit",
+            "permission": null,
+            "schemaSha256": "051eb85cf85adbd37973d374cbf38218060f607ee36bf62b69a686762999d83b"
+          },
+          {
+            "name": "extensionmanager__list_resources",
+            "permission": null,
+            "schemaSha256": "95aefd9d3546739b764973cde170cb58d1a8d10512998e512d5cadea972da187"
+          },
+          {
+            "name": "extensionmanager__manage_extensions",
+            "permission": null,
+            "schemaSha256": "52419b049117131d44efd2d9e834853b434d97b091fb2d45e2691d3f80f9ac14"
+          },
+          {
+            "name": "extensionmanager__read_resource",
+            "permission": null,
+            "schemaSha256": "700d8d0f5f170a6a22570d092dcce1e2611ddda61b5ffdc3c077292d99ce41bd"
+          },
+          {
+            "name": "extensionmanager__search_available_extensions",
+            "permission": null,
+            "schemaSha256": "2952d68325ff397899ec183e0a2d566475ee4790239f33b52dd51644fa1c8ddc"
+          },
+          {
+            "name": "load",
+            "permission": null,
+            "schemaSha256": "9a2c21ef3afe82653f047860bd28d7017d08c001033e2561a3b5d8ca9cb1ebd1"
+          },
+          {
+            "name": "load_skill",
+            "permission": null,
+            "schemaSha256": "275aad3faad22de4642c746b3c0c74e7705b775be5d1e01841a2270d3cec67d5"
+          },
+          {
+            "name": "read_image",
+            "permission": null,
+            "schemaSha256": "0e25f3bd38b210a406a8d062f05b25ae6cf8394f024534e955f2ce8cac0dc83e"
+          },
+          {
+            "name": "scheduler__manage_schedule",
+            "permission": null,
+            "schemaSha256": "5ffd450c65c5f6d0e387af014ed07d019fbcf55dde776e554bace8772bb55c5e"
+          },
+          {
+            "name": "shell",
+            "permission": null,
+            "schemaSha256": "dafa865264c86f99203d2fc4e54336c1a740571d02977c211c6655e82d452db4"
+          },
+          {
+            "name": "todo__todo_write",
+            "permission": null,
+            "schemaSha256": "056a9291458501756ff0c20f81146e4da69131a4eb77b47741ef89af67360bf4"
+          },
+          {
+            "name": "tree",
+            "permission": null,
+            "schemaSha256": "599803d9c440598ff3450529baefd8dae27c27e54d6a24488c1cc6d87a7639d6"
+          },
+          {
+            "name": "write",
+            "permission": null,
+            "schemaSha256": "10f258885753782b4716079793f4bcccc2f28b91d11d3ba929beb34913383535"
+          }
+        ],
+        "toolCount": 22,
+        "skillToolNames": [
+          "load_skill"
+        ]
+      },
+      "mounts": [
+        "analyze",
+        "apps",
+        "desktop-utilities",
+        "developer",
+        "Extension Manager",
+        "scheduler",
+        "skills",
+        "summon",
+        "todo",
+        "tom"
+      ],
+      "inventoryMatches": true,
+      "setupMs": 176,
+      "status": "preflight_ready",
+      "tools": [],
+      "scopedRelay": {
+        "trial": "simple-default",
+        "calls": 0,
+        "denied": 0
+      }
+    },
+    {
+      "key": "simple-previous",
+      "difficulty": "simple",
+      "arm": "previous",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": true,
+        "axwiseLocalEnabled": false
+      },
+      "startedAt": "2026-09-29T15:47:25.693Z",
+      "directory": "/private/tmp/orqanix-efficiency-backend-preflight-20260929/simple-previous",
+      "workspace": "/private/tmp/orqanix-efficiency-backend-preflight-20260929/simple-previous/fixture/workspace",
+      "decisions": [],
+      "confinedAuthVerified": true,
+      "flagsAppliedVia": "Goose ACP platform extension mount",
+      "boundary": {
+        "sha256": "e205b9fa9efb2c4068f3dab79531dd50033836bd879d37e3e73dc874e80205e5",
+        "checks": [
+          {
+            "name": "workspace read",
+            "passed": true
+          },
+          {
+            "name": "workspace write and remove",
+            "passed": true
+          },
+          {
+            "name": "profile write",
+            "passed": true
+          },
+          {
+            "name": "own temp write",
+            "passed": true
+          },
+          {
+            "name": "other temp read denied",
+            "passed": true
+          },
+          {
+            "name": "other temp write denied",
+            "passed": true
+          },
+          {
+            "name": "user directory listing denied",
+            "passed": true
+          },
+          {
+            "name": "child inherits restriction",
+            "passed": true
+          },
+          {
+            "name": "symlink read escape denied",
+            "passed": true
+          },
+          {
+            "name": "symlink write escape denied",
+            "passed": true
+          },
+          {
+            "name": "hardlink escape denied",
+            "passed": true
+          },
+          {
+            "name": "app binary readable",
+            "passed": true
+          },
+          {
+            "name": "app resources immutable",
+            "passed": true
+          }
+        ],
+        "description": "Goose backend and descendants cannot read/write unrelated user, volume or temp trees; app resources read-only; own synthetic workspace/profile/temp writable. Electron remains outside this added filesystem boundary. Network/IPC remain available; this is not complete process or network isolation."
+      },
+      "configOptions": [
+        {
+          "id": "mode",
+          "name": "Mode",
+          "category": "mode",
+          "type": "select",
+          "currentValue": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "name": "auto",
+              "description": "Automatically approve tool calls"
+            },
+            {
+              "value": "approve",
+              "name": "approve",
+              "description": "Ask before every tool call"
+            },
+            {
+              "value": "smart_approve",
+              "name": "smart_approve",
+              "description": "Ask only for sensitive tool calls"
+            },
+            {
+              "value": "chat",
+              "name": "chat",
+              "description": "Chat only, no tool calls"
+            }
+          ]
+        },
+        {
+          "id": "model",
+          "name": "Model",
+          "category": "model",
+          "type": "select",
+          "currentValue": "orqaly-gemini",
+          "options": [
+            {
+              "value": "orqaly-gemini",
+              "name": "orqaly-gemini"
+            }
+          ]
+        },
+        {
+          "id": "thinking_effort",
+          "name": "Thinking effort",
+          "description": "Controls reasoning effort for models that support extended thinking.",
+          "category": "thought_level",
+          "type": "select",
+          "currentValue": "off",
+          "options": [
+            {
+              "value": "off",
+              "name": "off"
+            }
+          ]
+        }
+      ],
+      "inventory": {
+        "extensions": [
+          {
+            "key": "analyze",
+            "name": "analyze",
+            "type": "platform"
+          },
+          {
+            "key": "apps",
+            "name": "apps",
+            "type": "platform"
+          },
+          {
+            "key": "desktop-utilities",
+            "name": "desktop-utilities",
+            "type": "mcp"
+          },
+          {
+            "key": "developer",
+            "name": "developer",
+            "type": "platform"
+          },
+          {
+            "key": "extensionmanager",
+            "name": "Extension Manager",
+            "type": "platform"
+          },
+          {
+            "key": "native_engineering",
+            "name": "native_engineering",
+            "type": "platform"
+          },
+          {
+            "key": "scheduler",
+            "name": "scheduler",
+            "type": "platform"
+          },
+          {
+            "key": "skills",
+            "name": "skills",
+            "type": "platform"
+          },
+          {
+            "key": "summon",
+            "name": "summon",
+            "type": "platform"
+          },
+          {
+            "key": "todo",
+            "name": "todo",
+            "type": "platform"
+          },
+          {
+            "key": "tom",
+            "name": "tom",
+            "type": "platform"
+          }
+        ],
+        "tools": [
+          {
+            "name": "analyze",
+            "permission": null,
+            "schemaSha256": "df743083b9f8c3d6cc006c41bfed7587afb8979d589da8477cdca6eac8e16034"
+          },
+          {
+            "name": "apps__create_app",
+            "permission": null,
+            "schemaSha256": "086a60fa66b91fe17f785b3f92799964784d378c400f6b67f61022aff78c7ed2"
+          },
+          {
+            "name": "apps__delete_app",
+            "permission": null,
+            "schemaSha256": "b757aae602cea7efda0030948dcca5d8697ff2d9de158143982f433738f5b98f"
+          },
+          {
+            "name": "apps__iterate_app",
+            "permission": null,
+            "schemaSha256": "d8e9ddcf4657db8c39b45493920d0b6c2b6f996840b8240212e5cd314240cffe"
+          },
+          {
+            "name": "apps__list_apps",
+            "permission": null,
+            "schemaSha256": "afb28f250c5001b1f58021742cf56912c211915782cf7c0d423366a718e7222c"
+          },
+          {
+            "name": "ast_search",
+            "permission": null,
+            "schemaSha256": "586148a12f10a099f37c80b522df76fd22ca3d6b2c32773bd6eca6e93d72164d"
+          },
+          {
+            "name": "delegate",
+            "permission": null,
+            "schemaSha256": "1b7b5e23224949499f9973b62123fd5b47111d31228fe04f2ae1cc32fc015f2a"
+          },
+          {
+            "name": "desktop-utilities__convert_currency",
+            "permission": null,
+            "schemaSha256": "10ac3f4ae129a3e733d8f2c8db570cceacf56fdd0c363001d806c982647c02be"
+          },
+          {
+            "name": "desktop-utilities__get_weather",
+            "permission": null,
+            "schemaSha256": "b17811acb7a8d8cc769525cce056fbd8fffb9ce95016fae06ad9148aca19031b"
+          },
+          {
+            "name": "desktop-utilities__search_web",
+            "permission": null,
+            "schemaSha256": "a6203ff6c5c9fc189b54390e88434ad4081f42e4c3d14e6f165c8f8bc0d15e1b"
+          },
+          {
+            "name": "edit",
+            "permission": null,
+            "schemaSha256": "051eb85cf85adbd37973d374cbf38218060f607ee36bf62b69a686762999d83b"
+          },
+          {
+            "name": "extensionmanager__list_resources",
+            "permission": null,
+            "schemaSha256": "95aefd9d3546739b764973cde170cb58d1a8d10512998e512d5cadea972da187"
+          },
+          {
+            "name": "extensionmanager__manage_extensions",
+            "permission": null,
+            "schemaSha256": "52419b049117131d44efd2d9e834853b434d97b091fb2d45e2691d3f80f9ac14"
+          },
+          {
+            "name": "extensionmanager__read_resource",
+            "permission": null,
+            "schemaSha256": "700d8d0f5f170a6a22570d092dcce1e2611ddda61b5ffdc3c077292d99ce41bd"
+          },
+          {
+            "name": "extensionmanager__search_available_extensions",
+            "permission": null,
+            "schemaSha256": "2952d68325ff397899ec183e0a2d566475ee4790239f33b52dd51644fa1c8ddc"
+          },
+          {
+            "name": "hashline_edit",
+            "permission": null,
+            "schemaSha256": "00fb0babb34b66939f725a478ccfac6b7ed5659a0415d47e304d82430ef33a85"
+          },
+          {
+            "name": "load",
+            "permission": null,
+            "schemaSha256": "9a2c21ef3afe82653f047860bd28d7017d08c001033e2561a3b5d8ca9cb1ebd1"
+          },
+          {
+            "name": "load_skill",
+            "permission": null,
+            "schemaSha256": "275aad3faad22de4642c746b3c0c74e7705b775be5d1e01841a2270d3cec67d5"
+          },
+          {
+            "name": "lsp_query",
+            "permission": null,
+            "schemaSha256": "3521dc66e28bb669fb198f64f85eadb464a9f959407cc6ccdba425d5c4e5b8d6"
+          },
+          {
+            "name": "read_image",
+            "permission": null,
+            "schemaSha256": "0e25f3bd38b210a406a8d062f05b25ae6cf8394f024534e955f2ce8cac0dc83e"
+          },
+          {
+            "name": "safe_edit_and_test",
+            "permission": null,
+            "schemaSha256": "9421fcd04dee75c56f01e1c5d03ccf29d12f7e1dbd78aa2c8a02c03da20fc5e5"
+          },
+          {
+            "name": "scheduler__manage_schedule",
+            "permission": null,
+            "schemaSha256": "5ffd450c65c5f6d0e387af014ed07d019fbcf55dde776e554bace8772bb55c5e"
+          },
+          {
+            "name": "shell",
+            "permission": null,
+            "schemaSha256": "dafa865264c86f99203d2fc4e54336c1a740571d02977c211c6655e82d452db4"
+          },
+          {
+            "name": "todo__todo_write",
+            "permission": null,
+            "schemaSha256": "056a9291458501756ff0c20f81146e4da69131a4eb77b47741ef89af67360bf4"
+          },
+          {
+            "name": "tree",
+            "permission": null,
+            "schemaSha256": "599803d9c440598ff3450529baefd8dae27c27e54d6a24488c1cc6d87a7639d6"
+          },
+          {
+            "name": "write",
+            "permission": null,
+            "schemaSha256": "10f258885753782b4716079793f4bcccc2f28b91d11d3ba929beb34913383535"
+          }
+        ],
+        "toolCount": 26,
+        "skillToolNames": [
+          "load_skill"
+        ]
+      },
+      "mounts": [
+        "analyze",
+        "apps",
+        "desktop-utilities",
+        "developer",
+        "Extension Manager",
+        "native_engineering",
+        "scheduler",
+        "skills",
+        "summon",
+        "todo",
+        "tom"
+      ],
+      "inventoryMatches": true,
+      "setupMs": 157,
+      "status": "preflight_ready",
+      "tools": [],
+      "scopedRelay": {
+        "trial": "simple-previous",
+        "calls": 0,
+        "denied": 0
+      }
+    },
+    {
+      "key": "simple-candidate",
+      "difficulty": "simple",
+      "arm": "candidate",
+      "repeat": 1,
+      "flags": {
+        "jevReviewEnabled": false,
+        "nativeGemsEnabled": true,
+        "axwiseLocalEnabled": false
+      },
+      "startedAt": "2026-09-29T15:47:27.537Z",
+      "directory": "/private/tmp/orqanix-efficiency-backend-preflight-20260929/simple-candidate",
+      "workspace": "/private/tmp/orqanix-efficiency-backend-preflight-20260929/simple-candidate/fixture/workspace",
+      "decisions": [],
+      "confinedAuthVerified": true,
+      "flagsAppliedVia": "Goose ACP platform extension mount",
+      "boundary": {
+        "sha256": "b660f8f32f5b1618c6d509dd854fbc1b3a6d17d903659dc74014fd894da18097",
+        "checks": [
+          {
+            "name": "workspace read",
+            "passed": true
+          },
+          {
+            "name": "workspace write and remove",
+            "passed": true
+          },
+          {
+            "name": "profile write",
+            "passed": true
+          },
+          {
+            "name": "own temp write",
+            "passed": true
+          },
+          {
+            "name": "other temp read denied",
+            "passed": true
+          },
+          {
+            "name": "other temp write denied",
+            "passed": true
+          },
+          {
+            "name": "user directory listing denied",
+            "passed": true
+          },
+          {
+            "name": "child inherits restriction",
+            "passed": true
+          },
+          {
+            "name": "symlink read escape denied",
+            "passed": true
+          },
+          {
+            "name": "symlink write escape denied",
+            "passed": true
+          },
+          {
+            "name": "hardlink escape denied",
+            "passed": true
+          },
+          {
+            "name": "app binary readable",
+            "passed": true
+          },
+          {
+            "name": "app resources immutable",
+            "passed": true
+          }
+        ],
+        "description": "Goose backend and descendants cannot read/write unrelated user, volume or temp trees; app resources read-only; own synthetic workspace/profile/temp writable. Electron remains outside this added filesystem boundary. Network/IPC remain available; this is not complete process or network isolation."
+      },
+      "configOptions": [
+        {
+          "id": "mode",
+          "name": "Mode",
+          "category": "mode",
+          "type": "select",
+          "currentValue": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "name": "auto",
+              "description": "Automatically approve tool calls"
+            },
+            {
+              "value": "approve",
+              "name": "approve",
+              "description": "Ask before every tool call"
+            },
+            {
+              "value": "smart_approve",
+              "name": "smart_approve",
+              "description": "Ask only for sensitive tool calls"
+            },
+            {
+              "value": "chat",
+              "name": "chat",
+              "description": "Chat only, no tool calls"
+            }
+          ]
+        },
+        {
+          "id": "model",
+          "name": "Model",
+          "category": "model",
+          "type": "select",
+          "currentValue": "orqaly-gemini",
+          "options": [
+            {
+              "value": "orqaly-gemini",
+              "name": "orqaly-gemini"
+            }
+          ]
+        },
+        {
+          "id": "thinking_effort",
+          "name": "Thinking effort",
+          "description": "Controls reasoning effort for models that support extended thinking.",
+          "category": "thought_level",
+          "type": "select",
+          "currentValue": "off",
+          "options": [
+            {
+              "value": "off",
+              "name": "off"
+            }
+          ]
+        }
+      ],
+      "inventory": {
+        "extensions": [
+          {
+            "key": "analyze",
+            "name": "analyze",
+            "type": "platform"
+          },
+          {
+            "key": "apps",
+            "name": "apps",
+            "type": "platform"
+          },
+          {
+            "key": "desktop-utilities",
+            "name": "desktop-utilities",
+            "type": "mcp"
+          },
+          {
+            "key": "developer",
+            "name": "developer",
+            "type": "platform"
+          },
+          {
+            "key": "extensionmanager",
+            "name": "Extension Manager",
+            "type": "platform"
+          },
+          {
+            "key": "native_engineering",
+            "name": "native_engineering",
+            "type": "platform"
+          },
+          {
+            "key": "scheduler",
+            "name": "scheduler",
+            "type": "platform"
+          },
+          {
+            "key": "skills",
+            "name": "skills",
+            "type": "platform"
+          },
+          {
+            "key": "summon",
+            "name": "summon",
+            "type": "platform"
+          },
+          {
+            "key": "todo",
+            "name": "todo",
+            "type": "platform"
+          },
+          {
+            "key": "tom",
+            "name": "tom",
+            "type": "platform"
+          }
+        ],
+        "tools": [
+          {
+            "name": "analyze",
+            "permission": null,
+            "schemaSha256": "df743083b9f8c3d6cc006c41bfed7587afb8979d589da8477cdca6eac8e16034"
+          },
+          {
+            "name": "apps__create_app",
+            "permission": null,
+            "schemaSha256": "086a60fa66b91fe17f785b3f92799964784d378c400f6b67f61022aff78c7ed2"
+          },
+          {
+            "name": "apps__delete_app",
+            "permission": null,
+            "schemaSha256": "b757aae602cea7efda0030948dcca5d8697ff2d9de158143982f433738f5b98f"
+          },
+          {
+            "name": "apps__iterate_app",
+            "permission": null,
+            "schemaSha256": "d8e9ddcf4657db8c39b45493920d0b6c2b6f996840b8240212e5cd314240cffe"
+          },
+          {
+            "name": "apps__list_apps",
+            "permission": null,
+            "schemaSha256": "afb28f250c5001b1f58021742cf56912c211915782cf7c0d423366a718e7222c"
+          },
+          {
+            "name": "ast_search",
+            "permission": null,
+            "schemaSha256": "586148a12f10a099f37c80b522df76fd22ca3d6b2c32773bd6eca6e93d72164d"
+          },
+          {
+            "name": "delegate",
+            "permission": null,
+            "schemaSha256": "1b7b5e23224949499f9973b62123fd5b47111d31228fe04f2ae1cc32fc015f2a"
+          },
+          {
+            "name": "desktop-utilities__convert_currency",
+            "permission": null,
+            "schemaSha256": "10ac3f4ae129a3e733d8f2c8db570cceacf56fdd0c363001d806c982647c02be"
+          },
+          {
+            "name": "desktop-utilities__get_weather",
+            "permission": null,
+            "schemaSha256": "b17811acb7a8d8cc769525cce056fbd8fffb9ce95016fae06ad9148aca19031b"
+          },
+          {
+            "name": "desktop-utilities__search_web",
+            "permission": null,
+            "schemaSha256": "a6203ff6c5c9fc189b54390e88434ad4081f42e4c3d14e6f165c8f8bc0d15e1b"
+          },
+          {
+            "name": "edit",
+            "permission": null,
+            "schemaSha256": "051eb85cf85adbd37973d374cbf38218060f607ee36bf62b69a686762999d83b"
+          },
+          {
+            "name": "extensionmanager__list_resources",
+            "permission": null,
+            "schemaSha256": "95aefd9d3546739b764973cde170cb58d1a8d10512998e512d5cadea972da187"
+          },
+          {
+            "name": "extensionmanager__manage_extensions",
+            "permission": null,
+            "schemaSha256": "52419b049117131d44efd2d9e834853b434d97b091fb2d45e2691d3f80f9ac14"
+          },
+          {
+            "name": "extensionmanager__read_resource",
+            "permission": null,
+            "schemaSha256": "700d8d0f5f170a6a22570d092dcce1e2611ddda61b5ffdc3c077292d99ce41bd"
+          },
+          {
+            "name": "extensionmanager__search_available_extensions",
+            "permission": null,
+            "schemaSha256": "2952d68325ff397899ec183e0a2d566475ee4790239f33b52dd51644fa1c8ddc"
+          },
+          {
+            "name": "hashline_edit",
+            "permission": null,
+            "schemaSha256": "b76763d01422ea378f9ac75daafcb5351a8e45bde6c8f12b075d4348a65b3fb5"
+          },
+          {
+            "name": "load",
+            "permission": null,
+            "schemaSha256": "9a2c21ef3afe82653f047860bd28d7017d08c001033e2561a3b5d8ca9cb1ebd1"
+          },
+          {
+            "name": "load_skill",
+            "permission": null,
+            "schemaSha256": "275aad3faad22de4642c746b3c0c74e7705b775be5d1e01841a2270d3cec67d5"
+          },
+          {
+            "name": "lsp_query",
+            "permission": null,
+            "schemaSha256": "3521dc66e28bb669fb198f64f85eadb464a9f959407cc6ccdba425d5c4e5b8d6"
+          },
+          {
+            "name": "read_image",
+            "permission": null,
+            "schemaSha256": "0e25f3bd38b210a406a8d062f05b25ae6cf8394f024534e955f2ce8cac0dc83e"
+          },
+          {
+            "name": "safe_edit_and_test",
+            "permission": null,
+            "schemaSha256": "9421fcd04dee75c56f01e1c5d03ccf29d12f7e1dbd78aa2c8a02c03da20fc5e5"
+          },
+          {
+            "name": "scheduler__manage_schedule",
+            "permission": null,
+            "schemaSha256": "5ffd450c65c5f6d0e387af014ed07d019fbcf55dde776e554bace8772bb55c5e"
+          },
+          {
+            "name": "shell",
+            "permission": null,
+            "schemaSha256": "dafa865264c86f99203d2fc4e54336c1a740571d02977c211c6655e82d452db4"
+          },
+          {
+            "name": "todo__todo_write",
+            "permission": null,
+            "schemaSha256": "056a9291458501756ff0c20f81146e4da69131a4eb77b47741ef89af67360bf4"
+          },
+          {
+            "name": "tree",
+            "permission": null,
+            "schemaSha256": "599803d9c440598ff3450529baefd8dae27c27e54d6a24488c1cc6d87a7639d6"
+          },
+          {
+            "name": "write",
+            "permission": null,
+            "schemaSha256": "10f258885753782b4716079793f4bcccc2f28b91d11d3ba929beb34913383535"
+          }
+        ],
+        "toolCount": 26,
+        "skillToolNames": [
+          "load_skill"
+        ]
+      },
+      "mounts": [
+        "analyze",
+        "apps",
+        "desktop-utilities",
+        "developer",
+        "Extension Manager",
+        "native_engineering",
+        "scheduler",
+        "skills",
+        "summon",
+        "todo",
+        "tom"
+      ],
+      "inventoryMatches": true,
+      "setupMs": 176,
+      "status": "preflight_ready",
+      "tools": [],
+      "scopedRelay": {
+        "trial": "simple-candidate",
+        "calls": 0,
+        "denied": 0
+      }
+    }
+  ],
+  "method": "12 Goose backend trials through Orqanix production model router, using ACP stdio instead of Electron. Default previous binary/native off, previous binary/native on, optimized binary/native on x four calibrated TypeScript tasks. Actual default Goose builtins plus developer/todo, scheduler and desktop utilities; native platform extension mounted via ACP. Gemini 3.8 Flash, unspecified effort, legacy loop, Jev/Axwise off, no Code Mode. Fresh Git fixtures/profiles, backend filesystem confinement. 360-second task limit, normal action default, 60-call local capability. Elapsed time is ACP task submission to final response, excluding setup/evaluation. Not desktop UI timing. Parent Keychain OAuth refresh uses the normal connector; real credentials never enter Goose. No model trial retries or replacements. All correctness outcomes retained; one sample per build/task is exploratory."
+}

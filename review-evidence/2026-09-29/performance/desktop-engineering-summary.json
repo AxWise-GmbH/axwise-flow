@@ -1,0 +1,360 @@
+{
+  "kind": "installed-Goose-ACP-and-packaged-engineering-MCP",
+  "completedFixtureTurns": 8,
+  "acceptedFixtureTurns": 8,
+  "measurement": "Successful ACP prompt start through completion; setup/auth and independent oracle execution excluded",
+  "authenticationMs": 474,
+  "arms": [
+    {
+      "arm": "omp-off_jev-off",
+      "samples": 2,
+      "accepted": 2,
+      "completed": 2,
+      "primaryHttpAttempts": 18,
+      "successfulPrimaryHttpResponses": 18,
+      "requestedEffortsObserved": [
+        "high"
+      ],
+      "reviewStatuses": [],
+      "meanSuccessfulMs": 17558,
+      "minMs": 16574,
+      "maxMs": 18542
+    },
+    {
+      "arm": "omp-on_jev-off",
+      "samples": 2,
+      "accepted": 2,
+      "completed": 2,
+      "primaryHttpAttempts": 10,
+      "successfulPrimaryHttpResponses": 10,
+      "requestedEffortsObserved": [
+        "high"
+      ],
+      "reviewStatuses": [
+        {
+          "status": "not_evaluated",
+          "reason": "disabled_by_user"
+        },
+        {
+          "status": "not_evaluated",
+          "reason": "disabled_by_user"
+        }
+      ],
+      "meanSuccessfulMs": 48734,
+      "minMs": 44189,
+      "maxMs": 53279
+    },
+    {
+      "arm": "omp-off_jev-on",
+      "samples": 2,
+      "accepted": 2,
+      "completed": 2,
+      "primaryHttpAttempts": 17,
+      "successfulPrimaryHttpResponses": 17,
+      "requestedEffortsObserved": [
+        "high"
+      ],
+      "reviewStatuses": [],
+      "meanSuccessfulMs": 16121,
+      "minMs": 15225,
+      "maxMs": 17016
+    },
+    {
+      "arm": "omp-on_jev-on",
+      "samples": 2,
+      "accepted": 2,
+      "completed": 2,
+      "primaryHttpAttempts": 8,
+      "successfulPrimaryHttpResponses": 8,
+      "requestedEffortsObserved": [
+        "high"
+      ],
+      "reviewStatuses": [
+        {
+          "status": "passed",
+          "reason": "advisory_review"
+        },
+        {
+          "status": "passed",
+          "reason": "advisory_review"
+        }
+      ],
+      "meanSuccessfulMs": 48320,
+      "minMs": 44532,
+      "maxMs": 52108
+    }
+  ],
+  "rows": [
+    {
+      "arm": "omp-off_jev-off",
+      "repetition": 1,
+      "setupMs": 59,
+      "endToEndMs": 18542,
+      "toolCalls": 8,
+      "primaryHttpAttempts": 9,
+      "acceptance": {
+        "functionBehavior": true,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": true,
+        "passed": true,
+        "sourceSha256": "832b14a86018fa5aad5bb02ac43de49bb0f3a3dac9e8b4b2961ee83006d21da9",
+        "testSha256": "f82b502a0f144f2414ee7d9308a24860884558a2ff2af05012a883b79c93fd87"
+      },
+      "OMP": []
+    },
+    {
+      "arm": "omp-on_jev-off",
+      "repetition": 1,
+      "setupMs": 67,
+      "endToEndMs": 44189,
+      "toolCalls": 3,
+      "primaryHttpAttempts": 5,
+      "acceptance": {
+        "functionBehavior": true,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": true,
+        "passed": true,
+        "sourceSha256": "832b14a86018fa5aad5bb02ac43de49bb0f3a3dac9e8b4b2961ee83006d21da9",
+        "testSha256": "2f3cd6b057002e07200c04d28059986d4fdcdb77023a44d75a379a62704404f1"
+      },
+      "OMP": [
+        {
+          "status": "review_required",
+          "verified": false,
+          "localTests": "passed",
+          "diffChanged": true,
+          "nestedRunMs": 31993,
+          "review": {
+            "status": "not_evaluated",
+            "advisory": true,
+            "reason": "disabled_by_user"
+          }
+        }
+      ]
+    },
+    {
+      "arm": "omp-off_jev-on",
+      "repetition": 1,
+      "setupMs": 38,
+      "endToEndMs": 15225,
+      "toolCalls": 6,
+      "primaryHttpAttempts": 8,
+      "acceptance": {
+        "functionBehavior": true,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": true,
+        "passed": true,
+        "sourceSha256": "a7ee67d8d1c9e4367f2f27481e670fe2a825f3cec6605b30dc1f920beef97910",
+        "testSha256": "36516c7ee635bbbc2707e7e0fe5e3034b720f6d5b43916c8de6f32ee2caa13e9"
+      },
+      "OMP": []
+    },
+    {
+      "arm": "omp-on_jev-on",
+      "repetition": 1,
+      "setupMs": 65,
+      "endToEndMs": 52108,
+      "toolCalls": 1,
+      "primaryHttpAttempts": 3,
+      "acceptance": {
+        "functionBehavior": true,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": true,
+        "passed": true,
+        "sourceSha256": "832b14a86018fa5aad5bb02ac43de49bb0f3a3dac9e8b4b2961ee83006d21da9",
+        "testSha256": "f82b502a0f144f2414ee7d9308a24860884558a2ff2af05012a883b79c93fd87"
+      },
+      "OMP": [
+        {
+          "status": "completed",
+          "verified": true,
+          "localTests": "passed",
+          "diffChanged": true,
+          "nestedRunMs": 31359,
+          "review": {
+            "status": "passed",
+            "reason": "advisory_review",
+            "advisory": true,
+            "provider": "typesafe",
+            "model": "jev-1.13.0",
+            "evaluatedAt": "2026-09-29T09:14:39.211Z",
+            "recordedAt": "2026-09-29T09:14:39.211Z",
+            "latencyMs": 269,
+            "qualityScore": 0.95,
+            "readyProbability": 0.87
+          }
+        }
+      ]
+    },
+    {
+      "arm": "omp-on_jev-on",
+      "repetition": 2,
+      "setupMs": 60,
+      "endToEndMs": 44532,
+      "toolCalls": 3,
+      "primaryHttpAttempts": 5,
+      "acceptance": {
+        "functionBehavior": true,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": true,
+        "passed": true,
+        "sourceSha256": "832b14a86018fa5aad5bb02ac43de49bb0f3a3dac9e8b4b2961ee83006d21da9",
+        "testSha256": "f82b502a0f144f2414ee7d9308a24860884558a2ff2af05012a883b79c93fd87"
+      },
+      "OMP": [
+        {
+          "status": "completed",
+          "verified": true,
+          "localTests": "passed",
+          "diffChanged": true,
+          "nestedRunMs": 30871,
+          "review": {
+            "status": "passed",
+            "reason": "advisory_review",
+            "advisory": true,
+            "provider": "typesafe",
+            "model": "jev-1.13.0",
+            "evaluatedAt": "2026-09-29T09:15:23.343Z",
+            "recordedAt": "2026-09-29T09:15:23.344Z",
+            "latencyMs": 291,
+            "qualityScore": 0.96,
+            "readyProbability": 0.92
+          }
+        }
+      ]
+    },
+    {
+      "arm": "omp-off_jev-on",
+      "repetition": 2,
+      "setupMs": 43,
+      "endToEndMs": 17016,
+      "toolCalls": 7,
+      "primaryHttpAttempts": 9,
+      "acceptance": {
+        "functionBehavior": true,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": true,
+        "passed": true,
+        "sourceSha256": "832b14a86018fa5aad5bb02ac43de49bb0f3a3dac9e8b4b2961ee83006d21da9",
+        "testSha256": "36516c7ee635bbbc2707e7e0fe5e3034b720f6d5b43916c8de6f32ee2caa13e9"
+      },
+      "OMP": []
+    },
+    {
+      "arm": "omp-on_jev-off",
+      "repetition": 2,
+      "setupMs": 64,
+      "endToEndMs": 53279,
+      "toolCalls": 3,
+      "primaryHttpAttempts": 5,
+      "acceptance": {
+        "functionBehavior": true,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": true,
+        "passed": true,
+        "sourceSha256": "832b14a86018fa5aad5bb02ac43de49bb0f3a3dac9e8b4b2961ee83006d21da9",
+        "testSha256": "34e4be0c8c7d7c59c20deec4552e550ed15575d0809ab05a94bd1d7f514b7df1"
+      },
+      "OMP": [
+        {
+          "status": "review_required",
+          "verified": false,
+          "localTests": "passed",
+          "diffChanged": true,
+          "nestedRunMs": 35897,
+          "review": {
+            "status": "not_evaluated",
+            "advisory": true,
+            "reason": "disabled_by_user"
+          }
+        }
+      ]
+    },
+    {
+      "arm": "omp-off_jev-off",
+      "repetition": 2,
+      "setupMs": 40,
+      "endToEndMs": 16574,
+      "toolCalls": 7,
+      "primaryHttpAttempts": 9,
+      "acceptance": {
+        "functionBehavior": true,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": true,
+        "passed": true,
+        "sourceSha256": "832b14a86018fa5aad5bb02ac43de49bb0f3a3dac9e8b4b2961ee83006d21da9",
+        "testSha256": "36516c7ee635bbbc2707e7e0fe5e3034b720f6d5b43916c8de6f32ee2caa13e9"
+      },
+      "OMP": []
+    }
+  ],
+  "observedPrimaryResponseModels": [
+    "gemini-3.8-flash"
+  ],
+  "observedPrimaryEffort": [
+    "high"
+  ],
+  "ACPReportedEffort": [
+    "off"
+  ],
+  "nestedOMPConfiguredModel": "orqanix/orqaly-gemini",
+  "nestedOMPConfiguredEffort": "high",
+  "nestedResolvedModel": null,
+  "primaryHTTPAttempts": 53,
+  "primaryHTTP200": 53,
+  "primaryUsageTotalsFromFinalSnapshots": {
+    "input": 321833,
+    "output": 5327,
+    "total": 347109,
+    "note": "Includes observed primary-profile auxiliary requests such as title generation; excludes hidden nested OMP and JEV usage."
+  },
+  "confirmedJevReceipts": [
+    {
+      "status": "passed",
+      "reason": "advisory_review",
+      "advisory": true,
+      "provider": "typesafe",
+      "model": "jev-1.13.0",
+      "evaluatedAt": "2026-09-29T09:14:39.211Z",
+      "recordedAt": "2026-09-29T09:14:39.211Z",
+      "latencyMs": 269,
+      "qualityScore": 0.95,
+      "readyProbability": 0.87
+    },
+    {
+      "status": "passed",
+      "reason": "advisory_review",
+      "advisory": true,
+      "provider": "typesafe",
+      "model": "jev-1.13.0",
+      "evaluatedAt": "2026-09-29T09:15:23.343Z",
+      "recordedAt": "2026-09-29T09:15:23.344Z",
+      "latencyMs": 291,
+      "qualityScore": 0.96,
+      "readyProbability": 0.92
+    }
+  ],
+  "calibration": {
+    "excludedReports": [
+      "desktop-engineering-blocked-harness.json",
+      "desktop-engineering-permission-calibration.json"
+    ],
+    "HTTP403BeforeObservedInference": 16,
+    "savedPermissionCalibrationHTTPAttempts": 18,
+    "additionalInterruptedHTTPAttempts": "unknown; runner stopped during seventh calibration fixture before row flush",
+    "knownExcludedHTTPAttemptLowerBound": 34,
+    "note": "Harness-caused denials are excluded from product success and latency comparisons. No claim of zero calibration inference cost."
+  },
+  "leftoverBenchmarkAcpGroups": 0,
+  "limitations": [
+    "Real installed packaged tool path; no Electron renderer or desktop pre-turn triage. Does not establish that local source/UI fixes are shipped.",
+    "Axwise and code-execution wrappers are disabled; native developer tools are common to all arms. Actual tool inventory is retained.",
+    "Identical conditional prompt selects OMP editing when mounted. This measures a controlled route, not organic tool selection.",
+    "JEV-on with OMP-off has no evidence-review effect in this harness; desktop pre-turn JEV behavior is outside this experiment.",
+    "Hosted model alias and requested effort are fixed; underlying gateway model and provider cache state are not independently verified.",
+    "Two fresh isolated fixtures per arm, reversed second-round order. Small exploratory sample, not statistical proof.",
+    "A transparent localhost forwarder passes primary requests and real gateway responses unchanged; it records request effort/model, HTTP status and usage. Nested OMP calls still go directly through the installed gateway route.",
+    "Tool counts and primary request count are observed. Total model-call count and hidden OMP token usage are unavailable."
+  ],
+  "conclusion": "All8 final synthetic fixture turns passed independent behavior, local tests, and mutation-based regression checks. OMP routes were slower on this small task (~48s vs16–18s). Two samples per arm cannot establish general reliability or a JEV speed improvement. JEV on/on receipts confirm advisory review passed; off/on without OMP does not exercise review in this harness."
+}

@@ -1,0 +1,17 @@
+{
+  "source": "/private/tmp/orqaly-goose-verified-fixes",
+  "destination": "/Users/admin/axwise-opensource/orqaly-goose",
+  "files": [
+    "crates/goose/src/agents/platform_extensions/native_engineering/mod.rs",
+    "crates/goose/src/agents/platform_extensions/native_engineering/edits.rs",
+    "crates/goose/src/agents/platform_extensions/native_engineering/lsp.rs",
+    "crates/goose/src/agents/platform_extensions/native_engineering/state.rs",
+    "crates/goose/src/agents/platform_extensions/native_engineering/selection.md",
+    "crates/goose/src/agents/platform_extensions/native_engineering/README.md",
+    "crates/goose/src/agents/platform_extensions/developer/mod.rs",
+    "crates/goose/tests/native_engineering_integration.rs",
+    "goose-self-test.yaml",
+    "crates/goose/src/agents/extension_manager.rs"
+  ],
+  "verified": true
+}

@@ -1,0 +1,139 @@
+✔ tool-selection fingerprints distinguish real instruction/schema changes without storing private text (0.909583ms)
+✔ client close after end but before finish settles the inbound record (0.114833ms)
+✖ real identity delegation is required; missing, rejected and cross-account credentials never reach Google (7.403292ms)
+✖ production chat router handles primary and Axwise with pinned model, normalization, actual usage and no secret/prompt telemetry (2.443833ms)
+✖ SSE bytes are preserved while streamed model identity and cumulative usage are observed (0.905708ms)
+✖ JEV forwards authenticated production decisions and review, preserving outcomes and measuring full endpoint overhead (0.772542ms)
+✖ current production JEV service classifies with direct provider tracing and unchanged real desktop authentication (0.716458ms)
+✖ disabled and unavailable current JEV decisions remain explicitly unevaluated without remote fallback (0.73725ms)
+✖ remote JEV rejection retains only its bounded error code and actual HTTP status (0.673875ms)
+✖ an in-flight request retains the label captured on arrival after the active trial changes (0.891125ms)
+▶ missing and mismatched generated model identities fail closed and remain visible
+  ✖ RESPONSE_MODEL_MISSING (0.683916ms)
+  ✖ RESPONSE_MODEL_MISMATCH (0.69ms)
+✖ missing and mismatched generated model identities fail closed and remain visible (1.625792ms)
+✖ legacy cloud work routes are absent and synthetic auth cannot be configured (0.677292ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 2
+ℹ fail 12
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 228.014
+
+✖ failing tests:
+
+test at scripts/lib/orqanix-benchmark-relay.test.mjs:80:1
+✖ real identity delegation is required; missing, rejected and cross-account credentials never reach Google (7.403292ms)
+  TypeError [Error]: Cannot read properties of null (reading 'port')
+      at startBenchmarkRelay (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.mjs:344:46)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async fixture (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:71:17)
+      at async TestContext.<anonymous> (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:81:28)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at scripts/lib/orqanix-benchmark-relay.test.mjs:91:1
+✖ production chat router handles primary and Axwise with pinned model, normalization, actual usage and no secret/prompt telemetry (2.443833ms)
+  TypeError [Error]: Cannot read properties of null (reading 'port')
+      at startBenchmarkRelay (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.mjs:344:46)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async fixture (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:71:17)
+      at async TestContext.<anonymous> (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:92:36)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at scripts/lib/orqanix-benchmark-relay.test.mjs:119:1
+✖ SSE bytes are preserved while streamed model identity and cumulative usage are observed (0.905708ms)
+  TypeError [Error]: Cannot read properties of null (reading 'port')
+      at startBenchmarkRelay (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.mjs:344:46)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async fixture (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:71:17)
+      at async TestContext.<anonymous> (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:122:21)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at scripts/lib/orqanix-benchmark-relay.test.mjs:130:1
+✖ JEV forwards authenticated production decisions and review, preserving outcomes and measuring full endpoint overhead (0.772542ms)
+  TypeError [Error]: Cannot read properties of null (reading 'port')
+      at startBenchmarkRelay (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.mjs:344:46)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async fixture (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:71:17)
+      at async TestContext.<anonymous> (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:131:28)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at scripts/lib/orqanix-benchmark-relay.test.mjs:145:1
+✖ current production JEV service classifies with direct provider tracing and unchanged real desktop authentication (0.716458ms)
+  TypeError [Error]: Cannot read properties of null (reading 'port')
+      at startBenchmarkRelay (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.mjs:344:46)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async fixture (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:71:17)
+      at async TestContext.<anonymous> (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:147:36)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at scripts/lib/orqanix-benchmark-relay.test.mjs:178:1
+✖ disabled and unavailable current JEV decisions remain explicitly unevaluated without remote fallback (0.73725ms)
+  TypeError [Error]: Cannot read properties of null (reading 'port')
+      at startBenchmarkRelay (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.mjs:344:46)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async fixture (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:71:17)
+      at async TestContext.<anonymous> (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:179:28)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at scripts/lib/orqanix-benchmark-relay.test.mjs:198:1
+✖ remote JEV rejection retains only its bounded error code and actual HTTP status (0.673875ms)
+  TypeError [Error]: Cannot read properties of null (reading 'port')
+      at startBenchmarkRelay (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.mjs:344:46)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async fixture (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:71:17)
+      at async TestContext.<anonymous> (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:199:21)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at scripts/lib/orqanix-benchmark-relay.test.mjs:211:1
+✖ an in-flight request retains the label captured on arrival after the active trial changes (0.891125ms)
+  TypeError [Error]: Cannot read properties of null (reading 'port')
+      at startBenchmarkRelay (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.mjs:344:46)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async fixture (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:71:17)
+      at async TestContext.<anonymous> (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:215:21)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at scripts/lib/orqanix-benchmark-relay.test.mjs:226:13
+✖ RESPONSE_MODEL_MISSING (0.683916ms)
+  TypeError [Error]: Cannot read properties of null (reading 'port')
+      at startBenchmarkRelay (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.mjs:344:46)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async fixture (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:71:17)
+      at async TestContext.<anonymous> (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:227:25)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async TestContext.<anonymous> (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:226:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at scripts/lib/orqanix-benchmark-relay.test.mjs:226:13
+✖ RESPONSE_MODEL_MISMATCH (0.69ms)
+  TypeError [Error]: Cannot read properties of null (reading 'port')
+      at startBenchmarkRelay (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.mjs:344:46)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async fixture (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:71:17)
+      at async TestContext.<anonymous> (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:227:25)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async TestContext.<anonymous> (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:226:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at scripts/lib/orqanix-benchmark-relay.test.mjs:236:1
+✖ legacy cloud work routes are absent and synthetic auth cannot be configured (0.677292ms)
+  TypeError [Error]: Cannot read properties of null (reading 'port')
+      at startBenchmarkRelay (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.mjs:344:46)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async fixture (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:71:17)
+      at async TestContext.<anonymous> (file:///Users/admin/axwise-opensource/axwise-flow-oss/scripts/lib/orqanix-benchmark-relay.test.mjs:237:47)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)

@@ -1,8 +1,5 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import test from 'node:test';
 import { buildEvaluationCatalog } from './catalog.mjs';
 import {
@@ -33,12 +30,6 @@ const passingReview = async ({ request }) => ({
   evidenceHash: createHash('sha256').update(JSON.stringify(request.evidence)).digest('hex'),
   review: { status: 'passed' },
 });
-const fakeGateway = async () => ({
-  apiBaseUrl: 'http://127.0.0.1:1',
-  tokenProvider: async () => 'local-fixture-token',
-  close: async () => {},
-});
-
 test('extractVanillaSource accepts bounded JSON or fenced source and rejects prose', () => {
   assert.match(
     extractVanillaSource(
@@ -205,114 +196,51 @@ test('all three rotating coding fixtures pass the same isolated harness', async 
   }
 });
 
-test('OMP arm maps real bridge evidence and requires tests plus Jev', async () => {
-  const caseData = codingCase();
-  let received;
-  const engineeringTaskRunner = async (options) => {
-    received = options;
-    await writeFile(
-      join(options.config.workspace, caseData.fixture.targetFilename),
-      passingSource(caseData)
-    );
-    return {
-      status: 'review_required',
-      taskId: 'task-1',
-      inputHash: 'b'.repeat(64),
-      evidenceHash: 'c'.repeat(64),
-      assistantText: 'Implemented and verified.',
-      outputTruncated: false,
-      toolsUsed: ['read', 'edit'],
-      evidence: {
-        tests: { status: 'passed', command: options.testCommand, exitCode: 0, output: '', truncated: false },
-        diff: { status: 'captured', changed: true, before: '', after: 'diff' },
-      },
-      review: { status: 'passed' },
-    };
-  };
+test('retired coding arm performs no provider, token, fixture or review work', async () => {
+  const unexpected = async () => { throw new Error('retired arm must not execute'); };
   const arm = await runOrqanixCodingArm({
-    caseData,
-    apiBaseUrl: BASE,
-    accountHash: ACCOUNT,
-    conversationId: 'evaluation-coding',
-    tokenProvider: TOKEN,
-    ompBinary: '/fixture/omp',
-    engineeringTaskRunner,
-    ompGatewayFactory: fakeGateway,
-    jevEvaluator: passingReview,
+    caseData: codingCase(), tokenProvider: unexpected, jevEvaluator: unexpected,
+    workRoot: '/unwritable/retired-coding-arm',
   });
-  assert.equal(received.task, caseData.prompt);
-  assert.deepEqual(received.acceptanceCriteria, caseData.criteria);
-  assert.equal(received.config.model, 'orqanix/orqaly-gemini');
-  assert.equal(received.testCommand.includes('--permission'), true);
-  assert.equal(arm.status, 'completed');
-  assert.equal(arm.evaluation.verdict, 'passed');
-  assert.equal(arm.evidence.execution, 'headless_omp');
+  assert.equal(arm.status, 'failed');
+  assert.equal(arm.executionSucceeded, false);
+  assert.equal(arm.error, 'NATIVE_CODING_ADAPTER_UNAVAILABLE');
+  assert.equal(arm.evaluation.verdict, 'not_evaluated');
+  assert.equal(arm.elapsedMs, 0);
+  assert.equal(arm.evidence.execution, 'unavailable');
+  assert.equal(arm.evidence.benchmark, 'scripts/benchmark-native-engineering.mjs');
+  assert.equal(arm.evidence.tests, undefined);
 });
 
-test('pair sends the exact same prompt to both arms', async () => {
+test('pair keeps the direct-model comparator while reporting unavailable native adapter', async () => {
   const caseData = codingCase();
   const seen = [];
-  const engineeringTaskRunner = async (options) => {
-    seen.push(options.task);
-    await writeFile(join(options.config.workspace, caseData.fixture.targetFilename), passingSource(caseData));
-    return {
-      status: 'review_required',
-      taskId: 'task-pair',
-      inputHash: 'd'.repeat(64),
-      evidenceHash: 'e'.repeat(64),
-      assistantText: 'done',
-      toolsUsed: ['edit'],
-      evidence: {
-        tests: { status: 'passed', command: options.testCommand, exitCode: 0, output: '', truncated: false },
-        diff: { status: 'captured', changed: true, before: '', after: 'diff' },
-      },
-      review: { status: 'passed' },
-    };
-  };
   const pair = await runCodingPair({
-    caseData,
-    apiBaseUrl: BASE,
-    accountHash: ACCOUNT,
-    conversationId: 'evaluation-coding',
-    tokenProvider: TOKEN,
+    caseData, apiBaseUrl: BASE, accountHash: ACCOUNT,
+    conversationId: 'evaluation-coding', tokenProvider: TOKEN,
     vanillaCall: async ({ prompt }) => {
       seen.push(prompt);
       return { output: passingSource(caseData), model: 'gemini-direct' };
     },
-    engineeringTaskRunner,
-    ompGatewayFactory: fakeGateway,
     jevEvaluator: passingReview,
   });
-  assert.equal(seen.length, 2);
-  assert.equal(seen.every((prompt) => prompt === caseData.prompt), true);
-  assert.equal(pair.orqanix.evaluation.verdict, 'passed');
+  assert.deepEqual(seen, [caseData.prompt]);
+  assert.equal(pair.orqanix.status, 'failed');
+  assert.equal(pair.orqanix.error, 'NATIVE_CODING_ADAPTER_UNAVAILABLE');
+  assert.equal(pair.orqanix.evaluation.verdict, 'not_evaluated');
   assert.equal(pair.vanilla.evaluation.verdict, 'passed');
 });
 
-test('pair records one failed arm without suppressing the other arm', async () => {
-  const caseData = codingCase();
-  let vanillaRan = false;
+test('pair records comparator failures without fabricating either arm success', async () => {
   const pair = await runCodingPair({
-    caseData,
-    apiBaseUrl: BASE,
-    accountHash: ACCOUNT,
-    conversationId: 'evaluation-coding',
-    tokenProvider: TOKEN,
-    vanillaCall: async () => {
-      vanillaRan = true;
-      return { output: passingSource(caseData), model: 'gemini-direct' };
-    },
-    engineeringTaskRunner: async () => {
-      throw new Error('private provider detail');
-    },
-    ompGatewayFactory: fakeGateway,
+    caseData: codingCase(), apiBaseUrl: BASE, accountHash: ACCOUNT,
+    conversationId: 'evaluation-coding', tokenProvider: TOKEN,
+    vanillaCall: async () => { throw new Error('private provider detail'); },
     jevEvaluator: passingReview,
   });
-  assert.equal(vanillaRan, true);
-  assert.equal(pair.orqanix.status, 'failed');
-  assert.equal(pair.orqanix.error, 'coding_arm_failed');
-  assert.equal(pair.orqanix.evaluation.verdict, 'not_evaluated');
-  assert.ok(pair.orqanix.elapsedMs >= 0);
+  assert.equal(pair.orqanix.error, 'NATIVE_CODING_ADAPTER_UNAVAILABLE');
+  assert.equal(pair.vanilla.status, 'failed');
+  assert.equal(pair.vanilla.error, 'coding_arm_failed');
+  assert.equal(pair.vanilla.evaluation.verdict, 'not_evaluated');
   assert.equal(JSON.stringify(pair).includes('private provider detail'), false);
-  assert.equal(pair.vanilla.evaluation.verdict, 'passed');
 });

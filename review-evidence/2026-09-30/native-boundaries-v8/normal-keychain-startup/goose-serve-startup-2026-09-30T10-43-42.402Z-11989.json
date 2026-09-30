@@ -1,0 +1,374 @@
+{
+  "attemptId": "goose-serve-startup-2026-09-30T10-43-42.402Z-11989.json",
+  "startedAt": "2026-09-30T10:43:42.402Z",
+  "binaryPath": "/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/bin/goose",
+  "workingDir": "/private/tmp/orqanix-v8-normal-keychain-preflight-20260930/control-default-1/fixture/workspace",
+  "httpBaseUrl": "https://127.0.0.1:59308",
+  "readinessUrl": "https://127.0.0.1:59308/status",
+  "statusUrl": "https://127.0.0.1:59308/status",
+  "healthUrl": "https://127.0.0.1:59308/health",
+  "acpUrl": "wss://127.0.0.1:59308/acp?token=REDACTED",
+  "pid": 12005,
+  "healthCheckSucceeded": false,
+  "childExitCode": null,
+  "childExitSignal": "SIGTERM",
+  "stderrTail": [],
+  "events": [
+    {
+      "name": "spawn_start",
+      "at": "2026-09-30T10:43:42.405Z",
+      "elapsedMs": 3,
+      "details": {
+        "binaryPath": "/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/bin/goose",
+        "port": 59308,
+        "tls": true,
+        "workingDir": "/private/tmp/orqanix-v8-normal-keychain-preflight-20260930/control-default-1/fixture/workspace",
+        "args": [
+          "serve",
+          "--tls",
+          "--platform",
+          "desktop",
+          "--enable-scheduler",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "59308"
+        ]
+      }
+    },
+    {
+      "name": "spawn_success",
+      "at": "2026-09-30T10:43:42.473Z",
+      "elapsedMs": 71,
+      "details": {
+        "pid": 12005
+      }
+    },
+    {
+      "name": "healthcheck_start",
+      "at": "2026-09-30T10:43:42.473Z",
+      "elapsedMs": 71,
+      "details": {
+        "transport": "https",
+        "method": "GET",
+        "path": "/status",
+        "url": "https://127.0.0.1:59308/status",
+        "statusUrl": "https://127.0.0.1:59308/status",
+        "healthUrl": "https://127.0.0.1:59308/health",
+        "timeoutMs": 30000,
+        "intervalMs": 100
+      }
+    },
+    {
+      "name": "fingerprint_received",
+      "at": "2026-09-30T10:43:42.512Z",
+      "elapsedMs": 110,
+      "details": {
+        "certFingerprint": "87:FA:F5:5D:BC:10:A4:A1:9D:5C:BB:2A:2B:4A:92:19:6B:4A:63:DB:51:F7:EC:99:60:EE:B9:64:F7:78:C0:65"
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:43:43.476Z",
+      "elapsedMs": 1074,
+      "details": {
+        "attempt": 1,
+        "category": "probe_timeout",
+        "elapsedMs": 1003
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:43:44.581Z",
+      "elapsedMs": 2179,
+      "details": {
+        "attempt": 2,
+        "category": "probe_timeout",
+        "elapsedMs": 1003
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:43:45.685Z",
+      "elapsedMs": 3284,
+      "details": {
+        "attempt": 3,
+        "category": "probe_timeout",
+        "elapsedMs": 1002
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:43:46.789Z",
+      "elapsedMs": 4387,
+      "details": {
+        "attempt": 4,
+        "category": "probe_timeout",
+        "elapsedMs": 1001
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:43:47.893Z",
+      "elapsedMs": 5491,
+      "details": {
+        "attempt": 5,
+        "category": "probe_timeout",
+        "elapsedMs": 1003
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:43:48.997Z",
+      "elapsedMs": 6595,
+      "details": {
+        "attempt": 6,
+        "category": "probe_timeout",
+        "elapsedMs": 1001
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:43:50.102Z",
+      "elapsedMs": 7700,
+      "details": {
+        "attempt": 7,
+        "category": "probe_timeout",
+        "elapsedMs": 1002
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:43:51.207Z",
+      "elapsedMs": 8805,
+      "details": {
+        "attempt": 8,
+        "category": "probe_timeout",
+        "elapsedMs": 1003
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:43:52.312Z",
+      "elapsedMs": 9910,
+      "details": {
+        "attempt": 9,
+        "category": "probe_timeout",
+        "elapsedMs": 1003
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:43:53.418Z",
+      "elapsedMs": 11016,
+      "details": {
+        "attempt": 10,
+        "category": "probe_timeout",
+        "elapsedMs": 1003
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:43:54.523Z",
+      "elapsedMs": 12121,
+      "details": {
+        "attempt": 11,
+        "category": "probe_timeout",
+        "elapsedMs": 1002
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:43:55.626Z",
+      "elapsedMs": 13224,
+      "details": {
+        "attempt": 12,
+        "category": "probe_timeout",
+        "elapsedMs": 1002
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:43:56.732Z",
+      "elapsedMs": 14330,
+      "details": {
+        "attempt": 13,
+        "category": "probe_timeout",
+        "elapsedMs": 1003
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:43:57.837Z",
+      "elapsedMs": 15435,
+      "details": {
+        "attempt": 14,
+        "category": "probe_timeout",
+        "elapsedMs": 1003
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:43:58.942Z",
+      "elapsedMs": 16540,
+      "details": {
+        "attempt": 15,
+        "category": "probe_timeout",
+        "elapsedMs": 1003
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:44:00.046Z",
+      "elapsedMs": 17644,
+      "details": {
+        "attempt": 16,
+        "category": "probe_timeout",
+        "elapsedMs": 1001
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:44:01.150Z",
+      "elapsedMs": 18748,
+      "details": {
+        "attempt": 17,
+        "category": "probe_timeout",
+        "elapsedMs": 1002
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:44:02.255Z",
+      "elapsedMs": 19853,
+      "details": {
+        "attempt": 18,
+        "category": "probe_timeout",
+        "elapsedMs": 1001
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:44:03.361Z",
+      "elapsedMs": 20959,
+      "details": {
+        "attempt": 19,
+        "category": "probe_timeout",
+        "elapsedMs": 1003
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:44:04.466Z",
+      "elapsedMs": 22064,
+      "details": {
+        "attempt": 20,
+        "category": "probe_timeout",
+        "elapsedMs": 1003
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:44:05.570Z",
+      "elapsedMs": 23168,
+      "details": {
+        "attempt": 21,
+        "category": "probe_timeout",
+        "elapsedMs": 1002
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:44:06.677Z",
+      "elapsedMs": 24275,
+      "details": {
+        "attempt": 22,
+        "category": "probe_timeout",
+        "elapsedMs": 1003
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:44:07.781Z",
+      "elapsedMs": 25379,
+      "details": {
+        "attempt": 23,
+        "category": "probe_timeout",
+        "elapsedMs": 1002
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:44:08.887Z",
+      "elapsedMs": 26485,
+      "details": {
+        "attempt": 24,
+        "category": "probe_timeout",
+        "elapsedMs": 1002
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:44:09.991Z",
+      "elapsedMs": 27589,
+      "details": {
+        "attempt": 25,
+        "category": "probe_timeout",
+        "elapsedMs": 1003
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:44:11.096Z",
+      "elapsedMs": 28694,
+      "details": {
+        "attempt": 26,
+        "category": "probe_timeout",
+        "elapsedMs": 1002
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:44:12.201Z",
+      "elapsedMs": 29799,
+      "details": {
+        "attempt": 27,
+        "category": "probe_timeout",
+        "elapsedMs": 1001
+      }
+    },
+    {
+      "name": "healthcheck_probe_failed",
+      "at": "2026-09-30T10:44:13.305Z",
+      "elapsedMs": 30903,
+      "details": {
+        "attempt": 28,
+        "category": "probe_timeout",
+        "elapsedMs": 1002
+      }
+    },
+    {
+      "name": "healthcheck_timeout",
+      "at": "2026-09-30T10:44:13.408Z",
+      "elapsedMs": 31006,
+      "details": {
+        "transport": "https",
+        "method": "GET",
+        "path": "/status",
+        "url": "https://127.0.0.1:59308/status",
+        "statusUrl": "https://127.0.0.1:59308/status",
+        "healthUrl": "https://127.0.0.1:59308/health",
+        "timeoutMs": 30000
+      }
+    },
+    {
+      "name": "child_exit",
+      "at": "2026-09-30T10:44:13.414Z",
+      "elapsedMs": 31012,
+      "details": {
+        "code": null,
+        "signal": "SIGTERM"
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+   Compiling goose v1.50.0 (/private/tmp/orqaly-goose-verified-fixes/crates/goose)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 25.82s
+     Running unittests src/lib.rs (target/debug/deps/goose-62ab65b17019e158)
+
+running 1 test
+test agents::platform_extensions::native_engineering::edits::native_edit_tests::lock_ownership_ends_even_while_a_duplicated_descriptor_remains_open ... FAILED
+
+failures:
+
+---- agents::platform_extensions::native_engineering::edits::native_edit_tests::lock_ownership_ends_even_while_a_duplicated_descriptor_remains_open stdout ----
+
+thread 'agents::platform_extensions::native_engineering::edits::native_edit_tests::lock_ownership_ends_even_while_a_duplicated_descriptor_remains_open' (78217238) panicked at crates/goose/src/agents/platform_extensions/native_engineering/edits.rs:994:14:
+a descriptor copy must not extend the completed transaction's lock: "FILE_BUSY: Another native edit/test transaction owns this file."
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    agents::platform_extensions::native_engineering::edits::native_edit_tests::lock_ownership_ends_even_while_a_duplicated_descriptor_remains_open
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2233 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p goose --lib`

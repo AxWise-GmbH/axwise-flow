@@ -1,0 +1,10 @@
+{
+  "observe-running242.py": "1e8f867ae7b97c0e551ba5c6bfdfc3797cb9721843bfdbefbfd139516b0f6d65",
+  "finalize-running242.py": "9bffe311547b55510424f45c1fcc9fe98bb6865f8b90346665a422e7873de259",
+  "grade-running242.mjs": "dbbcbae575341c16bf64b4cde01d740747064b51b2c205c2cfd405c3003ef68c",
+  "summarize-running242.py": "7b1c50bf2653bf8dec276e6148211f5d996cfa0b13277e8ef2ae8a2e4e47be7a",
+  "status-running242.py": "93f174959b82e4540c939b94c28de50ba393c29752d7db6df097e1f1f73fa265",
+  "scripts/lib/orqanix-specialist-sandbox.mjs": "41758dd153febf772d16114b4b44e2d7b97f0cc6c205cf1adf461d29122075f1",
+  "scripts/lib/orqanix-semantic-tasks.mjs": "4fe70ecd367ad60d683dc179666f9b6b3f9864262d3eeee0cd3846bd3aa8e7e3",
+  "scripts/lib/orqanix-selection-sandbox.mjs": "4ed8381b593405bf387f17b1e320cf9c2e22a79d7c5586482dcd13b5740977d7"
+}

@@ -59,7 +59,7 @@ export function createAgentEvaluationRouter({
   });
 
   // Reuse the production desktop provider validation and streaming transport, but only expose
-  // the two endpoints required by the headless OMP fixture under this separately authenticated router.
+  // the two endpoints used by evaluation clients under this separately authenticated router.
   const provider = createGooseProviderRouter({
     commandService,
     verifyDesktopAuth: async (req) => req.agentEvaluationIdentity ? { userId: config.userId } : null,

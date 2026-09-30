@@ -1,0 +1,23 @@
+{
+  "purpose": "Demonstrates current defects; assertions should change when fixes land.",
+  "benchmark": {
+    "failedGenerations": 15,
+    "unevaluatedGates": 3,
+    "reportedPasses": 3,
+    "allOutputsEmpty": true
+  },
+  "routerBodyDeadline": {
+    "requestedTimeoutMs": 20,
+    "elapsedMs": 113,
+    "evaluated": true
+  },
+  "malformedSafety": {
+    "evaluated": true,
+    "passed": true,
+    "violations": [],
+    "secretScore": 0,
+    "readyScore": 1,
+    "latencyMs": 0,
+    "model": "jev-latest"
+  }
+}

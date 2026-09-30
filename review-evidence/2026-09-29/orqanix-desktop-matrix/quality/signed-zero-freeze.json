@@ -1,0 +1,22 @@
+{
+  "schema": "orqanix.signed-zero-diagnostic-freeze.v1",
+  "designation": "POST-INSPECTION",
+  "frozenAt": "2026-09-29T12:23:23.830135Z",
+  "probeSha256": "130ce40093349c5fd0d523bd774508cf90c06e36f48b0b98321657917ea1b026",
+  "protocolFileSha256": "a48f87cbcedae72527ed17bf4534156733f2f1f310a56d1c72414c6dbeb788fa",
+  "sourceContractSha256": "061521b69c9a3b4bed770b139671a50d8b44346a5d2f3fd728d7322a00191a25",
+  "frozenSupplementalSourceSha256": "1bc43d69e876727ed5947ace30aa1cbf47e55129574d333f76de1665370d22b5",
+  "verification": "Outer runner, checker, and worker passed syntax-only checks. Protocol shape/counts statically checked. No candidate execution or result creation performed before freeze.",
+  "expectedCoverage": {
+    "matrixRows": 48,
+    "applicableSolutions": 32,
+    "notApplicableSolutions": 16,
+    "caseOutcomes": 272,
+    "invocations": 544
+  },
+  "limitations": [
+    "POST-INSPECTION selection; not part of the original or frozen supplemental oracle.",
+    "Returned zero sign is informational; only numeric equivalence is graded.",
+    "VM/process bounds are not an OS security sandbox. Implementations and checker share mutable VM intrinsics; adversarial verifier tampering is not fully prevented."
+  ]
+}

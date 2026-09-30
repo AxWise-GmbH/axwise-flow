@@ -1,0 +1,7 @@
+{
+  "crates/goose/src/agents/platform_extensions/developer/mod.rs": "c2e9578755bc23a4b7c5baaa563f957637693ef9c56dba1ebe7a81ae6f9b02fa",
+  "crates/goose/src/agents/platform_extensions/native_engineering/selection.md": "381f06ed2c4b1033d4867ea46d26eea49e88587a2c181f7c4f977197dbaa1c26",
+  "crates/goose/tests/native_engineering_integration.rs": "93dd83f6dee8e3cbcddddea927ebe88d08130ac917e860a2e00d23399ea73355",
+  "crates/goose/src/agents/extension_manager.rs": "3ee572008b875d4afe0dd31225769898a3c0520c2a7ac3fd888486d6de6c784a",
+  "crates/goose/src/agents/platform_extensions/native_engineering/README.md": "25922dbdb855ae21776fc5ea4cd04232fbd4d6ef180a36d29392dc07fd2dcfc9"
+}

@@ -1,0 +1,26 @@
+✔ Jev lint rulesets define typed noul questions with explicit instructions (0.560417ms)
+✔ evaluateLintWithJev handles unconfigured API key gracefully (0.141ms)
+✔ evaluateLintWithJev passes clean code when Jev returns zero risk (0.168166ms)
+✔ evaluateLintWithJev catches hardcoded secrets and syntax errors (0.101917ms)
+✔ formatJevVerdictMarkdown formats passing verdict with latency and no violations (0.094167ms)
+✔ formatJevVerdictMarkdown formats failing verdict with violations and confidence (0.050292ms)
+✔ formatJevVerdictMarkdown formats skipped verdict with reason and missing latency gracefully (0.071875ms)
+✔ formatJevVerdictMarkdown handles empty or non-object verdict gracefully (0.039125ms)
+✔ formatJevVerdictMarkdown integrates with evaluateLintWithJev output (0.117375ms)
+✔ release receipt requires both verified core and committed connector eligibility (0.357291ms)
+✔ local connector overlays and missing or inconsistent legacy receipts are never release eligible (0.105625ms)
+✔ connector provenance requires the exact production source set without duplicates (2.114417ms)
+✔ runtime verification rejects a self-consistent cached bridge after vendor changes (4.161542ms)
+✔ provenance-only changes and legacy manifests invalidate reuse (0.863417ms)
+✔ all runtime targets launch bundled JavaScript language servers without a nested agent (0.316917ms)
+✔ language-server dependencies require exact versions and registry integrity (3.481041ms)
+✔ language-server lock and launch-source changes invalidate a cached runtime (2.550083ms)
+✔ local connector overlay preserves base provenance and rejects missing, broader or release claims (0.486709ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 64.8145

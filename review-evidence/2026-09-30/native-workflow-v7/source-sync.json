@@ -1,0 +1,17 @@
+{
+  "sourceRoot": "/Users/admin/axwise-opensource/orqaly-goose",
+  "backup": "/private/tmp/orqanix-v7-original-source-backup-20260930",
+  "copiedFiles": [
+    "crates/goose/src/agents/platform_extensions/native_engineering/selection.md",
+    "crates/goose/src/agents/platform_extensions/native_engineering/README.md",
+    "crates/goose/src/agents/platform_extensions/native_engineering/mod.rs",
+    "crates/goose/src/agents/extension_manager.rs",
+    "crates/goose/tests/native_engineering_integration.rs"
+  ],
+  "frozenSourcesVerified": 708,
+  "allFrozenSourcesMatch": true,
+  "extensionVersion": "1.5.2",
+  "selectionPolicy": "v7",
+  "installedAppChanged": false,
+  "meaning": "Authorized source merge behind existing optional flag. Product release/performance acceptance remains a separate measured gate."
+}

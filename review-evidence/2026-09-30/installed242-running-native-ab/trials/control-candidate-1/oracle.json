@@ -1,0 +1,135 @@
+{
+  "key": "control-candidate-1",
+  "boundary": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "workspace read",
+        "passed": true
+      },
+      {
+        "name": "workspace write and remove",
+        "passed": true
+      },
+      {
+        "name": "profile write",
+        "passed": true
+      },
+      {
+        "name": "own temp write",
+        "passed": true
+      },
+      {
+        "name": "other temp read denied",
+        "passed": true
+      },
+      {
+        "name": "other temp write denied",
+        "passed": true
+      },
+      {
+        "name": "user directory listing denied",
+        "passed": true
+      },
+      {
+        "name": "child inherits restriction",
+        "passed": true
+      },
+      {
+        "name": "symlink read escape denied",
+        "passed": true
+      },
+      {
+        "name": "symlink write escape denied",
+        "passed": true
+      },
+      {
+        "name": "hardlink escape denied",
+        "passed": true
+      },
+      {
+        "name": "app binary readable",
+        "passed": true
+      },
+      {
+        "name": "app resources immutable",
+        "passed": true
+      }
+    ],
+    "appliesTo": "Independent graders only; existing live backend was not relaunched into this boundary"
+  },
+  "passed": true,
+  "behavior": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "label [\"draft\",true]",
+        "passed": true
+      },
+      {
+        "name": "label [\"draft\",false]",
+        "passed": true
+      },
+      {
+        "name": "label [\"\",true]",
+        "passed": true
+      },
+      {
+        "name": "label [\"\",false]",
+        "passed": true
+      },
+      {
+        "name": "label [\"  x  \",true]",
+        "passed": true
+      },
+      {
+        "name": "label [\"  x  \",false]",
+        "passed": true
+      },
+      {
+        "name": "label [\"😀\",true]",
+        "passed": true
+      },
+      {
+        "name": "label [\"😀\",false]",
+        "passed": true
+      },
+      {
+        "name": "label [\"[x]\",true]",
+        "passed": true
+      },
+      {
+        "name": "label [\"[x]\",false]",
+        "passed": true
+      }
+    ]
+  },
+  "types": {
+    "passed": true,
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "publicTests": {
+    "passed": true,
+    "exitCode": 0,
+    "stdout": "TAP version 13\n# Subtest: incomplete task\nok 1 - incomplete task\n  ---\n  duration_ms: 0.313542\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 56.8225\n",
+    "stderr": ""
+  },
+  "regression": {
+    "passed": true,
+    "exitCode": 0,
+    "stdout": "TAP version 13\n# Subtest: taskLabel regression tests\n    # Subtest: completed task formatting\n    ok 1 - completed task formatting\n      ---\n      duration_ms: 0.291334\n      type: 'test'\n      ...\n    # Subtest: incomplete task formatting\n    ok 2 - incomplete task formatting\n      ---\n      duration_ms: 0.042083\n      type: 'test'\n      ...\n    # Subtest: preserves supplied name exactly\n    ok 3 - preserves supplied name exactly\n      ---\n      duration_ms: 0.041167\n      type: 'test'\n      ...\n    1..3\nok 1 - taskLabel regression tests\n  ---\n  duration_ms: 1.017416\n  type: 'suite'\n  ...\n1..1\n# tests 3\n# suites 1\n# pass 3\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 55.639375\n",
+    "stderr": ""
+  },
+  "originalMutation": {
+    "detected": true,
+    "passed": false,
+    "exitCode": 1,
+    "signal": null,
+    "stdout": "TAP version 13\n# Subtest: taskLabel regression tests\n    # Subtest: completed task formatting\n    not ok 1 - completed task formatting\n      ---\n      duration_ms: 0.649792\n      type: 'test'\n      location: '/private/tmp/orqanix-installed242-live-20260930/control-candidate-1/fixture/workspace/tests/regression.test.mjs:6:3'\n      failureType: 'testCodeFailure'\n      error: |-\n        Expected values to be strictly equal:\n        + actual - expected\n        \n        + '[ ] draft'\n        - '[x] draft'\n        \n      code: 'ERR_ASSERTION'\n      name: 'AssertionError'\n      expected: '[x] draft'\n      actual: '[ ] draft'\n      operator: 'strictEqual'\n      stack: |-\n        TestContext.<anonymous> (file:///private/tmp/orqanix-installed242-live-20260930/control-candidate-1/fixture/workspace/tests/regression.test.mjs:7:12)\n        Test.runInAsyncScope (node:async_hooks:214:14)\n        Test.run (node:internal/test_runner/test:1047:25)\n        Test.start (node:internal/test_runner/test:944:17)\n        node:internal/test_runner/test:1440:71\n        node:internal/per_context/primordials:466:82\n        new Promise (<anonymous>)\n        new SafePromise (node:internal/per_context/primordials:435:3)\n        node:internal/per_context/primordials:466:9\n        Array.map (<anonymous>)\n      ...\n    # Subtest: incomplete task formatting\n    ok 2 - incomplete task formatting\n      ---\n      duration_ms: 0.0545\n      type: 'test'\n      ...\n    # Subtest: preserves supplied name exactly\n    not ok 3 - preserves supplied name exactly\n      ---\n      duration_ms: 0.103833\n      type: 'test'\n      location: '/private/tmp/orqanix-installed242-live-20260930/control-candidate-1/fixture/workspace/tests/regression.test.mjs:16:3'\n      failureType: 'testCodeFailure'\n      error: |-\n        Expected values to be strictly equal:\n        \n        '[ ] ' !== '[x] '\n        \n      code: 'ERR_ASSERTION'\n      name: 'AssertionError'\n      expected: '[x] '\n      actual: '[ ] '\n      operator: 'strictEqual'\n      stack: |-\n        TestContext.<anonymous> (file:///private/tmp/orqanix-installed242-live-20260930/control-candidate-1/fixture/workspace/tests/regression.test.mjs:17:12)\n        Test.runInAsyncScope (node:async_hooks:214:14)\n        Test.run (node:internal/test_runner/test:1047:25)\n        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)\n        Test.postRun (node:internal/test_runner/test:1173:19)\n        Test.run (node:internal/test_runner/test:1101:12)\n        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)\n      ...\n    1..3\nnot ok 1 - taskLabel regression tests\n  ---\n  duration_ms: 1.4345\n  type: 'suite'\n  location: '/private/tmp/orqanix-installed242-live-20260930/control-candidate-1/fixture/workspace/tests/regression.test.mjs:5:1'\n  failureType: 'subtestsFailed'\n  error: '2 subtests failed'\n  code: 'ERR_TEST_FAILURE'\n  ...\n1..1\n# tests 3\n# suites 1\n# pass 1\n# fail 2\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 55.927458\n",
+    "stderr": "Command failed: /usr/bin/sandbox-exec -f /private/tmp/orqanix-installed242-live-20260930/control-candidate-1/grading-boundary.sb /private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/node/bin/node --experimental-strip-types --test tests/regression.test.mjs\n"
+  },
+  "immutableFailures": [],
+  "unexpectedFiles": []
+}

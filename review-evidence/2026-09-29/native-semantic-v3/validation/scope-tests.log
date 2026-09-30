@@ -1,0 +1,10 @@
+✔ capability is model-only, bounded, revoked, and never returns parent credentials (31.33675ms)
+✔ parent can refresh OAuth without exposing it or repeating a model request (6.954458ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 96.560958

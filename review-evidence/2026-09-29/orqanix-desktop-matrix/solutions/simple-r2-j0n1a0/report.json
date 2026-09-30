@@ -1,0 +1,15 @@
+{
+  "summary": "Validated safe integer inputs and intermediate bounds, fixed zero quantity handling, and computed discounted totals using integer arithmetic with Math.floor.",
+  "examples": [
+    {
+      "id": "zero",
+      "input": [1250, 0, 0],
+      "expected": 0
+    },
+    {
+      "id": "rounding",
+      "input": [199, 3, 1250],
+      "expected": 522
+    }
+  ]
+}

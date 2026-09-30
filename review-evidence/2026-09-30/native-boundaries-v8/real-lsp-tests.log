@@ -1,0 +1,15 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.85s
+     Running unittests src/lib.rs (target/debug/deps/goose-74791959b85261c3)
+
+running 5 tests
+REAL_NAMED_LSP {"coldMs":820,"warmMs":16,"coldReferences":8,"warmReferences":9,"reusedServer":true,"modelCalls":0}
+test agents::platform_extensions::native_engineering::lsp::tests::real_named_references_follow_aliases_exclude_shadowing_and_refresh_open_files ... ok
+test agents::platform_extensions::native_engineering::lsp::rename_tests::real_project_reference_rename_includes_unopened_sibling_project ... ok
+REAL_LSP_SMOKE {"modelCalls":0,"toolImplementation":"native_lsp","metrics":[{"language":"typescript","action":"symbols","elapsedMs":773,"documentVersion":1},{"language":"typescript","action":"definition","elapsedMs":74,"documentVersion":1},{"language":"typescript","action":"references","elapsedMs":14,"documentVersion":1},{"language":"typescript","action":"hover","elapsedMs":2,"documentVersion":1},{"language":"typescript","action":"diagnostics_after_edit","elapsedMs":366,"attempts":7,"result":{"diagnostics":[{"range":{"start":{"line":1,"character":6},"end":{"line":1,"character":12}},"message":"Type 'string' is not assignable to type 'number'.","severity":1,"code":2322,"source":"typescript"},{"range":{"start":{"line":1,"character":6},"end":{"line":1,"character":12}},"message":"'result' is declared but its value is never read.","severity":4,"code":6133,"source":"typescript"}],"freshness":"server_unversioned","versionVerified":false,"documentVersion":null}},{"language":"python","action":"symbols","elapsedMs":246,"documentVersion":1},{"language":"python","action":"definition","elapsedMs":58,"documentVersion":1},{"language":"python","action":"references","elapsedMs":3,"documentVersion":1},{"language":"python","action":"hover","elapsedMs":2,"documentVersion":1},{"language":"python","action":"diagnostics_after_edit","elapsedMs":265,"attempts":1,"result":{"diagnostics":[{"range":{"start":{"line":1,"character":11},"end":{"line":1,"character":18}},"message":"Type \"Literal['wrong']\" is not assignable to return type \"int\"\n  \"Literal['wrong']\" is not assignable to \"int\"","severity":1,"code":"reportReturnType","source":"Pyright","codeDescription":{"href":"https://github.com/microsoft/pyright/blob/main/docs/configuration.md#reportReturnType"}}],"freshness":"current_version","versionVerified":true,"documentVersion":2}}]}
+test agents::platform_extensions::native_engineering::lsp::tests::real_bundled_language_servers_smoke ... ok
+test agents::platform_extensions::native_engineering::lsp::rename_tests::real_rename_preserves_wire_keys_aliases_shadowing_and_rejects_stale_scope ... ok
+REAL_LARGE_RENAME {"sourceFiles":1000,"changedFiles":101,"previewPages":6,"planMs":955,"applyAndCheckMs":1651,"typescriptAndJavascript":true,"wireContractsPassed":true,"staleJsInputBlocked":true,"modelCalls":0}
+test agents::platform_extensions::native_engineering::lsp::rename_tests::real_large_sparse_rename_handles_unopened_ts_js_consumers_and_pages ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 2260 filtered out; finished in 3.38s
+

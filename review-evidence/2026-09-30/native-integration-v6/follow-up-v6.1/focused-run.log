@@ -1,0 +1,12 @@
+{"event":"starting","key":"control-default-1"}
+{"event":"progress","key":"control-default-1","elapsedMs":30002,"toolCalls":13,"pendingApprovals":0,"providerRequests":15}
+{"event":"finished","key":"control-default-1","status":"completed","elapsedMs":34118,"passed":true}
+{"event":"starting","key":"control-candidate-1"}
+{"event":"progress","key":"control-candidate-1","elapsedMs":30002,"toolCalls":12,"pendingApprovals":0,"providerRequests":14}
+{"event":"finished","key":"control-candidate-1","status":"completed","elapsedMs":42920,"passed":true}
+{"event":"starting","key":"control-candidate-2"}
+{"event":"progress","key":"control-candidate-2","elapsedMs":30002,"toolCalls":15,"pendingApprovals":0,"providerRequests":16}
+{"event":"finished","key":"control-candidate-2","status":"completed","elapsedMs":35423,"passed":true}
+{"event":"starting","key":"control-default-2"}
+{"event":"progress","key":"control-default-2","elapsedMs":30000,"toolCalls":12,"pendingApprovals":0,"providerRequests":14}
+{"event":"finished","key":"control-default-2","status":"completed","elapsedMs":36915,"passed":true}

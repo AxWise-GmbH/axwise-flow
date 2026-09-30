@@ -1,0 +1,12 @@
+{
+  "crates/goose/src/agents/platform_extensions/native_engineering/ast.rs": "2893a35deed7cb4eafac1259ad3a8ea45803263a2fd3d26abf3994346247d9fb",
+  "crates/goose/src/agents/platform_extensions/native_engineering/lsp.rs": "7e04d0084dd98d42b141ede4b8a32490d4be09ddef46e4bf48aa4850218d7fab",
+  "crates/goose/src/agents/platform_extensions/native_engineering/mod.rs": "78dd6ace9451f235eb5a0c775b44da761ae1b1450041c0491e0b1e388e0e3c49",
+  "crates/goose/src/agents/platform_extensions/native_engineering/selection.md": "bfb72cf0315af5213eb553ca5a23ed4c6f8c47e4a7d4fb208f2c8bd47654c85b",
+  "crates/goose/src/agents/platform_extensions/native_engineering/README.md": "36f4b19d387adf683f6f8f28b0d29506691e80423049fbe66edfbc21b679e9ef",
+  "crates/goose/src/agents/platform_extensions/developer/mod.rs": "555318752fee9ad88d4e6f451b82e19a8437b6a1013b3f5af30608330bcc3783",
+  "crates/goose/tests/native_engineering_integration.rs": "ff19432cb7000eb2b2fee7b8ebfb69b66cf4a256e804281853ad48e931cfc862",
+  "goose-self-test.yaml": "ad1a45a10372c697963716fd38a8509eac7267de84761dc34c15da0885f3c388",
+  "crates/goose/src/agents/extension_manager.rs": "c7fa27b837ffbc4dbc34ee75f2d1fd5ad167c4503da995006600a787d55a7137",
+  "crates/goose/tests/fixtures/native_lsp_server.mjs": "2145e9c33e3b10cde68bafd067fd9981fb888db2e831fb1f2fcb97b446b6302f"
+}

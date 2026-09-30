@@ -1,0 +1,285 @@
+version: 1.0.0
+title: Goose Self-Testing Integration Suite
+description: A comprehensive meta-testing recipe where goose tests its own capabilities using its own tools - true first-person integration testing
+instructions: |
+  You are testing yourself - a running goose instance validating its own capabilities through meta-testing.
+  This is true first-person integration testing where you use your own tools to test your own functionality.
+
+  ## Understanding First-Person Integration Testing
+  This is a crucial distinction - as a running goose instance, you are testing yourself using your own capabilities.
+  This is meta-testing in the truest sense: not unit tests or external test harnesses, but you using your tools
+  to validate your own functionality from within your active session. You can only test what you can observe and
+  control from inside your running instance - your tools, your behaviors, your error handling, your consistency.
+
+  ## Core Testing Philosophy
+  - You ARE the system under test AND the tester
+  - Use your tools to create test scenarios, then validate the results
+  - Test both success and failure paths
+  - Document everything meticulously
+  - Handle errors gracefully - a test failure shouldn't stop the suite
+
+  ## Test Execution Framework
+
+  ### Phase 1: Environment Setup & Basic Tool Validation
+  Create a structured test workspace and validate core developer tools:
+  - File operations (CRUD + undo)
+  - Shell command execution
+  - Code analysis capabilities
+  - Error handling and recovery
+
+  ### Phase 2: Extension System Testing
+  Test dynamic extension management:
+  - Discover available extensions
+  - Enable/disable extensions
+  - Test extension interactions
+  - Verify isolation between extensions
+
+  ### Phase 3: Delegate & Load Testing
+  Test the unified delegation and knowledge-loading tools:
+  - Load tool for discovery and knowledge injection
+  - Delegate tool for synchronous task delegation
+  - Delegate tool for asynchronous background tasks
+  - Parallel delegate execution
+  - Nested delegation prevention (critical security test)
+
+  ### Phase 4: Advanced Self-Testing
+  Push boundaries and test limits:
+  - Intentionally trigger errors
+  - Test timeout scenarios
+  - Validate security controls
+  - Measure performance metrics
+  - Test resource constraints
+
+  ### Phase 5: Report Generation
+  Compile comprehensive test results:
+  - Aggregate all test outcomes
+  - Calculate success metrics
+  - Document failures and issues
+  - Generate recommendations
+
+  ## Success Criteria
+  - Phase success: ≥80% tests pass
+  - Suite success: All phases complete, critical features work
+  - Each test logs: setup → execute → validate → result → cleanup
+prompt: |-
+  Execute the Goose Self-Testing Integration Suite in ./gooseselftest.
+  Test phases: native-engineering, Depth: quick, Parallel: true
+
+  ## 🚀 INITIALIZATION
+  Create test workspace using `mkdir -p ./gooseselftest/archive` for all test artifacts and reports.
+
+  Track your progress using the todo extension. Start with:
+  - [ ] Initialize test workspace
+  - [ ] Set up logging infrastructure
+  - [ ] Begin Phase 1 testing
+
+
+
+
+  ## Native Engineering Validation
+
+  This is an optional host-controlled feature. Do not enable it using a model tool or install OMP.
+  If ast_search, lsp_query, hashline_edit, and safe_edit_and_test are absent, record the native phase
+  as skipped (feature disabled). Their absence is expected when the host feature flag is off.
+  If all four are available, use them directly in this conversation:
+  1. Create a disposable source fixture under the session workspace with a real declaration plus
+     a comment and string containing declaration-shaped decoys. Use ast_search preset=functions with the exact declaration name and verify it finds
+     the declaration and excludes both decoys. Also check preset=calls against comment/string decoys.
+  2. Initialize the disposable fixture's language project before cross-file checks (for TypeScript,
+     create a tsconfig.json including the fixture files). LSP references cover the server project graph;
+     a completed query in an unconfigured/inferred project may omit unopened consumers.
+     Ask lsp_query for references using path and symbol (without first asking for positions).
+     Include an import alias and an unrelated shadowed name: references must follow the alias and
+     exclude the shadow. Confirm an ambiguous unqualified name returns choices, then select its
+     qualified name. Modify a previously opened file and repeat the query to check synchronization.
+     Inspect pagination and source snapshots. Check that the response comes from a real language server. If that language server is unavailable, record the LSP check as skipped;
+     never report heuristic text search as a successful LSP check.
+  3. Read the source and another existing text file together with hashline_edit action=read_many.
+     Inspect per-file results and pagination. Copy its full digest and line anchors into
+     safe_edit_and_test, making a small correction and running a local test command as literal argv.
+     Verify the file bytes, test exit code, and verified field. A completed call alone is not a pass.
+  4. Read new anchors and exercise a deliberately failing test. Verify rollback restores the
+     preimage. Exercise a stale digest and verify it changes no file and starts no test process.
+  5. Respect normal approvals and cancellation. Repair any real failure through a later tool call
+     in this same conversation; there is no separate coding agent or automatic model repair.
+  Check Rust prerequisites only with `command -v cargo` and a Cargo.toml in the current workspace.
+  Never search parent directories or the filesystem for a toolchain or source checkout. If either
+  prerequisite is absent, record this cargo subcheck as skipped immediately. If both are present, run
+  `cargo test -p goose --test native_engineering_integration` for deterministic coverage of both
+  agent loops, host mount/remove, session resume, native selection guidance, permission denial,
+  and cancellation before mutation. A configured LSP language alone is not evidence that its
+  server started; record unavailable-server errors separately from successful protocol queries.
+  Record actual outcomes and skipped prerequisites in ./gooseselftest/native_engineering.md.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  ## 📊 PHASE 5: Final Report Generation
+
+  Create TWO reports:
+
+  ### 1. Detailed Report at ./gooseselftest/detailed_report.md
+  Include all test details, logs, and technical information.
+
+  ### 2. Executive Summary (REQUIRED - Display in Terminal)
+
+  **IMPORTANT**: At the very end, generate and display a concise summary directly in the terminal:
+
+  ```
+  ========================================
+  GOOSE SELF-TEST SUMMARY
+  ========================================
+
+  ✅ OVERALL RESULT: [PASS/FAIL]
+
+  📊 Quick Stats:
+  • Tests Run: [X]
+  • Passed: [X] ([%])
+  • Failed: [X] ([%])
+  • Duration: [X minutes]
+
+  ✅ Working Features:
+  • File operations: [✓/✗]
+  • Shell commands: [✓/✗]
+  • Code analysis: [✓/✗]
+  • Extensions: [✓/✗]
+  • Load tool: [✓/✗]
+  • Delegate (sync): [✓/✗]
+  • Delegate (async): [✓/✗]
+  • Delegate cancellation: [✓/✗]
+  • Nested delegation blocked: [✓/✗]
+
+  ⚠️ Issues Found:
+  • [Issue 1 - brief description]
+  • [Issue 2 - brief description]
+
+  💡 Key Insights:
+  • [Most important finding]
+  • [Performance observation]
+  • [Recommendation]
+
+  📁 Full report: ./gooseselftest/detailed_report.md
+  ========================================
+  ```
+
+  This summary should be:
+  - **Concise**: Under 30 lines
+  - **Visual**: Use emojis and formatting for clarity
+  - **Actionable**: Clear pass/fail status
+  - **Informative**: Key findings at a glance
+
+  Always end with this summary so users immediately see the results without digging through files.
+
+
+  ## 🧹 CLEANUP
+  After report generation:
+  1. Archive results to ./gooseselftest/archive/
+  2. Remove temporary test artifacts
+  3. Keep only the final report and logs
+
+
+  ## 🎯 META-TESTING NOTES
+  Remember: You are testing yourself. This is recursive validation where:
+  - Success means your tools work as expected
+  - Failure reveals areas needing attention
+  - The ability to complete this test IS itself a test
+  - Document everything - your future self (or another goose) will thank you
+
+  Use your todo extension to track progress throughout.
+  Handle errors gracefully - a failed test shouldn't crash the suite.
+  Be thorough but efficient based on the test_depth parameter.
+
+  This is true first-person integration testing. Execute with precision and document with clarity.
+extensions:
+- type: builtin
+  name: developer
+  description: Core tool for file operations, shell commands, and code analysis
+  display_name: Developer
+  timeout: 600
+  bundled: true
+- type: builtin
+  name: todo
+  description: ''
+  display_name: null
+  timeout: null
+  bundled: null
+- type: builtin
+  name: summon
+  description: ''
+  display_name: null
+  timeout: null
+  bundled: null
+- type: builtin
+  name: extensionmanager
+  description: ''
+  display_name: null
+  timeout: null
+  bundled: null
+- type: builtin
+  name: skills
+  description: ''
+  display_name: null
+  timeout: null
+  bundled: null
+- type: platform
+  name: analyze
+  description: ''
+  display_name: null
+  bundled: null
+activities:
+- Initialize test workspace and logging infrastructure
+- Test file operations (create, read, update, delete, undo)
+- Validate shell command execution and error handling
+- Validate Azure AI Foundry provider routing and deployment aliases
+- Validate the configurable Databricks AI Gateway path across all inference routes
+- Analyze code structure and parsing capabilities
+- Validate optional native engineering tools in the current Goose loop
+- Test extension discovery and management
+- Test load tool for knowledge injection and discovery
+- Test delegate tool for task delegation (sync and async)
+- Test multi-turn thinking preservation for providers that reject replayed reasoning_content
+- Validate ACP thinking-effort discovery, forwarding, and provider switching
+- Validate GDK observability hook lifecycle events and payload opt-in
+- Test error boundaries including nested delegation prevention
+- Generate comprehensive test report
+author:
+  contact: goose-self-test
+parameters:
+- key: test_phases
+  input_type: string
+  requirement: optional
+  description: 'Which test phases to run: all, basic, native-engineering, extensions, delegation, reasoning, acp-effort, advanced'
+  default: all
+- key: test_depth
+  input_type: string
+  requirement: optional
+  description: 'Testing depth: quick (smoke tests), standard (normal coverage), deep (exhaustive)'
+  default: standard
+- key: workspace_dir
+  input_type: string
+  requirement: optional
+  description: Directory for test artifacts and results
+  default: ./gooseselftest
+- key: parallel_tests
+  input_type: string
+  requirement: optional
+  description: Run independent tests in parallel where possible
+  default: 'true'
+- key: cleanup_after
+  input_type: string
+  requirement: optional
+  description: Clean up test artifacts after completion
+  default: 'true'
+

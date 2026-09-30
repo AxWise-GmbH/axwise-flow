@@ -134,7 +134,7 @@ export async function runEvaluationCycle({ slot = new Date(), runnerRevision, tr
           arms[arm] = { status, startedAt: raw.startedAt || start, finishedAt: raw.finishedAt || now().toISOString(),
             elapsedMs: raw.elapsedMs, model: normalizedModel(raw.model),
             ...(raw.resolvedModel ? { resolvedModel: normalizedModel(raw.resolvedModel) } : {}),
-            endpoint: arm === 'orqanix' ? 'headless-omp/engineering-edit-tests-jev' : 'gemini-direct/fixture-tests',
+            endpoint: arm === 'orqanix' ? 'native-goose/evaluation-adapter-unavailable' : 'gemini-direct/fixture-tests',
             outputHash: hash(output), outputRef: evidenceRef(item.category, arm),
             evaluation: raw.evaluation || { verdict: 'not_evaluated', reason: 'engineering_incomplete' },
             ...(status === 'failed' ? { error: safeError(raw.error || 'engineering_incomplete') } : {}) };
@@ -158,8 +158,8 @@ export async function runEvaluationCycle({ slot = new Date(), runnerRevision, tr
     runId, slot: catalog.slot, startedAt, finishedAt: now().toISOString(), runnerRevision, cases });
   return { record, evidence: { ...record, schemaVersion: 'orqanix.agent-evaluation-evidence.v1',
     methodology: { cadenceSeconds: 900, comparison: 'same prompt; concurrent pairs; two categories at a time',
-      latency: 'noncoding request-to-terminal response, excluding external judge; coding includes fixture tests and Jev review for both arms',
-      codingScope: 'headless OMP bridge and disposable fixture; does not exercise packaged desktop UI',
+      latency: 'noncoding request-to-terminal response, excluding external judge; direct-model coding includes fixture tests and Jev review; unavailable coding arm has no execution latency',
+      codingScope: 'Orqanix cloud coding arm retired: failed/not_evaluated with zero model calls; direct-model fixture remains available; separate scripts/benchmark-native-engineering.mjs exercises native Goose; does not exercise packaged desktop UI',
       planScope: 'generated implementation plan; does not approve or execute a Goal',
       quality: 'deterministic checks plus advisory Jev review; no guarantee of factual correctness' },
     cases: evidenceCases.map(item => ({ ...item, arms: Object.fromEntries(['orqanix', 'vanilla'].map(arm => [arm,

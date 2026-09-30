@@ -1,0 +1,7 @@
+scripts/benchmark-native-engineering-gems.mjs [exit 1]
+This benchmark is retired. Inspect the plan with node scripts/benchmark-native-engineering.mjs; follow scripts/BENCHMARKS.md for native Goose --preflight or --live.
+No model request, edit, test process, or benchmark measurement was performed.
+
+scripts/sophisticated-gems-benchmark.mjs [exit 1]
+This benchmark is retired. Inspect the plan with node scripts/benchmark-native-engineering.mjs; follow scripts/BENCHMARKS.md for native Goose --preflight or --live.
+No model request, edit, test process, or benchmark measurement was performed.

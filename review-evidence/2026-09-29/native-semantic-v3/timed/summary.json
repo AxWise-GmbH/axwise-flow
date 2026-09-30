@@ -1,0 +1,387 @@
+{
+  "schema": "orqanix.semantic-v3.summary.v1",
+  "reportSha256": "3c1bccb30d822f4ee4c3693d670ce3b5eeb2800b1fb019b7f5d9e0ae9c80926a",
+  "verification": {
+    "rows": true,
+    "quality": true,
+    "modelIdentityAndUsage": true,
+    "semanticAdoption": false,
+    "totalNoSlower": false,
+    "medianNoSlower": false,
+    "controlNoSlower": false
+  },
+  "accepted": false,
+  "arms": {
+    "default": {
+      "count": 6,
+      "passed": 6,
+      "totalSeconds": 387.178,
+      "medianSeconds": 58.117000000000004,
+      "requests": 159,
+      "inputTokens": 2691707
+    },
+    "candidate": {
+      "count": 6,
+      "passed": 6,
+      "totalSeconds": 539.486,
+      "medianSeconds": 73.5385,
+      "requests": 183,
+      "inputTokens": 5994860
+    }
+  },
+  "tasks": {
+    "control": {
+      "default": 26.6855,
+      "candidate": 31.139499999999998,
+      "candidateTimeChangePercent": 16.690712184519676
+    },
+    "ast": {
+      "default": 58.117000000000004,
+      "candidate": 73.5385,
+      "candidateTimeChangePercent": 26.535265068740642
+    },
+    "lsp": {
+      "default": 108.78649999999999,
+      "candidate": 165.065,
+      "candidateTimeChangePercent": 51.73298157400046
+    }
+  },
+  "adoption": {
+    "ast": [
+      {
+        "key": "ast-candidate-1",
+        "selected": true
+      },
+      {
+        "key": "ast-candidate-2",
+        "selected": false
+      }
+    ],
+    "lsp": [
+      {
+        "key": "lsp-candidate-1",
+        "selected": true
+      },
+      {
+        "key": "lsp-candidate-2",
+        "selected": true
+      }
+    ]
+  },
+  "rows": [
+    {
+      "key": "control-default-1",
+      "task": "control",
+      "arm": "default",
+      "seconds": 23.004,
+      "passed": true,
+      "status": "completed",
+      "termination": "terminal_response",
+      "tools": {
+        "todo__todo_write": 2,
+        "shell": 6,
+        "edit": 1,
+        "write": 1
+      },
+      "semantic": [],
+      "requests": 12,
+      "verified": true,
+      "tokens": 86810,
+      "maxResponseSeconds": 3.506,
+      "transportStatuses": {
+        "completed": 12
+      },
+      "toolErrors": []
+    },
+    {
+      "key": "control-candidate-1",
+      "task": "control",
+      "arm": "candidate",
+      "seconds": 33.719,
+      "passed": true,
+      "status": "completed",
+      "termination": "terminal_response",
+      "tools": {
+        "todo__todo_write": 2,
+        "hashline_edit": 6,
+        "tree": 2,
+        "write": 1,
+        "shell": 4
+      },
+      "semantic": [],
+      "requests": 17,
+      "verified": true,
+      "tokens": 203216,
+      "maxResponseSeconds": 4.886,
+      "transportStatuses": {
+        "completed": 17
+      },
+      "toolErrors": []
+    },
+    {
+      "key": "ast-candidate-1",
+      "task": "ast",
+      "arm": "candidate",
+      "seconds": 70.373,
+      "passed": true,
+      "status": "completed",
+      "termination": "terminal_response",
+      "tools": {
+        "todo__todo_write": 2,
+        "tree": 1,
+        "hashline_edit": 5,
+        "shell": 8,
+        "ast_search": 1,
+        "write": 1
+      },
+      "semantic": [
+        "ast_search"
+      ],
+      "requests": 20,
+      "verified": true,
+      "tokens": 456212,
+      "maxResponseSeconds": 12.358,
+      "transportStatuses": {
+        "completed": 20
+      },
+      "toolErrors": []
+    },
+    {
+      "key": "ast-default-1",
+      "task": "ast",
+      "arm": "default",
+      "seconds": 64.037,
+      "passed": true,
+      "status": "completed",
+      "termination": "terminal_response",
+      "tools": {
+        "todo__todo_write": 2,
+        "shell": 15,
+        "edit": 2,
+        "write": 1
+      },
+      "semantic": [],
+      "requests": 22,
+      "verified": true,
+      "tokens": 272253,
+      "maxResponseSeconds": 8.901,
+      "transportStatuses": {
+        "completed": 22
+      },
+      "toolErrors": []
+    },
+    {
+      "key": "lsp-default-1",
+      "task": "lsp",
+      "arm": "default",
+      "seconds": 117.833,
+      "passed": true,
+      "status": "completed",
+      "termination": "terminal_response",
+      "tools": {
+        "todo__todo_write": 2,
+        "shell": 25,
+        "edit": 14,
+        "write": 1
+      },
+      "semantic": [],
+      "requests": 44,
+      "verified": true,
+      "tokens": 1072253,
+      "maxResponseSeconds": 14.707,
+      "transportStatuses": {
+        "completed": 44
+      },
+      "toolErrors": []
+    },
+    {
+      "key": "lsp-candidate-1",
+      "task": "lsp",
+      "arm": "candidate",
+      "seconds": 176.292,
+      "passed": true,
+      "status": "completed",
+      "termination": "terminal_response",
+      "tools": {
+        "todo__todo_write": 2,
+        "hashline_edit": 29,
+        "shell": 19,
+        "tree": 1,
+        "lsp_query": 4,
+        "write": 1
+      },
+      "semantic": [
+        "lsp_query",
+        "lsp_query",
+        "lsp_query",
+        "lsp_query"
+      ],
+      "requests": 58,
+      "verified": true,
+      "tokens": 2495746,
+      "maxResponseSeconds": 15.03,
+      "transportStatuses": {
+        "completed": 56,
+        "cancelled": 2
+      },
+      "toolErrors": []
+    },
+    {
+      "key": "control-candidate-2",
+      "task": "control",
+      "arm": "candidate",
+      "seconds": 28.56,
+      "passed": true,
+      "status": "completed",
+      "termination": "terminal_response",
+      "tools": {
+        "todo__todo_write": 2,
+        "hashline_edit": 3,
+        "tree": 1,
+        "write": 1,
+        "safe_edit_and_test": 1,
+        "shell": 4
+      },
+      "semantic": [],
+      "requests": 14,
+      "verified": true,
+      "tokens": 177494,
+      "maxResponseSeconds": 3.638,
+      "transportStatuses": {
+        "completed": 12,
+        "cancelled": 2
+      },
+      "toolErrors": []
+    },
+    {
+      "key": "control-default-2",
+      "task": "control",
+      "arm": "default",
+      "seconds": 30.367,
+      "passed": true,
+      "status": "completed",
+      "termination": "terminal_response",
+      "tools": {
+        "todo__todo_write": 2,
+        "shell": 10,
+        "write": 2
+      },
+      "semantic": [],
+      "requests": 16,
+      "verified": true,
+      "tokens": 125446,
+      "maxResponseSeconds": 3.713,
+      "transportStatuses": {
+        "completed": 16
+      },
+      "toolErrors": []
+    },
+    {
+      "key": "ast-default-2",
+      "task": "ast",
+      "arm": "default",
+      "seconds": 52.197,
+      "passed": true,
+      "status": "completed",
+      "termination": "terminal_response",
+      "tools": {
+        "todo__todo_write": 2,
+        "shell": 16,
+        "write": 3
+      },
+      "semantic": [],
+      "requests": 23,
+      "verified": true,
+      "tokens": 235861,
+      "maxResponseSeconds": 8.646,
+      "transportStatuses": {
+        "completed": 22,
+        "cancelled": 1
+      },
+      "toolErrors": []
+    },
+    {
+      "key": "ast-candidate-2",
+      "task": "ast",
+      "arm": "candidate",
+      "seconds": 76.704,
+      "passed": true,
+      "status": "completed",
+      "termination": "terminal_response",
+      "tools": {
+        "todo__todo_write": 2,
+        "hashline_edit": 7,
+        "tree": 1,
+        "shell": 11,
+        "write": 1
+      },
+      "semantic": [],
+      "requests": 24,
+      "verified": true,
+      "tokens": 622321,
+      "maxResponseSeconds": 16.798,
+      "transportStatuses": {
+        "completed": 24
+      },
+      "toolErrors": []
+    },
+    {
+      "key": "lsp-candidate-2",
+      "task": "lsp",
+      "arm": "candidate",
+      "seconds": 153.838,
+      "passed": true,
+      "status": "completed",
+      "termination": "terminal_response",
+      "tools": {
+        "todo__todo_write": 2,
+        "hashline_edit": 27,
+        "shell": 13,
+        "tree": 1,
+        "lsp_query": 4,
+        "write": 1
+      },
+      "semantic": [
+        "lsp_query",
+        "lsp_query",
+        "lsp_query",
+        "lsp_query"
+      ],
+      "requests": 50,
+      "verified": true,
+      "tokens": 2039871,
+      "maxResponseSeconds": 15.614,
+      "transportStatuses": {
+        "completed": 49,
+        "cancelled": 1
+      },
+      "toolErrors": []
+    },
+    {
+      "key": "lsp-default-2",
+      "task": "lsp",
+      "arm": "default",
+      "seconds": 99.74,
+      "passed": true,
+      "status": "completed",
+      "termination": "terminal_response",
+      "tools": {
+        "todo__todo_write": 2,
+        "shell": 22,
+        "tree": 1,
+        "edit": 14,
+        "write": 1
+      },
+      "semantic": [],
+      "requests": 42,
+      "verified": true,
+      "tokens": 899084,
+      "maxResponseSeconds": 15.293,
+      "transportStatuses": {
+        "completed": 42
+      },
+      "toolErrors": []
+    }
+  ],
+  "limitation": "Two repeats per task/arm. Exploratory actual desktop comparison; no statistical or universal guarantee."
+}

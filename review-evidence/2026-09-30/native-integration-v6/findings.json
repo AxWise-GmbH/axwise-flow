@@ -1,0 +1,139 @@
+{
+  "schema": "orqanix.native-tools-mode.findings.v1",
+  "terminology": {
+    "comparison": "Default tools versus Native tools mode",
+    "flag": "nativeGemsEnabled",
+    "settingsLabel": "Native engineering tools",
+    "agent": "Same Goose coding loop and primary Gemini 3.8 Flash; no OMP or nested coding agent."
+  },
+  "implementation": {
+    "version": "1.5.1",
+    "selectionPolicy": "v6.1",
+    "sourceSynced": true,
+    "rustReleaseRebuilt": true,
+    "tools": [
+      "ast_search",
+      "lsp_query",
+      "hashline_edit",
+      "safe_edit_and_test"
+    ],
+    "largeRenameValidation": {
+      "sourceFiles": 1000,
+      "unopenedConsumers": 100,
+      "changedFiles": 101,
+      "previewPages": 6
+    },
+    "analysisLimits": {
+      "inputs": 10000,
+      "totalMiB": 128,
+      "perInputMiB": 1
+    },
+    "editLimits": {
+      "changedFiles": 512,
+      "combinedBeforeAfterMiB": 32
+    },
+    "diagnosticReportWaitMs": 750,
+    "diagnosticsCaveat": "Budget starts after server initialization; missing reports are pending, never proof of clean code. Language-server project graph, config and compiler/tests determine semantic coverage."
+  },
+  "fullV6Matrix": {
+    "trials": 12,
+    "allQualityPassed": true,
+    "provenancePassed": true,
+    "performanceAccepted": false,
+    "arms": {
+      "default": {
+        "count": 6,
+        "passed": 6,
+        "totalSeconds": 484.70899999999995,
+        "medianSeconds": 72.074,
+        "requests": 169,
+        "inputTokens": 3013586
+      },
+      "candidate": {
+        "count": 6,
+        "passed": 6,
+        "totalSeconds": 470.303,
+        "medianSeconds": 65.388,
+        "requests": 151,
+        "inputTokens": 2895592
+      }
+    },
+    "tasks": {
+      "control": {
+        "default": 31.848,
+        "candidate": 39.828,
+        "candidateTimeChangePercent": 25.05651846269783
+      },
+      "ast": {
+        "default": 72.074,
+        "candidate": 65.388,
+        "candidateTimeChangePercent": -9.276576851569207
+      },
+      "lsp": {
+        "default": 138.4325,
+        "candidate": 129.9355,
+        "candidateTimeChangePercent": -6.138009499214425
+      }
+    },
+    "totalTimeChangePercent": -2.9720925338708293,
+    "semanticAdoption": {
+      "successfulAstQueries": 2,
+      "successfulRenamePlans": 4,
+      "verifiedPlanApplies": 2,
+      "diagnosticTimeouts": 1
+    }
+  },
+  "focusedV6p1FollowUp": {
+    "trials": 4,
+    "allQualityPassed": true,
+    "provenancePassed": true,
+    "arms": {
+      "default": {
+        "count": 2,
+        "passed": 2,
+        "medianSeconds": 35.5165,
+        "totalSeconds": 71.033
+      },
+      "candidate": {
+        "count": 2,
+        "passed": 2,
+        "medianSeconds": 39.1715,
+        "totalSeconds": 78.343
+      }
+    },
+    "candidateTimeChangePercent": 10.290991510987846,
+    "focusedSpeedGatePassed": false,
+    "fullMatrixRequalified": false,
+    "nativeToolsByTrial": {
+      "control-default-1": {},
+      "control-candidate-1": {},
+      "control-candidate-2": {
+        "hashline_edit": 5,
+        "safe_edit_and_test": 1
+      },
+      "control-default-2": {}
+    }
+  },
+  "validation": {
+    "nativeUnitTestsPassed": 64,
+    "realBundledLspTestsPassed": 5,
+    "bothLoopIntegrationTestsPassed": 4,
+    "featureEnabledCodeModeTestsPassed": 6,
+    "clippyAllTargetsPassed": true,
+    "fmtPassed": true,
+    "recipeV6Passed": true,
+    "recipeV6p1Rerun": false
+  },
+  "release": {
+    "eligible": false,
+    "installedAppChanged": false,
+    "reason": "Simple-task speed gate remains unmet; full v6.1 matrix not requalified. Source and isolated rebuilt candidate are available."
+  },
+  "remainingFindings": [
+    "The mode-on simple-task path still sometimes chooses guarded reads and safe edit/test: five hashline calls and one safe call in one of two focused runs.",
+    "Focused mode-on trials made 35 tool calls and 39 provider requests versus 25 and 29 with mode off, including pre-Send title requests. Those counts explain extra round trips but do not isolate schema, provider variation or prompt causality.",
+    "AST/LSP integration works in selected benchmark tasks; none were selected in the simple follow-up. Syntax AST filters do not resolve bindings, and LSP coverage depends on the configured project graph.",
+    "Two repetitions per task/arm cannot establish statistical speed equivalence, universal reliability or superior quality. This is mode off/on on one rebuilt Goose binary, not a matched pristine upstream Goose or historical 2.4.2 comparison.",
+    "Multi-file publication uses advisory locks and durable recovery; it cannot be globally atomic against arbitrary external writers or undo unowned test side effects."
+  ]
+}

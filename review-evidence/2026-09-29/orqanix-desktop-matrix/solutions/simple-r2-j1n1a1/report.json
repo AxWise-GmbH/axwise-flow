@@ -1,0 +1,15 @@
+{
+  "summary": "Validate priceCents, quantity, and discountBps as safe integers within valid ranges, throw RangeError on invalid input or intermediate overflow, and calculate floored line total using basis points.",
+  "examples": [
+    {
+      "id": "zero",
+      "input": [1250, 0, 0],
+      "expected": 0
+    },
+    {
+      "id": "rounding",
+      "input": [199, 3, 1250],
+      "expected": 522
+    }
+  ]
+}

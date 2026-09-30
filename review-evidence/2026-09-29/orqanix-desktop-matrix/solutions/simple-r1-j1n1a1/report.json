@@ -1,0 +1,15 @@
+{
+  "summary": "Updated lineTotal to validate inputs as safe nonnegative integers with discountBps in 0..10000, enforce safe intermediate arithmetic, correctly handle zero quantity and 100% discount, and compute line total using integer-basis floor division.",
+  "examples": [
+    {
+      "id": "zero",
+      "input": [1250, 0, 0],
+      "expected": 0
+    },
+    {
+      "id": "rounding",
+      "input": [199, 3, 1250],
+      "expected": 522
+    }
+  ]
+}

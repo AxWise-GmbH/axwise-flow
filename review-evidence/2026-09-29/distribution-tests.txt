@@ -1,0 +1,20 @@
+E
+======================================================================
+ERROR: test_distribution (unittest.loader._FailedTest.test_distribution)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_distribution
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.11/3.11.12/Frameworks/Python.framework/Versions/3.11/lib/python3.11/unittest/loader.py", line 419, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.11/3.11.12/Frameworks/Python.framework/Versions/3.11/lib/python3.11/unittest/loader.py", line 362, in _get_module_from_name
+    __import__(name)
+  File "/Users/admin/axwise-opensource/axwise-flow-oss/packages/axwise-distribution/test_distribution.py", line 15, in <module>
+    from launcher import node_binary
+ImportError: cannot import name 'node_binary' from 'launcher' (/Users/admin/axwise-opensource/axwise-flow-oss/packages/axwise-distribution/launcher.py)
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (errors=1)

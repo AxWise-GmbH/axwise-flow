@@ -1,0 +1,115 @@
+{
+  "candidate": "Experimental v8 / native extension 1.5.3; installed Orqanix app unchanged",
+  "implementation": [
+    "Guarded whole-line replacements preserve local LF/CRLF and original range terminator by default, including a terminated EOF; empty replacement deletes a full range.",
+    "replacement_mode=exact retains byte-exact joins and deliberate ending changes. LSP planned edits remain exact.",
+    "One coherent batch/check guidance, no optional formatting/diagnostics after success; ordinary tools remain available. No automatic test-success cache, task classifier or deferred schemas.",
+    "AST/LSP remain optional under existing off-by-default nativeGemsEnabled; no OMP."
+  ],
+  "comparison": "Same rebuilt Rust release binary in actual Orqanix Electron app, mode off/on, Gemini 3.8 Flash, Jev/Axwise/Code Mode off, two repetitions per task/arm; same frozen driver and synthetic fixtures as v7.",
+  "tasks": {
+    "control": {
+      "default": 29.5925,
+      "candidate": 35.075,
+      "candidateTimeChangePercent": 18.526653712934028
+    },
+    "ast": {
+      "default": 50.329,
+      "candidate": 60.135999999999996,
+      "candidateTimeChangePercent": 19.485783544278632
+    },
+    "lsp": {
+      "default": 127.3,
+      "candidate": 104.627,
+      "candidateTimeChangePercent": -17.81068342498037
+    }
+  },
+  "totals": {
+    "default": {
+      "count": 6,
+      "passed": 6,
+      "totalSeconds": 414.443,
+      "medianSeconds": 50.329,
+      "requests": 143,
+      "inputTokens": 2335899
+    },
+    "candidate": {
+      "count": 6,
+      "passed": 6,
+      "totalSeconds": 399.676,
+      "medianSeconds": 60.135999999999996,
+      "requests": 125,
+      "inputTokens": 2654602
+    }
+  },
+  "aggregateTimeReductionPercent": 3.5630955282149768,
+  "all12TimedQualityPassed": true,
+  "provenancePassed": true,
+  "performanceAccepted": false,
+  "releaseEligible": false,
+  "traceFindings": {
+    "structuralBatchCalls": {
+      "ast-candidate-1": 1,
+      "ast-candidate-2": 1
+    },
+    "astMilliseconds": [
+      23,
+      18
+    ],
+    "lspTimedCalls": 0,
+    "renameWorkflow": "First candidate used one guarded 14-file custom batch; second used ordinary shell/write tools. Neither called LSP. The first pair took 34.1% less time; the second pair was about 1% longer. Do not credit the paired median reduction to LSP or claim uniform repeatability.",
+    "requestCounts": {
+      "off": 143,
+      "on": 125
+    },
+    "remainingLatency": "Most elapsed time overlaps primary provider requests. AST and guarded batch execution took milliseconds. Additional tool/prompt context or output generation may contribute, but this experiment does not isolate the cause of provider latency.",
+    "testFailures": "Two pre-change regression checks correctly failed before guarded edits; both final task grades passed. No native tool errors."
+  },
+  "functionalValidation": {
+    "offlineNativeUnitTests": 68,
+    "bothLoopIntegrationTests": 4,
+    "realBundledServerTests": 5,
+    "codeModeChecks": 6,
+    "fmtClippyReleaseBuildPassed": true,
+    "recipeMechanicalReceiptsPassed": true,
+    "recipeIndependentQualityPassed": false,
+    "recipeIssue": "Print-only self-test commands let a missing argument remain in the model-generated consumer after a signature change. Independent pinned TypeScript compilation caught it. LF/CRLF/delete/exact-byte checks passed. Do not treat receipt verification alone as source-quality proof.",
+    "details": "recipe-independent-grading.json"
+  },
+  "recommendation": "Retain boundary fixes behind the optional flag. Use default workflow for routine work; selectively enable batch capabilities when useful. Do not promote Native tools mode as a general speed improvement. Reduce tool/prompt overhead and require actual project/compiler checks before future promotion.",
+  "sourceReverification": {
+    "frozenFiles": 708,
+    "allMatch": true,
+    "mismatches": []
+  },
+  "limitations": [
+    "Two repetitions per task/arm are exploratory; no statistical equivalence or universal quality/speed claim.",
+    "Aggregate equally weights three fixtures, not a measured daily workload.",
+    "Historical v4 21.1% and v7/v8 absolute timings are different batches; cannot attribute changes between them solely to the code.",
+    "The repair cycle did not recur, but code normalization and guidance changes were combined, so causal effects were not isolated.",
+    "Additional functional recipe failed independent quality grading despite passing receipt checks; failure retained."
+  ],
+  "evidence": {
+    "report": "report.json",
+    "summary": "summary.json",
+    "provenance": "verification.json",
+    "operations": "operation-diagnostics.json",
+    "functionalIssue": "recipe-independent-grading.json",
+    "patch": "native-boundaries-v8.patch",
+    "sourceSync": "source-sync.json"
+  },
+  "normalStartupCheck": {
+    "kind": "post-benchmark-startup-only",
+    "status": "harness_or_app_error",
+    "error": "RENDERER_UNAVAILABLE",
+    "modelRequests": 0,
+    "mockCookieKeychain": false,
+    "cookieKeyLoadStarted": 1,
+    "tcpConnectEvents": 0,
+    "sslConnectEvents": 0,
+    "diagnosis": "Chromium cookie-key load waits before TCP/TLS. Normal startup of the newly ad-hoc-signed test bundle has not been cleared by the earlier v7 approval. No inference or Send; does not change twelve task timings. Keychain/dialog state was not inspected; do not assert that a password is missing.",
+    "benchmarkStartup": "Disposable profiles used the same test-only mock cookie Keychain switch in both arms; real parent OAuth used normal approved Keychain and TLS pinning was unchanged.",
+    "installedAppChanged": false
+  },
+  "testBuild": "/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app"
+}

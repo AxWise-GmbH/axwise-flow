@@ -247,7 +247,7 @@ test('quick info remains available with JEV explicitly disabled for benchmarking
   ]) assert.equal((await call('quick_info', args)).isError, true);
   assert.equal(calls.length, 1);
 });
-test('quick-info failure forbids automatic research, web, shell, or OMP fallback', async () => {
+test('quick-info failure forbids automatic research, web, shell, or native engineering tools fallback', async () => {
   let calls = 0;
   const call = createMcpTools({ ...base, fetchImpl: async () => { calls++; return response(
     { requestId: id, status: 'failed', kind: 'research', error: { code: 'AXWISE_ASSISTANT_QUICK_ROUTE_MISMATCH' } }); },
@@ -260,7 +260,7 @@ test('quick-info failure forbids automatic research, web, shell, or OMP fallback
   assert.doesNotMatch(value.content[0].text, /AXWISE_ASSISTANT_QUICK_ROUTE_MISMATCH/);
   assert.match(value.content[0].text, /could not be completed right now/);
   assert.match(value.structuredContent.next, /routing mismatch/i);
-  assert.match(value.structuredContent.next, /research.*web-search.*fetch.*shell.*OMP/i);
+  assert.match(value.structuredContent.next, /research.*web-search.*fetch.*shell.*native engineering/i);
 });
 test('routing decisions are not described as a search-provider outage', async () => {
   for (const [code, wording] of [
@@ -277,7 +277,7 @@ test('routing decisions are not described as a search-provider outage', async ()
     assert.equal(value.structuredContent.terminalAnswer, undefined);
   }
 });
-test('live-data terminal failure forbids an automatic research, web, shell, or OMP fallback', async () => {
+test('live-data terminal failure forbids an automatic research, web, shell, or native engineering tools fallback', async () => {
   let calls = 0;
   const call = createMcpTools({ ...base,
     fetchImpl: async () => { calls++; return response(
@@ -294,7 +294,7 @@ test('live-data terminal failure forbids an automatic research, web, shell, or O
   assert.equal(value.structuredContent.kind, 'currency');
   assert.equal(value.structuredContent.automaticFallback, 'disabled');
   assert.match(value.structuredContent.next, /ask the user/i);
-  assert.match(value.structuredContent.next, /web-search.*fetch.*shell.*OMP/i);
+  assert.match(value.structuredContent.next, /web-search.*fetch.*shell.*native engineering/i);
   assert.equal(value.structuredContent.error.code, 'AXWISE_INVALID_TERMINAL_CONTRACT');
   assert.doesNotMatch(value.content[0].text, /AXWISE_INVALID_TERMINAL_CONTRACT/);
   assert.match(value.content[0].text, /could not be completed right now/);
@@ -326,7 +326,7 @@ test('status recovery after a connector restart preserves the durable quick-info
   assert.equal(value.structuredContent.kind, 'quick_info');
   assert.equal(value.structuredContent.automaticFallback, 'disabled');
   assert.match(value.structuredContent.next, /routing mismatch/i);
-  assert.match(value.structuredContent.next, /research.*web-search.*fetch.*shell.*OMP/i);
+  assert.match(value.structuredContent.next, /research.*web-search.*fetch.*shell.*native engineering/i);
 });
 test('status recovery remembers a durable bounded kind before a later transport failure', async () => {
   let calls = 0; let elapsed = 0;
@@ -346,7 +346,7 @@ test('status recovery remembers a durable bounded kind before a later transport 
   assert.equal(value.isError, true);
   assert.equal(value.structuredContent.kind, 'quick_info');
   assert.equal(value.structuredContent.automaticFallback, 'disabled');
-  assert.match(value.structuredContent.next, /same requestId.*research.*web-search.*fetch.*shell.*OMP/i);
+  assert.match(value.structuredContent.next, /same requestId.*research.*web-search.*fetch.*shell.*native engineering/i);
 });
 test('generated image bytes become an MCP image block and structured content keeps a safe reference', async () => {
   const png = Buffer.concat([

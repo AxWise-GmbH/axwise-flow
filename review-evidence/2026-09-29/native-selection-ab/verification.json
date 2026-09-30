@@ -1,0 +1,43 @@
+{
+  "modelTrials": 12,
+  "setupAttemptsBeforeInference": 7,
+  "modelHttpRequests": 312,
+  "observedResponseModels": [
+    "gemini-3.8-flash"
+  ],
+  "toolCalls": 293,
+  "policy": {
+    "baseline": {
+      "toolBearingRequests": 124,
+      "v1Requests": 0,
+      "legacyWritePreferenceRequests": 124
+    },
+    "candidate": {
+      "toolBearingRequests": 176,
+      "v1Requests": 176,
+      "legacyWritePreferenceRequests": 0
+    }
+  },
+  "filesystemSentinelChecks": 156,
+  "allSentinelsPassed": true,
+  "immutableInputViolations": 0,
+  "unexpectedOutputFiles": 0,
+  "pendingTelemetry": 0,
+  "frozenExecutionSourcesUnchanged": {
+    "v3": true,
+    "v4": true
+  },
+  "activeBenchmarkProcesses": [],
+  "rawReports": {
+    "v3": {
+      "path": "/private/tmp/orqanix-selection-live-v3-20260929/report.json",
+      "sha256": "8bb16c6f8d258bf4b951cbabd5525cd8ed30f9331a6c2cf697aa4f9c116a1038"
+    },
+    "v4": {
+      "path": "/private/tmp/orqanix-selection-live-v4-20260929/report.json",
+      "sha256": "26d26d62dca864f7d6eb3d44d1e228e73f6db21dabd76ef4cdcaa230360e1043"
+    }
+  },
+  "analysisScriptSha256": "ca5e464be1ce3bc59374912a3ba025b9542cd9deb6d6438f24d6ac1e6d71bc88",
+  "scopeAudit": "Recorded tool path/command arguments stayed in the synthetic workspace or referenced supplied runtime executables. Additional shell forms (head/grep/for loops) were inspected and remained workspace-local. Generated TS/MJS results contained no filesystem, process, network or credential APIs. All frozen inputs remained unchanged. This is an observed-call review and filesystem confinement, not a claim of full network/IPC isolation."
+}

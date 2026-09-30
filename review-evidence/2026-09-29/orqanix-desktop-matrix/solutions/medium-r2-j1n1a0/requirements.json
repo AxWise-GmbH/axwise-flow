@@ -1,0 +1,129 @@
+{
+  "summary": "Requirements derived from synthetic stakeholder interviews for the ticket triage summary module.",
+  "requirements": [
+    {
+      "id": "latest_open",
+      "description": "Support tickets with repeated IDs represent updates; keep only the last occurrence of each ID and exclude tickets whose latest state is closed.",
+      "sources": [
+        {
+          "id": "I2",
+          "quote": "Repeated IDs are updates: keep the last occurrence, and exclude tickets whose latest state is closed."
+        }
+      ],
+      "acceptance": {
+        "given": "A list of tickets with possible updates and closures",
+        "when": "Tickets are summarized",
+        "then": "Only the final occurrence of each ticket ID is retained, and any ticket whose latest state is closed is excluded from the summary"
+      }
+    },
+    {
+      "id": "priority_order",
+      "description": "Open tickets in the queue must be ordered by severity (urgent before normal before low), breaking ties by ascending ticket ID.",
+      "sources": [
+        {
+          "id": "I1",
+          "quote": "Urgent open tickets must appear before normal and low tickets; ties should use the ticket ID in ascending order."
+        }
+      ],
+      "acceptance": {
+        "given": "A collection of open tickets with urgent, normal, or low severity",
+        "when": "The triage queue is generated",
+        "then": "Tickets are ordered urgent, then normal, then low, with ties within the same severity ordered by ticket ID in ascending order"
+      }
+    },
+    {
+      "id": "customer_summary",
+      "description": "The triage summary must count open tickets per severity level and list unique customer IDs in ascending order.",
+      "sources": [
+        {
+          "id": "I3",
+          "quote": "The summary must count open tickets by severity and list each affected customer once in ascending ID order."
+        }
+      ],
+      "acceptance": {
+        "given": "A collection of open tickets across one or more customer accounts",
+        "when": "The triage summary is computed",
+        "then": "The summary includes openCount, bySeverity counts for urgent, normal, and low, and an ascending list of unique customerIds"
+      }
+    }
+  ],
+  "assumptions": [
+    "Tickets with invalid schema or missing required fields throw a TypeError.",
+    "Ticket IDs and customer IDs are compared as strings in ascending lexicographical order.",
+    "bySeverity always contains counts for urgent, normal, and low severities even when zero."
+  ],
+  "scenarios": [
+    {
+      "id": "latest_closed",
+      "input": [
+        {
+          "id": "a",
+          "title": "Fix",
+          "customerId": "c",
+          "severity": "urgent",
+          "state": "open"
+        },
+        {
+          "id": "a",
+          "title": "Fixed",
+          "customerId": "c",
+          "severity": "urgent",
+          "state": "closed"
+        }
+      ],
+      "expected": {
+        "openCount": 0,
+        "bySeverity": {
+          "urgent": 0,
+          "normal": 0,
+          "low": 0
+        },
+        "customerIds": [],
+        "queue": []
+      }
+    },
+    {
+      "id": "priority_and_ties",
+      "input": [
+        {
+          "id": "t2",
+          "title": "Issue 2",
+          "customerId": "custB",
+          "severity": "low",
+          "state": "open"
+        },
+        {
+          "id": "t3",
+          "title": "Issue 3",
+          "customerId": "custA",
+          "severity": "urgent",
+          "state": "open"
+        },
+        {
+          "id": "t1",
+          "title": "Issue 1",
+          "customerId": "custA",
+          "severity": "urgent",
+          "state": "open"
+        }
+      ],
+      "expected": {
+        "openCount": 3,
+        "bySeverity": {
+          "urgent": 2,
+          "normal": 0,
+          "low": 1
+        },
+        "customerIds": [
+          "custA",
+          "custB"
+        ],
+        "queue": [
+          "t1",
+          "t3",
+          "t2"
+        ]
+      }
+    }
+  ]
+}

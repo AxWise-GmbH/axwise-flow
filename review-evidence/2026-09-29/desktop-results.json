@@ -1,0 +1,97 @@
+{
+  "engineering": {
+    "advertised": [
+      "ast_search",
+      "hashline_edit",
+      "lsp_query",
+      "safe_edit_and_test"
+    ],
+    "registered": [
+      "orqanix_engineering_status",
+      "orqanix_engineering_inspect",
+      "orqanix_engineering_edit",
+      "orqanix_engineering_exec"
+    ],
+    "nativeDirectCalls": [
+      {
+        "name": "ast_search",
+        "result": {
+          "status": "failed",
+          "code": "INVALID_ARGUMENTS"
+        }
+      },
+      {
+        "name": "hashline_edit",
+        "result": {
+          "status": "failed",
+          "code": "INVALID_ARGUMENTS"
+        }
+      },
+      {
+        "name": "lsp_query",
+        "result": {
+          "status": "failed",
+          "code": "INVALID_ARGUMENTS"
+        }
+      },
+      {
+        "name": "safe_edit_and_test",
+        "result": {
+          "status": "failed",
+          "code": "INVALID_ARGUMENTS"
+        }
+      }
+    ]
+  },
+  "markdown": [
+    {
+      "name": "currency",
+      "input": "The price is $10 to $20 for entry.",
+      "output": "The price is 10 to20 for entry."
+    },
+    {
+      "name": "inline-code",
+      "input": "Use `\\text{hello}` in LaTeX.",
+      "output": "Use `hello` in LaTeX."
+    },
+    {
+      "name": "display-math",
+      "input": "$$\n\\mathbf{x} = \\frac{\\text{profit}}{\\text{sales}}\n$$",
+      "output": "$$\n**x** = \\frac{profit}{sales}\n$$"
+    },
+    {
+      "name": "tilde-fence",
+      "input": "~~~latex\n\\textbf{Do not change code} \\rightarrow x\n~~~",
+      "output": "~~~latex\n**Do not change code** → x\n~~~"
+    },
+    {
+      "name": "valid-inline-math",
+      "input": "Euler: $e^{i\\pi}+1=0$.",
+      "output": "Euler: e^{iπ}+1=0."
+    }
+  ],
+  "prompt": {
+    "suppliedThinkingEffort": "low",
+    "emittedTriage": {
+      "kind": "orqaly.jev-triage.v1",
+      "lane": "mixed",
+      "target": "both conversational explanation and required native engineering / tool actions",
+      "guidance": "Fast System-1 triage classified this request as mixed. Fulfill both the conversational explanation and the tool/file modifications without dropping either."
+    },
+    "methods": [
+      "setSystemPrompt",
+      "decision",
+      "session/prompt",
+      "endTurn"
+    ],
+    "greetingDecisionCalls": 0,
+    "disabledDecisionCalls": 0
+  },
+  "timeout": {
+    "fastResponseMs": 10,
+    "slowResponseMs": 1500,
+    "actualAbortAfterMs": 1201,
+    "error": "TimeoutError",
+    "afterFailure": "Prompt submitted without triage; no blanket chat failure"
+  }
+}

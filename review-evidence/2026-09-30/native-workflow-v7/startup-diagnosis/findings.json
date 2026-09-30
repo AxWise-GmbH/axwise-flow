@@ -1,0 +1,34 @@
+{
+  "cause": "Chromium persisted-cookie encryption key load waits on macOS Keychain access in the newly signed test app.",
+  "evidence": {
+    "events": {
+      "COOKIE_STORE_ALIVE": 6,
+      "DNS_CONFIG_CHANGED": 1,
+      "HTTP_SERVER_PROPERTIES_INITIALIZATION": 4,
+      "HTTP_SERVER_PROPERTIES_UPDATE_CACHE": 2,
+      "NETWORK_QUALITY_CHANGED": 1,
+      "CORS_REQUEST": 56,
+      "CHECK_CORS_PREFLIGHT_REQUIRED": 28,
+      "REQUEST_ALIVE": 56,
+      "NETWORK_DELEGATE_BEFORE_URL_REQUEST": 56,
+      "TRANSPORT_SECURITY_STATE_SHOULD_UPGRADE_TO_SSL": 28,
+      "URL_REQUEST_START_JOB": 28,
+      "FIRST_PARTY_SETS_METADATA": 56,
+      "COMPUTED_PRIVACY_MODE": 28,
+      "COOKIE_PERSISTENT_STORE_LOAD": 1,
+      "COOKIE_PERSISTENT_STORE_KEY_LOAD_STARTED": 1,
+      "CANCELLED": 28,
+      "QUIC_SESSION_POOL_CLOSE_ALL_SESSIONS": 3,
+      "HTTP_SERVER_PROPERTIES_UPDATE_PREFS": 2
+    },
+    "tlsHandshakeEvents": 0,
+    "normalServerTlsPassed": true,
+    "boundedServerTlsPassed": true,
+    "oldApprovedAppReadyTrials": 12,
+    "newBundleIdAloneDidNotFixStartup": true,
+    "mockCookieKeychainPreflightPassed": true
+  },
+  "testWorkaround": "--use-mock-keychain only in disposable synthetic benchmark profiles; both arms identical. Real OAuth parent Keychain path and TLS verification remain unchanged. No global Keychain state or installed app changed.",
+  "officialSource": "https://releases.electronjs.org/pr/53790",
+  "sourceBenchmarkProtocol": "../protocol.json"
+}

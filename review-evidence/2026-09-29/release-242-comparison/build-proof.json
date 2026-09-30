@@ -1,0 +1,17 @@
+{
+  "releaseVersion": "2.4.2",
+  "releaseBuild": "5707",
+  "candidateBuildMode": "release",
+  "files": {
+    "bin/goose": "9f10ec5e88a3c80d7739774cbfb5d59ed1632afc96d28516e2127b584d023d57",
+    "bin/goose-release": "bef41ad1617fbe49fb6ef848858a12ee9b1eb335be012a91ab71c02909f967c7",
+    "bin/goose-candidate": "27c173e104fa24d964d3ffd29ea0833499069434c8d7e4951ac58a040f7ad879",
+    "bin/benchmark-auth.mjs": "b20d374c3c41965d81e1c58a75040b619539fe8230ac8649307fab2f0797d3c3",
+    "orqaly-runtime/runtime-manifest.json": "9700ffd185bc5be0292c555b120461863ea14c11336688e5a0e1927996fc48fd",
+    "orqaly-runtime/engineering/src/mcp.mjs": "6b51438f600b8f35ffdf4b61b7a76eb77184d4354b2cfa8301ee832ad8da5773",
+    "orqaly-runtime/engineering/src/config.mjs": "e23078fb2fb15342e5100d679f2682011c5ddb51518490ac526841218ff7d8c1",
+    "orqaly-runtime/engineering/src/omp-client.mjs": "c5d253b68676977b108b89e7a827cc53dce96a630f9b6ec89f431ccbeb7034f9",
+    "orqaly-runtime/omp/bin/omp": "ac673868a1598b4beda98dc6ce2148f24afabc42816c702b2dac5f79f0d861de",
+    "orqaly-runtime/connector/src/cli.mjs": "2f9223bdde66e67620df625c3e9150c695331ecd54d0109ff76e6278158d9c40"
+  }
+}

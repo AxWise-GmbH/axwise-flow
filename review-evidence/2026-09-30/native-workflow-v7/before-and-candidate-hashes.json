@@ -1,0 +1,38 @@
+[
+  {
+    "path": "crates/goose/src/agents/platform_extensions/native_engineering/selection.md",
+    "originalSha256": "0ef70a2da9abe498395b746107fa3fc9914d1322263dfdacf29736fcdcce383a",
+    "candidateSha256": "95b69ddb2dd23b3b8e6c577cf7bcbede12d500ea9bb0a46092e3e5f9ac8ed237",
+    "stagingBeforeSha256": "0ef70a2da9abe498395b746107fa3fc9914d1322263dfdacf29736fcdcce383a"
+  },
+  {
+    "path": "crates/goose/src/agents/platform_extensions/native_engineering/README.md",
+    "originalSha256": "16a8e6d5c247128a40abd4faa93f2e7eb2c3e37615699689db39a5c14e61d6b1",
+    "candidateSha256": "16f91651be5701a4b0e8687b390ecc6a57b3a5d2eff1d86129dfbd4cb7d35586",
+    "stagingBeforeSha256": "16a8e6d5c247128a40abd4faa93f2e7eb2c3e37615699689db39a5c14e61d6b1"
+  },
+  {
+    "path": "crates/goose/src/agents/platform_extensions/native_engineering/mod.rs",
+    "originalSha256": "5439efc3f8e756671cca6fec01770ff00012b88772326083144f4c0d5bdf8129",
+    "candidateSha256": "a3b2d1f953d80d30e92003d302108a7120f0a18e7ab66747d6466c9bba46f2a6",
+    "stagingBeforeSha256": "5439efc3f8e756671cca6fec01770ff00012b88772326083144f4c0d5bdf8129"
+  },
+  {
+    "path": "crates/goose/src/agents/platform_extensions/developer/mod.rs",
+    "originalSha256": "c2e9578755bc23a4b7c5baaa563f957637693ef9c56dba1ebe7a81ae6f9b02fa",
+    "candidateSha256": "c2e9578755bc23a4b7c5baaa563f957637693ef9c56dba1ebe7a81ae6f9b02fa",
+    "stagingBeforeSha256": "3e856a0379e2808745f9934ee4eb796b5bce11a57a98d2beaecc6d89fcf25a98"
+  },
+  {
+    "path": "crates/goose/src/agents/extension_manager.rs",
+    "originalSha256": "cabfdd6904c38216fd4b6a9ad351eeed821a7d8b174ae911328db27c0725c6f5",
+    "candidateSha256": "3f98119de9f7bf3db094bef07c912ea3d5221a533f8ad66d11911112bf8da2f9",
+    "stagingBeforeSha256": "cabfdd6904c38216fd4b6a9ad351eeed821a7d8b174ae911328db27c0725c6f5"
+  },
+  {
+    "path": "crates/goose/tests/native_engineering_integration.rs",
+    "originalSha256": "652b3302505d60ea3dbe78225a83149dbb77626d50dae44876e30b7a61284d58",
+    "candidateSha256": "ff5f0276ac4538b7ff7f9c56e619d8eb1a1363714e470462b56298b962ecec46",
+    "stagingBeforeSha256": "652b3302505d60ea3dbe78225a83149dbb77626d50dae44876e30b7a61284d58"
+  }
+]

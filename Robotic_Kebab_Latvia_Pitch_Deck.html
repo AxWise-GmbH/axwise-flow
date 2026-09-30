@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Automated Robotic Kebab Kiosk - Latvia Feasibility & Pitch Deck</title>
+<style>
+  :root {
+    --bg-primary: #0f172a;
+    --bg-card: #1e293b;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent: #f59e0b;
+    --accent-blue: #38bdf8;
+    --accent-green: #10b981;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { background: var(--bg-primary); color: var(--text-main); display: flex; flex-direction: column; min-height: 100vh; }
+  .deck-container { flex: 1; display: flex; flex-direction: column; max-width: 1100px; margin: 0 auto; width: 100%; padding: 2rem 1.5rem; }
+  .slide { display: none; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 3rem 2.5rem; min-height: 580px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); flex-direction: column; justify-content: space-between; }
+  .slide.active { display: flex; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  
+  .slide-header { margin-bottom: 2rem; }
+  .slide-tag { display: inline-block; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); background: rgba(245, 158, 11, 0.12); padding: 0.3rem 0.8rem; border-radius: 9999px; margin-bottom: 0.8rem; }
+  .slide-title { font-size: 2.2rem; font-weight: 800; color: #fff; line-height: 1.2; }
+  .slide-subtitle { color: var(--text-muted); font-size: 1.1rem; margin-top: 0.5rem; }
+
+  .content-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 1.5rem 0; }
+  .card { background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); padding: 1.5rem; border-radius: 12px; }
+  .card h3 { color: var(--accent-blue); font-size: 1.2rem; margin-bottom: 0.6rem; }
+  .card p, .card li { color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; }
+  .card ul { list-style: none; }
+  .card li { margin-bottom: 0.5rem; position: relative; padding-left: 1.2rem; }
+  .card li::before { content: "•"; position: absolute; left: 0; color: var(--accent); font-weight: bold; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.5rem 0; }
+  .stat-card { background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border); padding: 1.5rem; border-radius: 12px; text-align: center; }
+  .stat-val { font-size: 2.2rem; font-weight: 800; color: var(--accent); margin-bottom: 0.3rem; }
+  .stat-lbl { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .nav-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding: 0.5rem 0; }
+  .btn { background: var(--border); color: #fff; border: none; padding: 0.7rem 1.4rem; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+  .btn:hover { background: var(--accent); color: #000; }
+  .slide-counter { color: var(--text-muted); font-weight: 600; }
+  
+  table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.95rem; }
+  th, td { padding: 0.8rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+  th { color: var(--accent-blue); font-weight: 600; }
+  td { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div class="deck-container">
+  <!-- Slide 1: Title -->
+  <div class="slide active" id="slide-1">
+    <div class="slide-header">
+      <span class="slide-tag">Business Proposal & Feasibility</span>
+      <h1 class="slide-title">Autonomous Robotic Kebab Kiosk</h1>
+      <p class="slide-subtitle">Unmanned Fast-Casual Food Technology for the Latvian & Baltic Market</p>
+    </div>
+    <div class="content-grid">
+      <div class="card">
+        <h3>The Concept</h3>
+        <p>A fully automated, zero-human-touch kiosk executing meat slicing, salad portioning, sauce dosing, wrapping, and dispensing 24/7 with zero labor bottleneck.</p>
+      </div>
+      <div class="card">
+        <h3>Why Latvia?</h3>
+        <p>0% Corporate Income Tax on reinvested profits, tech-forward infrastructure, digital tax filing (VID), and an established fast-casual kebab culture.</p>
+      </div>
+      <div class="card">
+        <h3>Key Value Driver</h3>
+        <p>Labor is 30-40% of standard restaurant OpEx. Robotics shifts labor to scheduled maintenance and yields up to 70% gross margins per kebab.</p>
+      </div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-val">€155k</div>
+        <div class="stat-lbl">Average CapEx per Kiosk</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">21 Units/Day</div>
+        <div class="stat-lbl">Daily Breakeven Volume</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">&lt; 10 Mos</div>
+        <div class="stat-lbl">Estimated Capital Payback</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 2: Technical Architecture -->
+  <div class="slide" id="slide-2">
+    <div class="slide-header">
+      <span class="slide-tag">Robotics & Engineering</span>
+      <h2 class="slide-title">End-to-End Robotic Hardware Architecture</h2>
+      <p class="slide-subtitle">Food-grade robotics compliant with EU Machinery Directive (2006/42/EC)</p>
+    </div>
+    <div class="content-grid">
+      <div class="card">
+        <h3>Rotisserie & Slicing</h3>
+        <ul>
+          <li>Precision vertical motorized rotisserie</li>
+          <li>Infrared contour sensors measure surface roasting</li>
+          <li>High-speed automated circular slicing blade</li>
+          <li>Drop chute into heated buffer tray</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Assembly & Dosing</h3>
+        <ul>
+          <li>Refrigerated salad hoppers (< +5°C) with auger portioners</li>
+          <li>Peristaltic multi-sauce dosing with anti-drip nozzles</li>
+          <li>Automated flatbread steamer & rolling bed</li>
+          <li>Food-grade IP69K washdown robotic arm</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Hygiene & Sanitization</h3>
+        <ul>
+          <li>Automated Clean-in-Place (CIP) hot wash (> 82°C)</li>
+          <li>Integrated UV-C sterilization chambers</li>
+          <li>Air curtain seals & automated grease trap</li>
+          <li>Full telemetry & emergency interlock shutoff</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: Financials -->
+  <div class="slide" id="slide-3">
+    <div class="slide-header">
+      <span class="slide-tag">Financial Modeling</span>
+      <h2 class="slide-title">CapEx & Monthly Unit Economics</h2>
+      <p class="slide-subtitle">Target metrics for a single production unit in Riga</p>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Estimated Cost</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Robotics & Automation</strong></td>
+          <td>€65,000 – €110,000</td>
+          <td>Arm, slicer, dispensers, PLC controllers</td>
+        </tr>
+        <tr>
+          <td><strong>Food-Grade Stainless Enclosure</strong></td>
+          <td>€18,000 – €30,000</td>
+          <td>304/316 steel, safety glass, ventilation & filters</td>
+        </tr>
+        <tr>
+          <td><strong>Plumbing, Power & Certification</strong></td>
+          <td>€20,000 – €34,000</td>
+          <td>3-phase hookup, CIP, CE conformity, PVD documentation</td>
+        </tr>
+        <tr>
+          <td><strong>Monthly Operating Expense (Fixed)</strong></td>
+          <td>€2,500 – €5,000/mo</td>
+          <td>Rent, restocking labor, utilities, maintenance reserve</td>
+        </tr>
+        <tr>
+          <td><strong>Average Order / COGS</strong></td>
+          <td>€8.50 / €2.38</td>
+          <td>~72% gross product margin</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Slide 4: PVD Approval -->
+  <div class="slide" id="slide-4">
+    <div class="slide-header">
+      <span class="slide-tag">Regulatory Roadmap</span>
+      <h2 class="slide-title">Latvian PVD Food Safety Clearance</h2>
+      <p class="slide-subtitle">Step-by-step pathway under EU Regulations (EC) 852/2004 & 1935/2004</p>
+    </div>
+    <div class="content-grid">
+      <div class="card">
+        <h3>1. Specialized HACCP</h3>
+        <p>Sensors continuously stream temperature logs: raw meat storage at ≤ +4°C and core cooking temperature at ≥ +75°C to prove microbial pathogen elimination.</p>
+      </div>
+      <div class="card">
+        <h3>2. Material Certification</h3>
+        <p>All grippers, slicer blades, hoses, and canisters must hold official EU 1935/2004 Food Contact Material declarations of compliance.</p>
+      </div>
+      <div class="card">
+        <h3>3. Physical Audit</h3>
+        <p>PVD inspectors audit the physical kiosk: automated CIP sanitation cycle, backflow prevention, potable water source, and waste handling.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 5: Location Strategy -->
+  <div class="slide" id="slide-5">
+    <div class="slide-header">
+      <span class="slide-tag">Site Selection</span>
+      <h2 class="slide-title">Site Comparison: Container vs. Mall</h2>
+      <p class="slide-subtitle">Strategic trade-offs for launching the first pilot unit</p>
+    </div>
+    <div class="content-grid">
+      <div class="card">
+        <h3>Outdoor Modular Unit</h3>
+        <ul>
+          <li><strong style="color:var(--accent-green)">+ 24/7 Operations:</strong> Captures high-margin late night crowd</li>
+          <li><strong style="color:var(--accent-green)">+ Footprint Flexibility:</strong> Can be relocated if traffic shifts</li>
+          <li><strong style="color:#ef4444">- Weather & Utilities:</strong> Requires freeze protection (-20°C) and civil trenching</li>
+          <li><strong style="color:#ef4444">- Permits:</strong> Requires municipal construction board approval</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Indoor Mall / Transit Hub</h3>
+        <ul>
+          <li><strong style="color:var(--accent-green)">+ Plug & Play:</strong> Ready 3-phase power, water, and greywater</li>
+          <li><strong style="color:var(--accent-green)">+ Controlled Climate:</strong> Zero risk of winter freezing or sensor condensation</li>
+          <li><strong style="color:var(--accent-green)">+ Steady Footfall:</strong> Guaranteed traffic regardless of season</li>
+          <li><strong style="color:#ef4444">- Limited Hours:</strong> Restricted to 10:00 - 21:00/22:00</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 6: Next Steps -->
+  <div class="slide" id="slide-6">
+    <div class="slide-header">
+      <span class="slide-tag">Execution Roadmap</span>
+      <h2 class="slide-title">Pilot Milestones & Next Actions</h2>
+      <p class="slide-subtitle">Recommended timeline from concept to initial deployment</p>
+    </div>
+    <div class="content-grid">
+      <div class="card">
+        <h3>Phase 1: Legal & Design</h3>
+        <p>Register Latvian SIA company, establish vendor contracts for food-grade components, and compile Machinery Directive technical file.</p>
+      </div>
+      <div class="card">
+        <h3>Phase 2: Prototype & PVD Pre-audit</h3>
+        <p>Fabricate kiosk structure, install CIP sanitation routines, and initiate pre-consultations with PVD food safety inspectors.</p>
+      </div>
+      <div class="card">
+        <h3>Phase 3: Site Deployment</h3>
+        <p>Finalize lease agreement, install certified electronic cash register (VID), complete on-site PVD audit, and open commercial operations.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="nav-bar">
+    <button class="btn" id="prevBtn" onclick="changeSlide(-1)">← Previous</button>
+    <div class="slide-counter" id="counter">Slide 1 of 6</div>
+    <button class="btn" id="nextBtn" onclick="changeSlide(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  let currentSlide = 1;
+  const totalSlides = 6;
+
+  function showSlide(n) {
+    document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+    document.getElementById('slide-' + n).classList.add('active');
+    document.getElementById('counter').innerText = `Slide ${n} of ${totalSlides}`;
+    document.getElementById('prevBtn').disabled = (n === 1);
+    document.getElementById('nextBtn').disabled = (n === totalSlides);
+  }
+
+  function changeSlide(direction) {
+    currentSlide += direction;
+    if (currentSlide < 1) currentSlide = 1;
+    if (currentSlide > totalSlides) currentSlide = totalSlides;
+    showSlide(currentSlide);
+  }
+
+  showSlide(1);
+</script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+{
+  "key": "control-default-1",
+  "difficulty": "control",
+  "arm": "default",
+  "repeat": 1,
+  "flags": {
+    "jevReviewEnabled": false,
+    "nativeGemsEnabled": false,
+    "axwiseLocalEnabled": false
+  },
+  "startedAt": "2026-09-30T08:05:04.335Z",
+  "directory": "/private/tmp/orqanix-native-v7-live-20260930/control-default-1",
+  "workspace": "/private/tmp/orqanix-native-v7-live-20260930/control-default-1/fixture/workspace",
+  "decisions": [],
+  "confinedAuthVerified": true,
+  "boundary": {
+    "sha256": "d9872621d40217f3ddd5d27af3281a396a4f7bd8f51c99cc5712dc726bd55308",
+    "checks": [
+      {
+        "name": "workspace read",
+        "passed": true
+      },
+      {
+        "name": "workspace write and remove",
+        "passed": true
+      },
+      {
+        "name": "profile write",
+        "passed": true
+      },
+      {
+        "name": "own temp write",
+        "passed": true
+      },
+      {
+        "name": "other temp read denied",
+        "passed": true
+      },
+      {
+        "name": "other temp write denied",
+        "passed": true
+      },
+      {
+        "name": "user directory listing denied",
+        "passed": true
+      },
+      {
+        "name": "child inherits restriction",
+        "passed": true
+      },
+      {
+        "name": "symlink read escape denied",
+        "passed": true
+      },
+      {
+        "name": "symlink write escape denied",
+        "passed": true
+      },
+      {
+        "name": "hardlink escape denied",
+        "passed": true
+      },
+      {
+        "name": "app binary readable",
+        "passed": true
+      },
+      {
+        "name": "app resources immutable",
+        "passed": true
+      }
+    ],
+    "description": "Goose backend and descendants cannot read/write unrelated user, volume or temp trees; app resources read-only; own synthetic workspace/profile/temp writable. Electron remains outside this added filesystem boundary. Network/IPC remain available; this is not complete process or network isolation."
+  },
+  "status": "harness_or_app_error",
+  "error": "RENDERER_UNAVAILABLE",
+  "tools": [],
+  "pendingApprovals": [],
+  "telemetry": {
+    "trial": "control-default-1",
+    "provenance": {
+      "schemaVersion": "orqanix.benchmark-relay.v2",
+      "model": "gemini-3.8-flash",
+      "authMethod": "packaged_authenticated_session_endpoint",
+      "oauthClientId": "nhI2YnrzeTP2mk2X",
+      "issuer": "https://clerk.orqanix.com",
+      "authenticatedApiOrigin": "https://orqaly-v2-api-preview-161074549006.europe-west4.run.app",
+      "connectorConfigSha256": "aedca9e1e55efe5b1cd8f785bd815efc2d33348b5feb6c50cb15b952f79640df",
+      "authCacheMs": 5000,
+      "providerRouter": "apps/orqaly/server/workflow-v2/goose-provider-http.js",
+      "jevMethod": "forwarded_authenticated_packaged_endpoint",
+      "jevProviderHttpVisible": false,
+      "jevFallbackOnError": false,
+      "legacyCloudAxwiseRoutes": false,
+      "chatAttribution": "axwise_specialist_artifact response-format marker; remaining chat requests primary"
+    },
+    "records": [],
+    "modelRequests": [],
+    "jevRequests": [],
+    "jevProviderRequests": [],
+    "pending": 0,
+    "primaryHttpAttempts": 0,
+    "axwiseHttpAttempts": 0,
+    "jevHttpAttempts": 0
+  },
+  "scopedRelay": {
+    "trial": "control-default-1",
+    "calls": 0,
+    "denied": 0
+  },
+  "oracle": {
+    "passed": false,
+    "behavior": {
+      "passed": false,
+      "checks": [
+        {
+          "name": "label [\"draft\",true]",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ '[ ] draft'\n- '[x] draft'\n"
+        },
+        {
+          "name": "label [\"draft\",false]",
+          "passed": true
+        },
+        {
+          "name": "label [\"\",true]",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n\n'[ ] ' !== '[x] '\n"
+        },
+        {
+          "name": "label [\"\",false]",
+          "passed": true
+        },
+        {
+          "name": "label [\"  x  \",true]",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ '[ ]   x  '\n- '[x]   x  '\n"
+        },
+        {
+          "name": "label [\"  x  \",false]",
+          "passed": true
+        },
+        {
+          "name": "label [\"😀\",true]",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n\n'[ ] 😀' !== '[x] 😀'\n"
+        },
+        {
+          "name": "label [\"😀\",false]",
+          "passed": true
+        },
+        {
+          "name": "label [\"[x]\",true]",
+          "passed": false,
+          "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ '[ ] [x]'\n- '[x] [x]'\n"
+        },
+        {
+          "name": "label [\"[x]\",false]",
+          "passed": true
+        }
+      ]
+    },
+    "types": {
+      "passed": true,
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "publicTests": {
+      "passed": true,
+      "exitCode": 0,
+      "stdout": "TAP version 13\n# Subtest: incomplete task\nok 1 - incomplete task\n  ---\n  duration_ms: 0.275292\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 56.401375\n",
+      "stderr": ""
+    },
+    "regression": {
+      "passed": false,
+      "error": "MISSING_REGRESSION_TEST"
+    },
+    "originalMutation": null,
+    "immutableFailures": [],
+    "unexpectedFiles": []
+  },
+  "actualToolInventory": [],
+  "inventoryMatches": false,
+  "termination": "harness_or_app_error",
+  "semanticToolsUsed": [],
+  "passed": false
+}

@@ -1,0 +1,2061 @@
+{
+  "schemaVersion": "desktop-engineering-flags.v1",
+  "startedAt": "2026-09-29T09:09:29.615Z",
+  "live": true,
+  "kind": "installed-Goose-ACP-and-packaged-engineering-MCP",
+  "tempRoot": "/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/desktop-engineering-flags-zchcFH",
+  "authenticationMs": 484,
+  "model": {
+    "requestedAlias": "orqaly-gemini",
+    "sessionAlias": "orqaly-gemini",
+    "requestedEffort": "high",
+    "nestedOmpModel": "orqanix/orqaly-gemini",
+    "nestedOmpEffort": "high",
+    "resolvedProviderModel": null
+  },
+  "sourceSha256": "e879bf17b56479ac7343ff5a0f07935785552034b32e40805e0a5f20265c2b59",
+  "promptSha256": "bb0269270797b35c597c113a928ce46f974d4c655c531da3a961d125c7c8dcf6",
+  "plan": [
+    {
+      "id": "omp-off_jev-off",
+      "omp": false,
+      "jev": false,
+      "repetition": 1
+    },
+    {
+      "id": "omp-on_jev-off",
+      "omp": true,
+      "jev": false,
+      "repetition": 1
+    },
+    {
+      "id": "omp-off_jev-on",
+      "omp": false,
+      "jev": true,
+      "repetition": 1
+    },
+    {
+      "id": "omp-on_jev-on",
+      "omp": true,
+      "jev": true,
+      "repetition": 1
+    },
+    {
+      "id": "omp-on_jev-on",
+      "omp": true,
+      "jev": true,
+      "repetition": 2
+    },
+    {
+      "id": "omp-off_jev-on",
+      "omp": false,
+      "jev": true,
+      "repetition": 2
+    },
+    {
+      "id": "omp-on_jev-off",
+      "omp": true,
+      "jev": false,
+      "repetition": 2
+    },
+    {
+      "id": "omp-off_jev-off",
+      "omp": false,
+      "jev": false,
+      "repetition": 2
+    }
+  ],
+  "rows": [
+    {
+      "arm": "omp-off_jev-off",
+      "repetition": 1,
+      "omp": false,
+      "jev": false,
+      "workspace": "/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/desktop-engineering-flags-zchcFH/omp-off_jev-off_1/workspace",
+      "effortConfig": [
+        {
+          "id": "model",
+          "name": "Model",
+          "category": "model",
+          "type": "select",
+          "currentValue": "orqaly-gemini",
+          "options": [
+            {
+              "value": "orqaly-gemini",
+              "name": "orqaly-gemini"
+            }
+          ]
+        },
+        {
+          "id": "thinking_effort",
+          "name": "Thinking effort",
+          "description": "Controls reasoning effort for models that support extended thinking.",
+          "category": "thought_level",
+          "type": "select",
+          "currentValue": "off",
+          "options": [
+            {
+              "value": "off",
+              "name": "off"
+            }
+          ]
+        }
+      ],
+      "inventory": {
+        "extensions": [
+          {
+            "key": "analyze",
+            "name": "analyze",
+            "type": "platform"
+          },
+          {
+            "key": "apps",
+            "name": "apps",
+            "type": "platform"
+          },
+          {
+            "key": "developer",
+            "name": "developer",
+            "type": "platform"
+          },
+          {
+            "key": "extensionmanager",
+            "name": "Extension Manager",
+            "type": "platform"
+          },
+          {
+            "key": "skills",
+            "name": "skills",
+            "type": "platform"
+          },
+          {
+            "key": "summon",
+            "name": "summon",
+            "type": "platform"
+          },
+          {
+            "key": "todo",
+            "name": "todo",
+            "type": "platform"
+          },
+          {
+            "key": "tom",
+            "name": "tom",
+            "type": "platform"
+          }
+        ],
+        "tools": [
+          {
+            "name": "analyze",
+            "permission": "ask_before",
+            "schemaSha256": "df743083b9f8c3d6cc006c41bfed7587afb8979d589da8477cdca6eac8e16034"
+          },
+          {
+            "name": "apps__create_app",
+            "permission": "ask_before",
+            "schemaSha256": "086a60fa66b91fe17f785b3f92799964784d378c400f6b67f61022aff78c7ed2"
+          },
+          {
+            "name": "apps__delete_app",
+            "permission": "ask_before",
+            "schemaSha256": "b757aae602cea7efda0030948dcca5d8697ff2d9de158143982f433738f5b98f"
+          },
+          {
+            "name": "apps__iterate_app",
+            "permission": "ask_before",
+            "schemaSha256": "d8e9ddcf4657db8c39b45493920d0b6c2b6f996840b8240212e5cd314240cffe"
+          },
+          {
+            "name": "apps__list_apps",
+            "permission": "ask_before",
+            "schemaSha256": "afb28f250c5001b1f58021742cf56912c211915782cf7c0d423366a718e7222c"
+          },
+          {
+            "name": "delegate",
+            "permission": "ask_before",
+            "schemaSha256": "1b7b5e23224949499f9973b62123fd5b47111d31228fe04f2ae1cc32fc015f2a"
+          },
+          {
+            "name": "edit",
+            "permission": "ask_before",
+            "schemaSha256": "051eb85cf85adbd37973d374cbf38218060f607ee36bf62b69a686762999d83b"
+          },
+          {
+            "name": "extensionmanager__list_resources",
+            "permission": "ask_before",
+            "schemaSha256": "95aefd9d3546739b764973cde170cb58d1a8d10512998e512d5cadea972da187"
+          },
+          {
+            "name": "extensionmanager__manage_extensions",
+            "permission": "ask_before",
+            "schemaSha256": "52419b049117131d44efd2d9e834853b434d97b091fb2d45e2691d3f80f9ac14"
+          },
+          {
+            "name": "extensionmanager__read_resource",
+            "permission": "ask_before",
+            "schemaSha256": "700d8d0f5f170a6a22570d092dcce1e2611ddda61b5ffdc3c077292d99ce41bd"
+          },
+          {
+            "name": "extensionmanager__search_available_extensions",
+            "permission": "ask_before",
+            "schemaSha256": "2952d68325ff397899ec183e0a2d566475ee4790239f33b52dd51644fa1c8ddc"
+          },
+          {
+            "name": "load",
+            "permission": "ask_before",
+            "schemaSha256": "9a2c21ef3afe82653f047860bd28d7017d08c001033e2561a3b5d8ca9cb1ebd1"
+          },
+          {
+            "name": "load_skill",
+            "permission": "ask_before",
+            "schemaSha256": "275aad3faad22de4642c746b3c0c74e7705b775be5d1e01841a2270d3cec67d5"
+          },
+          {
+            "name": "read_image",
+            "permission": "ask_before",
+            "schemaSha256": "0e25f3bd38b210a406a8d062f05b25ae6cf8394f024534e955f2ce8cac0dc83e"
+          },
+          {
+            "name": "shell",
+            "permission": "ask_before",
+            "schemaSha256": "dafa865264c86f99203d2fc4e54336c1a740571d02977c211c6655e82d452db4"
+          },
+          {
+            "name": "todo__todo_write",
+            "permission": "ask_before",
+            "schemaSha256": "056a9291458501756ff0c20f81146e4da69131a4eb77b47741ef89af67360bf4"
+          },
+          {
+            "name": "tree",
+            "permission": "ask_before",
+            "schemaSha256": "599803d9c440598ff3450529baefd8dae27c27e54d6a24488c1cc6d87a7639d6"
+          },
+          {
+            "name": "write",
+            "permission": "ask_before",
+            "schemaSha256": "10f258885753782b4716079793f4bcccc2f28b91d11d3ba929beb34913383535"
+          }
+        ],
+        "toolCount": 18,
+        "skillToolNames": [
+          "load_skill"
+        ]
+      },
+      "setupMs": 56,
+      "endToEndMs": 4239,
+      "wallEndToEndMs": 4239,
+      "reviewMs": 0,
+      "activeEndToEndMs": 4239,
+      "firstAssistantTextMs": null,
+      "firstCompletedToolMs": null,
+      "firstAnswerTextAfterLastToolMs": null,
+      "firstUsefulAnswerMs": null,
+      "firstUsefulAnswerNote": "Requires human review; first assistant text may be commentary, not a useful answer.",
+      "status": "failed",
+      "error": "BENCHMARK_PERMISSION_DENIED: todo: todo write",
+      "stopReason": null,
+      "promptUsage": null,
+      "usageUpdates": [
+        {
+          "sessionUpdate": "message_usage",
+          "messageId": "SoC7aqj8KqmgxN8P6OG64A4",
+          "usage": {
+            "inputTokens": 4923,
+            "outputTokens": 130,
+            "totalTokens": 5883,
+            "cost": 0.00417975,
+            "costSource": "estimated",
+            "elapsedMs": 4178,
+            "timeToFirstTokenMs": 4178,
+            "isCompaction": false
+          }
+        }
+      ],
+      "toolCount": 1,
+      "tools": [
+        {
+          "id": "call_115550",
+          "startedMs": 4237.727334,
+          "title": "todo: todo write",
+          "input": {
+            "content": "- [ ] Read README.md, average.mjs, and average.test.mjs\n- [ ] Fix average.mjs so average([]) returns 0 without mutating input\n- [ ] Add regression test in average.test.mjs for empty array\n- [ ] Run test suite with `node --test average.test.mjs`\n- [ ] Report what changed and test/review results"
+          }
+        }
+      ],
+      "permissionDenials": [
+        {
+          "tool": "todo: todo write",
+          "input": {
+            "content": "- [ ] Read README.md, average.mjs, and average.test.mjs\n- [ ] Fix average.mjs so average([]) returns 0 without mutating input\n- [ ] Add regression test in average.test.mjs for empty array\n- [ ] Run test suite with `node --test average.test.mjs`\n- [ ] Report what changed and test/review results"
+          },
+          "reason": "Outside fixture permission policy"
+        }
+      ],
+      "permissionReviews": [],
+      "markdown": "",
+      "sourceUrls": [],
+      "accuracy": "not_assessed",
+      "sourceNote": "Links are observed output, not evidence that claims or dates are correct.",
+      "engineeringReceipts": [],
+      "acceptance": {
+        "functionBehavior": false,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": false,
+        "passed": false,
+        "sourceSha256": "e879bf17b56479ac7343ff5a0f07935785552034b32e40805e0a5f20265c2b59",
+        "testSha256": "0745d44d1ea7027a8474d905a121263341eaf7ab3fbc8f17193d233f5a28662d"
+      },
+      "treatmentExercised": true,
+      "totalModelCalls": null,
+      "stderr": "",
+      "primaryRequests": [
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [
+            "gemini-3.8-flash"
+          ],
+          "usage": [
+            {
+              "completion_tokens": 7,
+              "prompt_tokens": 628,
+              "total_tokens": 1032
+            },
+            {
+              "completion_tokens": 7,
+              "prompt_tokens": 628,
+              "total_tokens": 1032
+            }
+          ],
+          "httpStatus": 200,
+          "elapsedMs": 2830
+        },
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [
+            "gemini-3.8-flash"
+          ],
+          "usage": [
+            {
+              "completion_tokens": 103,
+              "prompt_tokens": 4923,
+              "total_tokens": 5856
+            },
+            {
+              "completion_tokens": 130,
+              "prompt_tokens": 4923,
+              "total_tokens": 5883
+            },
+            {
+              "completion_tokens": 130,
+              "prompt_tokens": 4923,
+              "total_tokens": 5883
+            }
+          ],
+          "httpStatus": 200,
+          "elapsedMs": 4188
+        },
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [
+            "gemini-3.8-flash"
+          ],
+          "usage": [
+            {
+              "completion_tokens": 27,
+              "prompt_tokens": 5905,
+              "total_tokens": 6029
+            },
+            {
+              "completion_tokens": 27,
+              "prompt_tokens": 5905,
+              "total_tokens": 6029
+            }
+          ],
+          "httpStatus": 200,
+          "elapsedMs": 1347
+        }
+      ],
+      "primaryHttpAttempts": 3,
+      "successfulPrimaryHttpResponses": 2
+    },
+    {
+      "arm": "omp-on_jev-off",
+      "repetition": 1,
+      "omp": true,
+      "jev": false,
+      "workspace": "/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/desktop-engineering-flags-zchcFH/omp-on_jev-off_1/workspace",
+      "effortConfig": [
+        {
+          "id": "model",
+          "name": "Model",
+          "category": "model",
+          "type": "select",
+          "currentValue": "orqaly-gemini",
+          "options": [
+            {
+              "value": "orqaly-gemini",
+              "name": "orqaly-gemini"
+            }
+          ]
+        },
+        {
+          "id": "thinking_effort",
+          "name": "Thinking effort",
+          "description": "Controls reasoning effort for models that support extended thinking.",
+          "category": "thought_level",
+          "type": "select",
+          "currentValue": "off",
+          "options": [
+            {
+              "value": "off",
+              "name": "off"
+            }
+          ]
+        }
+      ],
+      "inventory": {
+        "extensions": [
+          {
+            "key": "analyze",
+            "name": "analyze",
+            "type": "platform"
+          },
+          {
+            "key": "apps",
+            "name": "apps",
+            "type": "platform"
+          },
+          {
+            "key": "developer",
+            "name": "developer",
+            "type": "platform"
+          },
+          {
+            "key": "extensionmanager",
+            "name": "Extension Manager",
+            "type": "platform"
+          },
+          {
+            "key": "orqanix-engineering",
+            "name": "orqanix-engineering",
+            "type": "mcp"
+          },
+          {
+            "key": "skills",
+            "name": "skills",
+            "type": "platform"
+          },
+          {
+            "key": "summon",
+            "name": "summon",
+            "type": "platform"
+          },
+          {
+            "key": "todo",
+            "name": "todo",
+            "type": "platform"
+          },
+          {
+            "key": "tom",
+            "name": "tom",
+            "type": "platform"
+          }
+        ],
+        "tools": [
+          {
+            "name": "analyze",
+            "permission": "ask_before",
+            "schemaSha256": "df743083b9f8c3d6cc006c41bfed7587afb8979d589da8477cdca6eac8e16034"
+          },
+          {
+            "name": "apps__create_app",
+            "permission": "ask_before",
+            "schemaSha256": "086a60fa66b91fe17f785b3f92799964784d378c400f6b67f61022aff78c7ed2"
+          },
+          {
+            "name": "apps__delete_app",
+            "permission": "ask_before",
+            "schemaSha256": "b757aae602cea7efda0030948dcca5d8697ff2d9de158143982f433738f5b98f"
+          },
+          {
+            "name": "apps__iterate_app",
+            "permission": "ask_before",
+            "schemaSha256": "d8e9ddcf4657db8c39b45493920d0b6c2b6f996840b8240212e5cd314240cffe"
+          },
+          {
+            "name": "apps__list_apps",
+            "permission": "ask_before",
+            "schemaSha256": "afb28f250c5001b1f58021742cf56912c211915782cf7c0d423366a718e7222c"
+          },
+          {
+            "name": "delegate",
+            "permission": "ask_before",
+            "schemaSha256": "1b7b5e23224949499f9973b62123fd5b47111d31228fe04f2ae1cc32fc015f2a"
+          },
+          {
+            "name": "edit",
+            "permission": "ask_before",
+            "schemaSha256": "051eb85cf85adbd37973d374cbf38218060f607ee36bf62b69a686762999d83b"
+          },
+          {
+            "name": "extensionmanager__list_resources",
+            "permission": "ask_before",
+            "schemaSha256": "95aefd9d3546739b764973cde170cb58d1a8d10512998e512d5cadea972da187"
+          },
+          {
+            "name": "extensionmanager__manage_extensions",
+            "permission": "ask_before",
+            "schemaSha256": "52419b049117131d44efd2d9e834853b434d97b091fb2d45e2691d3f80f9ac14"
+          },
+          {
+            "name": "extensionmanager__read_resource",
+            "permission": "ask_before",
+            "schemaSha256": "700d8d0f5f170a6a22570d092dcce1e2611ddda61b5ffdc3c077292d99ce41bd"
+          },
+          {
+            "name": "extensionmanager__search_available_extensions",
+            "permission": "ask_before",
+            "schemaSha256": "2952d68325ff397899ec183e0a2d566475ee4790239f33b52dd51644fa1c8ddc"
+          },
+          {
+            "name": "load",
+            "permission": "ask_before",
+            "schemaSha256": "9a2c21ef3afe82653f047860bd28d7017d08c001033e2561a3b5d8ca9cb1ebd1"
+          },
+          {
+            "name": "load_skill",
+            "permission": "ask_before",
+            "schemaSha256": "275aad3faad22de4642c746b3c0c74e7705b775be5d1e01841a2270d3cec67d5"
+          },
+          {
+            "name": "orqanix-engineering__orqanix_engineering_edit",
+            "permission": "ask_before",
+            "schemaSha256": "9cd974764e10c779ee2ef3f50ce0c19c3274e61c47387505fbe361d8ccfd0aaa"
+          },
+          {
+            "name": "orqanix-engineering__orqanix_engineering_exec",
+            "permission": "ask_before",
+            "schemaSha256": "c98dbec972f92eaf22b09d5568b724a1f8de32ad6cada839e96cfe96d495efb9"
+          },
+          {
+            "name": "orqanix-engineering__orqanix_engineering_inspect",
+            "permission": "ask_before",
+            "schemaSha256": "c98dbec972f92eaf22b09d5568b724a1f8de32ad6cada839e96cfe96d495efb9"
+          },
+          {
+            "name": "orqanix-engineering__orqanix_engineering_status",
+            "permission": "ask_before",
+            "schemaSha256": "ff1b2d8857c8e4a2cd87b566a798c5d1cd937fe8a13363e59a51231b4b328939"
+          },
+          {
+            "name": "read_image",
+            "permission": "ask_before",
+            "schemaSha256": "0e25f3bd38b210a406a8d062f05b25ae6cf8394f024534e955f2ce8cac0dc83e"
+          },
+          {
+            "name": "shell",
+            "permission": "ask_before",
+            "schemaSha256": "dafa865264c86f99203d2fc4e54336c1a740571d02977c211c6655e82d452db4"
+          },
+          {
+            "name": "todo__todo_write",
+            "permission": "ask_before",
+            "schemaSha256": "056a9291458501756ff0c20f81146e4da69131a4eb77b47741ef89af67360bf4"
+          },
+          {
+            "name": "tree",
+            "permission": "ask_before",
+            "schemaSha256": "599803d9c440598ff3450529baefd8dae27c27e54d6a24488c1cc6d87a7639d6"
+          },
+          {
+            "name": "write",
+            "permission": "ask_before",
+            "schemaSha256": "10f258885753782b4716079793f4bcccc2f28b91d11d3ba929beb34913383535"
+          }
+        ],
+        "toolCount": 22,
+        "skillToolNames": [
+          "load_skill"
+        ]
+      },
+      "setupMs": 63,
+      "endToEndMs": 11501,
+      "wallEndToEndMs": 11501,
+      "reviewMs": 0,
+      "activeEndToEndMs": 11501,
+      "firstAssistantTextMs": null,
+      "firstCompletedToolMs": null,
+      "firstAnswerTextAfterLastToolMs": null,
+      "firstUsefulAnswerMs": null,
+      "firstUsefulAnswerNote": "Requires human review; first assistant text may be commentary, not a useful answer.",
+      "status": "failed",
+      "error": "BENCHMARK_PERMISSION_DENIED: orqanix-engineering: orqanix engineering edit",
+      "stopReason": null,
+      "promptUsage": null,
+      "usageUpdates": [
+        {
+          "sessionUpdate": "message_usage",
+          "messageId": "T4C7aqnTFrzoxN8P3_CiuAE",
+          "usage": {
+            "inputTokens": 6203,
+            "outputTokens": 156,
+            "totalTokens": 9110,
+            "cost": 0.00523725,
+            "costSource": "estimated",
+            "elapsedMs": 11448,
+            "timeToFirstTokenMs": 11448,
+            "isCompaction": false
+          }
+        }
+      ],
+      "toolCount": 1,
+      "tools": [
+        {
+          "id": "call_23129",
+          "startedMs": 11500.196042,
+          "title": "orqanix-engineering: orqanix engineering edit",
+          "input": {
+            "test_command": [
+              "node",
+              "--test",
+              "average.test.mjs"
+            ],
+            "task": "Fix average.mjs so that average([]) returns 0, while preserving arithmetic means for nonempty inputs and not mutating the input array. Add a regression test in average.test.mjs for the empty input.",
+            "acceptance_criteria": [
+              "average([]) returns 0",
+              "average preserves correct arithmetic means for nonempty inputs",
+              "average does not mutate the input array",
+              "average.test.mjs contains a regression test for empty input array",
+              "node --test average.test.mjs passes cleanly"
+            ]
+          }
+        }
+      ],
+      "permissionDenials": [
+        {
+          "tool": "orqanix-engineering: orqanix engineering edit",
+          "input": {
+            "test_command": [
+              "node",
+              "--test",
+              "average.test.mjs"
+            ],
+            "task": "Fix average.mjs so that average([]) returns 0, while preserving arithmetic means for nonempty inputs and not mutating the input array. Add a regression test in average.test.mjs for the empty input.",
+            "acceptance_criteria": [
+              "average([]) returns 0",
+              "average preserves correct arithmetic means for nonempty inputs",
+              "average does not mutate the input array",
+              "average.test.mjs contains a regression test for empty input array",
+              "node --test average.test.mjs passes cleanly"
+            ]
+          },
+          "reason": "Outside fixture permission policy"
+        }
+      ],
+      "permissionReviews": [],
+      "markdown": "",
+      "sourceUrls": [],
+      "accuracy": "not_assessed",
+      "sourceNote": "Links are observed output, not evidence that claims or dates are correct.",
+      "engineeringReceipts": [],
+      "acceptance": {
+        "functionBehavior": false,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": false,
+        "passed": false,
+        "sourceSha256": "e879bf17b56479ac7343ff5a0f07935785552034b32e40805e0a5f20265c2b59",
+        "testSha256": "0745d44d1ea7027a8474d905a121263341eaf7ab3fbc8f17193d233f5a28662d"
+      },
+      "treatmentExercised": false,
+      "totalModelCalls": null,
+      "stderr": "",
+      "primaryRequests": [
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [
+            "gemini-3.8-flash"
+          ],
+          "usage": [
+            {
+              "completion_tokens": 4,
+              "prompt_tokens": 628,
+              "total_tokens": 975
+            },
+            {
+              "completion_tokens": 4,
+              "prompt_tokens": 628,
+              "total_tokens": 975
+            }
+          ],
+          "httpStatus": 200,
+          "elapsedMs": 2615
+        },
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [
+            "gemini-3.8-flash"
+          ],
+          "usage": [
+            {
+              "completion_tokens": 156,
+              "prompt_tokens": 6203,
+              "total_tokens": 9110
+            },
+            {
+              "completion_tokens": 156,
+              "prompt_tokens": 6203,
+              "total_tokens": 9110
+            }
+          ],
+          "httpStatus": 200,
+          "elapsedMs": 11447
+        },
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [
+            "gemini-3.8-flash"
+          ],
+          "usage": [
+            {
+              "completion_tokens": 27,
+              "prompt_tokens": 9169,
+              "total_tokens": 9583
+            },
+            {
+              "completion_tokens": 27,
+              "prompt_tokens": 9169,
+              "total_tokens": 9583
+            }
+          ],
+          "httpStatus": 200,
+          "elapsedMs": 2536
+        }
+      ],
+      "primaryHttpAttempts": 3,
+      "successfulPrimaryHttpResponses": 2
+    },
+    {
+      "arm": "omp-off_jev-on",
+      "repetition": 1,
+      "omp": false,
+      "jev": true,
+      "workspace": "/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/desktop-engineering-flags-zchcFH/omp-off_jev-on_1/workspace",
+      "effortConfig": [
+        {
+          "id": "model",
+          "name": "Model",
+          "category": "model",
+          "type": "select",
+          "currentValue": "orqaly-gemini",
+          "options": [
+            {
+              "value": "orqaly-gemini",
+              "name": "orqaly-gemini"
+            }
+          ]
+        },
+        {
+          "id": "thinking_effort",
+          "name": "Thinking effort",
+          "description": "Controls reasoning effort for models that support extended thinking.",
+          "category": "thought_level",
+          "type": "select",
+          "currentValue": "off",
+          "options": [
+            {
+              "value": "off",
+              "name": "off"
+            }
+          ]
+        }
+      ],
+      "inventory": {
+        "extensions": [
+          {
+            "key": "analyze",
+            "name": "analyze",
+            "type": "platform"
+          },
+          {
+            "key": "apps",
+            "name": "apps",
+            "type": "platform"
+          },
+          {
+            "key": "developer",
+            "name": "developer",
+            "type": "platform"
+          },
+          {
+            "key": "extensionmanager",
+            "name": "Extension Manager",
+            "type": "platform"
+          },
+          {
+            "key": "skills",
+            "name": "skills",
+            "type": "platform"
+          },
+          {
+            "key": "summon",
+            "name": "summon",
+            "type": "platform"
+          },
+          {
+            "key": "todo",
+            "name": "todo",
+            "type": "platform"
+          },
+          {
+            "key": "tom",
+            "name": "tom",
+            "type": "platform"
+          }
+        ],
+        "tools": [
+          {
+            "name": "analyze",
+            "permission": "ask_before",
+            "schemaSha256": "df743083b9f8c3d6cc006c41bfed7587afb8979d589da8477cdca6eac8e16034"
+          },
+          {
+            "name": "apps__create_app",
+            "permission": "ask_before",
+            "schemaSha256": "086a60fa66b91fe17f785b3f92799964784d378c400f6b67f61022aff78c7ed2"
+          },
+          {
+            "name": "apps__delete_app",
+            "permission": "ask_before",
+            "schemaSha256": "b757aae602cea7efda0030948dcca5d8697ff2d9de158143982f433738f5b98f"
+          },
+          {
+            "name": "apps__iterate_app",
+            "permission": "ask_before",
+            "schemaSha256": "d8e9ddcf4657db8c39b45493920d0b6c2b6f996840b8240212e5cd314240cffe"
+          },
+          {
+            "name": "apps__list_apps",
+            "permission": "ask_before",
+            "schemaSha256": "afb28f250c5001b1f58021742cf56912c211915782cf7c0d423366a718e7222c"
+          },
+          {
+            "name": "delegate",
+            "permission": "ask_before",
+            "schemaSha256": "1b7b5e23224949499f9973b62123fd5b47111d31228fe04f2ae1cc32fc015f2a"
+          },
+          {
+            "name": "edit",
+            "permission": "ask_before",
+            "schemaSha256": "051eb85cf85adbd37973d374cbf38218060f607ee36bf62b69a686762999d83b"
+          },
+          {
+            "name": "extensionmanager__list_resources",
+            "permission": "ask_before",
+            "schemaSha256": "95aefd9d3546739b764973cde170cb58d1a8d10512998e512d5cadea972da187"
+          },
+          {
+            "name": "extensionmanager__manage_extensions",
+            "permission": "ask_before",
+            "schemaSha256": "52419b049117131d44efd2d9e834853b434d97b091fb2d45e2691d3f80f9ac14"
+          },
+          {
+            "name": "extensionmanager__read_resource",
+            "permission": "ask_before",
+            "schemaSha256": "700d8d0f5f170a6a22570d092dcce1e2611ddda61b5ffdc3c077292d99ce41bd"
+          },
+          {
+            "name": "extensionmanager__search_available_extensions",
+            "permission": "ask_before",
+            "schemaSha256": "2952d68325ff397899ec183e0a2d566475ee4790239f33b52dd51644fa1c8ddc"
+          },
+          {
+            "name": "load",
+            "permission": "ask_before",
+            "schemaSha256": "9a2c21ef3afe82653f047860bd28d7017d08c001033e2561a3b5d8ca9cb1ebd1"
+          },
+          {
+            "name": "load_skill",
+            "permission": "ask_before",
+            "schemaSha256": "275aad3faad22de4642c746b3c0c74e7705b775be5d1e01841a2270d3cec67d5"
+          },
+          {
+            "name": "read_image",
+            "permission": "ask_before",
+            "schemaSha256": "0e25f3bd38b210a406a8d062f05b25ae6cf8394f024534e955f2ce8cac0dc83e"
+          },
+          {
+            "name": "shell",
+            "permission": "ask_before",
+            "schemaSha256": "dafa865264c86f99203d2fc4e54336c1a740571d02977c211c6655e82d452db4"
+          },
+          {
+            "name": "todo__todo_write",
+            "permission": "ask_before",
+            "schemaSha256": "056a9291458501756ff0c20f81146e4da69131a4eb77b47741ef89af67360bf4"
+          },
+          {
+            "name": "tree",
+            "permission": "ask_before",
+            "schemaSha256": "599803d9c440598ff3450529baefd8dae27c27e54d6a24488c1cc6d87a7639d6"
+          },
+          {
+            "name": "write",
+            "permission": "ask_before",
+            "schemaSha256": "10f258885753782b4716079793f4bcccc2f28b91d11d3ba929beb34913383535"
+          }
+        ],
+        "toolCount": 18,
+        "skillToolNames": [
+          "load_skill"
+        ]
+      },
+      "setupMs": 43,
+      "endToEndMs": 2986,
+      "wallEndToEndMs": 2986,
+      "reviewMs": 0,
+      "activeEndToEndMs": 2986,
+      "firstAssistantTextMs": null,
+      "firstCompletedToolMs": null,
+      "firstAnswerTextAfterLastToolMs": null,
+      "firstUsefulAnswerMs": null,
+      "firstUsefulAnswerNote": "Requires human review; first assistant text may be commentary, not a useful answer.",
+      "status": "failed",
+      "error": "BENCHMARK_PERMISSION_DENIED: todo: todo write",
+      "stopReason": null,
+      "promptUsage": null,
+      "usageUpdates": [
+        {
+          "sessionUpdate": "message_usage",
+          "messageId": "W4C7asTfEs3wvdIP1taU2AU",
+          "usage": {
+            "inputTokens": 4923,
+            "outputTokens": 105,
+            "totalTokens": 5541,
+            "cost": 0.004086,
+            "costSource": "estimated",
+            "elapsedMs": 2925,
+            "timeToFirstTokenMs": 2925,
+            "isCompaction": false
+          }
+        }
+      ],
+      "toolCount": 1,
+      "tools": [
+        {
+          "id": "call_4037",
+          "startedMs": 2985.740167,
+          "title": "todo: todo write",
+          "input": {
+            "content": "- [ ] Read README.md, average.mjs, and average.test.mjs using shell cat\n- [ ] Fix average.mjs so average([]) returns 0 without mutating input\n- [ ] Add regression test in average.test.mjs for empty input\n- [ ] Run test with node --test average.test.mjs\n- [ ] State what changed and observed test result in final answer"
+          }
+        }
+      ],
+      "permissionDenials": [
+        {
+          "tool": "todo: todo write",
+          "input": {
+            "content": "- [ ] Read README.md, average.mjs, and average.test.mjs using shell cat\n- [ ] Fix average.mjs so average([]) returns 0 without mutating input\n- [ ] Add regression test in average.test.mjs for empty input\n- [ ] Run test with node --test average.test.mjs\n- [ ] State what changed and observed test result in final answer"
+          },
+          "reason": "Outside fixture permission policy"
+        }
+      ],
+      "permissionReviews": [],
+      "markdown": "",
+      "sourceUrls": [],
+      "accuracy": "not_assessed",
+      "sourceNote": "Links are observed output, not evidence that claims or dates are correct.",
+      "engineeringReceipts": [],
+      "acceptance": {
+        "functionBehavior": false,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": false,
+        "passed": false,
+        "sourceSha256": "e879bf17b56479ac7343ff5a0f07935785552034b32e40805e0a5f20265c2b59",
+        "testSha256": "0745d44d1ea7027a8474d905a121263341eaf7ab3fbc8f17193d233f5a28662d"
+      },
+      "treatmentExercised": true,
+      "totalModelCalls": null,
+      "stderr": "",
+      "primaryRequests": [
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [
+            "gemini-3.8-flash"
+          ],
+          "usage": [
+            {
+              "completion_tokens": 4,
+              "prompt_tokens": 628,
+              "total_tokens": 1001
+            },
+            {
+              "completion_tokens": 4,
+              "prompt_tokens": 628,
+              "total_tokens": 1001
+            }
+          ],
+          "httpStatus": 200,
+          "elapsedMs": 2714
+        },
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [
+            "gemini-3.8-flash"
+          ],
+          "usage": [
+            {
+              "completion_tokens": 105,
+              "prompt_tokens": 4923,
+              "total_tokens": 5541
+            },
+            {
+              "completion_tokens": 105,
+              "prompt_tokens": 4923,
+              "total_tokens": 5541
+            }
+          ],
+          "httpStatus": 200,
+          "elapsedMs": 2928
+        },
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [
+            "gemini-3.8-flash"
+          ],
+          "usage": [
+            {
+              "completion_tokens": 27,
+              "prompt_tokens": 5590,
+              "total_tokens": 5758
+            },
+            {
+              "completion_tokens": 27,
+              "prompt_tokens": 5590,
+              "total_tokens": 5758
+            }
+          ],
+          "httpStatus": 200,
+          "elapsedMs": 1988
+        }
+      ],
+      "primaryHttpAttempts": 3,
+      "successfulPrimaryHttpResponses": 2
+    },
+    {
+      "arm": "omp-on_jev-on",
+      "repetition": 1,
+      "omp": true,
+      "jev": true,
+      "workspace": "/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/desktop-engineering-flags-zchcFH/omp-on_jev-on_1/workspace",
+      "effortConfig": [
+        {
+          "id": "model",
+          "name": "Model",
+          "category": "model",
+          "type": "select",
+          "currentValue": "orqaly-gemini",
+          "options": [
+            {
+              "value": "orqaly-gemini",
+              "name": "orqaly-gemini"
+            }
+          ]
+        },
+        {
+          "id": "thinking_effort",
+          "name": "Thinking effort",
+          "description": "Controls reasoning effort for models that support extended thinking.",
+          "category": "thought_level",
+          "type": "select",
+          "currentValue": "off",
+          "options": [
+            {
+              "value": "off",
+              "name": "off"
+            }
+          ]
+        }
+      ],
+      "inventory": {
+        "extensions": [
+          {
+            "key": "analyze",
+            "name": "analyze",
+            "type": "platform"
+          },
+          {
+            "key": "apps",
+            "name": "apps",
+            "type": "platform"
+          },
+          {
+            "key": "developer",
+            "name": "developer",
+            "type": "platform"
+          },
+          {
+            "key": "extensionmanager",
+            "name": "Extension Manager",
+            "type": "platform"
+          },
+          {
+            "key": "orqanix-engineering",
+            "name": "orqanix-engineering",
+            "type": "mcp"
+          },
+          {
+            "key": "skills",
+            "name": "skills",
+            "type": "platform"
+          },
+          {
+            "key": "summon",
+            "name": "summon",
+            "type": "platform"
+          },
+          {
+            "key": "todo",
+            "name": "todo",
+            "type": "platform"
+          },
+          {
+            "key": "tom",
+            "name": "tom",
+            "type": "platform"
+          }
+        ],
+        "tools": [
+          {
+            "name": "analyze",
+            "permission": "ask_before",
+            "schemaSha256": "df743083b9f8c3d6cc006c41bfed7587afb8979d589da8477cdca6eac8e16034"
+          },
+          {
+            "name": "apps__create_app",
+            "permission": "ask_before",
+            "schemaSha256": "086a60fa66b91fe17f785b3f92799964784d378c400f6b67f61022aff78c7ed2"
+          },
+          {
+            "name": "apps__delete_app",
+            "permission": "ask_before",
+            "schemaSha256": "b757aae602cea7efda0030948dcca5d8697ff2d9de158143982f433738f5b98f"
+          },
+          {
+            "name": "apps__iterate_app",
+            "permission": "ask_before",
+            "schemaSha256": "d8e9ddcf4657db8c39b45493920d0b6c2b6f996840b8240212e5cd314240cffe"
+          },
+          {
+            "name": "apps__list_apps",
+            "permission": "ask_before",
+            "schemaSha256": "afb28f250c5001b1f58021742cf56912c211915782cf7c0d423366a718e7222c"
+          },
+          {
+            "name": "delegate",
+            "permission": "ask_before",
+            "schemaSha256": "1b7b5e23224949499f9973b62123fd5b47111d31228fe04f2ae1cc32fc015f2a"
+          },
+          {
+            "name": "edit",
+            "permission": "ask_before",
+            "schemaSha256": "051eb85cf85adbd37973d374cbf38218060f607ee36bf62b69a686762999d83b"
+          },
+          {
+            "name": "extensionmanager__list_resources",
+            "permission": "ask_before",
+            "schemaSha256": "95aefd9d3546739b764973cde170cb58d1a8d10512998e512d5cadea972da187"
+          },
+          {
+            "name": "extensionmanager__manage_extensions",
+            "permission": "ask_before",
+            "schemaSha256": "52419b049117131d44efd2d9e834853b434d97b091fb2d45e2691d3f80f9ac14"
+          },
+          {
+            "name": "extensionmanager__read_resource",
+            "permission": "ask_before",
+            "schemaSha256": "700d8d0f5f170a6a22570d092dcce1e2611ddda61b5ffdc3c077292d99ce41bd"
+          },
+          {
+            "name": "extensionmanager__search_available_extensions",
+            "permission": "ask_before",
+            "schemaSha256": "2952d68325ff397899ec183e0a2d566475ee4790239f33b52dd51644fa1c8ddc"
+          },
+          {
+            "name": "load",
+            "permission": "ask_before",
+            "schemaSha256": "9a2c21ef3afe82653f047860bd28d7017d08c001033e2561a3b5d8ca9cb1ebd1"
+          },
+          {
+            "name": "load_skill",
+            "permission": "ask_before",
+            "schemaSha256": "275aad3faad22de4642c746b3c0c74e7705b775be5d1e01841a2270d3cec67d5"
+          },
+          {
+            "name": "orqanix-engineering__orqanix_engineering_edit",
+            "permission": "ask_before",
+            "schemaSha256": "9cd974764e10c779ee2ef3f50ce0c19c3274e61c47387505fbe361d8ccfd0aaa"
+          },
+          {
+            "name": "orqanix-engineering__orqanix_engineering_exec",
+            "permission": "ask_before",
+            "schemaSha256": "c98dbec972f92eaf22b09d5568b724a1f8de32ad6cada839e96cfe96d495efb9"
+          },
+          {
+            "name": "orqanix-engineering__orqanix_engineering_inspect",
+            "permission": "ask_before",
+            "schemaSha256": "c98dbec972f92eaf22b09d5568b724a1f8de32ad6cada839e96cfe96d495efb9"
+          },
+          {
+            "name": "orqanix-engineering__orqanix_engineering_status",
+            "permission": "ask_before",
+            "schemaSha256": "ff1b2d8857c8e4a2cd87b566a798c5d1cd937fe8a13363e59a51231b4b328939"
+          },
+          {
+            "name": "read_image",
+            "permission": "ask_before",
+            "schemaSha256": "0e25f3bd38b210a406a8d062f05b25ae6cf8394f024534e955f2ce8cac0dc83e"
+          },
+          {
+            "name": "shell",
+            "permission": "ask_before",
+            "schemaSha256": "dafa865264c86f99203d2fc4e54336c1a740571d02977c211c6655e82d452db4"
+          },
+          {
+            "name": "todo__todo_write",
+            "permission": "ask_before",
+            "schemaSha256": "056a9291458501756ff0c20f81146e4da69131a4eb77b47741ef89af67360bf4"
+          },
+          {
+            "name": "tree",
+            "permission": "ask_before",
+            "schemaSha256": "599803d9c440598ff3450529baefd8dae27c27e54d6a24488c1cc6d87a7639d6"
+          },
+          {
+            "name": "write",
+            "permission": "ask_before",
+            "schemaSha256": "10f258885753782b4716079793f4bcccc2f28b91d11d3ba929beb34913383535"
+          }
+        ],
+        "toolCount": 22,
+        "skillToolNames": [
+          "load_skill"
+        ]
+      },
+      "setupMs": 62,
+      "endToEndMs": 3397,
+      "wallEndToEndMs": 3397,
+      "reviewMs": 0,
+      "activeEndToEndMs": 3397,
+      "firstAssistantTextMs": null,
+      "firstCompletedToolMs": null,
+      "firstAnswerTextAfterLastToolMs": null,
+      "firstUsefulAnswerMs": null,
+      "firstUsefulAnswerNote": "Requires human review; first assistant text may be commentary, not a useful answer.",
+      "status": "failed",
+      "error": "BENCHMARK_PERMISSION_DENIED: todo: todo write",
+      "stopReason": null,
+      "promptUsage": null,
+      "usageUpdates": [
+        {
+          "sessionUpdate": "message_usage",
+          "messageId": "XoC7asGoI4ntxN8PuLDj0AM",
+          "usage": {
+            "inputTokens": 6203,
+            "outputTokens": 110,
+            "totalTokens": 6937,
+            "cost": 0.00506475,
+            "costSource": "estimated",
+            "elapsedMs": 3344,
+            "timeToFirstTokenMs": 3344,
+            "isCompaction": false
+          }
+        }
+      ],
+      "toolCount": 1,
+      "tools": [
+        {
+          "id": "call_105690",
+          "startedMs": 3396.6805410000015,
+          "title": "todo: todo write",
+          "input": {
+            "content": "- [ ] Delegate edit and test to orqanix_engineering_edit\n  - [ ] Fix average.mjs so average([]) returns 0 without mutating input\n  - [ ] Add regression test in average.test.mjs for empty input\n  - [ ] Run test command [\"node\", \"--test\", \"average.test.mjs\"]\n- [ ] Verify test and advisory review results\n- [ ] Provide concise final report"
+          }
+        }
+      ],
+      "permissionDenials": [
+        {
+          "tool": "todo: todo write",
+          "input": {
+            "content": "- [ ] Delegate edit and test to orqanix_engineering_edit\n  - [ ] Fix average.mjs so average([]) returns 0 without mutating input\n  - [ ] Add regression test in average.test.mjs for empty input\n  - [ ] Run test command [\"node\", \"--test\", \"average.test.mjs\"]\n- [ ] Verify test and advisory review results\n- [ ] Provide concise final report"
+          },
+          "reason": "Outside fixture permission policy"
+        }
+      ],
+      "permissionReviews": [],
+      "markdown": "",
+      "sourceUrls": [],
+      "accuracy": "not_assessed",
+      "sourceNote": "Links are observed output, not evidence that claims or dates are correct.",
+      "engineeringReceipts": [],
+      "acceptance": {
+        "functionBehavior": false,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": false,
+        "passed": false,
+        "sourceSha256": "e879bf17b56479ac7343ff5a0f07935785552034b32e40805e0a5f20265c2b59",
+        "testSha256": "0745d44d1ea7027a8474d905a121263341eaf7ab3fbc8f17193d233f5a28662d"
+      },
+      "treatmentExercised": false,
+      "totalModelCalls": null,
+      "stderr": "",
+      "primaryRequests": [
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [
+            "gemini-3.8-flash"
+          ],
+          "usage": [
+            {
+              "completion_tokens": 4,
+              "prompt_tokens": 628,
+              "total_tokens": 1044
+            },
+            {
+              "completion_tokens": 4,
+              "prompt_tokens": 628,
+              "total_tokens": 1044
+            }
+          ],
+          "httpStatus": 200,
+          "elapsedMs": 2693
+        },
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [
+            "gemini-3.8-flash"
+          ],
+          "usage": [
+            {
+              "completion_tokens": 110,
+              "prompt_tokens": 6203,
+              "total_tokens": 6937
+            },
+            {
+              "completion_tokens": 110,
+              "prompt_tokens": 6203,
+              "total_tokens": 6937
+            }
+          ],
+          "httpStatus": 200,
+          "elapsedMs": 3343
+        },
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [
+            "gemini-3.8-flash"
+          ],
+          "usage": [
+            {
+              "completion_tokens": 185,
+              "prompt_tokens": 6986,
+              "total_tokens": 7746
+            },
+            {
+              "completion_tokens": 185,
+              "prompt_tokens": 6986,
+              "total_tokens": 7746
+            }
+          ],
+          "httpStatus": 200,
+          "elapsedMs": 3708
+        }
+      ],
+      "primaryHttpAttempts": 3,
+      "successfulPrimaryHttpResponses": 2
+    },
+    {
+      "arm": "omp-on_jev-on",
+      "repetition": 2,
+      "omp": true,
+      "jev": true,
+      "workspace": "/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/desktop-engineering-flags-zchcFH/omp-on_jev-on_2/workspace",
+      "effortConfig": [
+        {
+          "id": "model",
+          "name": "Model",
+          "category": "model",
+          "type": "select",
+          "currentValue": "orqaly-gemini",
+          "options": [
+            {
+              "value": "orqaly-gemini",
+              "name": "orqaly-gemini"
+            }
+          ]
+        },
+        {
+          "id": "thinking_effort",
+          "name": "Thinking effort",
+          "description": "Controls reasoning effort for models that support extended thinking.",
+          "category": "thought_level",
+          "type": "select",
+          "currentValue": "off",
+          "options": [
+            {
+              "value": "off",
+              "name": "off"
+            }
+          ]
+        }
+      ],
+      "inventory": {
+        "extensions": [
+          {
+            "key": "analyze",
+            "name": "analyze",
+            "type": "platform"
+          },
+          {
+            "key": "apps",
+            "name": "apps",
+            "type": "platform"
+          },
+          {
+            "key": "developer",
+            "name": "developer",
+            "type": "platform"
+          },
+          {
+            "key": "extensionmanager",
+            "name": "Extension Manager",
+            "type": "platform"
+          },
+          {
+            "key": "orqanix-engineering",
+            "name": "orqanix-engineering",
+            "type": "mcp"
+          },
+          {
+            "key": "skills",
+            "name": "skills",
+            "type": "platform"
+          },
+          {
+            "key": "summon",
+            "name": "summon",
+            "type": "platform"
+          },
+          {
+            "key": "todo",
+            "name": "todo",
+            "type": "platform"
+          },
+          {
+            "key": "tom",
+            "name": "tom",
+            "type": "platform"
+          }
+        ],
+        "tools": [
+          {
+            "name": "analyze",
+            "permission": "ask_before",
+            "schemaSha256": "df743083b9f8c3d6cc006c41bfed7587afb8979d589da8477cdca6eac8e16034"
+          },
+          {
+            "name": "apps__create_app",
+            "permission": "ask_before",
+            "schemaSha256": "086a60fa66b91fe17f785b3f92799964784d378c400f6b67f61022aff78c7ed2"
+          },
+          {
+            "name": "apps__delete_app",
+            "permission": "ask_before",
+            "schemaSha256": "b757aae602cea7efda0030948dcca5d8697ff2d9de158143982f433738f5b98f"
+          },
+          {
+            "name": "apps__iterate_app",
+            "permission": "ask_before",
+            "schemaSha256": "d8e9ddcf4657db8c39b45493920d0b6c2b6f996840b8240212e5cd314240cffe"
+          },
+          {
+            "name": "apps__list_apps",
+            "permission": "ask_before",
+            "schemaSha256": "afb28f250c5001b1f58021742cf56912c211915782cf7c0d423366a718e7222c"
+          },
+          {
+            "name": "delegate",
+            "permission": "ask_before",
+            "schemaSha256": "1b7b5e23224949499f9973b62123fd5b47111d31228fe04f2ae1cc32fc015f2a"
+          },
+          {
+            "name": "edit",
+            "permission": "ask_before",
+            "schemaSha256": "051eb85cf85adbd37973d374cbf38218060f607ee36bf62b69a686762999d83b"
+          },
+          {
+            "name": "extensionmanager__list_resources",
+            "permission": "ask_before",
+            "schemaSha256": "95aefd9d3546739b764973cde170cb58d1a8d10512998e512d5cadea972da187"
+          },
+          {
+            "name": "extensionmanager__manage_extensions",
+            "permission": "ask_before",
+            "schemaSha256": "52419b049117131d44efd2d9e834853b434d97b091fb2d45e2691d3f80f9ac14"
+          },
+          {
+            "name": "extensionmanager__read_resource",
+            "permission": "ask_before",
+            "schemaSha256": "700d8d0f5f170a6a22570d092dcce1e2611ddda61b5ffdc3c077292d99ce41bd"
+          },
+          {
+            "name": "extensionmanager__search_available_extensions",
+            "permission": "ask_before",
+            "schemaSha256": "2952d68325ff397899ec183e0a2d566475ee4790239f33b52dd51644fa1c8ddc"
+          },
+          {
+            "name": "load",
+            "permission": "ask_before",
+            "schemaSha256": "9a2c21ef3afe82653f047860bd28d7017d08c001033e2561a3b5d8ca9cb1ebd1"
+          },
+          {
+            "name": "load_skill",
+            "permission": "ask_before",
+            "schemaSha256": "275aad3faad22de4642c746b3c0c74e7705b775be5d1e01841a2270d3cec67d5"
+          },
+          {
+            "name": "orqanix-engineering__orqanix_engineering_edit",
+            "permission": "ask_before",
+            "schemaSha256": "9cd974764e10c779ee2ef3f50ce0c19c3274e61c47387505fbe361d8ccfd0aaa"
+          },
+          {
+            "name": "orqanix-engineering__orqanix_engineering_exec",
+            "permission": "ask_before",
+            "schemaSha256": "c98dbec972f92eaf22b09d5568b724a1f8de32ad6cada839e96cfe96d495efb9"
+          },
+          {
+            "name": "orqanix-engineering__orqanix_engineering_inspect",
+            "permission": "ask_before",
+            "schemaSha256": "c98dbec972f92eaf22b09d5568b724a1f8de32ad6cada839e96cfe96d495efb9"
+          },
+          {
+            "name": "orqanix-engineering__orqanix_engineering_status",
+            "permission": "ask_before",
+            "schemaSha256": "ff1b2d8857c8e4a2cd87b566a798c5d1cd937fe8a13363e59a51231b4b328939"
+          },
+          {
+            "name": "read_image",
+            "permission": "ask_before",
+            "schemaSha256": "0e25f3bd38b210a406a8d062f05b25ae6cf8394f024534e955f2ce8cac0dc83e"
+          },
+          {
+            "name": "shell",
+            "permission": "ask_before",
+            "schemaSha256": "dafa865264c86f99203d2fc4e54336c1a740571d02977c211c6655e82d452db4"
+          },
+          {
+            "name": "todo__todo_write",
+            "permission": "ask_before",
+            "schemaSha256": "056a9291458501756ff0c20f81146e4da69131a4eb77b47741ef89af67360bf4"
+          },
+          {
+            "name": "tree",
+            "permission": "ask_before",
+            "schemaSha256": "599803d9c440598ff3450529baefd8dae27c27e54d6a24488c1cc6d87a7639d6"
+          },
+          {
+            "name": "write",
+            "permission": "ask_before",
+            "schemaSha256": "10f258885753782b4716079793f4bcccc2f28b91d11d3ba929beb34913383535"
+          }
+        ],
+        "toolCount": 22,
+        "skillToolNames": [
+          "load_skill"
+        ]
+      },
+      "setupMs": 77,
+      "endToEndMs": 7803,
+      "wallEndToEndMs": 7803,
+      "reviewMs": 0,
+      "activeEndToEndMs": 7803,
+      "firstAssistantTextMs": null,
+      "firstCompletedToolMs": null,
+      "firstAnswerTextAfterLastToolMs": null,
+      "firstUsefulAnswerMs": null,
+      "firstUsefulAnswerNote": "Requires human review; first assistant text may be commentary, not a useful answer.",
+      "status": "failed",
+      "error": "BENCHMARK_PERMISSION_DENIED: orqanix-engineering: orqanix engineering edit",
+      "stopReason": null,
+      "promptUsage": null,
+      "usageUpdates": [
+        {
+          "sessionUpdate": "message_usage",
+          "messageId": "YoC7atmaGoaH28oP3-Wm-AY",
+          "usage": {
+            "inputTokens": 6203,
+            "outputTokens": 168,
+            "totalTokens": 8287,
+            "cost": 0.00528225,
+            "costSource": "estimated",
+            "elapsedMs": 7744,
+            "timeToFirstTokenMs": 7744,
+            "isCompaction": false
+          }
+        }
+      ],
+      "toolCount": 1,
+      "tools": [
+        {
+          "id": "call_4214",
+          "startedMs": 7802.327708999997,
+          "title": "orqanix-engineering: orqanix engineering edit",
+          "input": {
+            "acceptance_criteria": [
+              "average([]) returns 0",
+              "Preserve arithmetic means for nonempty inputs",
+              "Do not mutate the input array",
+              "Add a regression test in average.test.mjs for the empty input",
+              "node --test average.test.mjs passes"
+            ],
+            "test_command": [
+              "node",
+              "--test",
+              "average.test.mjs"
+            ],
+            "task": "Fix average.mjs so that average([]) returns 0 while preserving arithmetic means for nonempty inputs and not mutating the input array. Add a regression test in average.test.mjs for the empty input array. Only modify average.mjs and average.test.mjs."
+          }
+        }
+      ],
+      "permissionDenials": [
+        {
+          "tool": "orqanix-engineering: orqanix engineering edit",
+          "input": {
+            "acceptance_criteria": [
+              "average([]) returns 0",
+              "Preserve arithmetic means for nonempty inputs",
+              "Do not mutate the input array",
+              "Add a regression test in average.test.mjs for the empty input",
+              "node --test average.test.mjs passes"
+            ],
+            "test_command": [
+              "node",
+              "--test",
+              "average.test.mjs"
+            ],
+            "task": "Fix average.mjs so that average([]) returns 0 while preserving arithmetic means for nonempty inputs and not mutating the input array. Add a regression test in average.test.mjs for the empty input array. Only modify average.mjs and average.test.mjs."
+          },
+          "reason": "Outside fixture permission policy"
+        }
+      ],
+      "permissionReviews": [],
+      "markdown": "",
+      "sourceUrls": [],
+      "accuracy": "not_assessed",
+      "sourceNote": "Links are observed output, not evidence that claims or dates are correct.",
+      "engineeringReceipts": [],
+      "acceptance": {
+        "functionBehavior": false,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": false,
+        "passed": false,
+        "sourceSha256": "e879bf17b56479ac7343ff5a0f07935785552034b32e40805e0a5f20265c2b59",
+        "testSha256": "0745d44d1ea7027a8474d905a121263341eaf7ab3fbc8f17193d233f5a28662d"
+      },
+      "treatmentExercised": false,
+      "totalModelCalls": null,
+      "stderr": "",
+      "primaryRequests": [
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [
+            "gemini-3.8-flash"
+          ],
+          "usage": [
+            {
+              "completion_tokens": 4,
+              "prompt_tokens": 628,
+              "total_tokens": 1029
+            },
+            {
+              "completion_tokens": 4,
+              "prompt_tokens": 628,
+              "total_tokens": 1029
+            }
+          ],
+          "httpStatus": 200,
+          "elapsedMs": 2651
+        },
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [
+            "gemini-3.8-flash"
+          ],
+          "usage": [
+            {
+              "completion_tokens": 168,
+              "prompt_tokens": 6203,
+              "total_tokens": 8287
+            },
+            {
+              "completion_tokens": 168,
+              "prompt_tokens": 6203,
+              "total_tokens": 8287
+            }
+          ],
+          "httpStatus": 200,
+          "elapsedMs": 7744
+        },
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [],
+          "usage": []
+        }
+      ],
+      "primaryHttpAttempts": 3,
+      "successfulPrimaryHttpResponses": 2
+    },
+    {
+      "arm": "omp-off_jev-on",
+      "repetition": 2,
+      "omp": false,
+      "jev": true,
+      "workspace": "/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/desktop-engineering-flags-zchcFH/omp-off_jev-on_2/workspace",
+      "effortConfig": [
+        {
+          "id": "model",
+          "name": "Model",
+          "category": "model",
+          "type": "select",
+          "currentValue": "orqaly-gemini",
+          "options": [
+            {
+              "value": "orqaly-gemini",
+              "name": "orqaly-gemini"
+            }
+          ]
+        },
+        {
+          "id": "thinking_effort",
+          "name": "Thinking effort",
+          "description": "Controls reasoning effort for models that support extended thinking.",
+          "category": "thought_level",
+          "type": "select",
+          "currentValue": "off",
+          "options": [
+            {
+              "value": "off",
+              "name": "off"
+            }
+          ]
+        }
+      ],
+      "inventory": {
+        "extensions": [
+          {
+            "key": "analyze",
+            "name": "analyze",
+            "type": "platform"
+          },
+          {
+            "key": "apps",
+            "name": "apps",
+            "type": "platform"
+          },
+          {
+            "key": "developer",
+            "name": "developer",
+            "type": "platform"
+          },
+          {
+            "key": "extensionmanager",
+            "name": "Extension Manager",
+            "type": "platform"
+          },
+          {
+            "key": "skills",
+            "name": "skills",
+            "type": "platform"
+          },
+          {
+            "key": "summon",
+            "name": "summon",
+            "type": "platform"
+          },
+          {
+            "key": "todo",
+            "name": "todo",
+            "type": "platform"
+          },
+          {
+            "key": "tom",
+            "name": "tom",
+            "type": "platform"
+          }
+        ],
+        "tools": [
+          {
+            "name": "analyze",
+            "permission": "ask_before",
+            "schemaSha256": "df743083b9f8c3d6cc006c41bfed7587afb8979d589da8477cdca6eac8e16034"
+          },
+          {
+            "name": "apps__create_app",
+            "permission": "ask_before",
+            "schemaSha256": "086a60fa66b91fe17f785b3f92799964784d378c400f6b67f61022aff78c7ed2"
+          },
+          {
+            "name": "apps__delete_app",
+            "permission": "ask_before",
+            "schemaSha256": "b757aae602cea7efda0030948dcca5d8697ff2d9de158143982f433738f5b98f"
+          },
+          {
+            "name": "apps__iterate_app",
+            "permission": "ask_before",
+            "schemaSha256": "d8e9ddcf4657db8c39b45493920d0b6c2b6f996840b8240212e5cd314240cffe"
+          },
+          {
+            "name": "apps__list_apps",
+            "permission": "ask_before",
+            "schemaSha256": "afb28f250c5001b1f58021742cf56912c211915782cf7c0d423366a718e7222c"
+          },
+          {
+            "name": "delegate",
+            "permission": "ask_before",
+            "schemaSha256": "1b7b5e23224949499f9973b62123fd5b47111d31228fe04f2ae1cc32fc015f2a"
+          },
+          {
+            "name": "edit",
+            "permission": "ask_before",
+            "schemaSha256": "051eb85cf85adbd37973d374cbf38218060f607ee36bf62b69a686762999d83b"
+          },
+          {
+            "name": "extensionmanager__list_resources",
+            "permission": "ask_before",
+            "schemaSha256": "95aefd9d3546739b764973cde170cb58d1a8d10512998e512d5cadea972da187"
+          },
+          {
+            "name": "extensionmanager__manage_extensions",
+            "permission": "ask_before",
+            "schemaSha256": "52419b049117131d44efd2d9e834853b434d97b091fb2d45e2691d3f80f9ac14"
+          },
+          {
+            "name": "extensionmanager__read_resource",
+            "permission": "ask_before",
+            "schemaSha256": "700d8d0f5f170a6a22570d092dcce1e2611ddda61b5ffdc3c077292d99ce41bd"
+          },
+          {
+            "name": "extensionmanager__search_available_extensions",
+            "permission": "ask_before",
+            "schemaSha256": "2952d68325ff397899ec183e0a2d566475ee4790239f33b52dd51644fa1c8ddc"
+          },
+          {
+            "name": "load",
+            "permission": "ask_before",
+            "schemaSha256": "9a2c21ef3afe82653f047860bd28d7017d08c001033e2561a3b5d8ca9cb1ebd1"
+          },
+          {
+            "name": "load_skill",
+            "permission": "ask_before",
+            "schemaSha256": "275aad3faad22de4642c746b3c0c74e7705b775be5d1e01841a2270d3cec67d5"
+          },
+          {
+            "name": "read_image",
+            "permission": "ask_before",
+            "schemaSha256": "0e25f3bd38b210a406a8d062f05b25ae6cf8394f024534e955f2ce8cac0dc83e"
+          },
+          {
+            "name": "shell",
+            "permission": "ask_before",
+            "schemaSha256": "dafa865264c86f99203d2fc4e54336c1a740571d02977c211c6655e82d452db4"
+          },
+          {
+            "name": "todo__todo_write",
+            "permission": "ask_before",
+            "schemaSha256": "056a9291458501756ff0c20f81146e4da69131a4eb77b47741ef89af67360bf4"
+          },
+          {
+            "name": "tree",
+            "permission": "ask_before",
+            "schemaSha256": "599803d9c440598ff3450529baefd8dae27c27e54d6a24488c1cc6d87a7639d6"
+          },
+          {
+            "name": "write",
+            "permission": "ask_before",
+            "schemaSha256": "10f258885753782b4716079793f4bcccc2f28b91d11d3ba929beb34913383535"
+          }
+        ],
+        "toolCount": 18,
+        "skillToolNames": [
+          "load_skill"
+        ]
+      },
+      "setupMs": 40,
+      "endToEndMs": 4309,
+      "wallEndToEndMs": 4309,
+      "reviewMs": 0,
+      "activeEndToEndMs": 4309,
+      "firstAssistantTextMs": null,
+      "firstCompletedToolMs": null,
+      "firstAnswerTextAfterLastToolMs": null,
+      "firstUsefulAnswerMs": null,
+      "firstUsefulAnswerNote": "Requires human review; first assistant text may be commentary, not a useful answer.",
+      "status": "failed",
+      "error": "BENCHMARK_PERMISSION_DENIED: todo: todo write",
+      "stopReason": null,
+      "promptUsage": null,
+      "usageUpdates": [
+        {
+          "sessionUpdate": "message_usage",
+          "messageId": "aoC7aqvxLP_UxN8Pt_aGYQ",
+          "usage": {
+            "inputTokens": 4923,
+            "outputTokens": 127,
+            "totalTokens": 6001,
+            "cost": 0.0041685,
+            "costSource": "estimated",
+            "elapsedMs": 4254,
+            "timeToFirstTokenMs": 4254,
+            "isCompaction": false
+          }
+        }
+      ],
+      "toolCount": 1,
+      "tools": [
+        {
+          "id": "call_5023",
+          "startedMs": 4309.213499999998,
+          "title": "todo: todo write",
+          "input": {
+            "content": "- [ ] Read README.md, average.mjs, and average.test.mjs\n- [ ] Fix average.mjs so average([]) returns 0 without mutating input\n- [ ] Add regression test in average.test.mjs for empty input\n- [ ] Run node --test average.test.mjs\n- [ ] Provide short summary of changes and test/review results"
+          }
+        }
+      ],
+      "permissionDenials": [
+        {
+          "tool": "todo: todo write",
+          "input": {
+            "content": "- [ ] Read README.md, average.mjs, and average.test.mjs\n- [ ] Fix average.mjs so average([]) returns 0 without mutating input\n- [ ] Add regression test in average.test.mjs for empty input\n- [ ] Run node --test average.test.mjs\n- [ ] Provide short summary of changes and test/review results"
+          },
+          "reason": "Outside fixture permission policy"
+        }
+      ],
+      "permissionReviews": [],
+      "markdown": "",
+      "sourceUrls": [],
+      "accuracy": "not_assessed",
+      "sourceNote": "Links are observed output, not evidence that claims or dates are correct.",
+      "engineeringReceipts": [],
+      "acceptance": {
+        "functionBehavior": false,
+        "fixtureTests": true,
+        "regressionDetectsOriginalBug": false,
+        "passed": false,
+        "sourceSha256": "e879bf17b56479ac7343ff5a0f07935785552034b32e40805e0a5f20265c2b59",
+        "testSha256": "0745d44d1ea7027a8474d905a121263341eaf7ab3fbc8f17193d233f5a28662d"
+      },
+      "treatmentExercised": true,
+      "totalModelCalls": null,
+      "stderr": "",
+      "primaryRequests": [
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [
+            "gemini-3.8-flash"
+          ],
+          "usage": [
+            {
+              "completion_tokens": 7,
+              "prompt_tokens": 628,
+              "total_tokens": 1048
+            },
+            {
+              "completion_tokens": 7,
+              "prompt_tokens": 628,
+              "total_tokens": 1048
+            }
+          ],
+          "httpStatus": 200,
+          "elapsedMs": 3663
+        },
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [
+            "gemini-3.8-flash"
+          ],
+          "usage": [
+            {
+              "completion_tokens": 100,
+              "prompt_tokens": 4923,
+              "total_tokens": 5974
+            },
+            {
+              "completion_tokens": 127,
+              "prompt_tokens": 4923,
+              "total_tokens": 6001
+            },
+            {
+              "completion_tokens": 127,
+              "prompt_tokens": 4923,
+              "total_tokens": 6001
+            }
+          ],
+          "httpStatus": 200,
+          "elapsedMs": 4255
+        },
+        {
+          "requestModel": "orqaly-gemini",
+          "requestEffort": "high",
+          "returnedModels": [],
+          "usage": []
+        }
+      ],
+      "primaryHttpAttempts": 3,
+      "successfulPrimaryHttpResponses": 2
+    }
+  ],
+  "binaries": {
+    "goose": {
+      "path": "/Applications/Orqanix.app/Contents/Resources/bin/goose",
+      "sha256": "bef41ad1617fbe49fb6ef848858a12ee9b1eb335be012a91ab71c02909f967c7"
+    },
+    "omp": {
+      "path": "/Applications/Orqanix.app/Contents/Resources/orqaly-runtime/omp/bin/omp",
+      "sha256": "ac673868a1598b4beda98dc6ce2148f24afabc42816c702b2dac5f79f0d861de"
+    }
+  },
+  "limitations": [
+    "Real installed packaged tool path; no Electron renderer or desktop pre-turn triage. Does not establish that local source/UI fixes are shipped.",
+    "Axwise and code-execution wrappers are disabled; native developer tools are common to all arms. Actual tool inventory is retained.",
+    "Identical conditional prompt selects OMP editing when mounted. This measures a controlled route, not organic tool selection.",
+    "JEV-on with OMP-off has no evidence-review effect in this harness; desktop pre-turn JEV behavior is outside this experiment.",
+    "Hosted model alias and requested effort are fixed; underlying gateway model and provider cache state are not independently verified.",
+    "Two fresh isolated fixtures per arm, reversed second-round order. Small exploratory sample, not statistical proof.",
+    "A transparent localhost forwarder passes primary requests and real gateway responses unchanged; it records request effort/model, HTTP status and usage. Nested OMP calls still go directly through the installed gateway route.",
+    "Tool counts and primary request count are observed. Total model-call count and hidden OMP token usage are unavailable."
+  ],
+  "excluded": true,
+  "exclusionReason": "Harness did not resolve installed ACP friendly titles/canonical metadata, denying approved todo and engineering tools. These are calibration inference costs, not product reliability failures. Six completed rows retained; runner was interrupted during seventh fixture, whose unflushed in-flight HTTP count is unknown.",
+  "savedHttpAttempts": 18,
+  "additionalInterruptedHttpAttempts": "unknown",
+  "permissionCalibration": {
+    "observedDenialsNowAccepted": 6,
+    "fixturePathAndCommandControlsPassed": true
+  }
+}

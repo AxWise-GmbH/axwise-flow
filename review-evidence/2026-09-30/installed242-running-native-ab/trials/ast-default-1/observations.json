@@ -1,0 +1,1447 @@
+{
+  "schema": "running242-readonly-session-observer.v1",
+  "key": "ast-default-1",
+  "startedAtMs": 1790771740260,
+  "observedAtMs": 1790772003643,
+  "sessions": [
+    {
+      "id": "20260930_6",
+      "working_dir": "/private/tmp/orqanix-installed242-live-20260930/ast-default-1/fixture/workspace",
+      "created_at": "2026-09-30 12:36:00",
+      "updated_at": "2026-09-30 12:37:53",
+      "provider_name": "orqaly",
+      "model_config_json": "{\"model_name\":\"orqaly-gemini\",\"temperature\":null,\"max_tokens\":65536,\"toolshim\":false,\"toolshim_model\":null,\"request_params\":{\"thinking_effort\":\"low\"}}",
+      "goose_mode": "smart_approve",
+      "input_tokens": 28763,
+      "output_tokens": 1337,
+      "accumulated_input_tokens": 366621,
+      "accumulated_output_tokens": 4718,
+      "accumulated_cost": 0.094142775,
+      "mounts": [
+        "tom",
+        "analyze",
+        "desktop-utilities",
+        "chatrecall",
+        "developer",
+        "todo",
+        "apps",
+        "skills",
+        "memory",
+        "goose Docs",
+        "summon",
+        "Chrome DevTools",
+        "Extension Manager",
+        "autovisualiser"
+      ]
+    }
+  ],
+  "messages": [
+    {
+      "id": 18637,
+      "message_id": "msg_97171f23-39cf-454f-8616-96143f9bc8d4",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771764,
+      "timestamp": "2026-09-30 12:36:04",
+      "tokens": null,
+      "content": [
+        {
+          "type": "text",
+          "text": "--- Resource: orqaly://conversation/20260930_6/desktop-routing ---\n{\"kind\":\"orqaly.desktop-routing.v1\",\"guidance\":\"Desktop capabilities are tools, not a mandatory workflow or action permission. Choose available tools to serve the current user request and respect local approvals. Read tool results before deciding whether to answer or continue; a tool cannot finish the conversation for you. Follow-ups such as \\\"go deeper\\\" or \\\"more detail\\\" refer to the latest unambiguous conversational subject. A previous specialist task does not override a later topic change. Depth words, an attached project or the word \\\"research\\\" alone do not justify specialist delegation. If several subjects plausibly fit, ask which one the user means before choosing tools. If no conversational subject is available, ask what topic they mean; do not inspect a project to invent a subject. When the user explicitly returns to earlier work, reuse its exact saved artifact reference only if available in the conversation; never guess missing references. For follow-ups, reuse the latest unambiguous user-supplied location, dates and other constraints. Do not carry stale filters into unrelated requests. Ask only for missing or ambiguous details. Preserve source links and distinguish verified findings from incomplete or failed retrieval. If retrieval fails, you may try another relevant permitted query or tool within a modest time and call budget; report any remaining uncertainty instead of inventing results.\",\"conversationId\":\"20260930_6\"}\n---\n",
+          "annotations": {
+            "audience": [
+              "assistant"
+            ]
+          }
+        },
+        {
+          "type": "text",
+          "text": "The API registers async handlers that currently reject without forwarding failures to next. Find every directly registered async handler on the Router in src/routes and wrap it with the existing withErrors adapter from src/framework/errors.ts. Cover GET, POST and DELETE registrations, including the named async function. Preserve response values, request handling, registration order and the synchronous route. Do not wrap unrelated async callbacks, the unrelated audit.get API, or ordinary helper functions. Add regression tests in tests/regression.test.mjs covering successful handling and error forwarding, and run the tests and type check.\nRead README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results."
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790771764631
+    },
+    {
+      "id": 18638,
+      "message_id": "msg_70c86aa0-bf42-412e-b995-8123676f33f4",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771764,
+      "timestamp": "2026-09-30 12:36:04",
+      "tokens": null,
+      "content": [
+        {
+          "type": "text",
+          "text": "<turn-context>\n<current-time>2026-09-30 14:36:00 +02:00</current-time>\n<working-directory>/private/tmp/orqanix-installed242-live-20260930/ast-default-1/fixture/workspace</working-directory>\n\nCurrent tasks and notes:\nFor a multi-step task, immediately update your todo with all explicit and implicit requirements. Do not create a todo for simple Q&A, a one-step answer, a live weather/currency lookup, or a narrow current-fact check such as local headlines, opening hours, a score, schedule, or service status.\n\n</turn-context>"
+        }
+      ],
+      "metadata": {
+        "userVisible": false,
+        "agentVisible": true,
+        "turnContext": true
+      },
+      "firstObservedAtMs": 1790771764631
+    },
+    {
+      "id": 18639,
+      "message_id": "NQK9apqwDpqzvdIPwry70A0",
+      "session_id": "20260930_6",
+      "role": "assistant",
+      "created_timestamp": 1790771772,
+      "timestamp": "2026-09-30 12:36:20",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_187652",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "todo__todo_write",
+              "arguments": {
+                "content": "- [ ] Read README.md and inspect workspace files\n- [ ] Inspect src/framework/errors.ts and src/routes\n- [ ] Wrap directly registered async handlers on the Router in src/routes with withErrors\n  - [ ] Cover GET, POST, DELETE registrations including named async functions\n  - [ ] Preserve response values, request handling, registration order, synchronous routes\n  - [ ] Avoid wrapping unrelated async callbacks, audit.get API, or ordinary helper functions\n- [ ] Add regression tests in tests/regression.test.mjs covering successful handling and error forwarding\n- [ ] Run type check and test suite\n- [ ] Verify test results and report findings"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "todo"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 17908,
+          "outputTokens": 158,
+          "totalTokens": 18316,
+          "cost": 0.0140235,
+          "costSource": "estimated",
+          "elapsedMs": 7530,
+          "timeToFirstTokenMs": 7530
+        }
+      },
+      "firstObservedAtMs": 1790771780803
+    },
+    {
+      "id": 18640,
+      "message_id": "msg_23eaf166-f1ed-4b54-a638-d6489ecd7843",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771772,
+      "timestamp": "2026-09-30 12:36:20",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_187652",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Updated (642 chars)"
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790771780803
+    },
+    {
+      "id": 18641,
+      "message_id": "RQK9at3VDo-lvdIPs6_FkQM",
+      "session_id": "20260930_6",
+      "role": "assistant",
+      "created_timestamp": 1790771782,
+      "timestamp": "2026-09-30 12:36:22",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_529360",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "cat README.md"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 18338,
+          "outputTokens": 17,
+          "totalTokens": 18389,
+          "cacheReadTokens": 16104,
+          "cost": 0.00294705,
+          "costSource": "estimated",
+          "elapsedMs": 1452,
+          "timeToFirstTokenMs": 1452
+        }
+      },
+      "firstObservedAtMs": 1790771782342
+    },
+    {
+      "id": 18642,
+      "message_id": "msg_e4527aeb-1407-40ef-8a6c-cf59df5944c1",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771782,
+      "timestamp": "2026-09-30 12:36:22",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_529360",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "# Forward asynchronous route failures\n\nThe API registers async handlers that currently reject without forwarding failures to next. Find every directly registered async handler on the Router in src/routes and wrap it with the existing withErrors adapter from src/framework/errors.ts. Cover GET, POST and DELETE registrations, including the named async function. Preserve response values, request handling, registration order and the synchronous route. Do not wrap unrelated async callbacks, the unrelated audit.get API, or ordinary helper functions. Add regression tests in tests/regression.test.mjs covering successful handling and error forwarding, and run the tests and type check.\nRead README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results.\n\nPermitted changes: src/routes/accounts.ts, src/routes/orders.ts and tests/regression.test.mjs (create it). All other files are immutable inputs. Keep the implementation in its current modules.\n\nTests: node --experimental-strip-types --test tests/*.test.mjs\nType check: node \"/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json\nDependencies and language servers are already supplied by the app. This workspace is an initialized Git repository; do not change Git metadata.",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "# Forward asynchronous route failures\n\nThe API registers async handlers that currently reject without forwarding failures to next. Find every directly registered async handler on the Router in src/routes and wrap it with the existing withErrors adapter from src/framework/errors.ts. Cover GET, POST and DELETE registrations, including the named async function. Preserve response values, request handling, registration order and the synchronous route. Do not wrap unrelated async callbacks, the unrelated audit.get API, or ordinary helper functions. Add regression tests in tests/regression.test.mjs covering successful handling and error forwarding, and run the tests and type check.\nRead README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results.\n\nPermitted changes: src/routes/accounts.ts, src/routes/orders.ts and tests/regression.test.mjs (create it). All other files are immutable inputs. Keep the implementation in its current modules.\n\nTests: node --experimental-strip-types --test tests/*.test.mjs\nType check: node \"/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json\nDependencies and language servers are already supplied by the app. This workspace is an initialized Git repository; do not change Git metadata.",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790771782342
+    },
+    {
+      "id": 18643,
+      "message_id": "RgK9atLxI6X0xN8PgoaY4A8",
+      "session_id": "20260930_6",
+      "role": "assistant",
+      "created_timestamp": 1790771783,
+      "timestamp": "2026-09-30 12:36:23",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_797912",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "find . -maxdepth 3 -not -path '*/.*'"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 18757,
+          "outputTokens": 28,
+          "totalTokens": 18963,
+          "cacheReadTokens": 16102,
+          "cost": 0.0033039,
+          "costSource": "estimated",
+          "elapsedMs": 1595,
+          "timeToFirstTokenMs": 1595
+        }
+      },
+      "firstObservedAtMs": 1790771783882
+    },
+    {
+      "id": 18644,
+      "message_id": "msg_f86cc3cd-c417-444f-b77a-612fd0f2f138",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771783,
+      "timestamp": "2026-09-30 12:36:23",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_797912",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": ".\n./tests\n./tests/public.test.mjs\n./README.md\n./package.json\n./tsconfig.json\n./src\n./src/framework\n./src/framework/router.ts\n./src/framework/errors.ts\n./src/app.ts\n./src/routes\n./src/routes/orders.ts\n./src/routes/accounts.ts",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": ".\n./tests\n./tests/public.test.mjs\n./README.md\n./package.json\n./tsconfig.json\n./src\n./src/framework\n./src/framework/router.ts\n./src/framework/errors.ts\n./src/app.ts\n./src/routes\n./src/routes/orders.ts\n./src/routes/accounts.ts",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790771783882
+    },
+    {
+      "id": 18645,
+      "message_id": "SAK9auXXEJ-p28oP_8v-2As",
+      "session_id": "20260930_6",
+      "role": "assistant",
+      "created_timestamp": 1790771785,
+      "timestamp": "2026-09-30 12:36:25",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_515585",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "cat src/framework/errors.ts; echo \"---\"; cat src/framework/router.ts; echo \"---\"; cat src/app.ts"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 19059,
+          "outputTokens": 45,
+          "totalTokens": 19162,
+          "cacheReadTokens": 16098,
+          "cost": 0.00359685,
+          "costSource": "estimated",
+          "elapsedMs": 1396,
+          "timeToFirstTokenMs": 1396
+        }
+      },
+      "firstObservedAtMs": 1790771785433
+    },
+    {
+      "id": 18646,
+      "message_id": "msg_8ab36220-69ef-481a-983e-fef188a49c5d",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771785,
+      "timestamp": "2026-09-30 12:36:25",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_515585",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "import type {Handler} from './router.ts';\nexport function withErrors(handler: Handler): Handler {\n  return async (req,res,next) => { try { return await handler(req,res,next); } catch(error) { next(error); } };\n}\n---\nexport interface Request { fail?: boolean; id: string; }\nexport interface Response { send(value: string): string; }\nexport type Next = (error: unknown) => void;\nexport type Handler = (req: Request, res: Response, next: Next) => unknown;\nexport class Router {\n  routes: {method: string; path: string; handler: Handler}[] = [];\n  get(path: string, handler: Handler) { this.routes.push({method:'GET',path,handler}); }\n  post(path: string, handler: Handler) { this.routes.push({method:'POST',path,handler}); }\n  delete(path: string, handler: Handler) { this.routes.push({method:'DELETE',path,handler}); }\n}\n---\nimport {Router} from './framework/router.ts';\nimport {registerAccounts} from './routes/accounts.ts';\nimport {registerOrders} from './routes/orders.ts';\nexport function makeRouter() {const router=new Router();registerAccounts(router);registerOrders(router);return router;}",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "import type {Handler} from './router.ts';\nexport function withErrors(handler: Handler): Handler {\n  return async (req,res,next) => { try { return await handler(req,res,next); } catch(error) { next(error); } };\n}\n---\nexport interface Request { fail?: boolean; id: string; }\nexport interface Response { send(value: string): string; }\nexport type Next = (error: unknown) => void;\nexport type Handler = (req: Request, res: Response, next: Next) => unknown;\nexport class Router {\n  routes: {method: string; path: string; handler: Handler}[] = [];\n  get(path: string, handler: Handler) { this.routes.push({method:'GET',path,handler}); }\n  post(path: string, handler: Handler) { this.routes.push({method:'POST',path,handler}); }\n  delete(path: string, handler: Handler) { this.routes.push({method:'DELETE',path,handler}); }\n}\n---\nimport {Router} from './framework/router.ts';\nimport {registerAccounts} from './routes/accounts.ts';\nimport {registerOrders} from './routes/orders.ts';\nexport function makeRouter() {const router=new Router();registerAccounts(router);registerOrders(router);return router;}",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790771785434
+    },
+    {
+      "id": 18647,
+      "message_id": "SQK9apmsKISo28oPhsuZmAM",
+      "session_id": "20260930_6",
+      "role": "assistant",
+      "created_timestamp": 1790771786,
+      "timestamp": "2026-09-30 12:36:26",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_578900",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "cat tests/public.test.mjs; echo \"---\"; cat src/routes/accounts.ts; echo \"---\"; cat src/routes/orders.ts"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 19479,
+          "outputTokens": 48,
+          "totalTokens": 19561,
+          "cacheReadTokens": 16096,
+          "cost": 0.0039244499999999995,
+          "costSource": "estimated",
+          "elapsedMs": 1523,
+          "timeToFirstTokenMs": 1523
+        }
+      },
+      "firstObservedAtMs": 1790771786980
+    },
+    {
+      "id": 18648,
+      "message_id": "msg_475e6c42-bd36-4769-bab5-ca2f25856bab",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771786,
+      "timestamp": "2026-09-30 12:36:26",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_578900",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "import assert from 'node:assert/strict';\nimport {test} from 'node:test';\nimport {makeRouter} from '../src/app.ts';\ntest('five routes registered',()=>assert.equal(makeRouter().routes.length,5));\n---\nimport {Router} from '../framework/router.ts';\nexport function registerAccounts(router: Router) {\n  router.get('/accounts/:id', async (req, res) => {\n    if(req.fail) throw new Error('account read');\n    return res.send('account:'+req.id);\n  });\n  router.post('/accounts', async function createAccount(req, res) {\n    if(req.fail) throw new Error('account create');\n    return res.send('created:'+req.id);\n  });\n  router.get('/health', (_req,res) => res.send('ok'));\n}\nexport const documentation = \"router.get('/fake', async handler)\";\nexport async function unrelatedHelper() { throw new Error('helper'); }\n---\nimport {Router} from '../framework/router.ts';\nconst audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };\nexport const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });\nexport function registerOrders(router: Router) {\n  router.get('/orders/:id', async (req,res) => {\n    const values = await Promise.all([req.id].map(async value => value.toUpperCase()));\n    if(req.fail) throw new Error('order read');\n    return res.send(values[0]);\n  });\n  router.delete('/orders/:id', async (req,res) => {\n    if(req.fail) throw new Error('order delete');\n    return res.send('deleted:'+req.id);\n  });\n}",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "import assert from 'node:assert/strict';\nimport {test} from 'node:test';\nimport {makeRouter} from '../src/app.ts';\ntest('five routes registered',()=>assert.equal(makeRouter().routes.length,5));\n---\nimport {Router} from '../framework/router.ts';\nexport function registerAccounts(router: Router) {\n  router.get('/accounts/:id', async (req, res) => {\n    if(req.fail) throw new Error('account read');\n    return res.send('account:'+req.id);\n  });\n  router.post('/accounts', async function createAccount(req, res) {\n    if(req.fail) throw new Error('account create');\n    return res.send('created:'+req.id);\n  });\n  router.get('/health', (_req,res) => res.send('ok'));\n}\nexport const documentation = \"router.get('/fake', async handler)\";\nexport async function unrelatedHelper() { throw new Error('helper'); }\n---\nimport {Router} from '../framework/router.ts';\nconst audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };\nexport const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });\nexport function registerOrders(router: Router) {\n  router.get('/orders/:id', async (req,res) => {\n    const values = await Promise.all([req.id].map(async value => value.toUpperCase()));\n    if(req.fail) throw new Error('order read');\n    return res.send(values[0]);\n  });\n  router.delete('/orders/:id', async (req,res) => {\n    if(req.fail) throw new Error('order delete');\n    return res.send('deleted:'+req.id);\n  });\n}",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790771786980
+    },
+    {
+      "id": 18649,
+      "message_id": "SwK9arSRD47RxN8PxpHdiQk",
+      "session_id": "20260930_6",
+      "role": "assistant",
+      "created_timestamp": 1790771788,
+      "timestamp": "2026-09-30 12:36:28",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_502980",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "node --experimental-strip-types --test tests/*.test.mjs"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 20003,
+          "outputTokens": 28,
+          "totalTokens": 20053,
+          "cacheReadTokens": 16095,
+          "cost": 0.004243125,
+          "costSource": "estimated",
+          "elapsedMs": 1772,
+          "timeToFirstTokenMs": 1772
+        }
+      },
+      "firstObservedAtMs": 1790771788783
+    },
+    {
+      "id": 18650,
+      "message_id": "msg_88e5d8a7-1559-4763-9fe4-71cba450a1b8",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771788,
+      "timestamp": "2026-09-30 12:36:28",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_502980",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "TAP version 13\n# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.37475\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 71.156",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "TAP version 13\n# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.37475\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 71.156",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790771788783
+    },
+    {
+      "id": 18651,
+      "message_id": "TQK9asDiCJqzvdIPwry70A0",
+      "session_id": "20260930_6",
+      "role": "assistant",
+      "created_timestamp": 1790771790,
+      "timestamp": "2026-09-30 12:36:30",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_697966",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "node \"/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 20163,
+          "outputTokens": 86,
+          "totalTokens": 20256,
+          "cacheReadTokens": 16090,
+          "cost": 0.004584,
+          "costSource": "estimated",
+          "elapsedMs": 1363,
+          "timeToFirstTokenMs": 1363
+        }
+      },
+      "firstObservedAtMs": 1790771790586
+    },
+    {
+      "id": 18652,
+      "message_id": "msg_bdd44ea9-e0c7-4e29-ae3d-744a70167a74",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771790,
+      "timestamp": "2026-09-30 12:36:30",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_697966",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "(no output)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790771790586
+    },
+    {
+      "id": 18653,
+      "message_id": "TwK9atoOm-e90g_q1OGACw",
+      "session_id": "20260930_6",
+      "role": "assistant",
+      "created_timestamp": 1790771805,
+      "timestamp": "2026-09-30 12:36:45",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_521462",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "edit",
+              "arguments": {
+                "path": "src/routes/accounts.ts",
+                "after": "import {withErrors} from '../framework/errors.ts';\nimport {Router} from '../framework/router.ts';\nexport function registerAccounts(router: Router) {\n  router.get('/accounts/:id', withErrors(async (req, res) => {\n    if(req.fail) throw new Error('account read');\n    return res.send('account:'+req.id);\n  }));\n  router.post('/accounts', withErrors(async function createAccount(req, res) {\n    if(req.fail) throw new Error('account create');\n    return res.send('created:'+req.id);\n  }));\n  router.get('/health', (_req,res) => res.send('ok'));\n}\nexport const documentation = \"router.get('/fake', async handler)\";\nexport async function unrelatedHelper() { throw new Error('helper'); }",
+                "before": "import {Router} from '../framework/router.ts';\nexport function registerAccounts(router: Router) {\n  router.get('/accounts/:id', async (req, res) => {\n    if(req.fail) throw new Error('account read');\n    return res.send('account:'+req.id);\n  });\n  router.post('/accounts', async function createAccount(req, res) {\n    if(req.fail) throw new Error('account create');\n    return res.send('created:'+req.id);\n  });\n  router.get('/health', (_req,res) => res.send('ok'));\n}\nexport const documentation = \"router.get('/fake', async handler)\";\nexport async function unrelatedHelper() { throw new Error('helper'); }"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 20271,
+          "outputTokens": 400,
+          "totalTokens": 23551,
+          "cacheReadTokens": 16084,
+          "cost": 0.00584655,
+          "costSource": "estimated",
+          "elapsedMs": 14526,
+          "timeToFirstTokenMs": 14526
+        }
+      },
+      "firstObservedAtMs": 1790771805064
+    },
+    {
+      "id": 18654,
+      "message_id": "msg_8cbfd729-0586-44d6-9865-0e4b8f4aa073",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771805,
+      "timestamp": "2026-09-30 12:36:45",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_521462",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Edited src/routes/accounts.ts (14 lines -> 15 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790771805064
+    },
+    {
+      "id": 18655,
+      "message_id": "XQK9aurDI_qGvdIPxtaz0Qk",
+      "session_id": "20260930_6",
+      "role": "assistant",
+      "created_timestamp": 1790771807,
+      "timestamp": "2026-09-30 12:36:47",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_644180",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "edit",
+              "arguments": {
+                "path": "src/routes/orders.ts",
+                "after": "import {withErrors} from '../framework/errors.ts';\nimport {Router} from '../framework/router.ts';\nconst audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };\nexport const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });\nexport function registerOrders(router: Router) {\n  router.get('/orders/:id', withErrors(async (req,res) => {\n    const values = await Promise.all([req.id].map(async value => value.toUpperCase()));\n    if(req.fail) throw new Error('order read');\n    return res.send(values[0]);\n  }));\n  router.delete('/orders/:id', withErrors(async (req,res) => {\n    if(req.fail) throw new Error('order delete');\n    return res.send('deleted:'+req.id);\n  }));\n}",
+                "before": "import {Router} from '../framework/router.ts';\nconst audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };\nexport const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });\nexport function registerOrders(router: Router) {\n  router.get('/orders/:id', async (req,res) => {\n    const values = await Promise.all([req.id].map(async value => value.toUpperCase()));\n    if(req.fail) throw new Error('order read');\n    return res.send(values[0]);\n  });\n  router.delete('/orders/:id', async (req,res) => {\n    if(req.fail) throw new Error('order delete');\n    return res.send('deleted:'+req.id);\n  });\n}"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 23580,
+          "outputTokens": 436,
+          "totalTokens": 24030,
+          "cacheReadTokens": 20148,
+          "cost": 0.0057201000000000005,
+          "costSource": "estimated",
+          "elapsedMs": 2244,
+          "timeToFirstTokenMs": 2244
+        }
+      },
+      "firstObservedAtMs": 1790771807376
+    },
+    {
+      "id": 18656,
+      "message_id": "msg_b7384722-e651-47ff-acea-33f97bfc7601",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771807,
+      "timestamp": "2026-09-30 12:36:47",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_644180",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Edited src/routes/orders.ts (14 lines -> 15 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790771807376
+    },
+    {
+      "id": 18657,
+      "message_id": "XwK9av70Mc-oxN8P7IjkqQs",
+      "session_id": "20260930_6",
+      "role": "assistant",
+      "created_timestamp": 1790771814,
+      "timestamp": "2026-09-30 12:36:54",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_591215",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "write",
+              "arguments": {
+                "content": "import assert from 'node:assert/strict';\nimport {describe, it} from 'node:test';\nimport {makeRouter} from '../src/app.ts';\nimport {unrelatedHelper} from '../src/routes/accounts.ts';\nimport {auditCallback} from '../src/routes/orders.ts';\n\ndescribe('Router async error handling regression tests', () => {\n  const router = makeRouter();\n\n  it('preserves route registration order and methods', () => {\n    assert.equal(router.routes.length, 5);\n    assert.deepEqual(\n      router.routes.map(r => ({method: r.method, path: r.path})),\n      [\n        {method: 'GET', path: '/accounts/:id'},\n        {method: 'POST', path: '/accounts'},\n        {method: 'GET', path: '/health'},\n        {method: 'GET', path: '/orders/:id'},\n        {method: 'DELETE', path: '/orders/:id'},\n      ]\n    );\n  });\n\n  it('successfully handles GET /accounts/:id and preserves response values', async () => {\n    const route = router.routes.find(r => r.method === 'GET' && r.path === '/accounts/:id');\n    assert.ok(route);\n    const req = {id: 'acc-1'};\n    let sent = null;\n    const res = {send: val => { sent = val; return val; }};\n    let nextCalled = false;\n    const next = () => { nextCalled = true; };\n\n    const result = await route.handler(req, res, next);\n    assert.equal(result, 'account:acc-1');\n    assert.equal(sent, 'account:acc-1');\n    assert.equal(nextCalled, false);\n  });\n\n  it('forwards errors to next on GET /accounts/:id failure', async () => {\n    const route = router.routes.find(r => r.method === 'GET' && r.path === '/accounts/:id');\n    assert.ok(route);\n    const req = {id: 'acc-1', fail: true};\n    const res = {send: val => val};\n    let receivedError = null;\n    const next = err => { receivedError = err; };\n\n    await route.handler(req, res, next);\n    assert.ok(receivedError instanceof Error);\n    assert.equal(receivedError.message, 'account read');\n  });\n\n  it('successfully handles POST /accounts with named async function', async () => {\n    const route = router.routes.find(r => r.method === 'POST' && r.path === '/accounts');\n    assert.ok(route);\n    const req = {id: 'acc-new'};\n    let sent = null;\n    const res = {send: val => { sent = val; return val; }};\n    let nextCalled = false;\n    const next = () => { nextCalled = true; };\n\n    const result = await route.handler(req, res, next);\n    assert.equal(result, 'created:acc-new');\n    assert.equal(sent, 'created:acc-new');\n    assert.equal(nextCalled, false);\n  });\n\n  it('forwards errors to next on POST /accounts failure', async () => {\n    const route = router.routes.find(r => r.method === 'POST' && r.path === '/accounts');\n    assert.ok(route);\n    const req = {id: 'acc-new', fail: true};\n    const res = {send: val => val};\n    let receivedError = null;\n    const next = err => { receivedError = err; };\n\n    await route.handler(req, res, next);\n    assert.ok(receivedError instanceof Error);\n    assert.equal(receivedError.message, 'account create');\n  });\n\n  it('preserves synchronous handling on GET /health', () => {\n    const route = router.routes.find(r => r.method === 'GET' && r.path === '/health');\n    assert.ok(route);\n    const req = {id: 'h'};\n    let sent = null;\n    const res = {send: val => { sent = val; return val; }};\n    const next = () => {};\n\n    const result = route.handler(req, res, next);\n    assert.equal(result, 'ok');\n    assert.equal(sent, 'ok');\n  });\n\n  it('successfully handles GET /orders/:id and preserves response values', async () => {\n    const route = router.routes.find(r => r.method === 'GET' && r.path === '/orders/:id');\n    assert.ok(route);\n    const req = {id: 'ord-123'};\n    let sent = null;\n    const res = {send: val => { sent = val; return val; }};\n    let nextCalled = false;\n    const next = () => { nextCalled = true; };\n\n    const result = await route.handler(req, res, next);\n    assert.equal(result, 'ORD-123');\n    assert.equal(sent, 'ORD-123');\n    assert.equal(nextCalled, false);\n  });\n\n  it('forwards errors to next on GET /orders/:id failure', async () => {\n    const route = router.routes.find(r => r.method === 'GET' && r.path === '/orders/:id');\n    assert.ok(route);\n    const req = {id: 'ord-123', fail: true};\n    const res = {send: val => val};\n    let receivedError = null;\n    const next = err => { receivedError = err; };\n\n    await route.handler(req, res, next);\n    assert.ok(receivedError instanceof Error);\n    assert.equal(receivedError.message, 'order read');\n  });\n\n  it('successfully handles DELETE /orders/:id and preserves response values', async () => {\n    const route = router.routes.find(r => r.method === 'DELETE' && r.path === '/orders/:id');\n    assert.ok(route);\n    const req = {id: 'ord-456'};\n    let sent = null;\n    const res = {send: val => { sent = val; return val; }};\n    let nextCalled = false;\n    const next = () => { nextCalled = true; };\n\n    const result = await route.handler(req, res, next);\n    assert.equal(result, 'deleted:ord-456');\n    assert.equal(sent, 'deleted:ord-456');\n    assert.equal(nextCalled, false);\n  });\n\n  it('forwards errors to next on DELETE /orders/:id failure', async () => {\n    const route = router.routes.find(r => r.method === 'DELETE' && r.path === '/orders/:id');\n    assert.ok(route);\n    const req = {id: 'ord-456', fail: true};\n    const res = {send: val => val};\n    let receivedError = null;\n    const next = err => { receivedError = err; };\n\n    await route.handler(req, res, next);\n    assert.ok(receivedError instanceof Error);\n    assert.equal(receivedError.message, 'order delete');\n  });\n\n  it('leaves unrelated helpers and audit API unwrapped', async () => {\n    await assert.rejects(\n      async () => { await unrelatedHelper(); },\n      {name: 'Error', message: 'helper'}\n    );\n    await assert.rejects(\n      async () => { await auditCallback(); },\n      {name: 'Error', message: 'audit'}\n    );\n  });\n});\n",
+                "path": "tests/regression.test.mjs"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 24059,
+          "outputTokens": 1824,
+          "totalTokens": 26228,
+          "cacheReadTokens": 20146,
+          "cost": 0.011285700000000001,
+          "costSource": "estimated",
+          "elapsedMs": 6666,
+          "timeToFirstTokenMs": 6666
+        }
+      },
+      "firstObservedAtMs": 1790771814090
+    },
+    {
+      "id": 18658,
+      "message_id": "msg_33a06bcf-7215-4c5b-90a3-815ea0c49201",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771814,
+      "timestamp": "2026-09-30 12:36:54",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_591215",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Created tests/regression.test.mjs (159 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790771814090
+    },
+    {
+      "id": 18659,
+      "message_id": "ZgK9asHeINfavdIPq6HVyQ0",
+      "session_id": "20260930_6",
+      "role": "assistant",
+      "created_timestamp": 1790771815,
+      "timestamp": "2026-09-30 12:36:56",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_663136",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "node --experimental-strip-types --test tests/*.test.mjs"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 26254,
+          "outputTokens": 28,
+          "totalTokens": 26294,
+          "cacheReadTokens": 20166,
+          "cost": 0.00618345,
+          "costSource": "estimated",
+          "elapsedMs": 1927,
+          "timeToFirstTokenMs": 1927
+        }
+      },
+      "firstObservedAtMs": 1790771816156
+    },
+    {
+      "id": 18660,
+      "message_id": "msg_e7e70cf6-2e2d-4d97-b0c8-689c0aa35854",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771815,
+      "timestamp": "2026-09-30 12:36:56",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_663136",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "TAP version 13\n# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.41725\n  type: 'test'\n  ...\n# Subtest: Router async error handling regression tests\n    # Subtest: preserves route registration order and methods\n    ok 1 - preserves route registration order and methods\n      ---\n      duration_ms: 0.858208\n      type: 'test'\n      ...\n    # Subtest: successfully handles GET /accounts/:id and preserves response values\n    ok 2 - successfully handles GET /accounts/:id and preserves response values\n      ---\n      duration_ms: 0.107208\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on GET /accounts/:id failure\n    ok 3 - forwards errors to next on GET /accounts/:id failure\n      ---\n      duration_ms: 0.086833\n      type: 'test'\n      ...\n    # Subtest: successfully handles POST /accounts with named async function\n    ok 4 - successfully handles POST /accounts with named async function\n      ---\n      duration_ms: 0.067708\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on POST /accounts failure\n    ok 5 - forwards errors to next on POST /accounts failure\n      ---\n      duration_ms: 0.124292\n      type: 'test'\n      ...\n    # Subtest: preserves synchronous handling on GET /health\n    ok 6 - preserves synchronous handling on GET /health\n      ---\n      duration_ms: 0.053125\n      type: 'test'\n      ...\n    # Subtest: successfully handles GET /orders/:id and preserves response values\n    ok 7 - successfully handles GET /orders/:id and preserves response values\n      ---\n      duration_ms: 0.126791\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on GET /orders/:id failure\n    ok 8 - forwards errors to next on GET /orders/:id failure\n      ---\n      duration_ms: 0.1515\n      type: 'test'\n      ...\n    # Subtest: successfully handles DELETE /orders/:id and preserves response values\n    ok 9 - successfully handles DELETE /orders/:id and preserves response values\n      ---\n      duration_ms: 0.194416\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on DELETE /orders/:id failure\n    ok 10 - forwards errors to next on DELETE /orders/:id failure\n      ---\n      duration_ms: 0.74675\n      type: 'test'\n      ...\n    # Subtest: leaves unrelated helpers and audit API unwrapped\n    ok 11 - leaves unrelated helpers and audit API unwrapped\n      ---\n      duration_ms: 0.23675\n      type: 'test'\n      ...\n    1..11\nok 2 - Router async error handling regression tests\n  ---\n  duration_ms: 3.286959\n  type: 'suite'\n  ...\n1..2\n# tests 12\n# suites 1\n# pass 12\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 78.9605",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "TAP version 13\n# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.41725\n  type: 'test'\n  ...\n# Subtest: Router async error handling regression tests\n    # Subtest: preserves route registration order and methods\n    ok 1 - preserves route registration order and methods\n      ---\n      duration_ms: 0.858208\n      type: 'test'\n      ...\n    # Subtest: successfully handles GET /accounts/:id and preserves response values\n    ok 2 - successfully handles GET /accounts/:id and preserves response values\n      ---\n      duration_ms: 0.107208\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on GET /accounts/:id failure\n    ok 3 - forwards errors to next on GET /accounts/:id failure\n      ---\n      duration_ms: 0.086833\n      type: 'test'\n      ...\n    # Subtest: successfully handles POST /accounts with named async function\n    ok 4 - successfully handles POST /accounts with named async function\n      ---\n      duration_ms: 0.067708\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on POST /accounts failure\n    ok 5 - forwards errors to next on POST /accounts failure\n      ---\n      duration_ms: 0.124292\n      type: 'test'\n      ...\n    # Subtest: preserves synchronous handling on GET /health\n    ok 6 - preserves synchronous handling on GET /health\n      ---\n      duration_ms: 0.053125\n      type: 'test'\n      ...\n    # Subtest: successfully handles GET /orders/:id and preserves response values\n    ok 7 - successfully handles GET /orders/:id and preserves response values\n      ---\n      duration_ms: 0.126791\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on GET /orders/:id failure\n    ok 8 - forwards errors to next on GET /orders/:id failure\n      ---\n      duration_ms: 0.1515\n      type: 'test'\n      ...\n    # Subtest: successfully handles DELETE /orders/:id and preserves response values\n    ok 9 - successfully handles DELETE /orders/:id and preserves response values\n      ---\n      duration_ms: 0.194416\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on DELETE /orders/:id failure\n    ok 10 - forwards errors to next on DELETE /orders/:id failure\n      ---\n      duration_ms: 0.74675\n      type: 'test'\n      ...\n    # Subtest: leaves unrelated helpers and audit API unwrapped\n    ok 11 - leaves unrelated helpers and audit API unwrapped\n      ---\n      duration_ms: 0.23675\n      type: 'test'\n      ...\n    1..11\nok 2 - Router async error handling regression tests\n  ---\n  duration_ms: 3.286959\n  type: 'suite'\n  ...\n1..2\n# tests 12\n# suites 1\n# pass 12\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 78.9605",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790771816156
+    },
+    {
+      "id": 18661,
+      "message_id": "aAK9aviFJYPfvdIPr92v-As",
+      "session_id": "20260930_6",
+      "role": "assistant",
+      "created_timestamp": 1790771818,
+      "timestamp": "2026-09-30 12:36:58",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_810040",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "node \"/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 27111,
+          "outputTokens": 86,
+          "totalTokens": 27204,
+          "cacheReadTokens": 24202,
+          "cost": 0.004319399999999999,
+          "costSource": "estimated",
+          "elapsedMs": 2212,
+          "timeToFirstTokenMs": 2212
+        }
+      },
+      "firstObservedAtMs": 1790771818996
+    },
+    {
+      "id": 18662,
+      "message_id": "msg_5a24bc48-fa2d-4aab-8440-84c677011e5d",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771818,
+      "timestamp": "2026-09-30 12:36:58",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_810040",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "(no output)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790771818996
+    },
+    {
+      "id": 18663,
+      "message_id": "awK9avGeEciTvdIP5KrikQw",
+      "session_id": "20260930_6",
+      "role": "assistant",
+      "created_timestamp": 1790771820,
+      "timestamp": "2026-09-30 12:37:00",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_630493",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "git status"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 27219,
+          "outputTokens": 15,
+          "totalTokens": 27332,
+          "cacheReadTokens": 24195,
+          "cost": 0.004138875,
+          "costSource": "estimated",
+          "elapsedMs": 1463,
+          "timeToFirstTokenMs": 1463
+        }
+      },
+      "firstObservedAtMs": 1790771820550
+    },
+    {
+      "id": 18664,
+      "message_id": "msg_232dce01-cc80-4410-ae91-0b3724c9cca9",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771820,
+      "timestamp": "2026-09-30 12:37:00",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_630493",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "On branch master\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   src/routes/accounts.ts\n\tmodified:   src/routes/orders.ts\n\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n\ttests/regression.test.mjs\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "On branch master\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   src/routes/accounts.ts\n\tmodified:   src/routes/orders.ts\n\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n\ttests/regression.test.mjs\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790771820550
+    },
+    {
+      "id": 18665,
+      "message_id": "bAK9av7vMf6d28oPn7z2oQg",
+      "session_id": "20260930_6",
+      "role": "assistant",
+      "created_timestamp": 1790771821,
+      "timestamp": "2026-09-30 12:37:01",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_636667",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "git diff"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 27469,
+          "outputTokens": 15,
+          "totalTokens": 27518,
+          "cacheReadTokens": 24190,
+          "cost": 0.00432975,
+          "costSource": "estimated",
+          "elapsedMs": 1266,
+          "timeToFirstTokenMs": 1266
+        }
+      },
+      "firstObservedAtMs": 1790771821843
+    },
+    {
+      "id": 18666,
+      "message_id": "msg_b3876801-1d11-48da-8736-c9667133daac",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771821,
+      "timestamp": "2026-09-30 12:37:01",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_636667",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "diff --git a/src/routes/accounts.ts b/src/routes/accounts.ts\nindex 7e742d8..6138585 100644\n--- a/src/routes/accounts.ts\n+++ b/src/routes/accounts.ts\n@@ -1,13 +1,14 @@\n+import {withErrors} from '../framework/errors.ts';\n import {Router} from '../framework/router.ts';\n export function registerAccounts(router: Router) {\n-  router.get('/accounts/:id', async (req, res) => {\n+  router.get('/accounts/:id', withErrors(async (req, res) => {\n     if(req.fail) throw new Error('account read');\n     return res.send('account:'+req.id);\n-  });\n-  router.post('/accounts', async function createAccount(req, res) {\n+  }));\n+  router.post('/accounts', withErrors(async function createAccount(req, res) {\n     if(req.fail) throw new Error('account create');\n     return res.send('created:'+req.id);\n-  });\n+  }));\n   router.get('/health', (_req,res) => res.send('ok'));\n }\n export const documentation = \"router.get('/fake', async handler)\";\ndiff --git a/src/routes/orders.ts b/src/routes/orders.ts\nindex 71b9289..c203af9 100644\n--- a/src/routes/orders.ts\n+++ b/src/routes/orders.ts\n@@ -1,14 +1,15 @@\n+import {withErrors} from '../framework/errors.ts';\n import {Router} from '../framework/router.ts';\n const audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };\n export const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });\n export function registerOrders(router: Router) {\n-  router.get('/orders/:id', async (req,res) => {\n+  router.get('/orders/:id', withErrors(async (req,res) => {\n     const values = await Promise.all([req.id].map(async value => value.toUpperCase()));\n     if(req.fail) throw new Error('order read');\n     return res.send(values[0]);\n-  });\n-  router.delete('/orders/:id', async (req,res) => {\n+  }));\n+  router.delete('/orders/:id', withErrors(async (req,res) => {\n     if(req.fail) throw new Error('order delete');\n     return res.send('deleted:'+req.id);\n-  });\n+  }));\n }",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "diff --git a/src/routes/accounts.ts b/src/routes/accounts.ts\nindex 7e742d8..6138585 100644\n--- a/src/routes/accounts.ts\n+++ b/src/routes/accounts.ts\n@@ -1,13 +1,14 @@\n+import {withErrors} from '../framework/errors.ts';\n import {Router} from '../framework/router.ts';\n export function registerAccounts(router: Router) {\n-  router.get('/accounts/:id', async (req, res) => {\n+  router.get('/accounts/:id', withErrors(async (req, res) => {\n     if(req.fail) throw new Error('account read');\n     return res.send('account:'+req.id);\n-  });\n-  router.post('/accounts', async function createAccount(req, res) {\n+  }));\n+  router.post('/accounts', withErrors(async function createAccount(req, res) {\n     if(req.fail) throw new Error('account create');\n     return res.send('created:'+req.id);\n-  });\n+  }));\n   router.get('/health', (_req,res) => res.send('ok'));\n }\n export const documentation = \"router.get('/fake', async handler)\";\ndiff --git a/src/routes/orders.ts b/src/routes/orders.ts\nindex 71b9289..c203af9 100644\n--- a/src/routes/orders.ts\n+++ b/src/routes/orders.ts\n@@ -1,14 +1,15 @@\n+import {withErrors} from '../framework/errors.ts';\n import {Router} from '../framework/router.ts';\n const audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };\n export const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });\n export function registerOrders(router: Router) {\n-  router.get('/orders/:id', async (req,res) => {\n+  router.get('/orders/:id', withErrors(async (req,res) => {\n     const values = await Promise.all([req.id].map(async value => value.toUpperCase()));\n     if(req.fail) throw new Error('order read');\n     return res.send(values[0]);\n-  });\n-  router.delete('/orders/:id', async (req,res) => {\n+  }));\n+  router.delete('/orders/:id', withErrors(async (req,res) => {\n     if(req.fail) throw new Error('order delete');\n     return res.send('deleted:'+req.id);\n-  });\n+  }));\n }",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790771821843
+    },
+    {
+      "id": 18667,
+      "message_id": "bgK9aqTZBr-FxN8PpqPZqQc",
+      "session_id": "20260930_6",
+      "role": "assistant",
+      "created_timestamp": 1790771825,
+      "timestamp": "2026-09-30 12:37:48",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolRequest",
+          "id": "call_675518",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "todo__todo_write",
+              "arguments": {
+                "content": "- [x] Read README.md and inspect workspace files\n- [x] Inspect src/framework/errors.ts and src/routes\n- [x] Wrap directly registered async handlers on the Router in src/routes with withErrors\n  - [x] Cover GET, POST, DELETE registrations including named async functions\n  - [x] Preserve response values, request handling, registration order, synchronous routes\n  - [x] Avoid wrapping unrelated async callbacks, audit.get API, or ordinary helper functions\n- [x] Add regression tests in tests/regression.test.mjs covering successful handling and error forwarding\n- [x] Run type check and test suite\n- [x] Verify test results and report findings"
+              }
+            }
+          },
+          "metadata": {},
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "todo"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 28188,
+          "outputTokens": 167,
+          "totalTokens": 28741,
+          "cacheReadTokens": 24191,
+          "cost": 0.005438325,
+          "costSource": "estimated",
+          "elapsedMs": 3998,
+          "timeToFirstTokenMs": 3998
+        }
+      },
+      "firstObservedAtMs": 1790771868952
+    },
+    {
+      "id": 18668,
+      "message_id": "msg_23565a0a-dfe7-47ba-8af7-bde920650cd4",
+      "session_id": "20260930_6",
+      "role": "user",
+      "created_timestamp": 1790771825,
+      "timestamp": "2026-09-30 12:37:48",
+      "tokens": null,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call_675518",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Updated (642 chars)"
+                }
+              ],
+              "isError": false
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      },
+      "firstObservedAtMs": 1790771868952
+    },
+    {
+      "id": 18669,
+      "message_id": "nQK9au-tKbWkvdIPmb_W-Q4",
+      "session_id": "20260930_6",
+      "role": "assistant",
+      "created_timestamp": 1790771870,
+      "timestamp": "2026-09-30 12:37:53",
+      "tokens": null,
+      "content": [
+        {
+          "type": "text",
+          "text": "All directly registered asynchronous route handlers on the `Router` in `src/routes` have been wrapped with `withErrors` from `src/framework/errors.ts`.\n\n### Summary of Changes\n\n1. **`src/routes/accounts.ts`**:\n   - Imported `withErrors` from `../framework/errors.ts`.\n   - Wrapped `router.get('/accounts/:id', ...)` with `withErrors`.\n   - Wrapped `router.post('/accounts', async function createAccount ...)` with `withErrors` (named async function preserved).\n   - Preserved synchronous route `router.get('/health', (_req, res) => res.send('ok'))` and `unrelatedHelper()` unwrapped.\n\n2. **`src/routes/orders.ts`**:\n   - Imported `withErrors` from `../framework/errors.ts`.\n   - Wrapped `router.get('/orders/:id', ...)` with `withErrors` (retaining the inner async callback `async value => value.toUpperCase()` unwrapped).\n   - Wrapped `router.delete('/orders/:id', ...)` with `withErrors`.\n   - Preserved `auditCallback` and `audit.get` unwrapped.\n\n3. **`tests/regression.test.mjs`**:\n   - Added regression test suite verifying:\n     - Route registration count and order (GET `/accounts/:id`, POST `/accounts`, GET `/health`, GET `/orders/:id`, DELETE `/orders/:id`).\n     - Successful response values and execution for all routes.\n     - Error forwarding to `next(error)` on rejection across GET, POST, and DELETE routes.\n     - Synchronous handling of `/health`.\n     - Direct rejection handling for unrelated helpers (`unrelatedHelper`) and `auditCallback`.\n\n---\n\n### Verification and Test Results\n\n#### 1. Type Check\n```bash\nnode \"/private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json\n```\n**Result**: Clean pass (exit code 0, 0 errors).\n\n#### 2. Test Execution\n```bash\nnode --experimental-strip-types --test tests/*.test.mjs\n```\n**Output**:\n```\nTAP version 13\n# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.41725\n  type: 'test'\n  ...\n# Subtest: Router async error handling regression tests\n    # Subtest: preserves route registration order and methods\n    ok 1 - preserves route registration order and methods\n      ---\n      duration_ms: 0.858208\n      type: 'test'\n      ...\n    # Subtest: successfully handles GET /accounts/:id and preserves response values\n    ok 2 - successfully handles GET /accounts/:id and preserves response values\n      ---\n      duration_ms: 0.107208\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on GET /accounts/:id failure\n    ok 3 - forwards errors to next on GET /accounts/:id failure\n      ---\n      duration_ms: 0.086833\n      type: 'test'\n      ...\n    # Subtest: successfully handles POST /accounts with named async function\n    ok 4 - successfully handles POST /accounts with named async function\n      ---\n      duration_ms: 0.067708\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on POST /accounts failure\n    ok 5 - forwards errors to next on POST /accounts failure\n      ---\n      duration_ms: 0.124292\n      type: 'test'\n      ...\n    # Subtest: preserves synchronous handling on GET /health\n    ok 6 - preserves synchronous handling on GET /health\n      ---\n      duration_ms: 0.053125\n      type: 'test'\n      ...\n    # Subtest: successfully handles GET /orders/:id and preserves response values\n    ok 7 - successfully handles GET /orders/:id and preserves response values\n      ---\n      duration_ms: 0.126791\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on GET /orders/:id failure\n    ok 8 - forwards errors to next on GET /orders/:id failure\n      ---\n      duration_ms: 0.1515\n      type: 'test'\n      ...\n    # Subtest: successfully handles DELETE /orders/:id and preserves response values\n    ok 9 - successfully handles DELETE /orders/:id and preserves response values\n      ---\n      duration_ms: 0.194416\n      type: 'test'\n      ...\n    # Subtest: forwards errors to next on DELETE /orders/:id failure\n    ok 10 - forwards errors to next on DELETE /orders/:id failure\n      ---\n      duration_ms: 0.74675\n      type: 'test'\n      ...\n    # Subtest: leaves unrelated helpers and audit API unwrapped\n    ok 11 - leaves unrelated helpers and audit API unwrapped\n      ---\n      duration_ms: 0.23675\n      type: 'test'\n      ...\n    1..11\nok 2 - Router async error handling regression tests\n  ---\n  duration_ms: 3.286959\n  type: 'suite'\n  ...\n1..2\n# tests 12\n# suites 1\n# pass 12\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 78.9605\n```"
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "orqaly",
+          "requestedModel": "orqaly-gemini"
+        },
+        "usage": {
+          "inputTokens": 28763,
+          "outputTokens": 1337,
+          "totalTokens": 30113,
+          "cacheReadTokens": 24190,
+          "cost": 0.01025775,
+          "costSource": "estimated",
+          "elapsedMs": 5218,
+          "timeToFirstTokenMs": 1918
+        }
+      },
+      "firstObservedAtMs": 1790771874122
+    }
+  ]
+}

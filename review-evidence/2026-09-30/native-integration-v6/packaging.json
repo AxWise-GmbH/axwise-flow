@@ -1,0 +1,7 @@
+{
+  "app": "/private/tmp/orqanix-native-v6-app-20260930/Orqanix Native v6 Test.app",
+  "buildOutputSha256": "520160f22984b56a347b56148e90e66a6adec3d7188c3ad45639ae8dbb5f5544",
+  "signedSha256": "fc0362cabcf40e2615d98baad6ecf7724d589a500c7621aacc32caf8ba56ab96",
+  "sameBinary": true,
+  "signatureVerified": true
+}

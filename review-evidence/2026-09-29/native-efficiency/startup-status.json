@@ -1,0 +1,13 @@
+{
+  "timedModelTrials": 0,
+  "loginKeychainUnlocked": true,
+  "userApprovedFirstPrompt": true,
+  "observedAfterApproval": {
+    "mainProcess": "started Goose backend",
+    "electronReadiness": "HTTPS status probes timed out",
+    "keychainWaitThread": "ThreadPoolForegroundWorker",
+    "currentPreflight": "/private/tmp/orqanix-efficiency-preflight4-20260929",
+    "sourceChanged": false
+  },
+  "action": "Asked user to approve any additional native Keychain prompt; SecurityAgent cannot be controlled by Computer Use."
+}

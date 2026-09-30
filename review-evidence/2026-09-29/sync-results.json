@@ -1,0 +1,68 @@
+{
+  "head": "76ba53c1d23a342d0f3f7a8b1f3b57044977fbbb",
+  "limitations": "Offline source-level probes; Electron IPC mocked; UI handler executed without rendering; no live cloud or mobile validation.",
+  "checks": [
+    {
+      "name": "syncAll succeeds without transport",
+      "result": {
+        "success": true,
+        "syncedSessions": 1,
+        "timestamp": 1790670136342
+      },
+      "fetchRequests": 0
+    },
+    {
+      "name": "Actual settings handler → source preload trigger → source main handler → manager",
+      "invokedChannels": [
+        "sync:trigger"
+      ],
+      "toasts": [
+        {
+          "kind": "success",
+          "msg": "Synced 1 session ledgers with Orqanix Cloud."
+        }
+      ],
+      "fetchRequests": 0
+    },
+    {
+      "name": "Restarted manager ignores unopened saved ledger",
+      "persistedSnapshot": true,
+      "result": {
+        "success": true,
+        "syncedSessions": 0,
+        "timestamp": 1790670136344
+      }
+    },
+    {
+      "name": "Failed storage still acknowledges append and sync",
+      "appendReturned": true,
+      "result": {
+        "success": true,
+        "syncedSessions": 1,
+        "timestamp": 1790670136345
+      },
+      "persistedSnapshot": false,
+      "loggedErrors": 2
+    },
+    {
+      "name": "Rejected parent still satisfies child dependency",
+      "added": [
+        "message_append"
+      ],
+      "rejected": [
+        "Integrity check failed: hash mismatch"
+      ],
+      "storedParent": false,
+      "linearized": [
+        "message_append"
+      ]
+    },
+    {
+      "name": "Self-cycle accepted then omitted by linearization",
+      "added": 1,
+      "rejected": 0,
+      "stored": 1,
+      "linearized": 0
+    }
+  ]
+}

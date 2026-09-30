@@ -1,0 +1,424 @@
+{
+  "version": "1.0",
+  "updated_at": "2026-09-25",
+  "description": "Comprehensive index of partner programs, accelerators, and developer companies for axwise.de",
+  "accelerators_and_programs": [
+    {
+      "id": "constructor-start",
+      "name": "Constructor Start Accelerator",
+      "organization": "Constructor University / Constructor Knowledge",
+      "domain": "constructor.university",
+      "url": "https://constructor.university/constructor-entrepreneurship-and-innovation-center/constructor-start",
+      "relationship": "Accelerator Program Alumni / Incubated Venture",
+      "participant": "Vitalijs Visnevskis (Founder @ Axwise)",
+      "logo_svg": "/logos/constructor-start.svg",
+      "logo_svg_white": "/logos/constructor-start-white.svg",
+      "description": "Bremen-based deep tech & AI startup accelerator at Constructor University.",
+      "status": "active",
+      "active_featured": true
+    },
+    {
+      "id": "imaguru",
+      "name": "Imaguru Startup Hub",
+      "organization": "Imaguru",
+      "domain": "imaguru.co",
+      "url": "https://imaguru.co",
+      "relationship": "Workshop & Session Speaker / Community Member",
+      "participant": "Vitalijs Visnevskis (Founder @ Axwise)",
+      "logo_png": "/logos/imaguru.png",
+      "logo_wordmark": "/logos/imaguru-wordmark.png",
+      "description": "International European startup hub, venture network and accelerator (Madrid, Warsaw).",
+      "status": "active",
+      "active_featured": true
+    },
+    {
+      "id": "ai-nation",
+      "name": "AI Nation",
+      "organization": "AI Nation Grant Program",
+      "domain": "ai-nation.de",
+      "url": "https://axwise.de",
+      "relationship": "Grant Program Recipient",
+      "participant": "Axwise Team",
+      "logo_png": "/ai-nation-grant-logo-white.png",
+      "logo_png_dark": "/ai-nation-grant-logo-black.png",
+      "description": "AI innovation grant and incubation ecosystem in Germany.",
+      "status": "former_alumni_historical",
+      "active_featured": false
+    }
+  ],
+  "developer_companies": [
+    {
+      "id": "sap",
+      "name": "SAP",
+      "category": "Enterprise Software",
+      "domain": "sap.com",
+      "developer": {
+        "name": "Krists Krievins",
+        "github": "hesersu",
+        "github_url": "https://github.com/hesersu",
+        "role": "Product Manager @ SAP",
+        "location": "Berlin, Germany"
+      },
+      "logo_svg": "/logos/sap.svg",
+      "logo_png": "/logos/sap.png"
+    },
+    {
+      "id": "epam",
+      "name": "EPAM Systems",
+      "category": "Digital Engineering & IT Consulting",
+      "domain": "epam.com",
+      "developer": {
+        "name": "Mikalai Karelin",
+        "github": "karelin",
+        "github_url": "https://github.com/karelin",
+        "role": "Software Engineer @ EPAM Systems",
+        "location": "Global / Remote"
+      },
+      "logo_png": "/logos/epam.png"
+    },
+    {
+      "id": "nestle",
+      "name": "Nestl\u00e9 (Nestle IT)",
+      "category": "Consumer Goods & Enterprise IT",
+      "domain": "nestle.com",
+      "developer": {
+        "name": "Stefan Pabst",
+        "github": "pabsts",
+        "github_url": "https://github.com/pabsts",
+        "role": "IT Professional @ Nestle IT",
+        "location": "Global"
+      },
+      "logo_svg": "/logos/nestle.svg",
+      "logo_png": "/logos/nestle-avatar.png"
+    },
+    {
+      "id": "omio",
+      "name": "Omio",
+      "category": "Global Travel Platform",
+      "domain": "omio.com",
+      "developer": {
+        "name": "Vlad Kosinov",
+        "github": "vladkosinov",
+        "github_url": "https://github.com/vladkosinov",
+        "role": "Senior Engineer @ Omio Labs",
+        "location": "Berlin, Germany"
+      },
+      "logo_svg": "/logos/omio.svg",
+      "logo_png": "/logos/omio.png"
+    },
+    {
+      "id": "hclsoftware",
+      "name": "HCLSoftware",
+      "category": "Enterprise Software Solutions",
+      "domain": "hcl-software.com",
+      "developer": {
+        "name": "Hoang Cuong",
+        "github": "HoangQC",
+        "github_url": "https://github.com/HoangQC",
+        "role": "Software Engineer @ HCSoftware",
+        "location": "Global"
+      },
+      "logo_svg": "/logos/hclsoftware.svg",
+      "logo_png": "/logos/hclsoftware.png"
+    },
+    {
+      "id": "if-insurance",
+      "name": "If Insurance",
+      "category": "Nordic & Baltic P&C Insurance",
+      "domain": "if.se",
+      "developer": {
+        "name": "Nikita Kovalovs",
+        "github": "nickkovdev",
+        "github_url": "https://github.com/nickkovdev",
+        "role": "Software Engineer @ If Insurance",
+        "location": "Nordics / Baltics"
+      },
+      "logo_png": "/logos/if-insurance.png"
+    },
+    {
+      "id": "smartbox",
+      "name": "Smartbox Group",
+      "category": "Experience Gift Technology",
+      "domain": "smartbox.com",
+      "developer": {
+        "name": "Michael Garifullin",
+        "github": "bullder",
+        "github_url": "https://github.com/bullder",
+        "role": "Senior Engineer @ Smartbox Group",
+        "location": "Dublin, Ireland / Remote"
+      },
+      "logo_png": "/logos/smartbox.png"
+    },
+    {
+      "id": "e2b",
+      "name": "E2B",
+      "category": "AI Agent Sandboxes & Cloud Infrastructure",
+      "domain": "e2b.dev",
+      "developer": {
+        "name": "Mish Ushakov",
+        "github": "mishushakov",
+        "github_url": "https://github.com/mishushakov",
+        "role": "Co-founder & Core Team @ e2b-dev",
+        "location": "London / SF / Remote"
+      },
+      "logo_png": "/logos/e2b.png"
+    },
+    {
+      "id": "rhesis-ai",
+      "name": "Rhesis AI",
+      "category": "Enterprise AI Quality & Evaluation",
+      "domain": "rhesis.ai",
+      "developer": {
+        "name": "Nicolai Bohn & Arkadiusz Kwasigroch",
+        "github": "nicolai-rhesis",
+        "github_url": "https://github.com/nicolai-rhesis",
+        "role": "Founder & Senior AI Engineer @ rhesis-ai",
+        "location": "Berlin / Munich, Germany"
+      },
+      "logo_svg": "/logos/rhesis-ai.svg",
+      "logo_png": "/logos/rhesis-ai.png"
+    },
+    {
+      "id": "traide-ai",
+      "name": "Traide AI",
+      "category": "AI Customs & International Trade Compliance",
+      "domain": "traide.ai",
+      "developer": {
+        "name": "Hendrik Niemann",
+        "github": "hendrikniemann",
+        "github_url": "https://github.com/hendrikniemann",
+        "role": "Software Engineer @ traide",
+        "location": "Berlin, Germany"
+      },
+      "logo_png": "/logos/traide-ai.png"
+    },
+    {
+      "id": "vexa-ai",
+      "name": "Vexa AI",
+      "category": "Real-Time AI Voice Agents",
+      "domain": "vexa.ai",
+      "developer": {
+        "name": "Dmitry Grankin",
+        "github": "DmitriyG228",
+        "github_url": "https://github.com/DmitriyG228",
+        "role": "Engineer @ vexa.ai",
+        "location": "Remote"
+      },
+      "logo_svg": "/logos/vexa-ai.svg",
+      "logo_png": "/logos/vexa-ai.png"
+    },
+    {
+      "id": "ellamind",
+      "name": "Ellamind",
+      "category": "Enterprise AI & LLM Solutions",
+      "domain": "ellamind.com",
+      "developer": {
+        "name": "Alicia",
+        "github": "alismind",
+        "github_url": "https://github.com/alismind",
+        "role": "AI Engineer @ Ellamind",
+        "location": "Germany"
+      },
+      "logo_svg": "/logos/ellamind.svg",
+      "logo_png": "/logos/ellamind.png"
+    },
+    {
+      "id": "writingmate",
+      "name": "Writingmate",
+      "category": "AI Productivity Tools",
+      "domain": "writingmate.ai",
+      "developer": {
+        "name": "Artem Vysotsky",
+        "github": "vood",
+        "github_url": "https://github.com/vood",
+        "role": "Founder @ writingmate.ai",
+        "location": "Remote"
+      },
+      "logo_png": "/logos/writingmate.png"
+    },
+    {
+      "id": "noredink",
+      "name": "NoRedInk",
+      "category": "EdTech & Writing Curriculum",
+      "domain": "noredink.com",
+      "developer": {
+        "name": "Michael Glass",
+        "github": "michaelglass",
+        "github_url": "https://github.com/michaelglass",
+        "role": "Staff Engineer @ NoRedInk",
+        "location": "Berlin / San Francisco"
+      },
+      "logo_png": "/logos/noredink.png"
+    },
+    {
+      "id": "vikunja",
+      "name": "Vikunja",
+      "category": "Open-Source Productivity Platform",
+      "domain": "vikunja.io",
+      "developer": {
+        "name": "Kolaente",
+        "github": "kolaente",
+        "github_url": "https://github.com/kolaente",
+        "role": "Creator & Lead Maintainer @ go-vikunja",
+        "location": "Germany"
+      },
+      "logo_svg": "/logos/vikunja.svg",
+      "logo_png": "/logos/vikunja.png"
+    },
+    {
+      "id": "mloda-ai",
+      "name": "Mloda AI",
+      "category": "High-Performance Data Pipelines",
+      "domain": "mloda.ai",
+      "developer": {
+        "name": "Tom Kaltofen",
+        "github": "TomKaltofen",
+        "github_url": "https://github.com/TomKaltofen",
+        "role": "Creator & Founder @ mloda-ai",
+        "location": "Berlin, Germany"
+      },
+      "logo_png": "/logos/mloda-ai.png"
+    },
+    {
+      "id": "openchamber",
+      "name": "OpenChamber",
+      "category": "Agentic Developer Environments",
+      "domain": "openchamber.dev",
+      "developer": {
+        "name": "Denis Dybsky",
+        "github": "trendion",
+        "github_url": "https://github.com/trendion",
+        "role": "Founder @ OpenChamber / Agenccy",
+        "location": "Remote"
+      },
+      "logo_svg": "/logos/openchamber.svg",
+      "logo_png": "/logos/openchamber-icon.png"
+    },
+    {
+      "id": "knowledgator",
+      "name": "Knowledgator",
+      "category": "Knowledge Graph & AI R&D",
+      "domain": "knowledgator.com",
+      "developer": {
+        "name": "Ihor Stepanov",
+        "github": "Ingvarstep",
+        "github_url": "https://github.com/Ingvarstep",
+        "role": "Founder & AI Engineer @ Knowledgator",
+        "location": "Ukraine / Remote"
+      },
+      "logo_png": "/logos/knowledgator.png"
+    },
+    {
+      "id": "openexpert",
+      "name": "OpenExpert",
+      "category": "AI Talent & Expertise Platform",
+      "domain": "openexpert.ai",
+      "developer": {
+        "name": "Ronix",
+        "github": "ronix900",
+        "github_url": "https://github.com/ronix900",
+        "role": "Engineer @ OpenExpert",
+        "location": "Remote"
+      },
+      "logo_png": "/logos/openexpert.png"
+    },
+    {
+      "id": "newframe-ai",
+      "name": "Newframe AI",
+      "category": "AI Venture & Product Studio",
+      "domain": "newframe.ai",
+      "developer": {
+        "name": "Ata",
+        "github": "ataniz",
+        "github_url": "https://github.com/ataniz",
+        "role": "Founder @ newframe.ai",
+        "location": "Remote"
+      },
+      "logo_png": "/logos/newframe-ai.png"
+    },
+    {
+      "id": "premia",
+      "name": "Premian Labs (Premia)",
+      "category": "DeFi Derivatives Infrastructure",
+      "domain": "premia.blue",
+      "developer": {
+        "name": "DK",
+        "github": "syphrpunk",
+        "github_url": "https://github.com/syphrpunk",
+        "role": "Core Contributor @ Premian Labs",
+        "location": "Remote"
+      },
+      "logo_png": "/logos/premia.png"
+    },
+    {
+      "id": "spearbit",
+      "name": "Spearbit",
+      "category": "Web3 & Smart Contract Security Network",
+      "domain": "spearbit.com",
+      "developer": {
+        "name": "Security Researcher",
+        "github": "z3r0b47",
+        "github_url": "https://github.com/z3r0b47",
+        "role": "Security Researcher @ Spearbit",
+        "location": "Remote"
+      },
+      "logo_png": "/logos/spearbit.png"
+    },
+    {
+      "id": "nualogic",
+      "name": "Nualogic",
+      "category": "IT Education & Advisory",
+      "domain": "nualogic.com",
+      "developer": {
+        "name": "Paul Deegan",
+        "github": "pgd1001",
+        "github_url": "https://github.com/pgd1001",
+        "role": "IT Educator & Consultant @ Nualogic",
+        "location": "Ireland"
+      },
+      "logo_png": "/logos/nualogic.png"
+    },
+    {
+      "id": "unizd",
+      "name": "University of Zadar",
+      "category": "Academic Research & Higher Education",
+      "domain": "unizd.hr",
+      "developer": {
+        "name": "Franjo Pehar",
+        "github": "fpehar",
+        "github_url": "https://github.com/fpehar",
+        "role": "Professor & Researcher",
+        "location": "Zadar, Croatia"
+      },
+      "logo_png": "/logos/unizd.png"
+    },
+    {
+      "id": "meexle",
+      "name": "Meexle LLC",
+      "category": "Software Architecture Consulting",
+      "domain": "meexle.com",
+      "developer": {
+        "name": "Sergei Emelianov",
+        "github": "syemialy",
+        "github_url": "https://github.com/syemialy",
+        "role": "Founding Engineer @ Meexle",
+        "location": "Austin, Texas"
+      },
+      "logo_png": "/logos/meexle.png"
+    },
+    {
+      "id": "acceliontech",
+      "name": "AccelionTech",
+      "category": "Enterprise Technology Consulting",
+      "domain": "acceliontech.com",
+      "developer": {
+        "name": "Consulting Engineer",
+        "github": "lzangari",
+        "github_url": "https://github.com/lzangari",
+        "role": "Engineer @ AccelionTech",
+        "location": "Remote"
+      },
+      "logo_png": "/logos/acceliontech.png"
+    }
+  ]
+}

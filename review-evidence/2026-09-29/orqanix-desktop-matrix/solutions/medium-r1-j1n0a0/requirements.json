@@ -1,0 +1,173 @@
+{
+  "summary": "Requirements specification for support ticket triage system based on stakeholder interviews, defining ticket normalization, deduplication, severity queue ordering, and customer summary reporting.",
+  "requirements": [
+    {
+      "id": "latest_open",
+      "description": "Repeated ticket IDs are treated as sequential updates where only the last occurrence is preserved, and tickets whose latest state is closed are excluded from open ticket counts and the triage queue.",
+      "sources": [
+        {
+          "id": "I2",
+          "quote": "Repeated IDs are updates: keep the last occurrence, and exclude tickets whose latest state is closed."
+        }
+      ],
+      "acceptance": {
+        "given": "a list of tickets containing multiple entries with identical IDs",
+        "when": "the ticket list is summarized",
+        "then": "only the last occurrence of each ticket ID is evaluated, and any tickets whose latest state is closed are excluded"
+      }
+    },
+    {
+      "id": "priority_order",
+      "description": "Open tickets in the triage queue must be ordered by severity priority (urgent first, normal second, low third), with ties broken by sorting ticket IDs in ascending alphanumeric order.",
+      "sources": [
+        {
+          "id": "I1",
+          "quote": "Urgent open tickets must appear before normal and low tickets; ties should use the ticket ID in ascending order."
+        }
+      ],
+      "acceptance": {
+        "given": "a collection of open tickets across different severity levels and IDs",
+        "when": "the triage queue is generated",
+        "then": "tickets are ordered urgent before normal before low, breaking ties using ticket ID in ascending order"
+      }
+    },
+    {
+      "id": "customer_summary",
+      "description": "The triage summary must count open tickets categorized by each severity level and list unique customer IDs associated with open tickets in ascending order.",
+      "sources": [
+        {
+          "id": "I3",
+          "quote": "The summary must count open tickets by severity and list each affected customer once in ascending ID order."
+        }
+      ],
+      "acceptance": {
+        "given": "a set of open tickets assigned to various customer IDs and severities",
+        "when": "the ticket summary is generated",
+        "then": "openCount contains the total number of open tickets, bySeverity provides counts for urgent, normal, and low, and customerIds lists unique customer IDs in ascending alphabetical order"
+      }
+    }
+  ],
+  "assumptions": [
+    "Input to summarizeTickets must be an array of ticket objects, throwing a TypeError otherwise.",
+    "normalizeTicket requires non-empty string values for id, title, and customerId after whitespace trimming.",
+    "Ticket severity must be 'urgent', 'normal', or 'low' (case-insensitive and trimmed), otherwise throwing a TypeError.",
+    "Ticket state must be 'open' or 'closed' (case-insensitive and trimmed), otherwise throwing a TypeError.",
+    "Input ticket objects are not mutated during normalization or summarization."
+  ],
+  "scenarios": [
+    {
+      "id": "latest_closed",
+      "input": [
+        {
+          "id": "a",
+          "title": "Fix",
+          "customerId": "c",
+          "severity": "urgent",
+          "state": "open"
+        },
+        {
+          "id": "a",
+          "title": "Fixed",
+          "customerId": "c",
+          "severity": "urgent",
+          "state": "closed"
+        }
+      ],
+      "expected": {
+        "openCount": 0,
+        "bySeverity": {
+          "urgent": 0,
+          "normal": 0,
+          "low": 0
+        },
+        "customerIds": [],
+        "queue": []
+      }
+    },
+    {
+      "id": "priority_and_tie_breaking",
+      "input": [
+        {
+          "id": "t3",
+          "title": "Low ticket",
+          "customerId": "cust-2",
+          "severity": "low",
+          "state": "open"
+        },
+        {
+          "id": "t2",
+          "title": "Normal ticket",
+          "customerId": "cust-1",
+          "severity": "normal",
+          "state": "open"
+        },
+        {
+          "id": "t1",
+          "title": "Urgent ticket 1",
+          "customerId": "cust-2",
+          "severity": "urgent",
+          "state": "open"
+        },
+        {
+          "id": "t0",
+          "title": "Urgent ticket 0",
+          "customerId": "cust-3",
+          "severity": "urgent",
+          "state": "open"
+        }
+      ],
+      "expected": {
+        "openCount": 4,
+        "bySeverity": {
+          "urgent": 2,
+          "normal": 1,
+          "low": 1
+        },
+        "customerIds": [
+          "cust-1",
+          "cust-2",
+          "cust-3"
+        ],
+        "queue": [
+          "t0",
+          "t1",
+          "t2",
+          "t3"
+        ]
+      }
+    },
+    {
+      "id": "reopened_ticket_update",
+      "input": [
+        {
+          "id": "ticket-99",
+          "title": "Issue previously resolved",
+          "customerId": "cust-X",
+          "severity": "normal",
+          "state": "closed"
+        },
+        {
+          "id": "ticket-99",
+          "title": "Issue reopened with urgent priority",
+          "customerId": "cust-X",
+          "severity": "urgent",
+          "state": "open"
+        }
+      ],
+      "expected": {
+        "openCount": 1,
+        "bySeverity": {
+          "urgent": 1,
+          "normal": 0,
+          "low": 0
+        },
+        "customerIds": [
+          "cust-X"
+        ],
+        "queue": [
+          "ticket-99"
+        ]
+      }
+    }
+  ]
+}

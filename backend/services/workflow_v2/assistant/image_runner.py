@@ -137,7 +137,7 @@ def _prompt_block_reason_name(response: Any) -> str | None:
 
 
 class GeminiAssistantImageRunner:
-    """One explicit image call; no search, tools, OMP, JEV, or hidden retries."""
+    """One explicit image call; no search, engineering tools, JEV, or hidden retries."""
 
     def __init__(
         self,

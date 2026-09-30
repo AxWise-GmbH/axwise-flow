@@ -1,0 +1,118 @@
+[
+  {
+    "name": "loop",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "goose",
+      "--test",
+      "native_engineering_integration",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls"
+    ],
+    "exitCode": 0,
+    "log": "/private/tmp/orqanix-v7-loop-tests.log",
+    "passedTests": 4
+  },
+  {
+    "name": "unit",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "goose",
+      "native_engineering",
+      "--lib",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls"
+    ],
+    "exitCode": 0,
+    "seconds": 49.64705091598444,
+    "log": "/private/tmp/orqanix-v7-unit-tests.log"
+  },
+  {
+    "name": "real-lsp",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "goose",
+      "native_engineering",
+      "--lib",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls",
+      "--",
+      "--ignored",
+      "--nocapture"
+    ],
+    "exitCode": 0,
+    "seconds": 3.999879625160247,
+    "log": "/private/tmp/orqanix-v7-real-lsp-tests.log"
+  },
+  {
+    "name": "enabled-code-mode",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "goose",
+      "code_mode",
+      "--lib",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls,code-mode"
+    ],
+    "exitCode": 0,
+    "seconds": 20.429190416121855,
+    "log": "/private/tmp/orqanix-v7-enabled-code-mode-tests.log"
+  },
+  {
+    "name": "clippy",
+    "command": [
+      "cargo",
+      "clippy",
+      "-p",
+      "goose",
+      "-p",
+      "goose-cli",
+      "--all-targets",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exitCode": 0,
+    "seconds": 11.345819625072181,
+    "log": "/private/tmp/orqanix-v7-clippy-tests.log"
+  },
+  {
+    "name": "release",
+    "command": [
+      "cargo",
+      "build",
+      "-p",
+      "goose-cli",
+      "--bin",
+      "goose",
+      "--release",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls"
+    ],
+    "exitCode": 0,
+    "seconds": 161.23733004182577,
+    "log": "/private/tmp/orqanix-v7-release-tests.log"
+  }
+]

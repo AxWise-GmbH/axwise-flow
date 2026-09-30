@@ -1,0 +1,3 @@
+{"difficulty":"control","passed":true,"brokenPassed":false,"fixedPassed":true,"mutantDetected":true,"failures":[],"typeError":null}
+{"difficulty":"ast","passed":true,"brokenPassed":false,"fixedPassed":true,"mutantDetected":true,"failures":[],"typeError":null}
+{"difficulty":"lsp","passed":true,"brokenPassed":false,"fixedPassed":true,"mutantDetected":true,"failures":[],"typeError":null}

@@ -1,0 +1,2302 @@
+{
+  "kind": "live-paired-desktop-decision-component",
+  "baseCommit": "21009d825aa64bf99eab42c7ee465f0597c7e214",
+  "startedAt": "2026-09-29T08:56:34.214Z",
+  "repetitions": 3,
+  "prompts": [
+    {
+      "lane": "conversation",
+      "message": "Explain why Earth has seasons."
+    },
+    {
+      "lane": "quick_info",
+      "message": "What is the weather forecast for Riga today?"
+    },
+    {
+      "lane": "research",
+      "message": "Create a product requirements document from the supplied customer interview findings."
+    },
+    {
+      "lane": "local_engineering",
+      "message": "Inspect the repository and fix the failing checkout unit test."
+    },
+    {
+      "lane": "mixed",
+      "message": "Explain how sorting algorithms work, then edit the local sort helper and add regression tests."
+    }
+  ],
+  "timeoutMs": 2000,
+  "scope": "Real production decision service and TypeSafe HTTP; excludes Electron/auth, downstream generation, and OMP execution.",
+  "disabledPolicy": "Desktop bypasses guidance entirely when jevReviewEnabled=false; service disabled output is diagnostic only.",
+  "modelEffort": "Unchanged by this production feature flag.",
+  "modelRequest": "jev-latest",
+  "baselineSourceSha256": "3923874099da823163e92b89adcf772b9f3245850bdf85e3f10c5988fa5a2ce8",
+  "currentSourceSha256": "529396657474ea30b56d5f74984d55c5630a51282ab79f3071deb2fc344d794b",
+  "environment": {
+    "node": "v26.10.0",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "endedAt": "2026-09-29T08:56:42.339Z",
+  "rows": [
+    {
+      "repetition": 0,
+      "arm": "before",
+      "enabled": false,
+      "expectedLane": "conversation",
+      "promptSha256": "3ac8021bf2ba25beb46f3a733d3c9987e569a210472e0aaf3ead3c43f42afe20",
+      "wallTimeMs": 0.62,
+      "providerCalls": 0,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-0",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "0d8d3555adb24317ada88eb11790fc171e82ae9f22c81d8babc9ea37d3b4c3ea"
+        },
+        "decision": "research",
+        "thinkingEffort": "high",
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 0,
+      "arm": "after",
+      "enabled": false,
+      "expectedLane": "conversation",
+      "promptSha256": "3ac8021bf2ba25beb46f3a733d3c9987e569a210472e0aaf3ead3c43f42afe20",
+      "wallTimeMs": 0.548,
+      "providerCalls": 0,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-0",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "0d8d3555adb24317ada88eb11790fc171e82ae9f22c81d8babc9ea37d3b4c3ea"
+        },
+        "decision": "uncertain",
+        "confidence": 0,
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 0,
+      "arm": "before",
+      "enabled": true,
+      "expectedLane": "conversation",
+      "promptSha256": "3ac8021bf2ba25beb46f3a733d3c9987e569a210472e0aaf3ead3c43f42afe20",
+      "wallTimeMs": 374.718,
+      "providerCalls": 1,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-0",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "0d8d3555adb24317ada88eb11790fc171e82ae9f22c81d8babc9ea37d3b4c3ea",
+          "model": "jev-1.13.0"
+        },
+        "decision": "conversation",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 374,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "conversation",
+              "confidence": 1,
+              "probabilities": {
+                "conversation": 1,
+                "mixed": 0,
+                "local_engineering": 0,
+                "research": 0,
+                "quick_info": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "arm": "after",
+      "enabled": true,
+      "expectedLane": "conversation",
+      "promptSha256": "3ac8021bf2ba25beb46f3a733d3c9987e569a210472e0aaf3ead3c43f42afe20",
+      "wallTimeMs": 316.658,
+      "providerCalls": 1,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-0",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "0d8d3555adb24317ada88eb11790fc171e82ae9f22c81d8babc9ea37d3b4c3ea",
+          "model": "jev-1.13.0"
+        },
+        "decision": "conversation",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 316,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "conversation",
+              "confidence": 1,
+              "probabilities": {
+                "research": 0,
+                "mixed": 0,
+                "local_engineering": 0,
+                "quick_info": 0,
+                "conversation": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "arm": "after",
+      "enabled": false,
+      "expectedLane": "quick_info",
+      "promptSha256": "02df152599580d0a3c3da18a0ccc63f23fc3bad6290d95de2a75c1d57c1ca931",
+      "wallTimeMs": 0.171,
+      "providerCalls": 0,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-1",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "4452a47a2dd0433161b31a2523f5baf7677e43a1e2ebaca36b633aed708c7685"
+        },
+        "decision": "uncertain",
+        "confidence": 0,
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 0,
+      "arm": "before",
+      "enabled": false,
+      "expectedLane": "quick_info",
+      "promptSha256": "02df152599580d0a3c3da18a0ccc63f23fc3bad6290d95de2a75c1d57c1ca931",
+      "wallTimeMs": 0.155,
+      "providerCalls": 0,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-1",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "4452a47a2dd0433161b31a2523f5baf7677e43a1e2ebaca36b633aed708c7685"
+        },
+        "decision": "research",
+        "thinkingEffort": "high",
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 0,
+      "arm": "after",
+      "enabled": true,
+      "expectedLane": "quick_info",
+      "promptSha256": "02df152599580d0a3c3da18a0ccc63f23fc3bad6290d95de2a75c1d57c1ca931",
+      "wallTimeMs": 265.457,
+      "providerCalls": 1,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-1",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "4452a47a2dd0433161b31a2523f5baf7677e43a1e2ebaca36b633aed708c7685",
+          "model": "jev-1.13.0"
+        },
+        "decision": "quick_info",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 265,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "quick_info",
+              "confidence": 1,
+              "probabilities": {
+                "quick_info": 1,
+                "research": 0,
+                "local_engineering": 0,
+                "conversation": 0,
+                "mixed": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "arm": "before",
+      "enabled": true,
+      "expectedLane": "quick_info",
+      "promptSha256": "02df152599580d0a3c3da18a0ccc63f23fc3bad6290d95de2a75c1d57c1ca931",
+      "wallTimeMs": 396.235,
+      "providerCalls": 1,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-1",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "4452a47a2dd0433161b31a2523f5baf7677e43a1e2ebaca36b633aed708c7685",
+          "model": "jev-1.13.0"
+        },
+        "decision": "quick_info",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 396,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "quick_info",
+              "confidence": 1,
+              "probabilities": {
+                "local_engineering": 0,
+                "mixed": 0,
+                "conversation": 0,
+                "quick_info": 1,
+                "research": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "arm": "before",
+      "enabled": false,
+      "expectedLane": "research",
+      "promptSha256": "7ca2f688935882d784543f2e740d5f9ba3eae06e27bc78345c8ce154fcca83fe",
+      "wallTimeMs": 0.22,
+      "providerCalls": 0,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-2",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "378fdfe53d97c209f3ec140997ce4591a8af24a549d00d5f50427d856f438a25"
+        },
+        "decision": "research",
+        "thinkingEffort": "high",
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 0,
+      "arm": "after",
+      "enabled": false,
+      "expectedLane": "research",
+      "promptSha256": "7ca2f688935882d784543f2e740d5f9ba3eae06e27bc78345c8ce154fcca83fe",
+      "wallTimeMs": 0.124,
+      "providerCalls": 0,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-2",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "378fdfe53d97c209f3ec140997ce4591a8af24a549d00d5f50427d856f438a25"
+        },
+        "decision": "uncertain",
+        "confidence": 0,
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 0,
+      "arm": "before",
+      "enabled": true,
+      "expectedLane": "research",
+      "promptSha256": "7ca2f688935882d784543f2e740d5f9ba3eae06e27bc78345c8ce154fcca83fe",
+      "wallTimeMs": 270.458,
+      "providerCalls": 1,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-2",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "378fdfe53d97c209f3ec140997ce4591a8af24a549d00d5f50427d856f438a25",
+          "model": "jev-1.13.0"
+        },
+        "decision": "research",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 270,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "research",
+              "confidence": 1,
+              "probabilities": {
+                "local_engineering": 0,
+                "mixed": 0,
+                "conversation": 0,
+                "research": 1,
+                "quick_info": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "arm": "after",
+      "enabled": true,
+      "expectedLane": "research",
+      "promptSha256": "7ca2f688935882d784543f2e740d5f9ba3eae06e27bc78345c8ce154fcca83fe",
+      "wallTimeMs": 235.256,
+      "providerCalls": 1,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-2",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "378fdfe53d97c209f3ec140997ce4591a8af24a549d00d5f50427d856f438a25",
+          "model": "jev-1.13.0"
+        },
+        "decision": "research",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 235,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "research",
+              "confidence": 1,
+              "probabilities": {
+                "quick_info": 0,
+                "research": 1,
+                "local_engineering": 0,
+                "conversation": 0,
+                "mixed": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "arm": "after",
+      "enabled": false,
+      "expectedLane": "local_engineering",
+      "promptSha256": "9b9092c0bfa7458be5243e14b785c83d5aaf0d3f96daf93e4d3e16ff7adc9fc5",
+      "wallTimeMs": 0.129,
+      "providerCalls": 0,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-3",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "fa02044bfb9af8c1b0ecfb01aa088a81e9b4da0316644f2039d963fd02567890"
+        },
+        "decision": "uncertain",
+        "confidence": 0,
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 0,
+      "arm": "before",
+      "enabled": false,
+      "expectedLane": "local_engineering",
+      "promptSha256": "9b9092c0bfa7458be5243e14b785c83d5aaf0d3f96daf93e4d3e16ff7adc9fc5",
+      "wallTimeMs": 0.082,
+      "providerCalls": 0,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-3",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "fa02044bfb9af8c1b0ecfb01aa088a81e9b4da0316644f2039d963fd02567890"
+        },
+        "decision": "research",
+        "thinkingEffort": "high",
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 0,
+      "arm": "after",
+      "enabled": true,
+      "expectedLane": "local_engineering",
+      "promptSha256": "9b9092c0bfa7458be5243e14b785c83d5aaf0d3f96daf93e4d3e16ff7adc9fc5",
+      "wallTimeMs": 249.658,
+      "providerCalls": 1,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-3",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "fa02044bfb9af8c1b0ecfb01aa088a81e9b4da0316644f2039d963fd02567890",
+          "model": "jev-1.13.0"
+        },
+        "decision": "local_engineering",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 250,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "local_engineering",
+              "confidence": 1,
+              "probabilities": {
+                "local_engineering": 1,
+                "conversation": 0,
+                "research": 0,
+                "quick_info": 0,
+                "mixed": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "arm": "before",
+      "enabled": true,
+      "expectedLane": "local_engineering",
+      "promptSha256": "9b9092c0bfa7458be5243e14b785c83d5aaf0d3f96daf93e4d3e16ff7adc9fc5",
+      "wallTimeMs": 270.95,
+      "providerCalls": 1,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-3",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "fa02044bfb9af8c1b0ecfb01aa088a81e9b4da0316644f2039d963fd02567890",
+          "model": "jev-1.13.0"
+        },
+        "decision": "local_engineering",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 271,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "local_engineering",
+              "confidence": 1,
+              "probabilities": {
+                "conversation": 0,
+                "local_engineering": 1,
+                "mixed": 0,
+                "research": 0,
+                "quick_info": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "arm": "before",
+      "enabled": false,
+      "expectedLane": "mixed",
+      "promptSha256": "185edd5c81a9acda7fa15dc183ec25fb91c66889f66b7480d174bbd3ae4f986a",
+      "wallTimeMs": 0.168,
+      "providerCalls": 0,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-4",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "747c2b661162a5aaa6748d01bf07e47eae04326c3ec0f85f38e11547b1ba565b"
+        },
+        "decision": "research",
+        "thinkingEffort": "high",
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 0,
+      "arm": "after",
+      "enabled": false,
+      "expectedLane": "mixed",
+      "promptSha256": "185edd5c81a9acda7fa15dc183ec25fb91c66889f66b7480d174bbd3ae4f986a",
+      "wallTimeMs": 0.132,
+      "providerCalls": 0,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-4",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "747c2b661162a5aaa6748d01bf07e47eae04326c3ec0f85f38e11547b1ba565b"
+        },
+        "decision": "uncertain",
+        "confidence": 0,
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 0,
+      "arm": "before",
+      "enabled": true,
+      "expectedLane": "mixed",
+      "promptSha256": "185edd5c81a9acda7fa15dc183ec25fb91c66889f66b7480d174bbd3ae4f986a",
+      "wallTimeMs": 255.144,
+      "providerCalls": 1,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-4",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "747c2b661162a5aaa6748d01bf07e47eae04326c3ec0f85f38e11547b1ba565b",
+          "model": "jev-1.13.0"
+        },
+        "decision": "mixed",
+        "confidence": 0.92,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 255,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "mixed",
+              "confidence": 0.92,
+              "probabilities": {
+                "local_engineering": 0.06,
+                "mixed": 0.94,
+                "conversation": 0,
+                "research": 0,
+                "quick_info": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "arm": "after",
+      "enabled": true,
+      "expectedLane": "mixed",
+      "promptSha256": "185edd5c81a9acda7fa15dc183ec25fb91c66889f66b7480d174bbd3ae4f986a",
+      "wallTimeMs": 265.194,
+      "providerCalls": 1,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-0-4",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "747c2b661162a5aaa6748d01bf07e47eae04326c3ec0f85f38e11547b1ba565b",
+          "model": "jev-1.13.0"
+        },
+        "decision": "mixed",
+        "confidence": 0.91,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 265,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "mixed",
+              "confidence": 0.91,
+              "probabilities": {
+                "mixed": 0.93,
+                "conversation": 0,
+                "local_engineering": 0.07,
+                "research": 0,
+                "quick_info": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "arm": "after",
+      "enabled": false,
+      "expectedLane": "conversation",
+      "promptSha256": "3ac8021bf2ba25beb46f3a733d3c9987e569a210472e0aaf3ead3c43f42afe20",
+      "wallTimeMs": 0.136,
+      "providerCalls": 0,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-0",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "0d8d3555adb24317ada88eb11790fc171e82ae9f22c81d8babc9ea37d3b4c3ea"
+        },
+        "decision": "uncertain",
+        "confidence": 0,
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 1,
+      "arm": "before",
+      "enabled": false,
+      "expectedLane": "conversation",
+      "promptSha256": "3ac8021bf2ba25beb46f3a733d3c9987e569a210472e0aaf3ead3c43f42afe20",
+      "wallTimeMs": 0.07,
+      "providerCalls": 0,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-0",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "0d8d3555adb24317ada88eb11790fc171e82ae9f22c81d8babc9ea37d3b4c3ea"
+        },
+        "decision": "research",
+        "thinkingEffort": "high",
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 1,
+      "arm": "after",
+      "enabled": true,
+      "expectedLane": "conversation",
+      "promptSha256": "3ac8021bf2ba25beb46f3a733d3c9987e569a210472e0aaf3ead3c43f42afe20",
+      "wallTimeMs": 262.724,
+      "providerCalls": 1,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-0",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "0d8d3555adb24317ada88eb11790fc171e82ae9f22c81d8babc9ea37d3b4c3ea",
+          "model": "jev-1.13.0"
+        },
+        "decision": "conversation",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 263,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "conversation",
+              "confidence": 1,
+              "probabilities": {
+                "quick_info": 0,
+                "research": 0,
+                "local_engineering": 0,
+                "conversation": 1,
+                "mixed": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "arm": "before",
+      "enabled": true,
+      "expectedLane": "conversation",
+      "promptSha256": "3ac8021bf2ba25beb46f3a733d3c9987e569a210472e0aaf3ead3c43f42afe20",
+      "wallTimeMs": 255.422,
+      "providerCalls": 1,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-0",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "0d8d3555adb24317ada88eb11790fc171e82ae9f22c81d8babc9ea37d3b4c3ea",
+          "model": "jev-1.13.0"
+        },
+        "decision": "conversation",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 255,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "conversation",
+              "confidence": 1,
+              "probabilities": {
+                "conversation": 1,
+                "quick_info": 0,
+                "mixed": 0,
+                "research": 0,
+                "local_engineering": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "arm": "before",
+      "enabled": false,
+      "expectedLane": "quick_info",
+      "promptSha256": "02df152599580d0a3c3da18a0ccc63f23fc3bad6290d95de2a75c1d57c1ca931",
+      "wallTimeMs": 0.199,
+      "providerCalls": 0,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-1",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "4452a47a2dd0433161b31a2523f5baf7677e43a1e2ebaca36b633aed708c7685"
+        },
+        "decision": "research",
+        "thinkingEffort": "high",
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 1,
+      "arm": "after",
+      "enabled": false,
+      "expectedLane": "quick_info",
+      "promptSha256": "02df152599580d0a3c3da18a0ccc63f23fc3bad6290d95de2a75c1d57c1ca931",
+      "wallTimeMs": 0.078,
+      "providerCalls": 0,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-1",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "4452a47a2dd0433161b31a2523f5baf7677e43a1e2ebaca36b633aed708c7685"
+        },
+        "decision": "uncertain",
+        "confidence": 0,
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 1,
+      "arm": "before",
+      "enabled": true,
+      "expectedLane": "quick_info",
+      "promptSha256": "02df152599580d0a3c3da18a0ccc63f23fc3bad6290d95de2a75c1d57c1ca931",
+      "wallTimeMs": 270.872,
+      "providerCalls": 1,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-1",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "4452a47a2dd0433161b31a2523f5baf7677e43a1e2ebaca36b633aed708c7685",
+          "model": "jev-1.13.0"
+        },
+        "decision": "quick_info",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 271,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "quick_info",
+              "confidence": 1,
+              "probabilities": {
+                "conversation": 0,
+                "local_engineering": 0,
+                "mixed": 0,
+                "research": 0,
+                "quick_info": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "arm": "after",
+      "enabled": true,
+      "expectedLane": "quick_info",
+      "promptSha256": "02df152599580d0a3c3da18a0ccc63f23fc3bad6290d95de2a75c1d57c1ca931",
+      "wallTimeMs": 242.838,
+      "providerCalls": 1,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-1",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "4452a47a2dd0433161b31a2523f5baf7677e43a1e2ebaca36b633aed708c7685",
+          "model": "jev-1.13.0"
+        },
+        "decision": "quick_info",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 243,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "quick_info",
+              "confidence": 1,
+              "probabilities": {
+                "local_engineering": 0,
+                "conversation": 0,
+                "mixed": 0,
+                "quick_info": 1,
+                "research": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "arm": "after",
+      "enabled": false,
+      "expectedLane": "research",
+      "promptSha256": "7ca2f688935882d784543f2e740d5f9ba3eae06e27bc78345c8ce154fcca83fe",
+      "wallTimeMs": 0.129,
+      "providerCalls": 0,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-2",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "378fdfe53d97c209f3ec140997ce4591a8af24a549d00d5f50427d856f438a25"
+        },
+        "decision": "uncertain",
+        "confidence": 0,
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 1,
+      "arm": "before",
+      "enabled": false,
+      "expectedLane": "research",
+      "promptSha256": "7ca2f688935882d784543f2e740d5f9ba3eae06e27bc78345c8ce154fcca83fe",
+      "wallTimeMs": 0.085,
+      "providerCalls": 0,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-2",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "378fdfe53d97c209f3ec140997ce4591a8af24a549d00d5f50427d856f438a25"
+        },
+        "decision": "research",
+        "thinkingEffort": "high",
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 1,
+      "arm": "after",
+      "enabled": true,
+      "expectedLane": "research",
+      "promptSha256": "7ca2f688935882d784543f2e740d5f9ba3eae06e27bc78345c8ce154fcca83fe",
+      "wallTimeMs": 232.282,
+      "providerCalls": 1,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-2",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "378fdfe53d97c209f3ec140997ce4591a8af24a549d00d5f50427d856f438a25",
+          "model": "jev-1.13.0"
+        },
+        "decision": "research",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 232,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "research",
+              "confidence": 1,
+              "probabilities": {
+                "quick_info": 0,
+                "conversation": 0,
+                "research": 1,
+                "mixed": 0,
+                "local_engineering": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "arm": "before",
+      "enabled": true,
+      "expectedLane": "research",
+      "promptSha256": "7ca2f688935882d784543f2e740d5f9ba3eae06e27bc78345c8ce154fcca83fe",
+      "wallTimeMs": 235.086,
+      "providerCalls": 1,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-2",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "378fdfe53d97c209f3ec140997ce4591a8af24a549d00d5f50427d856f438a25",
+          "model": "jev-1.13.0"
+        },
+        "decision": "research",
+        "confidence": 0.99,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 235,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "research",
+              "confidence": 0.99,
+              "probabilities": {
+                "quick_info": 0,
+                "research": 1,
+                "local_engineering": 0,
+                "conversation": 0,
+                "mixed": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "arm": "before",
+      "enabled": false,
+      "expectedLane": "local_engineering",
+      "promptSha256": "9b9092c0bfa7458be5243e14b785c83d5aaf0d3f96daf93e4d3e16ff7adc9fc5",
+      "wallTimeMs": 0.141,
+      "providerCalls": 0,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-3",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "fa02044bfb9af8c1b0ecfb01aa088a81e9b4da0316644f2039d963fd02567890"
+        },
+        "decision": "research",
+        "thinkingEffort": "high",
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 1,
+      "arm": "after",
+      "enabled": false,
+      "expectedLane": "local_engineering",
+      "promptSha256": "9b9092c0bfa7458be5243e14b785c83d5aaf0d3f96daf93e4d3e16ff7adc9fc5",
+      "wallTimeMs": 0.101,
+      "providerCalls": 0,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-3",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "fa02044bfb9af8c1b0ecfb01aa088a81e9b4da0316644f2039d963fd02567890"
+        },
+        "decision": "uncertain",
+        "confidence": 0,
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 1,
+      "arm": "before",
+      "enabled": true,
+      "expectedLane": "local_engineering",
+      "promptSha256": "9b9092c0bfa7458be5243e14b785c83d5aaf0d3f96daf93e4d3e16ff7adc9fc5",
+      "wallTimeMs": 251.848,
+      "providerCalls": 1,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-3",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "fa02044bfb9af8c1b0ecfb01aa088a81e9b4da0316644f2039d963fd02567890",
+          "model": "jev-1.13.0"
+        },
+        "decision": "local_engineering",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 252,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "local_engineering",
+              "confidence": 1,
+              "probabilities": {
+                "local_engineering": 1,
+                "research": 0,
+                "conversation": 0,
+                "quick_info": 0,
+                "mixed": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "arm": "after",
+      "enabled": true,
+      "expectedLane": "local_engineering",
+      "promptSha256": "9b9092c0bfa7458be5243e14b785c83d5aaf0d3f96daf93e4d3e16ff7adc9fc5",
+      "wallTimeMs": 253.725,
+      "providerCalls": 1,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-3",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "fa02044bfb9af8c1b0ecfb01aa088a81e9b4da0316644f2039d963fd02567890",
+          "model": "jev-1.13.0"
+        },
+        "decision": "local_engineering",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 253,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "local_engineering",
+              "confidence": 1,
+              "probabilities": {
+                "conversation": 0,
+                "local_engineering": 1,
+                "quick_info": 0,
+                "mixed": 0,
+                "research": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "arm": "after",
+      "enabled": false,
+      "expectedLane": "mixed",
+      "promptSha256": "185edd5c81a9acda7fa15dc183ec25fb91c66889f66b7480d174bbd3ae4f986a",
+      "wallTimeMs": 0.119,
+      "providerCalls": 0,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-4",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "747c2b661162a5aaa6748d01bf07e47eae04326c3ec0f85f38e11547b1ba565b"
+        },
+        "decision": "uncertain",
+        "confidence": 0,
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 1,
+      "arm": "before",
+      "enabled": false,
+      "expectedLane": "mixed",
+      "promptSha256": "185edd5c81a9acda7fa15dc183ec25fb91c66889f66b7480d174bbd3ae4f986a",
+      "wallTimeMs": 0.088,
+      "providerCalls": 0,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-4",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "747c2b661162a5aaa6748d01bf07e47eae04326c3ec0f85f38e11547b1ba565b"
+        },
+        "decision": "research",
+        "thinkingEffort": "high",
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 1,
+      "arm": "after",
+      "enabled": true,
+      "expectedLane": "mixed",
+      "promptSha256": "185edd5c81a9acda7fa15dc183ec25fb91c66889f66b7480d174bbd3ae4f986a",
+      "wallTimeMs": 258.428,
+      "providerCalls": 1,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-4",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "747c2b661162a5aaa6748d01bf07e47eae04326c3ec0f85f38e11547b1ba565b",
+          "model": "jev-1.13.0"
+        },
+        "decision": "mixed",
+        "confidence": 0.9,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 258,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "mixed",
+              "confidence": 0.9,
+              "probabilities": {
+                "quick_info": 0,
+                "research": 0,
+                "local_engineering": 0.08,
+                "conversation": 0,
+                "mixed": 0.92
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "arm": "before",
+      "enabled": true,
+      "expectedLane": "mixed",
+      "promptSha256": "185edd5c81a9acda7fa15dc183ec25fb91c66889f66b7480d174bbd3ae4f986a",
+      "wallTimeMs": 270.353,
+      "providerCalls": 1,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-1-4",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "747c2b661162a5aaa6748d01bf07e47eae04326c3ec0f85f38e11547b1ba565b",
+          "model": "jev-1.13.0"
+        },
+        "decision": "mixed",
+        "confidence": 0.9,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 270,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "mixed",
+              "confidence": 0.9,
+              "probabilities": {
+                "local_engineering": 0.08,
+                "mixed": 0.92,
+                "conversation": 0,
+                "quick_info": 0,
+                "research": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "arm": "before",
+      "enabled": false,
+      "expectedLane": "conversation",
+      "promptSha256": "3ac8021bf2ba25beb46f3a733d3c9987e569a210472e0aaf3ead3c43f42afe20",
+      "wallTimeMs": 0.134,
+      "providerCalls": 0,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-0",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "0d8d3555adb24317ada88eb11790fc171e82ae9f22c81d8babc9ea37d3b4c3ea"
+        },
+        "decision": "research",
+        "thinkingEffort": "high",
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 2,
+      "arm": "after",
+      "enabled": false,
+      "expectedLane": "conversation",
+      "promptSha256": "3ac8021bf2ba25beb46f3a733d3c9987e569a210472e0aaf3ead3c43f42afe20",
+      "wallTimeMs": 0.078,
+      "providerCalls": 0,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-0",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "0d8d3555adb24317ada88eb11790fc171e82ae9f22c81d8babc9ea37d3b4c3ea"
+        },
+        "decision": "uncertain",
+        "confidence": 0,
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 2,
+      "arm": "before",
+      "enabled": true,
+      "expectedLane": "conversation",
+      "promptSha256": "3ac8021bf2ba25beb46f3a733d3c9987e569a210472e0aaf3ead3c43f42afe20",
+      "wallTimeMs": 253.406,
+      "providerCalls": 1,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-0",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "0d8d3555adb24317ada88eb11790fc171e82ae9f22c81d8babc9ea37d3b4c3ea",
+          "model": "jev-1.13.0"
+        },
+        "decision": "conversation",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 253,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "conversation",
+              "confidence": 1,
+              "probabilities": {
+                "quick_info": 0,
+                "conversation": 1,
+                "research": 0,
+                "local_engineering": 0,
+                "mixed": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "arm": "after",
+      "enabled": true,
+      "expectedLane": "conversation",
+      "promptSha256": "3ac8021bf2ba25beb46f3a733d3c9987e569a210472e0aaf3ead3c43f42afe20",
+      "wallTimeMs": 247.198,
+      "providerCalls": 1,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-0",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "0d8d3555adb24317ada88eb11790fc171e82ae9f22c81d8babc9ea37d3b4c3ea",
+          "model": "jev-1.13.0"
+        },
+        "decision": "conversation",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 247,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "conversation",
+              "confidence": 1,
+              "probabilities": {
+                "local_engineering": 0,
+                "research": 0,
+                "mixed": 0,
+                "quick_info": 0,
+                "conversation": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "arm": "after",
+      "enabled": false,
+      "expectedLane": "quick_info",
+      "promptSha256": "02df152599580d0a3c3da18a0ccc63f23fc3bad6290d95de2a75c1d57c1ca931",
+      "wallTimeMs": 0.119,
+      "providerCalls": 0,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-1",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "4452a47a2dd0433161b31a2523f5baf7677e43a1e2ebaca36b633aed708c7685"
+        },
+        "decision": "uncertain",
+        "confidence": 0,
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 2,
+      "arm": "before",
+      "enabled": false,
+      "expectedLane": "quick_info",
+      "promptSha256": "02df152599580d0a3c3da18a0ccc63f23fc3bad6290d95de2a75c1d57c1ca931",
+      "wallTimeMs": 0.067,
+      "providerCalls": 0,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-1",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "4452a47a2dd0433161b31a2523f5baf7677e43a1e2ebaca36b633aed708c7685"
+        },
+        "decision": "research",
+        "thinkingEffort": "high",
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 2,
+      "arm": "after",
+      "enabled": true,
+      "expectedLane": "quick_info",
+      "promptSha256": "02df152599580d0a3c3da18a0ccc63f23fc3bad6290d95de2a75c1d57c1ca931",
+      "wallTimeMs": 295.027,
+      "providerCalls": 1,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-1",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "4452a47a2dd0433161b31a2523f5baf7677e43a1e2ebaca36b633aed708c7685",
+          "model": "jev-1.13.0"
+        },
+        "decision": "quick_info",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 295,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "quick_info",
+              "confidence": 1,
+              "probabilities": {
+                "quick_info": 1,
+                "research": 0,
+                "local_engineering": 0,
+                "conversation": 0,
+                "mixed": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "arm": "before",
+      "enabled": true,
+      "expectedLane": "quick_info",
+      "promptSha256": "02df152599580d0a3c3da18a0ccc63f23fc3bad6290d95de2a75c1d57c1ca931",
+      "wallTimeMs": 225.191,
+      "providerCalls": 1,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-1",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "4452a47a2dd0433161b31a2523f5baf7677e43a1e2ebaca36b633aed708c7685",
+          "model": "jev-1.13.0"
+        },
+        "decision": "quick_info",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 225,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "quick_info",
+              "confidence": 1,
+              "probabilities": {
+                "conversation": 0,
+                "quick_info": 1,
+                "research": 0,
+                "local_engineering": 0,
+                "mixed": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "arm": "before",
+      "enabled": false,
+      "expectedLane": "research",
+      "promptSha256": "7ca2f688935882d784543f2e740d5f9ba3eae06e27bc78345c8ce154fcca83fe",
+      "wallTimeMs": 0.085,
+      "providerCalls": 0,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-2",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "378fdfe53d97c209f3ec140997ce4591a8af24a549d00d5f50427d856f438a25"
+        },
+        "decision": "research",
+        "thinkingEffort": "high",
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 2,
+      "arm": "after",
+      "enabled": false,
+      "expectedLane": "research",
+      "promptSha256": "7ca2f688935882d784543f2e740d5f9ba3eae06e27bc78345c8ce154fcca83fe",
+      "wallTimeMs": 0.072,
+      "providerCalls": 0,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-2",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "378fdfe53d97c209f3ec140997ce4591a8af24a549d00d5f50427d856f438a25"
+        },
+        "decision": "uncertain",
+        "confidence": 0,
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 2,
+      "arm": "before",
+      "enabled": true,
+      "expectedLane": "research",
+      "promptSha256": "7ca2f688935882d784543f2e740d5f9ba3eae06e27bc78345c8ce154fcca83fe",
+      "wallTimeMs": 286.04,
+      "providerCalls": 1,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-2",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "378fdfe53d97c209f3ec140997ce4591a8af24a549d00d5f50427d856f438a25",
+          "model": "jev-1.13.0"
+        },
+        "decision": "research",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 286,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "research",
+              "confidence": 1,
+              "probabilities": {
+                "local_engineering": 0,
+                "research": 1,
+                "mixed": 0,
+                "quick_info": 0,
+                "conversation": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "arm": "after",
+      "enabled": true,
+      "expectedLane": "research",
+      "promptSha256": "7ca2f688935882d784543f2e740d5f9ba3eae06e27bc78345c8ce154fcca83fe",
+      "wallTimeMs": 303.661,
+      "providerCalls": 1,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-2",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "378fdfe53d97c209f3ec140997ce4591a8af24a549d00d5f50427d856f438a25",
+          "model": "jev-1.13.0"
+        },
+        "decision": "research",
+        "confidence": 0.99,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 303,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "research",
+              "confidence": 0.99,
+              "probabilities": {
+                "mixed": 0,
+                "conversation": 0,
+                "research": 1,
+                "local_engineering": 0,
+                "quick_info": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "arm": "after",
+      "enabled": false,
+      "expectedLane": "local_engineering",
+      "promptSha256": "9b9092c0bfa7458be5243e14b785c83d5aaf0d3f96daf93e4d3e16ff7adc9fc5",
+      "wallTimeMs": 0.205,
+      "providerCalls": 0,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-3",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "fa02044bfb9af8c1b0ecfb01aa088a81e9b4da0316644f2039d963fd02567890"
+        },
+        "decision": "uncertain",
+        "confidence": 0,
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 2,
+      "arm": "before",
+      "enabled": false,
+      "expectedLane": "local_engineering",
+      "promptSha256": "9b9092c0bfa7458be5243e14b785c83d5aaf0d3f96daf93e4d3e16ff7adc9fc5",
+      "wallTimeMs": 0.08,
+      "providerCalls": 0,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-3",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "fa02044bfb9af8c1b0ecfb01aa088a81e9b4da0316644f2039d963fd02567890"
+        },
+        "decision": "research",
+        "thinkingEffort": "high",
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 2,
+      "arm": "after",
+      "enabled": true,
+      "expectedLane": "local_engineering",
+      "promptSha256": "9b9092c0bfa7458be5243e14b785c83d5aaf0d3f96daf93e4d3e16ff7adc9fc5",
+      "wallTimeMs": 296.001,
+      "providerCalls": 1,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-3",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "fa02044bfb9af8c1b0ecfb01aa088a81e9b4da0316644f2039d963fd02567890",
+          "model": "jev-1.13.0"
+        },
+        "decision": "local_engineering",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 296,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "local_engineering",
+              "confidence": 1,
+              "probabilities": {
+                "research": 0,
+                "conversation": 0,
+                "quick_info": 0,
+                "mixed": 0,
+                "local_engineering": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "arm": "before",
+      "enabled": true,
+      "expectedLane": "local_engineering",
+      "promptSha256": "9b9092c0bfa7458be5243e14b785c83d5aaf0d3f96daf93e4d3e16ff7adc9fc5",
+      "wallTimeMs": 241.51,
+      "providerCalls": 1,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-3",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "fa02044bfb9af8c1b0ecfb01aa088a81e9b4da0316644f2039d963fd02567890",
+          "model": "jev-1.13.0"
+        },
+        "decision": "local_engineering",
+        "confidence": 1,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 241,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "local_engineering",
+              "confidence": 1,
+              "probabilities": {
+                "research": 0,
+                "conversation": 0,
+                "local_engineering": 1,
+                "quick_info": 0,
+                "mixed": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "arm": "before",
+      "enabled": false,
+      "expectedLane": "mixed",
+      "promptSha256": "185edd5c81a9acda7fa15dc183ec25fb91c66889f66b7480d174bbd3ae4f986a",
+      "wallTimeMs": 0.059,
+      "providerCalls": 0,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-4",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "747c2b661162a5aaa6748d01bf07e47eae04326c3ec0f85f38e11547b1ba565b"
+        },
+        "decision": "research",
+        "thinkingEffort": "high",
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 2,
+      "arm": "after",
+      "enabled": false,
+      "expectedLane": "mixed",
+      "promptSha256": "185edd5c81a9acda7fa15dc183ec25fb91c66889f66b7480d174bbd3ae4f986a",
+      "wallTimeMs": 0.048,
+      "providerCalls": 0,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": false,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-4",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "747c2b661162a5aaa6748d01bf07e47eae04326c3ec0f85f38e11547b1ba565b"
+        },
+        "decision": "uncertain",
+        "confidence": 0,
+        "reason": "disabled"
+      },
+      "receipts": []
+    },
+    {
+      "repetition": 2,
+      "arm": "before",
+      "enabled": true,
+      "expectedLane": "mixed",
+      "promptSha256": "185edd5c81a9acda7fa15dc183ec25fb91c66889f66b7480d174bbd3ae4f986a",
+      "wallTimeMs": 244.898,
+      "providerCalls": 1,
+      "deadlineMs": 1200,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-4",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "747c2b661162a5aaa6748d01bf07e47eae04326c3ec0f85f38e11547b1ba565b",
+          "model": "jev-1.13.0"
+        },
+        "decision": "mixed",
+        "confidence": 0.92,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 245,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "mixed",
+              "confidence": 0.92,
+              "probabilities": {
+                "conversation": 0,
+                "quick_info": 0,
+                "research": 0,
+                "local_engineering": 0.07,
+                "mixed": 0.93
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "arm": "after",
+      "enabled": true,
+      "expectedLane": "mixed",
+      "promptSha256": "185edd5c81a9acda7fa15dc183ec25fb91c66889f66b7480d174bbd3ae4f986a",
+      "wallTimeMs": 240.266,
+      "providerCalls": 1,
+      "deadlineMs": 2500,
+      "withinDesktopDeadline": true,
+      "desktopWouldAcceptAdvice": true,
+      "decision": {
+        "schemaVersion": 1,
+        "kind": "lane_triage",
+        "sessionId": "bench-2-4",
+        "advisory": true,
+        "provenance": {
+          "rubric": "lane-triage-v1",
+          "inputHash": "747c2b661162a5aaa6748d01bf07e47eae04326c3ec0f85f38e11547b1ba565b",
+          "model": "jev-1.13.0"
+        },
+        "decision": "mixed",
+        "confidence": 0.9,
+        "reason": "classified"
+      },
+      "receipts": [
+        {
+          "status": 200,
+          "durationMs": 240,
+          "model": "jev-1.13.0",
+          "answers": {
+            "route": {
+              "type": "choice",
+              "choice": "mixed",
+              "confidence": 0.9,
+              "probabilities": {
+                "quick_info": 0,
+                "mixed": 0.92,
+                "local_engineering": 0.08,
+                "conversation": 0,
+                "research": 0
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "summary": [
+    {
+      "arm": "before",
+      "enabled": false,
+      "n": 15,
+      "httpCalls": 0,
+      "p50Ms": 0.088,
+      "p95ObservedMs": 0.62,
+      "exactRoutes": null,
+      "acceptedAdvice": 0,
+      "acceptedCorrectAdvice": 0,
+      "timeouts": 0,
+      "providerUnavailable": 0,
+      "desktopDeadlineMisses": 0,
+      "disabledBypass": true
+    },
+    {
+      "arm": "before",
+      "enabled": true,
+      "n": 15,
+      "httpCalls": 15,
+      "p50Ms": 255.422,
+      "p95ObservedMs": 396.235,
+      "exactRoutes": 15,
+      "acceptedAdvice": 15,
+      "acceptedCorrectAdvice": 15,
+      "timeouts": 0,
+      "providerUnavailable": 0,
+      "desktopDeadlineMisses": 0,
+      "disabledBypass": false
+    },
+    {
+      "arm": "after",
+      "enabled": false,
+      "n": 15,
+      "httpCalls": 0,
+      "p50Ms": 0.124,
+      "p95ObservedMs": 0.548,
+      "exactRoutes": null,
+      "acceptedAdvice": 0,
+      "acceptedCorrectAdvice": 0,
+      "timeouts": 0,
+      "providerUnavailable": 0,
+      "desktopDeadlineMisses": 0,
+      "disabledBypass": true
+    },
+    {
+      "arm": "after",
+      "enabled": true,
+      "n": 15,
+      "httpCalls": 15,
+      "p50Ms": 258.428,
+      "p95ObservedMs": 316.658,
+      "exactRoutes": 15,
+      "acceptedAdvice": 15,
+      "acceptedCorrectAdvice": 15,
+      "timeouts": 0,
+      "providerUnavailable": 0,
+      "desktopDeadlineMisses": 0,
+      "disabledBypass": false
+    }
+  ],
+  "caveat": "Exploratory repeated component samples; observed p95 is descriptive, not a stable tail estimate. Disabled routing has no classifier and cannot demonstrate downstream speed or quality.",
+  "pairedComparison": {
+    "n": 15,
+    "afterMinusBeforeMedianMs": -4.632000000000005,
+    "afterMinusBeforeMeanMs": -9.183866666666678,
+    "scope": "Within-prompt paired component latency; insufficient to establish downstream speedup."
+  }
+}

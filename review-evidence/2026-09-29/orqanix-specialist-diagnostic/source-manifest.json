@@ -1,0 +1,7 @@
+{
+  "hashes": {
+    "scripts/benchmark-orqanix-specialist.mjs": "3065f67d2033386ce97703649f177a70369fbc5c0eb977774c18c85b02b87b67",
+    "scripts/lib/orqanix-specialist-tasks.mjs": "376b8083743b17e0726f00bce4fc3bbd035e30e46b0d59eb25b30e0234d32238",
+    "scripts/lib/orqanix-benchmark-relay.mjs": "3991ed06145e613106d7a78817b6829c612b5912527d2d40d102630205c05f6f"
+  }
+}

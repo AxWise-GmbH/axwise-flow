@@ -1,0 +1,43 @@
+[
+  {
+    "commit": "6b09ac9c4c602fde11ee0d2f802555c63c3378f6",
+    "path": "scripts/benchmark-native-engineering-gems.mjs",
+    "gitBlob": "4c78278663a2d81c86616d968166ddb1f3079f59",
+    "sha256": "4a3098d95734b6d6600202eefcd206c55407de92e61c79fc6a430f59039940ad",
+    "snapshot": "/Users/admin/axwise-opensource/axwise-flow-oss/review-evidence/2026-09-29/benchmark-reconciliation/6b09ac9c/scripts/benchmark-native-engineering-gems.mjs",
+    "executed": false
+  },
+  {
+    "commit": "6b09ac9c4c602fde11ee0d2f802555c63c3378f6",
+    "path": "scripts/sophisticated-gems-benchmark.mjs",
+    "gitBlob": "4318af2db5c209e1206d20cde605e711d0148bef",
+    "sha256": "e4a278db3dee9fa0a9aa5c5032970fe36a28d7b4658e55e8a09fb20cb43368a0",
+    "snapshot": "/Users/admin/axwise-opensource/axwise-flow-oss/review-evidence/2026-09-29/benchmark-reconciliation/6b09ac9c/scripts/sophisticated-gems-benchmark.mjs",
+    "executed": false
+  },
+  {
+    "commit": "6b09ac9c4c602fde11ee0d2f802555c63c3378f6",
+    "path": "packages/orqaly-goose-connector/src/native-engineering-gems.mjs",
+    "gitBlob": "71661d3737518dadb414421ccd19f12758e70d56",
+    "sha256": "cb5cad1d13f8e6d993f1154df1cda200372dc220da39574ed0c4f45d444a3457",
+    "snapshot": "/Users/admin/axwise-opensource/axwise-flow-oss/review-evidence/2026-09-29/benchmark-reconciliation/6b09ac9c/packages/orqaly-goose-connector/src/native-engineering-gems.mjs",
+    "executed": false
+  },
+  {
+    "commit": "30cbada02df66e42bb09cc7a64087c1f191ccfda",
+    "path": "scripts/e2e-matrix-benchmark.mjs",
+    "gitBlob": "29420da191801c9b5dba009754ea4f8d27fd9c9c",
+    "sha256": "99cb766b61331e5258f633c955bc21efe492c3a9e1460a201f27919cb919855e",
+    "snapshot": "/Users/admin/axwise-opensource/axwise-flow-oss/review-evidence/2026-09-29/benchmark-reconciliation/30cbada0/scripts/e2e-matrix-benchmark.mjs",
+    "executed": false
+  },
+  {
+    "repository": "/Users/admin/axwise-opensource/orqaly-goose",
+    "commit": "e7768bafbcdc12c2f05e7c1a4d3b539668c02f85",
+    "path": "ui/desktop/src/orqaly/workspace.ts",
+    "gitBlob": "ace7d619ba0a8528f08d69c270157f0204a5f09a",
+    "sha256": "b50bc4fa65d7c678a0a468a0628c226c50a2a92ec687abc725f15d063322955e",
+    "snapshot": "/Users/admin/axwise-opensource/axwise-flow-oss/review-evidence/2026-09-29/benchmark-reconciliation/e7768bafb/ui/desktop/src/orqaly/workspace.ts",
+    "executed": false
+  }
+]

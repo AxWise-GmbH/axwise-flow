@@ -150,6 +150,7 @@
   }
 
   function outcome(arm) {
+    if (arm.error === 'NATIVE_CODING_ADAPTER_UNAVAILABLE') return { text: 'Coding adapter unavailable', state: 'unavailable' };
     if (arm.status === 'failed') return { text: `Execution failed after ${formatDuration(arm.elapsedMs)}`, state: 'degraded' };
     if (arm.status !== 'completed') return { text: 'Did not run', state: 'unavailable' };
     return { text: `Completed · ${formatDuration(arm.elapsedMs)}`, state: 'completed' };
@@ -157,6 +158,7 @@
 
   function failureReason(arm) {
     const reason = arm.error || arm.evaluationReason;
+    if (reason === 'NATIVE_CODING_ADAPTER_UNAVAILABLE') return 'The cloud coding adapter is retired. Native Goose uses a separate benchmark; this arm did not run.';
     if (!reason) return arm.status === 'completed' && arm.evaluationVerdict === 'not_evaluated' ? 'Quality was not evaluated.' : '';
     if (/EVIDENCE_UNAVAILABLE/i.test(reason)) return 'No usable supporting evidence was obtained.';
     if (/SOURCE_REFERENCE_REQUIRED/i.test(reason)) return 'A required source reference was missing.';
@@ -169,6 +171,7 @@
   function interpretation(item) {
     const a = item.arms.orqanix;
     const b = item.arms.vanilla;
+    if (a.error === 'NATIVE_CODING_ADAPTER_UNAVAILABLE') return 'The Orqanix coding arm did not run. The direct-model result is not a paired native Goose comparison.';
     if (a.status === 'failed' && b.status === 'completed') return 'The Orqanix request failed; the direct model returned an answer.';
     if (b.status === 'failed' && a.status === 'completed') return 'Orqanix returned an answer; the direct request failed.';
     if (a.status !== 'completed' || b.status !== 'completed') return 'Both requests did not complete successfully. Review the errors below.';

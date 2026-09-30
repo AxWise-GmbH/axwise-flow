@@ -1,0 +1,3484 @@
+[
+  {
+    "direction": "received",
+    "at": 1790760966941,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "usage_update",
+          "used": 0,
+          "size": 1048576
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760966941,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "available_commands_update",
+          "availableCommands": [
+            {
+              "name": "prompts",
+              "description": "List available prompts, optionally filtered by extension",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "prompt",
+              "description": "Execute a prompt or show its info with --info",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "compact",
+              "description": "Compact the conversation history",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "clear",
+              "description": "Clear the conversation history",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "skills",
+              "description": "List installed skills and other available sources",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "doctor",
+              "description": "Check that your Goose setup is working",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "goal",
+              "description": "Set a goal the agent must satisfy before finishing, or clear with /goal off",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "grind",
+              "description": "Set a goal the agent pursues relentlessly until max_turns, or clear with /grind off",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "status",
+              "description": "Show session status: model, provider, mode, and token usage",
+              "_meta": {
+                "commandType": "Builtin"
+              }
+            },
+            {
+              "name": "goose-doc-guide",
+              "description": "Reference goose documentation to create, configure, or explain goose-specific features like recipes, extensions, sessions, and providers. You MUST read the relevant goose docs before answering. You MUST NOT rely on training data or assumptions for any goose-specific fields, values, names, syntax, or commands.",
+              "_meta": {
+                "commandType": "Skill"
+              }
+            },
+            {
+              "name": "web-search",
+              "description": "Search the web and extract page content using DuckDuckGo (no API key required), Tavily, or SearXNG. Use whenever the task needs current information, facts not in training data, or content from a specific URL.",
+              "_meta": {
+                "commandType": "Skill"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "direction": "sent",
+    "at": 1790760967003,
+    "message": {
+      "jsonrpc": "2.0",
+      "id": 105,
+      "method": "session/prompt",
+      "params": {
+        "sessionId": "20260930_1",
+        "prompt": [
+          {
+            "type": "resource",
+            "annotations": {
+              "audience": [
+                "assistant"
+              ]
+            },
+            "resource": {
+              "uri": "orqaly://conversation/20260930_1/desktop-routing",
+              "mimeType": "application/json",
+              "text": "{\"kind\":\"orqaly.desktop-routing.v1\",\"guidance\":\"Desktop capabilities are tools, not a mandatory workflow or action permission. Choose available tools to serve the current user request and respect local approvals. Read tool results before deciding whether to answer or continue; a tool cannot finish the conversation for you. Follow-ups such as \\\"go deeper\\\" or \\\"more detail\\\" refer to the latest unambiguous conversational subject. A previous specialist task does not override a later topic change. Depth words, an attached project or the word \\\"research\\\" alone do not justify specialist delegation. If several subjects plausibly fit, ask which one the user means before choosing tools. If no conversational subject is available, ask what topic they mean; do not inspect a project to invent a subject. When the user explicitly returns to earlier work, reuse its exact saved artifact reference only if available in the conversation; never guess missing references. For follow-ups, reuse the latest unambiguous user-supplied location, dates and other constraints. Do not carry stale filters into unrelated requests. Ask only for missing or ambiguous details. Preserve source links and distinguish verified findings from incomplete or failed retrieval. If retrieval fails, you may try another relevant permitted query or tool within a modest time and call budget; report any remaining uncertainty instead of inventing results.\",\"conversationId\":\"20260930_1\"}"
+            }
+          },
+          {
+            "type": "text",
+            "text": "The API registers async handlers that currently reject without forwarding failures to next. Find every directly registered async handler on the Router in src/routes and wrap it with the existing withErrors adapter from src/framework/errors.ts. Cover GET, POST and DELETE registrations, including the named async function. Preserve response values, request handling, registration order and the synchronous route. Do not wrap unrelated async callbacks, the unrelated audit.get API, or ordinary helper functions. Add regression tests in tests/regression.test.mjs covering successful handling and error forwarding, and run the tests and type check.\nRead README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results."
+          }
+        ]
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760967003,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "session_info_update",
+          "_meta": {
+            "goose": {
+              "activeRunId": "run_a26572a7-3751-416a-9270-ef2f37a10a61"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760968625,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "session_info_update",
+          "title": "Async Route Error Handling",
+          "updatedAt": "2026-09-30T09:36:08+00:00",
+          "_meta": {
+            "messageCount": 1,
+            "userSetName": false
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760969836,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_420090",
+          "title": "todo: todo write",
+          "rawInput": {
+            "content": "- [ ] Read README.md to understand the workspace contract\n- [ ] Inspect src/framework/errors.ts and src/routes\n- [ ] Wrap directly registered async handlers on Router in src/routes with withErrors (GET, POST, DELETE, including named async functions)\n- [ ] Ensure synchronous route, unrelated async callbacks, audit.get, and helpers are not wrapped\n- [ ] Add regression tests in tests/regression.test.mjs covering success and error forwarding\n- [ ] Run type check and test suite\n- [ ] Report actual test and type check results"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "todo__todo_write",
+                "extensionName": "todo"
+              },
+              "created": 1790760969,
+              "messageId": "B9i8asudJ_n-nsEP8f2o8AM"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760969853,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_420090",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "Updated (525 chars)"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760970985,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_431567",
+          "title": "shell · cat README.md",
+          "rawInput": {
+            "command": "cat README.md"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790760970,
+              "messageId": "Cti8aqxkqYGR1Q-GxaJZ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760971006,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_431567",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "# Forward asynchronous route failures\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760971013,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_431567",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "\nThe API registers async handlers that currently reject without forwarding failures to next. Find every directly registered async handler on the Router in src/routes and wrap it with the existing withErrors adapter from src/framework/errors.ts. Cover GET, POST and DELETE registrations, including the named async function. Preserve response values, request handling, registration order and the synchronous route. Do not wrap unrelated async callbacks, the unrelated audit.get API, or ordinary helper functions. Add regression tests in tests/regression.test.mjs covering successful handling and error forwarding, and run the tests and type check.\nRead README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results.\n\nPermitted changes: src/routes/accounts.ts, src/routes/orders.ts and tests/regression.test.mjs (create it). All other files are immutable inputs. Keep the implementation in its current modules.\n\nTests: node --experimental-strip-types --test tests/*.test.mjs\nType check: node \"/private/tmp/orqanix-native-v7-ready-app-20260930/Orqanix Native v7 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json\nDependencies and language servers are already supplied by the app. This workspace is an initialized Git repository; do not change Git metadata.\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760971013,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_431567",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "# Forward asynchronous route failures\n\nThe API registers async handlers that currently reject without forwarding failures to next. Find every directly registered async handler on the Router in src/routes and wrap it with the existing withErrors adapter from src/framework/errors.ts. Cover GET, POST and DELETE registrations, including the named async function. Preserve response values, request handling, registration order and the synchronous route. Do not wrap unrelated async callbacks, the unrelated audit.get API, or ordinary helper functions. Add regression tests in tests/regression.test.mjs covering successful handling and error forwarding, and run the tests and type check.\nRead README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results.\n\nPermitted changes: src/routes/accounts.ts, src/routes/orders.ts and tests/regression.test.mjs (create it). All other files are immutable inputs. Keep the implementation in its current modules.\n\nTests: node --experimental-strip-types --test tests/*.test.mjs\nType check: node \"/private/tmp/orqanix-native-v7-ready-app-20260930/Orqanix Native v7 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json\nDependencies and language servers are already supplied by the app. This workspace is an initialized Git repository; do not change Git metadata."
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "# Forward asynchronous route failures\n\nThe API registers async handlers that currently reject without forwarding failures to next. Find every directly registered async handler on the Router in src/routes and wrap it with the existing withErrors adapter from src/framework/errors.ts. Cover GET, POST and DELETE registrations, including the named async function. Preserve response values, request handling, registration order and the synchronous route. Do not wrap unrelated async callbacks, the unrelated audit.get API, or ordinary helper functions. Add regression tests in tests/regression.test.mjs covering successful handling and error forwarding, and run the tests and type check.\nRead README.md for the workspace contract. Use any available tools that help. Work only in this synthetic workspace; do not search parent directories, other projects, or the benchmark harness. Do not install dependencies, access the network, alter settings, commit, push or run background processes. Report actual test results.\n\nPermitted changes: src/routes/accounts.ts, src/routes/orders.ts and tests/regression.test.mjs (create it). All other files are immutable inputs. Keep the implementation in its current modules.\n\nTests: node --experimental-strip-types --test tests/*.test.mjs\nType check: node \"/private/tmp/orqanix-native-v7-ready-app-20260930/Orqanix Native v7 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json\nDependencies and language servers are already supplied by the app. This workspace is an initialized Git repository; do not change Git metadata.",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760972432,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_593055",
+          "title": "shell · find . -maxdepth 3 -not -path '*/.*'",
+          "rawInput": {
+            "command": "find . -maxdepth 3 -not -path '*/.*'"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790760972,
+              "messageId": "C9i8aoiOCrmykdUP6-zlyAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760972451,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_593055",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": ".\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760972455,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_593055",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "./tests\n./tests/public.test.mjs\n./README.md\n./package.json\n./tsconfig.json\n./src\n./src/framework\n./src/framework/router.ts\n./src/framework/errors.ts\n./src/app.ts\n./src/routes\n./src/routes/orders.ts\n./src/routes/accounts.ts\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760972457,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_593055",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": ".\n./tests\n./tests/public.test.mjs\n./README.md\n./package.json\n./tsconfig.json\n./src\n./src/framework\n./src/framework/router.ts\n./src/framework/errors.ts\n./src/app.ts\n./src/routes\n./src/routes/orders.ts\n./src/routes/accounts.ts"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": ".\n./tests\n./tests/public.test.mjs\n./README.md\n./package.json\n./tsconfig.json\n./src\n./src/framework\n./src/framework/router.ts\n./src/framework/errors.ts\n./src/app.ts\n./src/routes\n./src/routes/orders.ts\n./src/routes/accounts.ts",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760973929,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_718363",
+          "title": "shell · cat src/framework/errors.ts",
+          "rawInput": {
+            "command": "cat src/framework/errors.ts"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790760973,
+              "messageId": "DNi8at3NN8urkdUPnYDZ4AE"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760973947,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_718363",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "import type {Handler} from './router.ts';\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760973951,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_718363",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "export function withErrors(handler: Handler): Handler {\n  return async (req,res,next) => { try { return await handler(req,res,next); } catch(error) { next(error); } };\n}\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760973953,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_718363",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "import type {Handler} from './router.ts';\nexport function withErrors(handler: Handler): Handler {\n  return async (req,res,next) => { try { return await handler(req,res,next); } catch(error) { next(error); } };\n}"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "import type {Handler} from './router.ts';\nexport function withErrors(handler: Handler): Handler {\n  return async (req,res,next) => { try { return await handler(req,res,next); } catch(error) { next(error); } };\n}",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760975078,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_415944",
+          "title": "shell · cat src/framework/router.ts",
+          "rawInput": {
+            "command": "cat src/framework/router.ts"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790760975,
+              "messageId": "Dti8asyqC72EkdUP4pbp2QQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760975095,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_415944",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "export interface Request { fail?: boolean; id: string; }\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760975100,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_415944",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "export interface Request { fail?: boolean; id: string; }\nexport interface Response { send(value: string): string; }\nexport type Next = (error: unknown) => void;\nexport type Handler = (req: Request, res: Response, next: Next) => unknown;\nexport class Router {\n  routes: {method: string; path: string; handler: Handler}[] = [];\n  get(path: string, handler: Handler) { this.routes.push({method:'GET',path,handler}); }\n  post(path: string, handler: Handler) { this.routes.push({method:'POST',path,handler}); }\n  delete(path: string, handler: Handler) { this.routes.push({method:'DELETE',path,handler}); }\n}"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "export interface Request { fail?: boolean; id: string; }\nexport interface Response { send(value: string): string; }\nexport type Next = (error: unknown) => void;\nexport type Handler = (req: Request, res: Response, next: Next) => unknown;\nexport class Router {\n  routes: {method: string; path: string; handler: Handler}[] = [];\n  get(path: string, handler: Handler) { this.routes.push({method:'GET',path,handler}); }\n  post(path: string, handler: Handler) { this.routes.push({method:'POST',path,handler}); }\n  delete(path: string, handler: Handler) { this.routes.push({method:'DELETE',path,handler}); }\n}",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760976213,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_482898",
+          "title": "shell · cat src/app.ts",
+          "rawInput": {
+            "command": "cat src/app.ts"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790760976,
+              "messageId": "D9i8atTDEY77nsEP_-erCQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760976221,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_482898",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "import {Router} from './framework/router.ts';\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760976224,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_482898",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "import {Router} from './framework/router.ts';\nimport {registerAccounts} from './routes/accounts.ts';\nimport {registerOrders} from './routes/orders.ts';\nexport function makeRouter() {const router=new Router();registerAccounts(router);registerOrders(router);return router;}"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "import {Router} from './framework/router.ts';\nimport {registerAccounts} from './routes/accounts.ts';\nimport {registerOrders} from './routes/orders.ts';\nexport function makeRouter() {const router=new Router();registerAccounts(router);registerOrders(router);return router;}",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760976963,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_559263",
+          "title": "shell · cat src/routes/accounts.ts",
+          "rawInput": {
+            "command": "cat src/routes/accounts.ts"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790760976,
+              "messageId": "ENi8apT4FriOkdUP-ZWTqAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760976976,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_559263",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "import {Router} from '../framework/router.ts';\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760976979,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_559263",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "export function registerAccounts(router: Router) {\n  router.get('/accounts/:id', async (req, res) => {\n    if(req.fail) throw new Error('account read');\n    return res.send('account:'+req.id);\n  });\n  router.post('/accounts', async function createAccount(req, res) {\n    if(req.fail) throw new Error('account create');\n    return res.send('created:'+req.id);\n  });\n  router.get('/health', (_req,res) => res.send('ok'));\n}\nexport const documentation = \"router.get('/fake', async handler)\";\nexport async function unrelatedHelper() { throw new Error('helper'); }\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760976981,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_559263",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "import {Router} from '../framework/router.ts';\nexport function registerAccounts(router: Router) {\n  router.get('/accounts/:id', async (req, res) => {\n    if(req.fail) throw new Error('account read');\n    return res.send('account:'+req.id);\n  });\n  router.post('/accounts', async function createAccount(req, res) {\n    if(req.fail) throw new Error('account create');\n    return res.send('created:'+req.id);\n  });\n  router.get('/health', (_req,res) => res.send('ok'));\n}\nexport const documentation = \"router.get('/fake', async handler)\";\nexport async function unrelatedHelper() { throw new Error('helper'); }"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "import {Router} from '../framework/router.ts';\nexport function registerAccounts(router: Router) {\n  router.get('/accounts/:id', async (req, res) => {\n    if(req.fail) throw new Error('account read');\n    return res.send('account:'+req.id);\n  });\n  router.post('/accounts', async function createAccount(req, res) {\n    if(req.fail) throw new Error('account create');\n    return res.send('created:'+req.id);\n  });\n  router.get('/health', (_req,res) => res.send('ok'));\n}\nexport const documentation = \"router.get('/fake', async handler)\";\nexport async function unrelatedHelper() { throw new Error('helper'); }",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760978052,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_418461",
+          "title": "shell · cat src/routes/orders.ts",
+          "rawInput": {
+            "command": "cat src/routes/orders.ts"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790760978,
+              "messageId": "Edi8aqzkB5WrnsEPq5uE0AE"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760978068,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_418461",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "import {Router} from '../framework/router.ts';\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760978072,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_418461",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "const audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };\nexport const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });\nexport function registerOrders(router: Router) {\n  router.get('/orders/:id', async (req,res) => {\n    const values = await Promise.all([req.id].map(async value => value.toUpperCase()));\n    if(req.fail) throw new Error('order read');\n    return res.send(values[0]);\n  });\n  router.delete('/orders/:id', async (req,res) => {\n    if(req.fail) throw new Error('order delete');\n    return res.send('deleted:'+req.id);\n  });\n}\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760978075,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_418461",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "import {Router} from '../framework/router.ts';\nconst audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };\nexport const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });\nexport function registerOrders(router: Router) {\n  router.get('/orders/:id', async (req,res) => {\n    const values = await Promise.all([req.id].map(async value => value.toUpperCase()));\n    if(req.fail) throw new Error('order read');\n    return res.send(values[0]);\n  });\n  router.delete('/orders/:id', async (req,res) => {\n    if(req.fail) throw new Error('order delete');\n    return res.send('deleted:'+req.id);\n  });\n}"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "import {Router} from '../framework/router.ts';\nconst audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };\nexport const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });\nexport function registerOrders(router: Router) {\n  router.get('/orders/:id', async (req,res) => {\n    const values = await Promise.all([req.id].map(async value => value.toUpperCase()));\n    if(req.fail) throw new Error('order read');\n    return res.send(values[0]);\n  });\n  router.delete('/orders/:id', async (req,res) => {\n    if(req.fail) throw new Error('order delete');\n    return res.send('deleted:'+req.id);\n  });\n}",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760979836,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_429628",
+          "title": "shell · cat tests/public.test.mjs",
+          "rawInput": {
+            "command": "cat tests/public.test.mjs"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790760979,
+              "messageId": "Eti8as_ZI8DQnsEPgauCuA0"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760979853,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_429628",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "import assert from 'node:assert/strict';\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760979858,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_429628",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "import {test} from 'node:test';\nimport {makeRouter} from '../src/app.ts';\ntest('five routes registered',()=>assert.equal(makeRouter().routes.length,5));\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760979862,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_429628",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "import assert from 'node:assert/strict';\nimport {test} from 'node:test';\nimport {makeRouter} from '../src/app.ts';\ntest('five routes registered',()=>assert.equal(makeRouter().routes.length,5));"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "import assert from 'node:assert/strict';\nimport {test} from 'node:test';\nimport {makeRouter} from '../src/app.ts';\ntest('five routes registered',()=>assert.equal(makeRouter().routes.length,5));",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760981048,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_543658",
+          "title": "shell · node --experimental-strip-types --test tests/*.test.mjs",
+          "rawInput": {
+            "command": "node --experimental-strip-types --test tests/*.test.mjs"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790760981,
+              "messageId": "FNi8as-oAfzxnsEP25Gr6AQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760981103,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_543658",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "TAP version 13\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760981165,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_543658",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "TAP version 13\n# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.289125\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 64.148458"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "TAP version 13\n# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.289125\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 64.148458",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760982761,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_570635",
+          "title": "shell · node \"/private/tmp/orqanix-native-v7-ready-app-2026093...…",
+          "rawInput": {
+            "command": "node \"/private/tmp/orqanix-native-v7-ready-app-20260930/Orqanix Native v7 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790760982,
+              "messageId": "Fdi8asXLE56xkdUPvOeJ0AE"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760983200,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_570635",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "(no output)"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760984401,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_378231",
+          "title": "shell · git status",
+          "rawInput": {
+            "command": "git status"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790760984,
+              "messageId": "F9i8arbpFYOunsEP6KuDuA0"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760984424,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_378231",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stderr",
+                    "output": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-9b8M1Dce' (errno=Operation not permitted)\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760984876,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_378231",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stderr",
+                    "output": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-Ee7mWQqI' (errno=Operation not permitted)\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790760985266,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_378231",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-9b8M1Dce' (errno=Operation not permitted)\ngit: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-Ee7mWQqI' (errno=Operation not permitted)\nOn branch master\nnothing to commit, working tree clean"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "On branch master\nnothing to commit, working tree clean",
+            "stderr": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-9b8M1Dce' (errno=Operation not permitted)\ngit: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-Ee7mWQqI' (errno=Operation not permitted)",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761000015,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_484268",
+          "title": "shell · cat tsconfig.json",
+          "rawInput": {
+            "command": "cat tsconfig.json"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790761000,
+              "messageId": "Gti8ap-XAZmzkdUPoZjq4QI"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761000032,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_484268",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "{\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761000038,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_484268",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"NodeNext\",\n    \"strict\": true,\n    \"noEmit\": true,\n    \"allowImportingTsExtensions\": true\n  },\n  \"include\": [\n    \"src/**/*.ts\"\n  ]\n}\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761000043,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_484268",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"NodeNext\",\n    \"strict\": true,\n    \"noEmit\": true,\n    \"allowImportingTsExtensions\": true\n  },\n  \"include\": [\n    \"src/**/*.ts\"\n  ]\n}"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"NodeNext\",\n    \"strict\": true,\n    \"noEmit\": true,\n    \"allowImportingTsExtensions\": true\n  },\n  \"include\": [\n    \"src/**/*.ts\"\n  ]\n}",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761006786,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_593610",
+          "title": "edit · src/routes/accounts.ts",
+          "rawInput": {
+            "before": "import {Router} from '../framework/router.ts';\nexport function registerAccounts(router: Router) {\n  router.get('/accounts/:id', async (req, res) => {\n    if(req.fail) throw new Error('account read');\n    return res.send('account:'+req.id);\n  });\n  router.post('/accounts', async function createAccount(req, res) {\n    if(req.fail) throw new Error('account create');\n    return res.send('created:'+req.id);\n  });\n  router.get('/health', (_req,res) => res.send('ok'));\n}\nexport const documentation = \"router.get('/fake', async handler)\";\nexport async function unrelatedHelper() { throw new Error('helper'); }",
+            "path": "src/routes/accounts.ts",
+            "after": "import {withErrors} from '../framework/errors.ts';\nimport {Router} from '../framework/router.ts';\nexport function registerAccounts(router: Router) {\n  router.get('/accounts/:id', withErrors(async (req, res) => {\n    if(req.fail) throw new Error('account read');\n    return res.send('account:'+req.id);\n  }));\n  router.post('/accounts', withErrors(async function createAccount(req, res) {\n    if(req.fail) throw new Error('account create');\n    return res.send('created:'+req.id);\n  }));\n  router.get('/health', (_req,res) => res.send('ok'));\n}\nexport const documentation = \"router.get('/fake', async handler)\";\nexport async function unrelatedHelper() { throw new Error('helper'); }"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "edit",
+                "extensionName": "developer"
+              },
+              "created": 1790761006,
+              "messageId": "KNi8arnrHoXknsEPworZ2QQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761006800,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_593610",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "Edited src/routes/accounts.ts (14 lines -> 15 lines)"
+              }
+            }
+          ],
+          "locations": [
+            {
+              "path": "src/routes/accounts.ts",
+              "line": 1
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761009964,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_476918",
+          "title": "edit · src/routes/orders.ts",
+          "rawInput": {
+            "after": "import {withErrors} from '../framework/errors.ts';\nimport {Router} from '../framework/router.ts';\nconst audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };\nexport const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });\nexport function registerOrders(router: Router) {\n  router.get('/orders/:id', withErrors(async (req,res) => {\n    const values = await Promise.all([req.id].map(async value => value.toUpperCase()));\n    if(req.fail) throw new Error('order read');\n    return res.send(values[0]);\n  }));\n  router.delete('/orders/:id', withErrors(async (req,res) => {\n    if(req.fail) throw new Error('order delete');\n    return res.send('deleted:'+req.id);\n  }));\n}",
+            "before": "import {Router} from '../framework/router.ts';\nconst audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };\nexport const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });\nexport function registerOrders(router: Router) {\n  router.get('/orders/:id', async (req,res) => {\n    const values = await Promise.all([req.id].map(async value => value.toUpperCase()));\n    if(req.fail) throw new Error('order read');\n    return res.send(values[0]);\n  });\n  router.delete('/orders/:id', async (req,res) => {\n    if(req.fail) throw new Error('order delete');\n    return res.send('deleted:'+req.id);\n  });\n}",
+            "path": "src/routes/orders.ts"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "edit",
+                "extensionName": "developer"
+              },
+              "created": 1790761009,
+              "messageId": "L9i8asmyJri-nsEP6vqIyA0"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761009978,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_476918",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "Edited src/routes/orders.ts (14 lines -> 15 lines)"
+              }
+            }
+          ],
+          "locations": [
+            {
+              "path": "src/routes/orders.ts",
+              "line": 1
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761011225,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_484224",
+          "title": "shell · node \"/private/tmp/orqanix-native-v7-ready-app-2026093...…",
+          "rawInput": {
+            "command": "node \"/private/tmp/orqanix-native-v7-ready-app-20260930/Orqanix Native v7 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790761011,
+              "messageId": "Mti8atzIDYSznsEPnLbWwAg"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761011637,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_484224",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "(no output)"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761012736,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_687172",
+          "title": "shell · node --experimental-strip-types --test tests/*.test.mjs",
+          "rawInput": {
+            "command": "node --experimental-strip-types --test tests/*.test.mjs"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790761012,
+              "messageId": "M9i8asKaMLrnnsEPlL6JyAE"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761012788,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_687172",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "TAP version 13\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761012847,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_687172",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.283667\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 61.0405\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761012850,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_687172",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "TAP version 13\n# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.283667\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 61.0405"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "TAP version 13\n# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.283667\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 61.0405",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761025159,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_637373",
+          "title": "write · tests/regression.test.mjs",
+          "rawInput": {
+            "path": "tests/regression.test.mjs",
+            "content": "import assert from 'node:assert/strict';\nimport {describe, test} from 'node:test';\nimport {makeRouter} from '../src/app.ts';\nimport {unrelatedHelper} from '../src/routes/accounts.ts';\nimport {auditCallback} from '../src/routes/orders.ts';\n\ndescribe('Router registration and error handling', () => {\n  const router = makeRouter();\n\n  test('routes are registered in correct order with correct methods', () => {\n    assert.equal(router.routes.length, 5);\n    assert.deepEqual(\n      router.routes.map(r => ({ method: r.method, path: r.path })),\n      [\n        { method: 'GET', path: '/accounts/:id' },\n        { method: 'POST', path: '/accounts' },\n        { method: 'GET', path: '/health' },\n        { method: 'GET', path: '/orders/:id' },\n        { method: 'DELETE', path: '/orders/:id' },\n      ]\n    );\n  });\n\n  test('GET /accounts/:id handles success and returns response', async () => {\n    const route = router.routes[0];\n    let nextCalled = false;\n    const res = { send: (val) => `sent:${val}` };\n    const result = await route.handler({ id: 'acc1' }, res, () => { nextCalled = true; });\n    assert.equal(result, 'sent:account:acc1');\n    assert.equal(nextCalled, false);\n  });\n\n  test('GET /accounts/:id forwards failure to next', async () => {\n    const route = router.routes[0];\n    let forwardedError = null;\n    const res = { send: (val) => `sent:${val}` };\n    await route.handler({ id: 'acc1', fail: true }, res, (err) => { forwardedError = err; });\n    assert.ok(forwardedError instanceof Error);\n    assert.equal(forwardedError.message, 'account read');\n  });\n\n  test('POST /accounts (named async function) handles success and returns response', async () => {\n    const route = router.routes[1];\n    let nextCalled = false;\n    const res = { send: (val) => `sent:${val}` };\n    const result = await route.handler({ id: 'acc2' }, res, () => { nextCalled = true; });\n    assert.equal(result, 'sent:created:acc2');\n    assert.equal(nextCalled, false);\n  });\n\n  test('POST /accounts forwards failure to next', async () => {\n    const route = router.routes[1];\n    let forwardedError = null;\n    const res = { send: (val) => `sent:${val}` };\n    await route.handler({ id: 'acc2', fail: true }, res, (err) => { forwardedError = err; });\n    assert.ok(forwardedError instanceof Error);\n    assert.equal(forwardedError.message, 'account create');\n  });\n\n  test('GET /health synchronous route is preserved and returns ok synchronously', () => {\n    const route = router.routes[2];\n    let nextCalled = false;\n    const res = { send: (val) => val };\n    const result = route.handler({ id: 'test' }, res, () => { nextCalled = true; });\n    assert.equal(result, 'ok');\n    assert.equal(nextCalled, false);\n  });\n\n  test('GET /orders/:id handles success and returns response', async () => {\n    const route = router.routes[3];\n    let nextCalled = false;\n    const res = { send: (val) => `sent:${val}` };\n    const result = await route.handler({ id: 'ord1' }, res, () => { nextCalled = true; });\n    assert.equal(result, 'sent:ORD1');\n    assert.equal(nextCalled, false);\n  });\n\n  test('GET /orders/:id forwards failure to next', async () => {\n    const route = router.routes[3];\n    let forwardedError = null;\n    const res = { send: (val) => `sent:${val}` };\n    await route.handler({ id: 'ord1', fail: true }, res, (err) => { forwardedError = err; });\n    assert.ok(forwardedError instanceof Error);\n    assert.equal(forwardedError.message, 'order read');\n  });\n\n  test('DELETE /orders/:id handles success and returns response', async () => {\n    const route = router.routes[4];\n    let nextCalled = false;\n    const res = { send: (val) => `sent:${val}` };\n    const result = await route.handler({ id: 'ord2' }, res, () => { nextCalled = true; });\n    assert.equal(result, 'sent:deleted:ord2');\n    assert.equal(nextCalled, false);\n  });\n\n  test('DELETE /orders/:id forwards failure to next', async () => {\n    const route = router.routes[4];\n    let forwardedError = null;\n    const res = { send: (val) => `sent:${val}` };\n    await route.handler({ id: 'ord2', fail: true }, res, (err) => { forwardedError = err; });\n    assert.ok(forwardedError instanceof Error);\n    assert.equal(forwardedError.message, 'order delete');\n  });\n\n  test('unrelated async helper is not wrapped', async () => {\n    await assert.rejects(\n      async () => { await unrelatedHelper(); },\n      { name: 'Error', message: 'helper' }\n    );\n  });\n\n  test('unrelated audit callback is not wrapped', async () => {\n    await assert.rejects(\n      async () => { await auditCallback(); },\n      { name: 'Error', message: 'audit' }\n    );\n  });\n});\n"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "write",
+                "extensionName": "developer"
+              },
+              "created": 1790761025,
+              "messageId": "Ndi8av-tGdvNkdUP6c-z6A0"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761025172,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_637373",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "Created tests/regression.test.mjs (118 lines)"
+              }
+            }
+          ],
+          "locations": [
+            {
+              "path": "tests/regression.test.mjs",
+              "line": 1
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761028842,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_485256",
+          "title": "shell · node --experimental-strip-types --test tests/*.test.mjs",
+          "rawInput": {
+            "command": "node --experimental-strip-types --test tests/*.test.mjs"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790761028,
+              "messageId": "Qdi8asnqK-DmnsEP6efe4Qg"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761028899,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_485256",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "TAP version 13\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761028962,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_485256",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.286042\n  type: 'test'\n  ...\n# Subtest: Router registration and error handling\n    # Subtest: routes are registered in correct order with correct methods\n    ok 1 - routes are registered in correct order with correct methods\n      ---\n      duration_ms: 0.628708\n      type: 'test'\n      ...\n    # Subtest: GET /accounts/:id handles success and returns response\n    ok 2 - GET /accounts/:id handles success and returns response\n      ---\n      duration_ms: 0.071584\n      type: 'test'\n      ...\n    # Subtest: GET /accounts/:id forwards failure to next\n    ok 3 - GET /accounts/:id forwards failure to next\n      ---\n      duration_ms: 0.084833\n      type: 'test'\n      ...\n    # Subtest: POST /accounts (named async function) handles success and returns response\n    ok 4 - POST /accounts (named async function) handles success and returns response\n      ---\n      duration_ms: 0.057292\n      type: 'test'\n      ...\n    # Subtest: POST /accounts forwards failure to next\n    ok 5 - POST /accounts forwards failure to next\n      ---\n      duration_ms: 0.056208\n      type: 'test'\n      ...\n    # Subtest: GET /health synchronous route is preserved and returns ok synchronously\n    ok 6 - GET /health synchronous route is preserved and returns ok synchronously\n      ---\n      duration_ms: 0.048125\n      type: 'test'\n      ...\n    # Subtest: GET /orders/:id handles success and returns response\n    ok 7 - GET /orders/:id handles success and returns response\n      ---\n      duration_ms: 0.109792\n      type: 'test'\n      ...\n    # Subtest: GET /orders/:id forwards failure to next\n    ok 8 - GET /orders/:id forwards failure to next\n      ---\n      duration_ms: 0.137\n      type: 'test'\n      ...\n    # Subtest: DELETE /orders/:id handles success and returns response\n    ok 9 - DELETE /orders/:id handles success and returns response\n      ---\n      duration_ms: 0.152\n      type: 'test'\n      ...\n    # Subtest: DELETE /orders/:id forwards failure to next\n    ok 10 - DELETE /orders/:id forwards failure to next\n      ---\n      duration_ms: 0.620708\n      type: 'test'\n      ...\n    # Subtest: unrelated async helper is not wrapped\n    ok 11 - unrelated async helper is not wrapped\n      ---\n      duration_ms: 0.17\n      type: 'test'\n      ...\n    # Subtest: unrelated audit callback is not wrapped\n    ok 12 - unrelated audit callback is not wrapped\n      ---\n      duration_ms: 0.04925\n      type: 'test'\n      ...\n    1..12\nok 2 - Router registration and error handling\n  ---\n  duration_ms: 2.73175\n  type: 'suite'\n  ...\n1..2\n# tests 13\n# suites 1\n# pass 13\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 66.458416\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761028962,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_485256",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "TAP version 13\n# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.286042\n  type: 'test'\n  ...\n# Subtest: Router registration and error handling\n    # Subtest: routes are registered in correct order with correct methods\n    ok 1 - routes are registered in correct order with correct methods\n      ---\n      duration_ms: 0.628708\n      type: 'test'\n      ...\n    # Subtest: GET /accounts/:id handles success and returns response\n    ok 2 - GET /accounts/:id handles success and returns response\n      ---\n      duration_ms: 0.071584\n      type: 'test'\n      ...\n    # Subtest: GET /accounts/:id forwards failure to next\n    ok 3 - GET /accounts/:id forwards failure to next\n      ---\n      duration_ms: 0.084833\n      type: 'test'\n      ...\n    # Subtest: POST /accounts (named async function) handles success and returns response\n    ok 4 - POST /accounts (named async function) handles success and returns response\n      ---\n      duration_ms: 0.057292\n      type: 'test'\n      ...\n    # Subtest: POST /accounts forwards failure to next\n    ok 5 - POST /accounts forwards failure to next\n      ---\n      duration_ms: 0.056208\n      type: 'test'\n      ...\n    # Subtest: GET /health synchronous route is preserved and returns ok synchronously\n    ok 6 - GET /health synchronous route is preserved and returns ok synchronously\n      ---\n      duration_ms: 0.048125\n      type: 'test'\n      ...\n    # Subtest: GET /orders/:id handles success and returns response\n    ok 7 - GET /orders/:id handles success and returns response\n      ---\n      duration_ms: 0.109792\n      type: 'test'\n      ...\n    # Subtest: GET /orders/:id forwards failure to next\n    ok 8 - GET /orders/:id forwards failure to next\n      ---\n      duration_ms: 0.137\n      type: 'test'\n      ...\n    # Subtest: DELETE /orders/:id handles success and returns response\n    ok 9 - DELETE /orders/:id handles success and returns response\n      ---\n      duration_ms: 0.152\n      type: 'test'\n      ...\n    # Subtest: DELETE /orders/:id forwards failure to next\n    ok 10 - DELETE /orders/:id forwards failure to next\n      ---\n      duration_ms: 0.620708\n      type: 'test'\n      ...\n    # Subtest: unrelated async helper is not wrapped\n    ok 11 - unrelated async helper is not wrapped\n      ---\n      duration_ms: 0.17\n      type: 'test'\n      ...\n    # Subtest: unrelated audit callback is not wrapped\n    ok 12 - unrelated audit callback is not wrapped\n      ---\n      duration_ms: 0.04925\n      type: 'test'\n      ...\n    1..12\nok 2 - Router registration and error handling\n  ---\n  duration_ms: 2.73175\n  type: 'suite'\n  ...\n1..2\n# tests 13\n# suites 1\n# pass 13\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 66.458416"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "TAP version 13\n# Subtest: five routes registered\nok 1 - five routes registered\n  ---\n  duration_ms: 0.286042\n  type: 'test'\n  ...\n# Subtest: Router registration and error handling\n    # Subtest: routes are registered in correct order with correct methods\n    ok 1 - routes are registered in correct order with correct methods\n      ---\n      duration_ms: 0.628708\n      type: 'test'\n      ...\n    # Subtest: GET /accounts/:id handles success and returns response\n    ok 2 - GET /accounts/:id handles success and returns response\n      ---\n      duration_ms: 0.071584\n      type: 'test'\n      ...\n    # Subtest: GET /accounts/:id forwards failure to next\n    ok 3 - GET /accounts/:id forwards failure to next\n      ---\n      duration_ms: 0.084833\n      type: 'test'\n      ...\n    # Subtest: POST /accounts (named async function) handles success and returns response\n    ok 4 - POST /accounts (named async function) handles success and returns response\n      ---\n      duration_ms: 0.057292\n      type: 'test'\n      ...\n    # Subtest: POST /accounts forwards failure to next\n    ok 5 - POST /accounts forwards failure to next\n      ---\n      duration_ms: 0.056208\n      type: 'test'\n      ...\n    # Subtest: GET /health synchronous route is preserved and returns ok synchronously\n    ok 6 - GET /health synchronous route is preserved and returns ok synchronously\n      ---\n      duration_ms: 0.048125\n      type: 'test'\n      ...\n    # Subtest: GET /orders/:id handles success and returns response\n    ok 7 - GET /orders/:id handles success and returns response\n      ---\n      duration_ms: 0.109792\n      type: 'test'\n      ...\n    # Subtest: GET /orders/:id forwards failure to next\n    ok 8 - GET /orders/:id forwards failure to next\n      ---\n      duration_ms: 0.137\n      type: 'test'\n      ...\n    # Subtest: DELETE /orders/:id handles success and returns response\n    ok 9 - DELETE /orders/:id handles success and returns response\n      ---\n      duration_ms: 0.152\n      type: 'test'\n      ...\n    # Subtest: DELETE /orders/:id forwards failure to next\n    ok 10 - DELETE /orders/:id forwards failure to next\n      ---\n      duration_ms: 0.620708\n      type: 'test'\n      ...\n    # Subtest: unrelated async helper is not wrapped\n    ok 11 - unrelated async helper is not wrapped\n      ---\n      duration_ms: 0.17\n      type: 'test'\n      ...\n    # Subtest: unrelated audit callback is not wrapped\n    ok 12 - unrelated audit callback is not wrapped\n      ---\n      duration_ms: 0.04925\n      type: 'test'\n      ...\n    1..12\nok 2 - Router registration and error handling\n  ---\n  duration_ms: 2.73175\n  type: 'suite'\n  ...\n1..2\n# tests 13\n# suites 1\n# pass 13\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 66.458416",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761030887,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_454553",
+          "title": "shell · node \"/private/tmp/orqanix-native-v7-ready-app-2026093...…",
+          "rawInput": {
+            "command": "node \"/private/tmp/orqanix-native-v7-ready-app-20260930/Orqanix Native v7 Test.app/Contents/Resources/orqaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit -p tsconfig.json"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790761030,
+              "messageId": "Rdi8apPwF-PSnsEPwfqCyQM"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761031295,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_454553",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "(no output)"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "",
+            "stderr": "",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761033347,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_393712",
+          "title": "shell · git status -s",
+          "rawInput": {
+            "command": "git status -s"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790761033,
+              "messageId": "SNi8asawCqz6nsEPhJipOQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761033369,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_393712",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stderr",
+                    "output": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-svP2RbG6' (errno=Operation not permitted)\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761033821,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_393712",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stderr",
+                    "output": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-SKn9vcir' (errno=Operation not permitted)\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761034205,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_393712",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-svP2RbG6' (errno=Operation not permitted)\ngit: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-SKn9vcir' (errno=Operation not permitted)\n M src/routes/accounts.ts\n M src/routes/orders.ts\n?? tests/regression.test.mjs"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": " M src/routes/accounts.ts\n M src/routes/orders.ts\n?? tests/regression.test.mjs",
+            "stderr": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-svP2RbG6' (errno=Operation not permitted)\ngit: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-SKn9vcir' (errno=Operation not permitted)",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761036008,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_435400",
+          "title": "shell · git diff",
+          "rawInput": {
+            "command": "git diff"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "shell",
+                "extensionName": "developer"
+              },
+              "created": 1790761036,
+              "messageId": "Sti8atOuGZ-DkdUPt-XHaQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761036032,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_435400",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 1,
+                "chunks": [
+                  {
+                    "stream": "stderr",
+                    "output": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-dm3GVcJp' (errno=Operation not permitted)\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761036332,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_435400",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 2,
+                "chunks": [
+                  {
+                    "stream": "stderr",
+                    "output": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-9crZuTLt' (errno=Operation not permitted)\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761036867,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_435400",
+          "status": "in_progress",
+          "_meta": {
+            "toolNotification": {
+              "type": "live_output",
+              "params": {
+                "sequence": 3,
+                "chunks": [
+                  {
+                    "stream": "stdout",
+                    "output": "diff --git a/src/routes/accounts.ts b/src/routes/accounts.ts\nindex 7e742d8..6138585 100644\n--- a/src/routes/accounts.ts\n+++ b/src/routes/accounts.ts\n@@ -1,13 +1,14 @@\n+import {withErrors} from '../framework/errors.ts';\n import {Router} from '../framework/router.ts';\n export function registerAccounts(router: Router) {\n-  router.get('/accounts/:id', async (req, res) => {\n+  router.get('/accounts/:id', withErrors(async (req, res) => {\n     if(req.fail) throw new Error('account read');\n     return res.send('account:'+req.id);\n-  });\n-  router.post('/accounts', async function createAccount(req, res) {\n+  }));\n+  router.post('/accounts', withErrors(async function createAccount(req, res) {\n     if(req.fail) throw new Error('account create');\n     return res.send('created:'+req.id);\n-  });\n+  }));\n   router.get('/health', (_req,res) => res.send('ok'));\n }\n export const documentation = \"router.get('/fake', async handler)\";\ndiff --git a/src/routes/orders.ts b/src/routes/orders.ts\nindex 71b9289..c203af9 100644\n--- a/src/routes/orders.ts\n+++ b/src/routes/orders.ts\n@@ -1,14 +1,15 @@\n+import {withErrors} from '../framework/errors.ts';\n import {Router} from '../framework/router.ts';\n const audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };\n export const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });\n export function registerOrders(router: Router) {\n-  router.get('/orders/:id', async (req,res) => {\n+  router.get('/orders/:id', withErrors(async (req,res) => {\n     const values = await Promise.all([req.id].map(async value => value.toUpperCase()));\n     if(req.fail) throw new Error('order read');\n     return res.send(values[0]);\n-  });\n-  router.delete('/orders/:id', async (req,res) => {\n+  }));\n+  router.delete('/orders/:id', withErrors(async (req,res) => {\n     if(req.fail) throw new Error('order delete');\n     return res.send('deleted:'+req.id);\n-  });\n+  }));\n }\n"
+                  }
+                ],
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761036867,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_435400",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-dm3GVcJp' (errno=Operation not permitted)\ngit: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-9crZuTLt' (errno=Operation not permitted)\ndiff --git a/src/routes/accounts.ts b/src/routes/accounts.ts\nindex 7e742d8..6138585 100644\n--- a/src/routes/accounts.ts\n+++ b/src/routes/accounts.ts\n@@ -1,13 +1,14 @@\n+import {withErrors} from '../framework/errors.ts';\n import {Router} from '../framework/router.ts';\n export function registerAccounts(router: Router) {\n-  router.get('/accounts/:id', async (req, res) => {\n+  router.get('/accounts/:id', withErrors(async (req, res) => {\n     if(req.fail) throw new Error('account read');\n     return res.send('account:'+req.id);\n-  });\n-  router.post('/accounts', async function createAccount(req, res) {\n+  }));\n+  router.post('/accounts', withErrors(async function createAccount(req, res) {\n     if(req.fail) throw new Error('account create');\n     return res.send('created:'+req.id);\n-  });\n+  }));\n   router.get('/health', (_req,res) => res.send('ok'));\n }\n export const documentation = \"router.get('/fake', async handler)\";\ndiff --git a/src/routes/orders.ts b/src/routes/orders.ts\nindex 71b9289..c203af9 100644\n--- a/src/routes/orders.ts\n+++ b/src/routes/orders.ts\n@@ -1,14 +1,15 @@\n+import {withErrors} from '../framework/errors.ts';\n import {Router} from '../framework/router.ts';\n const audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };\n export const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });\n export function registerOrders(router: Router) {\n-  router.get('/orders/:id', async (req,res) => {\n+  router.get('/orders/:id', withErrors(async (req,res) => {\n     const values = await Promise.all([req.id].map(async value => value.toUpperCase()));\n     if(req.fail) throw new Error('order read');\n     return res.send(values[0]);\n-  });\n-  router.delete('/orders/:id', async (req,res) => {\n+  }));\n+  router.delete('/orders/:id', withErrors(async (req,res) => {\n     if(req.fail) throw new Error('order delete');\n     return res.send('deleted:'+req.id);\n-  });\n+  }));\n }"
+              }
+            }
+          ],
+          "rawOutput": {
+            "stdout": "diff --git a/src/routes/accounts.ts b/src/routes/accounts.ts\nindex 7e742d8..6138585 100644\n--- a/src/routes/accounts.ts\n+++ b/src/routes/accounts.ts\n@@ -1,13 +1,14 @@\n+import {withErrors} from '../framework/errors.ts';\n import {Router} from '../framework/router.ts';\n export function registerAccounts(router: Router) {\n-  router.get('/accounts/:id', async (req, res) => {\n+  router.get('/accounts/:id', withErrors(async (req, res) => {\n     if(req.fail) throw new Error('account read');\n     return res.send('account:'+req.id);\n-  });\n-  router.post('/accounts', async function createAccount(req, res) {\n+  }));\n+  router.post('/accounts', withErrors(async function createAccount(req, res) {\n     if(req.fail) throw new Error('account create');\n     return res.send('created:'+req.id);\n-  });\n+  }));\n   router.get('/health', (_req,res) => res.send('ok'));\n }\n export const documentation = \"router.get('/fake', async handler)\";\ndiff --git a/src/routes/orders.ts b/src/routes/orders.ts\nindex 71b9289..c203af9 100644\n--- a/src/routes/orders.ts\n+++ b/src/routes/orders.ts\n@@ -1,14 +1,15 @@\n+import {withErrors} from '../framework/errors.ts';\n import {Router} from '../framework/router.ts';\n const audit = { get(_name: string, callback: () => Promise<string>) { return callback; } };\n export const auditCallback = audit.get('orders', async () => { throw new Error('audit'); });\n export function registerOrders(router: Router) {\n-  router.get('/orders/:id', async (req,res) => {\n+  router.get('/orders/:id', withErrors(async (req,res) => {\n     const values = await Promise.all([req.id].map(async value => value.toUpperCase()));\n     if(req.fail) throw new Error('order read');\n     return res.send(values[0]);\n-  });\n-  router.delete('/orders/:id', async (req,res) => {\n+  }));\n+  router.delete('/orders/:id', withErrors(async (req,res) => {\n     if(req.fail) throw new Error('order delete');\n     return res.send('deleted:'+req.id);\n-  });\n+  }));\n }",
+            "stderr": "git: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-dm3GVcJp' (errno=Operation not permitted)\ngit: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-9crZuTLt' (errno=Operation not permitted)",
+            "exit_code": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761040207,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "call_489342",
+          "title": "todo: todo write",
+          "rawInput": {
+            "content": "- [x] Read README.md to understand the workspace contract\n- [x] Inspect src/framework/errors.ts and src/routes\n- [x] Wrap directly registered async handlers on Router in src/routes with withErrors (GET, POST, DELETE, including named async functions)\n- [x] Ensure synchronous route, unrelated async callbacks, audit.get, and helpers are not wrapped\n- [x] Add regression tests in tests/regression.test.mjs covering success and error forwarding\n- [x] Run type check and test suite\n- [x] Report actual test and type check results"
+          },
+          "_meta": {
+            "goose": {
+              "toolCall": {
+                "toolName": "todo__todo_write",
+                "extensionName": "todo"
+              },
+              "created": 1790761040,
+              "messageId": "Tdi8atHAJoronsEPsaDa0QQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761040225,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "call_489342",
+          "status": "completed",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "Updated (525 chars)"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761041740,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "All directly registered asynchronous route handlers in `src/routes` have been wrapped with `withErrors"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761041,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761041766,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "` from `src/framework/errors.ts`.\n\n### Summary of Changes\n\n1. **`src/routes/"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761041,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761041824,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "accounts.ts`**:\n   - Imported `withErrors` from `../framework/errors.ts`.\n   - Wrapped `GET /accounts"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761041,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761041889,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "/:id` with `withErrors`.\n   - Wrapped `POST /accounts` (named async function `createAccount`) with `with"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761041,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761041974,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "Errors`.\n   - Preserved synchronous route `GET /health`, route registration order, response handling, and `unrelatedHelper`."
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761041,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761042028,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "\n\n2. **`src/routes/orders.ts`**:\n   - Imported `withErrors` from "
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761042,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761042098,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "`../framework/errors.ts`.\n   - Wrapped `GET /orders/:id` with `withErrors`.\n   - Wrapped `DELETE /orders"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761042,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761042173,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "/:id` with `withErrors`.\n   - Preserved the inner callback in `[req.id].map(...)"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761042,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761042219,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "`, the unrelated `audit.get` call, and route registration order.\n\n3. **`tests/regression."
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761042,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761042277,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "test.mjs`**:\n   - Added regression test suite verifying:\n     - All 5 routes are registered in the original"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761042,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761042395,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " order with expected HTTP methods.\n     - Successful handling and response values for GET, POST, and DELETE routes.\n     - Error forwarding to"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761042,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761042513,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " `next(error)` on failure for all wrapped async routes.\n     - Preservation of synchronous handling for `GET /health`.\n     - Non"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761042,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761042608,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "-wrapping of `unrelatedHelper` and `auditCallback`.\n\n### Verification Results\n\n- **Type Check**:\n  "
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761042,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761042685,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "```bash\n  node \"/private/tmp/orqanix-native-v7-ready-app-2"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761042,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761042734,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "0260930/Orqanix Native v7 Test.app/Contents/Resources/or"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761042,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761042788,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "qaly-runtime/language-servers/node_modules/typescript/lib/tsc.js\" --noEmit"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761042,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761042933,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " -p tsconfig.json\n  ```\n  Result: Passed with 0 errors (clean exit).\n\n- **Tests**:"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761042,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761042975,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "\n  ```bash\n  node --experimental-strip-types --test tests/*.test.mjs\n  "
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761042,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761043048,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "```\n  Result:\n  ```\n  TAP version 13\n  # Subtest: five routes registered\n  ok "
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761043,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761043124,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "1 - five routes registered\n    ---\n    duration_ms: 0.286042\n"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761043,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761043167,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "    type: 'test'\n    ...\n  # Subtest: Router registration and error handling\n      # Sub"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761043,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761043207,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "test: routes are registered in correct order with correct methods\n      ok 1 - routes are registered in correct order with"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761043,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761043294,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " correct methods\n      # Subtest: GET /accounts/:id handles success and returns response\n      ok 2 -"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761043,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761043344,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " GET /accounts/:id handles success and returns response\n      # Subtest: GET /accounts/:id forwards failure to"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761043,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761043401,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " next\n      ok 3 - GET /accounts/:id forwards failure to next\n      # Subtest: POST /"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761043,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761043475,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "accounts (named async function) handles success and returns response\n      ok 4 - POST /accounts (named async function) handles"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761043,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761043555,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " success and returns response\n      # Subtest: POST /accounts forwards failure to next\n      ok 5 - POST"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761043,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761043642,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " /accounts forwards failure to next\n      # Subtest: GET /health synchronous route is preserved and returns ok synchronously\n"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761043,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761043703,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "      ok 6 - GET /health synchronous route is preserved and returns ok synchronously\n      # Subtest: GET /"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761043,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761043752,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "orders/:id handles success and returns response\n      ok 7 - GET /orders/:id handles success and returns response"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761043,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761043803,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "\n      # Subtest: GET /orders/:id forwards failure to next\n      ok 8 - GET /orders"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761043,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761043847,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "/:id forwards failure to next\n      # Subtest: DELETE /orders/:id handles success and returns response\n      "
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761043,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761043890,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "ok 9 - DELETE /orders/:id handles success and returns response\n      # Subtest: DELETE /orders/:"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761043,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761043950,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "id forwards failure to next\n      ok 10 - DELETE /orders/:id forwards failure to next\n      #"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761043,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761044001,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": " Subtest: unrelated async helper is not wrapped\n      ok 11 - unrelated async helper is not wrapped\n      "
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761044,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761044060,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "# Subtest: unrelated audit callback is not wrapped\n      ok 12 - unrelated audit callback is not wrapped\n"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761044,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761044130,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "      1..12\n  ok 2 - Router registration and error handling\n    ---\n    duration_ms: 2.731"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761044,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761044175,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "75\n    type: 'suite'\n    ...\n  1..2\n  # tests 13"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761044,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761044257,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "\n  # suites 1\n  # pass 13\n  # fail 0\n  # cancelled 0\n  # skipped 0"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761044,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761044299,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "\n  # todo 0\n  # duration_ms 66.458416\n  "
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761044,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761044339,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "agent_message_chunk",
+          "content": {
+            "type": "text",
+            "text": "```"
+          },
+          "messageId": "UNi8atCSLYzHnsEPjbWPoAQ",
+          "_meta": {
+            "goose": {
+              "created": 1790761044,
+              "messageId": "UNi8atCSLYzHnsEPjbWPoAQ"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761044379,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "session_info_update",
+          "_meta": {
+            "goose": {
+              "activeRunId": null
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761044383,
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "session/update",
+      "params": {
+        "sessionId": "20260930_1",
+        "update": {
+          "sessionUpdate": "usage_update",
+          "used": 21629,
+          "size": 1048576,
+          "cost": {
+            "amount": 0.17338192500000002,
+            "currency": "USD"
+          }
+        }
+      }
+    }
+  },
+  {
+    "direction": "received",
+    "at": 1790761044384,
+    "message": {
+      "jsonrpc": "2.0",
+      "id": 105,
+      "result": {
+        "stopReason": "end_turn",
+        "usage": {
+          "totalTokens": 21629,
+          "inputTokens": 20588,
+          "outputTokens": 1016
+        }
+      }
+    }
+  }
+]

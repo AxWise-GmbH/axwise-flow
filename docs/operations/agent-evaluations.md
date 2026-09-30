@@ -7,11 +7,16 @@ coding, search, research, and automated plan. Each 15-minute UTC slot selects
 one case per category. The 15-minute, 3-hour, and 24-hour views aggregate real
 observations only; empty windows stay empty and missed runs are not fabricated.
 
-Coding runs the headless OMP bridge against a disposable fixture and checks the
-result. It does not test the installed desktop UI. Automated plan evaluates a
+The Orqanix coding arm is retired and records failed execution with a
+`not_evaluated` verdict and `NATIVE_CODING_ADAPTER_UNAVAILABLE`; it makes no model
+request and runs no fixture. The direct-model coding comparator still checks its
+output using the disposable fixture and Jev review. The runner exits nonzero
+while the native adapter is unavailable, so scheduled runs cannot appear fully
+successful. Use `scripts/benchmark-native-engineering.mjs` for the separate
+native Goose benchmark. This cloud job does not test the installed desktop UI. Automated plan evaluates a
 generated implementation plan; it does not approve or execute a Goal. Jev is
 advisory review alongside deterministic checks, not a factual-correctness
-guarantee. Inspect execution status and evaluation verdict separately.
+guarantee. Inspect execution status and evaluation verdict separately. Historical receipts remain unchanged; their source revision identifies the earlier method.
 
 The judge receives the exact task prompt as well as the output and criteria.
 Facts supplied in a transformation task are part of that task's evidence;
@@ -141,7 +146,7 @@ gcloud run jobs executions list --job=orqanix-agent-evaluations-preview \
   --project=axwise-v2-preview-001 --region=europe-west4 --limit=3
 ```
 
-Verify the new record's source revision, timestamp, five category pairs,
+Verify the new record's source revision, timestamp, five category records (including the explicitly unavailable coding arm),
 evidence links, and actual execution/evaluation outcomes on the web candidate.
 Read `/heartbeat/evaluations.json` and one referenced evidence URL. Verify that
 unrelated paths under `/heartbeat/evidence/` cannot read arbitrary objects.

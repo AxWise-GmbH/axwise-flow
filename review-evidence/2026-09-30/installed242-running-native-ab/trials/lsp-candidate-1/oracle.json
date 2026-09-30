@@ -1,0 +1,239 @@
+{
+  "key": "lsp-candidate-1",
+  "boundary": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "workspace read",
+        "passed": true
+      },
+      {
+        "name": "workspace write and remove",
+        "passed": true
+      },
+      {
+        "name": "profile write",
+        "passed": true
+      },
+      {
+        "name": "own temp write",
+        "passed": true
+      },
+      {
+        "name": "other temp read denied",
+        "passed": true
+      },
+      {
+        "name": "other temp write denied",
+        "passed": true
+      },
+      {
+        "name": "user directory listing denied",
+        "passed": true
+      },
+      {
+        "name": "child inherits restriction",
+        "passed": true
+      },
+      {
+        "name": "symlink read escape denied",
+        "passed": true
+      },
+      {
+        "name": "symlink write escape denied",
+        "passed": true
+      },
+      {
+        "name": "hardlink escape denied",
+        "passed": true
+      },
+      {
+        "name": "app binary readable",
+        "passed": true
+      },
+      {
+        "name": "app resources immutable",
+        "passed": true
+      }
+    ],
+    "appliesTo": "Independent graders only; existing live backend was not relaunched into this boundary"
+  },
+  "passed": true,
+  "behavior": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "new context shape",
+        "passed": true
+      },
+      {
+        "name": "fork propagation and immutability",
+        "passed": true
+      },
+      {
+        "name": "destructuring keeps wire names",
+        "passed": true
+      },
+      {
+        "name": "header and body propagation",
+        "passed": true
+      },
+      {
+        "name": "Job requestId remains independent",
+        "passed": true
+      },
+      {
+        "name": "end-to-end \"trace\"",
+        "passed": true
+      },
+      {
+        "name": "end-to-end \"\"",
+        "passed": true
+      },
+      {
+        "name": "end-to-end \"__proto__\"",
+        "passed": true
+      },
+      {
+        "name": "end-to-end \"x/y\"",
+        "passed": true
+      },
+      {
+        "name": "plugin propagation t",
+        "passed": true
+      },
+      {
+        "name": "plugin propagation ",
+        "passed": true
+      },
+      {
+        "name": "plugin propagation __proto__",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 0",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 1",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 2",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 3",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 4",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 5",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 6",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 7",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 8",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 9",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 10",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 11",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 12",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 13",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 14",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 15",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 16",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 17",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 18",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 19",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 20",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 21",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 22",
+        "passed": true
+      },
+      {
+        "name": "unrelated catalog 23",
+        "passed": true
+      }
+    ]
+  },
+  "types": {
+    "passed": true,
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "publicTests": {
+    "passed": true,
+    "exitCode": 0,
+    "stdout": "TAP version 13\n# Subtest: wire identifier\nok 1 - wire identifier\n  ---\n  duration_ms: 0.30775\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 57.531125\n",
+    "stderr": ""
+  },
+  "regression": {
+    "passed": true,
+    "exitCode": 0,
+    "stdout": "TAP version 13\n# Subtest: end-to-end propagation through app handle\nok 1 - end-to-end propagation through app handle\n  ---\n  duration_ms: 0.370875\n  type: 'test'\n  ...\n# Subtest: context factory and non-mutation behavior\nok 2 - context factory and non-mutation behavior\n  ---\n  duration_ms: 0.0505\n  type: 'test'\n  ...\n# Subtest: unrelated Job identifier in describeJob\nok 3 - unrelated Job identifier in describeJob\n  ---\n  duration_ms: 0.306875\n  type: 'test'\n  ...\n# Subtest: traceSummary in plugins and its consumers\nok 4 - traceSummary in plugins and its consumers\n  ---\n  duration_ms: 0.071333\n  type: 'test'\n  ...\n# Subtest: unrelated catalog RequestContext and requestId preserved\nok 5 - unrelated catalog RequestContext and requestId preserved\n  ---\n  duration_ms: 0.043167\n  type: 'test'\n  ...\n1..5\n# tests 5\n# suites 0\n# pass 5\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 60.144542\n",
+    "stderr": ""
+  },
+  "originalMutation": {
+    "detected": true,
+    "passed": false,
+    "exitCode": 1,
+    "signal": null,
+    "stdout": "TAP version 13\n# Subtest: end-to-end propagation through app handle\nnot ok 1 - end-to-end propagation through app handle\n  ---\n  duration_ms: 0.710333\n  type: 'test'\n  location: '/private/tmp/orqanix-installed242-live-20260930/lsp-candidate-1/fixture/workspace/tests/regression.test.mjs:9:1'\n  failureType: 'testCodeFailure'\n  error: |-\n    Expected values to be strictly equal:\n    + actual - expected\n    \n    + undefined\n    - 'trace-abc-123'\n    \n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected: 'trace-abc-123'\n  operator: 'strictEqual'\n  stack: |-\n    TestContext.<anonymous> (file:///private/tmp/orqanix-installed242-live-20260930/lsp-candidate-1/fixture/workspace/tests/regression.test.mjs:14:10)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.start (node:internal/test_runner/test:944:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)\n  ...\n# Subtest: context factory and non-mutation behavior\nnot ok 2 - context factory and non-mutation behavior\n  ---\n  duration_ms: 0.129666\n  type: 'test'\n  location: '/private/tmp/orqanix-installed242-live-20260930/lsp-candidate-1/fixture/workspace/tests/regression.test.mjs:41:1'\n  failureType: 'testCodeFailure'\n  error: |-\n    Expected values to be strictly equal:\n    + actual - expected\n    \n    + undefined\n    - 'root-trace'\n    \n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected: 'root-trace'\n  operator: 'strictEqual'\n  stack: |-\n    TestContext.<anonymous> (file:///private/tmp/orqanix-installed242-live-20260930/lsp-candidate-1/fixture/workspace/tests/regression.test.mjs:43:10)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.processPendingSubtests (node:internal/test_runner/test:744:18)\n    Test.postRun (node:internal/test_runner/test:1173:19)\n    Test.run (node:internal/test_runner/test:1101:12)\n    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)\n  ...\n# Subtest: unrelated Job identifier in describeJob\nok 3 - unrelated Job identifier in describeJob\n  ---\n  duration_ms: 0.376375\n  type: 'test'\n  ...\n# Subtest: traceSummary in plugins and its consumers\nok 4 - traceSummary in plugins and its consumers\n  ---\n  duration_ms: 0.075375\n  type: 'test'\n  ...\n# Subtest: unrelated catalog RequestContext and requestId preserved\nok 5 - unrelated catalog RequestContext and requestId preserved\n  ---\n  duration_ms: 0.04475\n  type: 'test'\n  ...\n1..5\n# tests 5\n# suites 0\n# pass 3\n# fail 2\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 61.545167\n",
+    "stderr": "Command failed: /usr/bin/sandbox-exec -f /private/tmp/orqanix-installed242-live-20260930/lsp-candidate-1/grading-boundary.sb /private/tmp/orqanix-native-v8-app-20260930/Orqanix Native v8 Test.app/Contents/Resources/orqaly-runtime/node/bin/node --experimental-strip-types --test tests/regression.test.mjs\n"
+  },
+  "immutableFailures": [],
+  "unexpectedFiles": []
+}

@@ -1,0 +1,23 @@
+✔ tool-selection fingerprints distinguish real instruction/schema changes without storing private text (0.8825ms)
+✔ client close after end but before finish settles the inbound record (0.118166ms)
+✔ real identity delegation is required; missing, rejected and cross-account credentials never reach Google (29.772167ms)
+✔ production chat router handles primary and Axwise with pinned model, normalization, actual usage and no secret/prompt telemetry (12.138666ms)
+✔ SSE bytes are preserved while streamed model identity and cumulative usage are observed (2.959625ms)
+✔ JEV forwards authenticated production decisions and review, preserving outcomes and measuring full endpoint overhead (2.976583ms)
+✔ current production JEV service classifies with direct provider tracing and unchanged real desktop authentication (3.197625ms)
+✔ disabled and unavailable current JEV decisions remain explicitly unevaluated without remote fallback (2.896333ms)
+✔ remote JEV rejection retains only its bounded error code and actual HTTP status (1.611583ms)
+✔ an in-flight request retains the label captured on arrival after the active trial changes (2.192375ms)
+▶ missing and mismatched generated model identities fail closed and remain visible
+  ✔ RESPONSE_MODEL_MISSING (2.62875ms)
+  ✔ RESPONSE_MODEL_MISMATCH (1.7635ms)
+✔ missing and mismatched generated model identities fail closed and remain visible (4.623709ms)
+✔ legacy cloud work routes are absent and synthetic auth cannot be configured (1.715167ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 217.487959

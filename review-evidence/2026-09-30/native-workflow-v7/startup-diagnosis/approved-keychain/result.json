@@ -1,0 +1,8 @@
+{
+  "check": "normal Keychain startup after user approval",
+  "status": "preflight_ready",
+  "modelRequests": 0,
+  "mockCookieKeychain": false,
+  "noTaskInference": true,
+  "meaning": "Normal ad-hoc v7 app startup now works after local Keychain access approval. Earlier 12 task timings remain unchanged and used identical test-only cookie Keychain handling in both arms."
+}

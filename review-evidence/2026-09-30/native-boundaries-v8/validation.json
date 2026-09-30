@@ -1,0 +1,138 @@
+[
+  {
+    "name": "unit",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "goose",
+      "native_engineering",
+      "--lib",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls"
+    ],
+    "exitCode": 0,
+    "log": "/private/tmp/orqanix-v8-unit-tests.log",
+    "passedTests": 68
+  },
+  {
+    "name": "loop",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "goose",
+      "--test",
+      "native_engineering_integration",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls"
+    ],
+    "exitCode": 0,
+    "seconds": 59.37894308404066,
+    "log": "/private/tmp/orqanix-v8-loop-tests.log"
+  },
+  {
+    "name": "real-lsp",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "goose",
+      "native_engineering",
+      "--lib",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls",
+      "--",
+      "--ignored",
+      "--nocapture"
+    ],
+    "exitCode": 0,
+    "seconds": 4.314756459090859,
+    "log": "/private/tmp/orqanix-v8-real-lsp-tests.log"
+  },
+  {
+    "name": "enabled-code-mode",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "goose",
+      "code_mode",
+      "--lib",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls,code-mode"
+    ],
+    "exitCode": 101,
+    "seconds": 66.14914158312604,
+    "log": "/private/tmp/orqanix-v8-enabled-code-mode-tests.log",
+    "disposition": "Five tests passed; remaining test could not bind localhost under filesystem/process sandbox. No source failure."
+  },
+  {
+    "name": "code-mode-port-retry",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "goose",
+      "code_mode_capability_directory_reaches_state_machine_and_tracks_unmount",
+      "--lib",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls,code-mode"
+    ],
+    "exitCode": 0,
+    "log": "/private/tmp/orqanix-v8-code-mode-port-retry.log",
+    "passedTests": 1,
+    "resolution": "Failed socket-binding test passed with authorized local socket access."
+  },
+  {
+    "name": "clippy",
+    "command": [
+      "cargo",
+      "clippy",
+      "-p",
+      "goose",
+      "-p",
+      "goose-cli",
+      "--all-targets",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exitCode": 0,
+    "seconds": 36.441652124980465,
+    "log": "/private/tmp/orqanix-v8-clippy-tests.log"
+  },
+  {
+    "name": "release",
+    "command": [
+      "cargo",
+      "build",
+      "-p",
+      "goose-cli",
+      "--bin",
+      "goose",
+      "--release",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "rustls-tls"
+    ],
+    "exitCode": 0,
+    "seconds": 162.03765937499702,
+    "log": "/private/tmp/orqanix-v8-release-tests.log"
+  }
+]

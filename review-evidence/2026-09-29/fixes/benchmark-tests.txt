@@ -1,0 +1,16 @@
+✔ raw provider rejects HTTP, empty, malformed and truncated responses (8.731709ms)
+✔ deadline includes body read and does not depend on AbortSignal support (10.729709ms)
+✔ requested and returned model, actual effort, complete text and usage are reported (0.353042ms)
+✔ text pipeline carries actual prior outputs and never labels triage as review (0.222334ms)
+✔ all-error and incomplete text pipelines fail at first unusable stage (0.122667ms)
+✔ matrix labels correlated design and passes lookup results to generation (0.454458ms)
+✔ unavailable helper evaluation cannot verify matrix, batches or safety experiment (0.191666ms)
+✔ standalone live script exits nonzero when provider configuration is unavailable (27.489667ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 94.524416

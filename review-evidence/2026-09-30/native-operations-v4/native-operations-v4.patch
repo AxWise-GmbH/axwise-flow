@@ -1,0 +1,1944 @@
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/mod.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/mod.rs
+@@ -6,6 +6,7 @@
+ mod ast;
+ mod edits;
+ mod lsp;
++mod state;
+ 
+ use crate::agents::extension::PlatformExtensionContext;
+ use crate::agents::mcp_client::{Error, McpClientTrait};
+@@ -18,6 +19,7 @@
+ };
+ use serde_json::{json, Value};
+ use std::path::{Component, PathBuf};
++use std::sync::Arc;
+ use tokio_util::sync::CancellationToken;
+ 
+ pub const EXTENSION_NAME: &str = "native_engineering";
+@@ -30,7 +32,8 @@
+ 
+ impl NativeEngineeringClient {
+     pub fn new(_context: PlatformExtensionContext) -> Result<Self> {
+-        let lsp = lsp::LspTools::new();
++        let state = Arc::new(state::EngineeringState::default());
++        let lsp = lsp::LspTools::with_state(state.clone());
+         let instructions = format!(
+             "{}\n{}",
+             include_str!("selection.md"),
+@@ -38,12 +41,12 @@
+         );
+         let info = InitializeResult::new(ServerCapabilities::builder().enable_tools().build())
+             .with_server_info(
+-                Implementation::new(EXTENSION_NAME, "1.3.0").with_title("Native Engineering"),
++                Implementation::new(EXTENSION_NAME, "1.4.0").with_title("Native Engineering"),
+             )
+             .with_instructions(instructions);
+         Ok(Self {
+             info,
+-            edits: edits::EditTools::new(),
++            edits: edits::EditTools::with_state(state),
+             lsp,
+         })
+     }
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/edits.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/edits.rs
+@@ -4,10 +4,12 @@
+ //! again immediately before replacement; rollback never replaces an intervening
+ //! edit. These are filesystem concurrency guards, not an OS command sandbox.
+ 
++use super::state::{ChangePlan, EngineeringState, PlannedFile, Snapshot};
+ use std::fs::{self, File, OpenOptions, Permissions};
+ use std::io::{Read, Write};
+ use std::path::{Path, PathBuf};
+ use std::process::Stdio;
++use std::sync::Arc;
+ use std::time::Duration;
+ 
+ use fs2::FileExt;
+@@ -28,6 +30,7 @@
+ const MAX_OUTPUT_BYTES: usize = 65_536;
+ const MAX_EDITS: usize = 100;
+ const MAX_READ_FILES: usize = 16;
++#[cfg(test)]
+ const MAX_BATCH_BYTES: usize = 262_144;
+ const MAX_RECEIPT_BYTES: usize = 16_384;
+ 
+@@ -52,6 +55,7 @@
+     Read,
+     ReadMany,
+     Edit,
++    EditMany,
+ }
+ 
+ #[derive(Debug, Deserialize, JsonSchema)]
+@@ -62,8 +66,12 @@
+     pub path: Option<String>,
+     /// read_many only: 1–16 existing files, with independent snapshots/errors.
+     pub paths: Option<Vec<String>>,
+-    /// Required for edit: the full 64-character SHA-256 returned by read.
++    /// Legacy alternative to snapshot_id: the full 64-character SHA-256 returned by read.
+     pub expected_sha256: Option<String>,
++    /// Opaque snapshot_id from a read in this session/workspace; use instead of expected_sha256.
++    pub snapshot_id: Option<String>,
++    /// edit_many only: all file edits use their own snapshot guards.
++    pub files: Option<Vec<FileChange>>,
+     /// Required for edit. Nonoverlapping inclusive line ranges; at most 100.
+     pub edits: Option<Vec<AnchoredEdit>>,
+     /// Read pagination; defaults to line 1. SHA-256 always covers the entire file.
+@@ -79,9 +87,14 @@
+ #[derive(Debug, Deserialize, JsonSchema)]
+ #[serde(deny_unknown_fields)]
+ pub struct SafeEditParams {
+-    pub path: String,
+-    pub expected_sha256: String,
+-    pub edits: Vec<AnchoredEdit>,
++    pub path: Option<String>,
++    pub expected_sha256: Option<String>,
++    pub snapshot_id: Option<String>,
++    pub edits: Option<Vec<AnchoredEdit>>,
++    /// Multi-file changes; omit single-file fields and plan_id.
++    pub files: Option<Vec<FileChange>>,
++    /// Reviewed plan_id from lsp_query action=rename; omit all edit fields.
++    pub plan_id: Option<String>,
+     /// Executable followed by literal argv. No implicit shell expansion or shell parsing.
+     pub test_command: Vec<String>,
+     #[serde(default = "default_timeout")]
+@@ -89,7 +102,173 @@
+     pub timeout_secs: u64,
+ }
+ 
+-pub struct EditTools;
++#[derive(Debug, Deserialize, JsonSchema)]
++#[serde(deny_unknown_fields)]
++pub struct FileChange {
++    pub path: String,
++    pub snapshot_id: Option<String>,
++    pub expected_sha256: Option<String>,
++    pub edits: Vec<AnchoredEdit>,
++}
++
++#[cfg(test)]
++mod batch_tests {
++    use super::*;
++
++    fn fixture() -> (tempfile::TempDir, ToolCallContext, EditTools) {
++        let dir = tempfile::tempdir().unwrap();
++        fs::write(dir.path().join("a.txt"), "a\n").unwrap();
++        fs::write(dir.path().join("b.txt"), "b\n").unwrap();
++        let ctx = ToolCallContext::new("batch".into(), Some(dir.path().to_owned()), None);
++        (dir, ctx, EditTools::new())
++    }
++
++    async fn invoke(
++        client: &EditTools,
++        ctx: &ToolCallContext,
++        name: &str,
++        args: Value,
++        token: CancellationToken,
++    ) -> Value {
++        client
++            .call_tool(name, args.as_object().cloned(), ctx, token)
++            .await
++            .structured_content
++            .unwrap()
++    }
++
++    async fn changes(client: &EditTools, ctx: &ToolCallContext) -> Value {
++        let read = invoke(
++            client,
++            ctx,
++            "hashline_edit",
++            json!({"action":"read_many","paths":["a.txt","b.txt"]}),
++            CancellationToken::new(),
++        )
++        .await;
++        json!([{"path":"a.txt","snapshot_id":read["files"][0]["snapshot_id"],"edits":[{"start_line":1,"end_line":1,"start_anchor":"L1","end_anchor":"L1","replacement":"A\n"}]},
++            {"path":"b.txt","snapshot_id":read["files"][1]["snapshot_id"],"edits":[{"start_line":1,"end_line":1,"start_anchor":"L1","end_anchor":"L1","replacement":"B\n"}]}])
++    }
++
++    #[tokio::test]
++    async fn all_guards_are_validated_before_publication_or_test_spawn() {
++        let (dir, ctx, client) = fixture();
++        let files = changes(&client, &ctx).await;
++        fs::write(dir.path().join("b.txt"), "external\n").unwrap();
++        let result = invoke(
++            &client,
++            &ctx,
++            "safe_edit_and_test",
++            json!({"files":files,"test_command":["/bin/sh","-c","touch test-started"]}),
++            CancellationToken::new(),
++        )
++        .await;
++        assert!(result["error"].as_str().unwrap().starts_with("STALE_"));
++        assert_eq!(fs::read(dir.path().join("a.txt")).unwrap(), b"a\n");
++        assert_eq!(fs::read(dir.path().join("b.txt")).unwrap(), b"external\n");
++        assert!(!dir.path().join("test-started").exists());
++    }
++
++    #[tokio::test]
++    async fn batch_tests_observe_complete_changes_and_failure_restores_both_files() {
++        for succeeds in [true, false] {
++            let (dir, ctx, client) = fixture();
++            let files = changes(&client, &ctx).await;
++            let script = if succeeds {
++                "test \"$(cat a.txt)\" = A && test \"$(cat b.txt)\" = B"
++            } else {
++                "exit 1"
++            };
++            let result = invoke(
++                &client,
++                &ctx,
++                "safe_edit_and_test",
++                json!({"files":files,"test_command":["/bin/sh","-c",script]}),
++                CancellationToken::new(),
++            )
++            .await;
++            assert_eq!(result["verified"], succeeds, "{result}");
++            assert_eq!(
++                fs::read(dir.path().join("a.txt")).unwrap(),
++                if succeeds { b"A\n" } else { b"a\n" }
++            );
++            assert_eq!(
++                fs::read(dir.path().join("b.txt")).unwrap(),
++                if succeeds { b"B\n" } else { b"b\n" }
++            );
++            if !succeeds {
++                assert_eq!(result["rollback"]["restored"], true);
++            }
++        }
++    }
++
++    #[tokio::test]
++    async fn duplicate_targets_and_cross_session_handles_never_write() {
++        let (dir, ctx, client) = fixture();
++        let files = changes(&client, &ctx).await;
++        for (context, value) in [
++            (ctx.clone(), json!([files[0], files[0]])),
++            (
++                ToolCallContext::new("other".into(), ctx.working_dir.clone(), None),
++                files,
++            ),
++        ] {
++            let result = invoke(
++                &client,
++                &context,
++                "hashline_edit",
++                json!({"action":"edit_many","files":value}),
++                CancellationToken::new(),
++            )
++            .await;
++            assert!(result.get("error").is_some(), "{result}");
++            assert_eq!(fs::read(dir.path().join("a.txt")).unwrap(), b"a\n");
++        }
++    }
++
++    #[tokio::test]
++    async fn failed_batch_preserves_intervening_changes_and_restores_other_owned_files() {
++        let (dir, ctx, client) = fixture();
++        let files = changes(&client, &ctx).await;
++        let result = invoke(&client,&ctx,"safe_edit_and_test",json!({"files":files,"test_command":["/bin/sh","-c","printf external > a.txt; exit 1"]}),CancellationToken::new()).await;
++        assert_eq!(result["verified"], false);
++        assert_eq!(result["rollback"]["restored"], false);
++        assert_eq!(fs::read(dir.path().join("a.txt")).unwrap(), b"external");
++        assert_eq!(fs::read(dir.path().join("b.txt")).unwrap(), b"b\n");
++    }
++
++    #[tokio::test]
++    async fn cancelling_or_dropping_batch_test_restores_all_owned_postimages() {
++        for drop_future in [false, true] {
++            let (dir, ctx, client) = fixture();
++            let files = changes(&client, &ctx).await;
++            let token = CancellationToken::new();
++            let child_token = token.clone();
++            let handle = tokio::spawn(async move {
++                invoke(&client,&ctx,"safe_edit_and_test",json!({"files":files,"test_command":["/bin/sh","-c","touch started; sleep 10"]}),child_token).await
++            });
++            for _ in 0..100 {
++                if dir.path().join("started").exists() {
++                    break;
++                }
++                tokio::time::sleep(Duration::from_millis(10)).await;
++            }
++            assert!(dir.path().join("started").exists());
++            if drop_future {
++                handle.abort();
++            } else {
++                token.cancel();
++            }
++            let _ = handle.await;
++            assert_eq!(fs::read(dir.path().join("a.txt")).unwrap(), b"a\n");
++            assert_eq!(fs::read(dir.path().join("b.txt")).unwrap(), b"b\n");
++        }
++    }
++}
++
++pub struct EditTools {
++    state: Arc<EngineeringState>,
++}
+ 
+ impl Default for EditTools {
+     fn default() -> Self {
+@@ -99,7 +278,11 @@
+ 
+ impl EditTools {
+     pub fn new() -> Self {
+-        Self
++        Self::with_state(Arc::new(EngineeringState::default()))
++    }
++
++    pub(super) fn with_state(state: Arc<EngineeringState>) -> Self {
++        Self { state }
+     }
+ 
+     pub fn tools() -> Vec<Tool> {
+@@ -111,8 +294,8 @@
+                 .clone()
+         }
+         [
+-            Tool::new("hashline_edit", "Read and edit existing workspace UTF-8 files with SHA-256 and line-anchor guards (1 MiB/file). Use action=read_many with paths to gather up to 16 edit targets in one call (256 KiB combined line data; inspect per-file errors/truncation), or action=read with path. Reuse returned snapshots; reread only missing context or after a stale conflict. action=edit accepts path, expected_sha256 and edits, and returns bounded post_edit context with fresh anchors. Replacement ranges include line endings. No tests are run. Outside-workspace and symlink paths are rejected.", schema::<HashlineParams>()),
+-            Tool::new("safe_edit_and_test", "Prefer for an existing-file change with a suitable test command, after hashline_edit action=read. Apply exact SHA/line-anchor guarded edits to one existing workspace file, then execute the supplied test_command argv directly in the trusted workspace. Requires approval for the file change and command. Test timeout is 1–600 seconds (default 60); captured output is bounded. On test failure, timeout or cancellation, restore the original bytes only if the file still equals this tool's postimage; otherwise preserve intervening edits and report the conflict. No automatic model repair. Unix process containment only; other platforms fail before editing. This tool is not an OS sandbox: an approved test executable may affect other files.", schema::<SafeEditParams>()),
++            Tool::new("hashline_edit", "Read existing UTF-8 files (1 MiB/file) with action=read/path or read_many/paths. Returns bounded numbered text, compact line anchors and a session/workspace snapshot_id. Use snapshot_id instead of copying a SHA. action=edit edits one file; action=edit_many/files applies a complete guarded batch without tests. Reuse snapshots; read only missing context or after conflicts. All ranges use the original lines, including line endings. Legacy expected_sha256 and full anchors remain accepted. Outside-workspace/symlink paths are rejected.", schema::<HashlineParams>()),
++            Tool::new("safe_edit_and_test", "Apply and verify a complete change in one call: supply a reviewed lsp_query rename plan_id, files with snapshot_id and anchored edits, or single-file path/snapshot_id/edits. Supply exactly one mode and a relevant test_command as literal executable argv (no implicit shell). Validate all targets and lock in stable order before publication; run checks once after the batch. Failure/timeout/cancellation rolls back only owned postimages, preserving intervening edits and reporting conflicts. Publication across files is not atomic. Approval covers edits and command. 1–600 seconds; bounded output. Unix process containment; test side effects outside owned files are not rolled back.", schema::<SafeEditParams>()),
+         ].into_iter().map(|tool| tool.annotate(ToolAnnotations::from_raw(
+             None, Some(false), Some(true), Some(false), Some(true),
+         ))).collect()
+@@ -128,11 +311,11 @@
+         let args = arguments.map(Value::Object).unwrap_or(Value::Null);
+         let result = match name {
+             "hashline_edit" => match serde_json::from_value::<HashlineParams>(args) {
+-                Ok(params) => hashline(params, ctx, &cancellation_token),
++                Ok(params) => hashline(params, ctx, &cancellation_token, &self.state),
+                 Err(error) => Err(format!("INVALID_ARGUMENTS: {error}")),
+             },
+             "safe_edit_and_test" => match serde_json::from_value::<SafeEditParams>(args) {
+-                Ok(params) => safe_edit(params, ctx, &cancellation_token).await,
++                Ok(params) => safe_edit(params, ctx, &cancellation_token, &self.state).await,
+                 Err(error) => Err(format!("INVALID_ARGUMENTS: {error}")),
+             },
+             _ => Err("UNKNOWN_TOOL".into()),
+@@ -150,7 +333,7 @@
+     }
+ }
+ 
+-fn sha(bytes: &[u8]) -> String {
++pub(super) fn sha(bytes: &[u8]) -> String {
+     Sha256::digest(bytes)
+         .iter()
+         .map(|byte| format!("{byte:02x}"))
+@@ -191,6 +374,10 @@
+ 
+ fn anchor(number: usize, text: &str) -> String {
+     format!("{}:{}", number, sha(text.as_bytes()))
++}
++
++fn matches_anchor(value: &str, line: usize, text: &str) -> bool {
++    value == format!("L{line}") || value == anchor(line, text)
+ }
+ 
+ fn replacement(original: &[u8], edits: &[AnchoredEdit]) -> Result<Vec<u8>, String> {
+@@ -214,8 +401,11 @@
+                 "INVALID_RANGE: Ranges must exist, be ordered internally and not overlap.".into(),
+             );
+         }
+-        if edit.start_anchor != anchor(edit.start_line, rows[edit.start_line - 1])
+-            || edit.end_anchor != anchor(edit.end_line, rows[edit.end_line - 1])
++        if !matches_anchor(
++            &edit.start_anchor,
++            edit.start_line,
++            rows[edit.start_line - 1],
++        ) || !matches_anchor(&edit.end_anchor, edit.end_line, rows[edit.end_line - 1])
+         {
+             return Err("STALE_ANCHOR: Boundary anchors do not match this preimage.".into());
+         }
+@@ -237,7 +427,7 @@
+     Ok(changed.into_bytes())
+ }
+ 
+-fn read_file(path: &Path) -> Result<(Vec<u8>, Permissions), String> {
++pub(super) fn read_file(path: &Path) -> Result<(Vec<u8>, Permissions), String> {
+     let metadata =
+         fs::symlink_metadata(path).map_err(|error| format!("FILE_UNAVAILABLE: {error}"))?;
+     if !metadata.is_file() || metadata.file_type().is_symlink() {
+@@ -481,7 +671,7 @@
+     }
+     let mut rows = Vec::new();
+     for (index, row) in all_lines.iter().enumerate().skip(start - 1).take(limit) {
+-        let value = json!({"line":index+1,"anchor":anchor(index+1,row),"text":row});
++        let value = json!({"line":index+1,"anchor":format!("L{}", index+1),"text":row});
+         let size = serde_json::to_vec(&value)
+             .expect("line serialization")
+             .len();
+@@ -496,6 +686,7 @@
+         json!({"status":"read","sha256":sha(bytes),"total_lines":all_lines.len(),
+         "start_line":start,"has_more":next <= all_lines.len(),
+         "next_line":if next <= all_lines.len() {Some(next)} else {None},
++        "truncation_reason":if rows.is_empty() {Some("line_exceeds_output_budget")} else {None},
+         "lines":rows,"verified":false}),
+     )
+ }
+@@ -533,10 +724,16 @@
+     params: HashlineParams,
+     ctx: &ToolCallContext,
+     token: &CancellationToken,
++    state: &EngineeringState,
+ ) -> Result<Value, String> {
+     cancelled(token)?;
+     if matches!(params.action, HashlineAction::ReadMany) {
+-        if params.path.is_some() || params.expected_sha256.is_some() || params.edits.is_some() {
++        if params.path.is_some()
++            || params.expected_sha256.is_some()
++            || params.snapshot_id.is_some()
++            || params.files.is_some()
++            || params.edits.is_some()
++        {
+             return Err(
+                 "INVALID_ARGUMENTS: read_many accepts paths and read pagination only.".into(),
+             );
+@@ -545,7 +742,7 @@
+         if paths.is_empty() || paths.len() > MAX_READ_FILES {
+             return Err("INVALID_PATHS: Supply 1–16 paths.".into());
+         }
+-        let mut budget = MAX_BATCH_BYTES;
++        let mut budget = MAX_OUTPUT_BYTES;
+         let mut results = Vec::new();
+         for input in paths {
+             cancelled(token)?;
+@@ -558,6 +755,13 @@
+                     params.read_max_lines.unwrap_or(200),
+                     &mut budget,
+                 )?;
++                value["snapshot_id"] = json!(state.save_snapshot(
++                    ctx,
++                    Snapshot {
++                        path: path.clone(),
++                        bytes: Arc::new(bytes)
++                    }
++                )?);
+                 value["path"] = json!(path);
+                 Ok::<_, String>(value)
+             })();
+@@ -567,9 +771,30 @@
+         }
+         return Ok(
+             json!({"status":"read_many","files":results,"verified":false,
+-            "line_bytes_returned":MAX_BATCH_BYTES-budget,
++            "line_bytes_returned":MAX_OUTPUT_BYTES-budget,
+             "note":"Independent file snapshots; inspect every file for errors and has_more."}),
+         );
++    }
++    if matches!(params.action, HashlineAction::EditMany) {
++        if params.path.is_some()
++            || params.paths.is_some()
++            || params.expected_sha256.is_some()
++            || params.snapshot_id.is_some()
++            || params.edits.is_some()
++            || params.read_start_line.is_some()
++            || params.read_max_lines.is_some()
++        {
++            return Err("INVALID_ARGUMENTS: edit_many accepts files only.".into());
++        }
++        let prepared = prepare_changes(params.files.ok_or("FILES_REQUIRED")?, ctx, state, token)?;
++        let mut batch = Batch::publish(prepared, ctx, token)?;
++        batch.commit();
++        return Ok(
++            json!({"status":"edited", "verified":false, "tests_executed":false, "files":batch.receipts()}),
++        );
++    }
++    if params.files.is_some() {
++        return Err("INVALID_ARGUMENTS: files requires edit_many.".into());
+     }
+     if params.paths.is_some() {
+         return Err("INVALID_ARGUMENTS: paths requires read_many.".into());
+@@ -577,17 +802,27 @@
+     let path = workspace_path(ctx, &params.path.ok_or("PATH_REQUIRED")?)?;
+     match params.action {
+         HashlineAction::Read => {
+-            if params.expected_sha256.is_some() || params.edits.is_some() {
++            if params.expected_sha256.is_some()
++                || params.snapshot_id.is_some()
++                || params.edits.is_some()
++            {
+                 return Err("INVALID_ARGUMENTS: Read does not accept edits/preimage.".into());
+             }
+             let (bytes, _) = read_file(&path)?;
+-            let mut budget = usize::MAX;
++            let mut budget = MAX_RECEIPT_BYTES;
+             let mut result = snapshot(
+                 &bytes,
+                 params.read_start_line.unwrap_or(1),
+                 params.read_max_lines.unwrap_or(200),
+                 &mut budget,
+             )?;
++            result["snapshot_id"] = json!(state.save_snapshot(
++                ctx,
++                Snapshot {
++                    path: path.clone(),
++                    bytes: Arc::new(bytes)
++                }
++            )?);
+             result["path"] = json!(path);
+             Ok(result)
+         }
+@@ -595,7 +830,13 @@
+             if params.read_start_line.is_some() || params.read_max_lines.is_some() {
+                 return Err("INVALID_ARGUMENTS: Edit does not accept read pagination.".into());
+             }
+-            let expected = params.expected_sha256.ok_or("EXPECTED_SHA256_REQUIRED")?;
++            let expected = resolve_guard(
++                ctx,
++                state,
++                &path,
++                params.snapshot_id.as_deref(),
++                params.expected_sha256.as_deref(),
++            )?;
+             let edits = params.edits.ok_or("EDITS_REQUIRED")?;
+             let mut transaction = Transaction::apply(ctx, path.clone(), &expected, &edits, token)?;
+             transaction.active = false;
+@@ -605,7 +846,7 @@
+                 "post_edit":post_edit_context(&transaction.original,&transaction.postimage)}),
+             )
+         }
+-        HashlineAction::ReadMany => unreachable!("handled above"),
++        HashlineAction::ReadMany | HashlineAction::EditMany => unreachable!("handled above"),
+     }
+ }
+ 
+@@ -750,6 +991,7 @@
+     params: SafeEditParams,
+     ctx: &ToolCallContext,
+     token: &CancellationToken,
++    state: &EngineeringState,
+ ) -> Result<Value, String> {
+     cancelled(token)?;
+     if !cfg!(unix) {
+@@ -758,57 +1000,294 @@
+                 .into(),
+         );
+     }
+-    if !(1..=600).contains(&params.timeout_secs) {
+-        return Err("INVALID_TIMEOUT: Choose 1–600 seconds.".into());
+-    }
+-    if params.test_command.is_empty()
+-        || params.test_command.len() > 100
+-        || params.test_command[0].trim().is_empty()
+-        || params
+-            .test_command
+-            .iter()
+-            .any(|arg| arg.contains('\0') || arg.len() > 8192)
+-        || params.test_command.iter().map(String::len).sum::<usize>() > 65_536
+-    {
+-        return Err("INVALID_COMMAND: Supply bounded executable argv.".into());
+-    }
++    validate_command(&params.test_command, params.timeout_secs)?;
+     let root = workspace_root(ctx)?;
+-    let path = workspace_path(ctx, &params.path)?;
+-    let mut transaction = Transaction::apply(
+-        ctx,
+-        path.clone(),
+-        &params.expected_sha256,
+-        &params.edits,
+-        token,
+-    )?;
++    let single = params.path.is_some()
++        || params.expected_sha256.is_some()
++        || params.snapshot_id.is_some()
++        || params.edits.is_some();
++    let modes = usize::from(single)
++        + usize::from(params.files.is_some())
++        + usize::from(params.plan_id.is_some());
++    if modes != 1 {
++        return Err(
++            "INVALID_ARGUMENTS: Supply exactly one of single-file fields, files, or plan_id."
++                .into(),
++        );
++    }
++    let (prepared, plan) = if let Some(id) = params.plan_id {
++        let plan = state.take_plan(ctx, &id)?;
++        validate_plan(&plan, ctx, token)?;
++        (plan.files.clone(), Some(plan))
++    } else {
++        let files = params.files.unwrap_or_else(|| {
++            vec![FileChange {
++                path: params.path.unwrap_or_default(),
++                snapshot_id: params.snapshot_id,
++                expected_sha256: params.expected_sha256,
++                edits: params.edits.unwrap_or_default(),
++            }]
++        });
++        (prepare_changes(files, ctx, state, token)?, None)
++    };
++    let mut batch = Batch::publish(prepared, ctx, token)?;
+     let test = run_test(&params.test_command, &root, params.timeout_secs, token).await;
+-    let unchanged = transaction
+-        .current()
+-        .is_ok_and(|current| current == transaction.postimage);
++    let unchanged = batch.unchanged();
++    let plan_unchanged = plan
++        .as_ref()
++        .is_none_or(|plan| validate_plan_after(plan, ctx, token).is_ok());
+     let verified = test.as_ref().is_ok_and(|result| {
+         result.exit_code == Some(0)
+             && !result.timed_out
+             && !result.cancelled
+             && result.output_error.is_none()
+     }) && unchanged
++        && plan_unchanged
+         && !token.is_cancelled();
+     let rollback = if verified {
+-        transaction.active = false;
++        batch.commit();
+         json!({"attempted":false,"restored":false,"reason":"tests_passed"})
+     } else {
+-        transaction.rollback()
++        batch.rollback()
+     };
+     let test_json = match test {
+         Ok(result) => serde_json::to_value(result).expect("test outcome"),
+         Err(error) => json!({"executed":false,"error":error}),
+     };
+-    let current_sha = transaction.current().ok().map(|current| sha(&current));
+-    Ok(
+-        json!({"status":if verified {"verified"} else {"failed"},"verified":verified,"path":path,
+-        "before_sha256":sha(&transaction.original),"edited_sha256":sha(&transaction.postimage),"current_sha256":current_sha,
+-        "target_unchanged_during_test":unchanged,"test":test_json,"rollback":rollback,
+-        "post_edit":if verified {Some(post_edit_context(&transaction.original,&transaction.postimage))} else {None}}),
+-    )
++    let mut result = json!({"status":if verified {"verified"} else {"failed"},"verified":verified,
++        "files":batch.receipts(),"targets_unchanged_during_test":unchanged,"scope_unchanged_during_test":plan_unchanged,"test":test_json,"rollback":rollback});
++    // Retain the original single-file receipt shape for existing consumers.
++    if single {
++        let transaction = &batch.transactions[0];
++        result["path"] = json!(transaction.path);
++        result["before_sha256"] = json!(sha(&transaction.original));
++        result["edited_sha256"] = json!(sha(&transaction.postimage));
++        result["current_sha256"] = json!(transaction.current().ok().map(|bytes| sha(&bytes)));
++        result["target_unchanged_during_test"] = json!(unchanged);
++        result["rollback"] = result["rollback"]["files"]
++            .as_array()
++            .and_then(|f| f.first())
++            .cloned()
++            .unwrap_or(result["rollback"].clone());
++        result["post_edit"] = if verified {
++            post_edit_context(&transaction.original, &transaction.postimage)
++        } else {
++            Value::Null
++        };
++    }
++    Ok(result)
++}
++
++fn validate_command(argv: &[String], timeout: u64) -> Result<(), String> {
++    if !(1..=600).contains(&timeout) {
++        return Err("INVALID_TIMEOUT: Choose 1–600 seconds.".into());
++    }
++    if argv.is_empty()
++        || argv.len() > 100
++        || argv[0].trim().is_empty()
++        || argv
++            .iter()
++            .any(|arg| arg.contains('\0') || arg.len() > 8192)
++        || argv.iter().map(String::len).sum::<usize>() > 65_536
++    {
++        return Err("INVALID_COMMAND: Supply bounded executable argv.".into());
++    }
++    Ok(())
++}
++
++fn resolve_guard(
++    ctx: &ToolCallContext,
++    state: &EngineeringState,
++    path: &Path,
++    id: Option<&str>,
++    digest: Option<&str>,
++) -> Result<String, String> {
++    match (id, digest) {
++        (Some(id), None) => {
++            let snapshot = state.snapshot(ctx, id)?;
++            if snapshot.path != path {
++                return Err("SNAPSHOT_PATH_MISMATCH".into());
++            }
++            Ok(sha(&snapshot.bytes))
++        }
++        (None, Some(digest)) => Ok(digest.to_owned()),
++        _ => Err("GUARD_REQUIRED: Supply snapshot_id or expected_sha256, exactly one.".into()),
++    }
++}
++
++fn prepare_changes(
++    files: Vec<FileChange>,
++    ctx: &ToolCallContext,
++    state: &EngineeringState,
++    token: &CancellationToken,
++) -> Result<Vec<PlannedFile>, String> {
++    if files.is_empty() || files.len() > 32 {
++        return Err("INVALID_FILES: Supply 1–32 files.".into());
++    }
++    let mut prepared = Vec::new();
++    let mut bytes = 0;
++    for file in files {
++        cancelled(token)?;
++        let path = workspace_path(ctx, &file.path)?;
++        let expected = resolve_guard(
++            ctx,
++            state,
++            &path,
++            file.snapshot_id.as_deref(),
++            file.expected_sha256.as_deref(),
++        )?;
++        let (original, _) = read_file(&path)?;
++        check_digest(&expected, &original)?;
++        let after = replacement(&original, &file.edits)?;
++        bytes += original.len() + after.len();
++        if bytes > 8 * 1024 * 1024 {
++            return Err("BATCH_TOO_LARGE: Narrow the change.".into());
++        }
++        prepared.push(PlannedFile {
++            before: Snapshot {
++                path,
++                bytes: Arc::new(original),
++            },
++            after,
++        });
++    }
++    Ok(prepared)
++}
++
++fn validate_plan(
++    plan: &ChangePlan,
++    ctx: &ToolCallContext,
++    token: &CancellationToken,
++) -> Result<(), String> {
++    cancelled(token)?;
++    if super::lsp::rename_scope_paths(ctx, &plan.scope, &plan.language, token)? != plan.scope_files
++    {
++        return Err("STALE_SCOPE: Files were added or removed; prepare a new rename plan.".into());
++    }
++    for snapshot in &plan.guards {
++        cancelled(token)?;
++        let path = workspace_path(
++            ctx,
++            snapshot.path.to_str().ok_or("UNSUPPORTED_PATH_ENCODING")?,
++        )?;
++        if read_file(&path)?.0 != *snapshot.bytes {
++            return Err("STALE_PLAN: A scope input changed; prepare a new plan.".into());
++        }
++    }
++    Ok(())
++}
++
++fn validate_plan_after(
++    plan: &ChangePlan,
++    ctx: &ToolCallContext,
++    token: &CancellationToken,
++) -> Result<(), String> {
++    let mut expected = plan.clone();
++    for snapshot in &mut expected.guards {
++        if let Some(file) = plan
++            .files
++            .iter()
++            .find(|file| file.before.path == snapshot.path)
++        {
++            snapshot.bytes = Arc::new(file.after.clone());
++        }
++    }
++    validate_plan(&expected, ctx, token)
++}
++
++struct Batch {
++    transactions: Vec<Transaction>,
++}
++impl Batch {
++    fn publish(
++        mut files: Vec<PlannedFile>,
++        ctx: &ToolCallContext,
++        token: &CancellationToken,
++    ) -> Result<Self, String> {
++        files.sort_by(|a, b| a.before.path.cmp(&b.before.path));
++        if files.is_empty()
++            || files
++                .windows(2)
++                .any(|f| f[0].before.path == f[1].before.path)
++        {
++            return Err("INVALID_FILES: File targets must be nonempty and unique.".into());
++        }
++        let root = workspace_root(ctx)?;
++        let mut batch = Self {
++            transactions: Vec::new(),
++        };
++        for file in files {
++            cancelled(token)?;
++            let path = workspace_path(
++                ctx,
++                file.before
++                    .path
++                    .to_str()
++                    .ok_or("UNSUPPORTED_PATH_ENCODING")?,
++            )?;
++            let lock = EditLock::acquire(&path)?;
++            let (original, permissions) = read_file(&path)?;
++            if original != *file.before.bytes {
++                return Err("STALE_PREIMAGE: No file was published; reread the batch.".into());
++            }
++            batch.transactions.push(Transaction {
++                ctx: ctx.clone(),
++                root: root.clone(),
++                path,
++                original,
++                postimage: file.after,
++                permissions,
++                active: false,
++                _lock: lock,
++            });
++        }
++        for index in 0..batch.transactions.len() {
++            if let Err(error) = cancelled(token).and_then(|()| {
++                let t = &batch.transactions[index];
++                atomic_replace(
++                    ctx,
++                    &root,
++                    &t.path,
++                    &t.original,
++                    &t.postimage,
++                    t.permissions.clone(),
++                )
++            }) {
++                let rollback = batch.rollback();
++                return Err(format!(
++                    "BATCH_PUBLICATION_FAILED: {error}; rollback={rollback}"
++                ));
++            }
++            batch.transactions[index].active = true;
++        }
++        Ok(batch)
++    }
++    fn unchanged(&self) -> bool {
++        self.transactions
++            .iter()
++            .all(|t| t.current().is_ok_and(|bytes| bytes == t.postimage))
++    }
++    fn commit(&mut self) {
++        for t in &mut self.transactions {
++            t.active = false;
++        }
++    }
++    fn rollback(&mut self) -> Value {
++        let files: Vec<_> = self
++            .transactions
++            .iter_mut()
++            .filter(|t| t.active)
++            .map(|t| {
++                let mut result = t.rollback();
++                result["path"] = json!(t.path);
++                result
++            })
++            .collect();
++        json!({"attempted":!files.is_empty(),"restored":files.iter().all(|f|f["restored"]==true),"files":files})
++    }
++    fn receipts(&self) -> Vec<Value> {
++        self.transactions.iter().map(|t|json!({"path":t.path,"before_sha256":sha(&t.original),"edited_sha256":sha(&t.postimage),"current_sha256":t.current().ok().map(|bytes|sha(&bytes))})).collect()
++    }
+ }
+ 
+ #[cfg(test)]
+@@ -871,7 +1350,7 @@
+         assert!(!error);
+         assert_eq!(result["sha256"], sha(b"dirty first\r\nsecond\nlast"));
+         assert_eq!(result["total_lines"], 3);
+-        assert_eq!(result["lines"][0]["anchor"], anchor(2, "second\n"));
++        assert_eq!(result["lines"][0]["anchor"], "L2");
+         assert_eq!(result["lines"][0]["text"], "second\n");
+         assert_eq!(result["has_more"], true);
+     }
+@@ -887,7 +1366,7 @@
+         let files = result["files"].as_array().unwrap();
+         assert_eq!(files[0]["sha256"], sha(b"first\nsecond\n"));
+         assert_eq!(files[1]["status"], "error");
+-        assert_eq!(files[2]["lines"][0]["anchor"], anchor(1, "other\n"));
++        assert_eq!(files[2]["lines"][0]["anchor"], "L1");
+         assert_eq!(files[3]["status"], "error");
+         fs::write(&path, "external\n").unwrap();
+         let (error, _) = call("hashline_edit", json!({"action":"edit","path":"target.txt",
+@@ -967,7 +1446,7 @@
+             assert_eq!(value["sha256"], sha(after.as_bytes()));
+             for row in value["lines"].as_array().unwrap() {
+                 let n = row["line"].as_u64().unwrap() as usize;
+-                assert_eq!(row["anchor"], anchor(n, lines(after)[n - 1]));
++                assert_eq!(row["anchor"], format!("L{n}"));
+             }
+         }
+         let after = "changed\n".repeat(100);
+@@ -997,10 +1476,7 @@
+             .await;
+             if success {
+                 assert_eq!(result["post_edit"]["sha256"], sha(b"updated\n"));
+-                assert_eq!(
+-                    result["post_edit"]["lines"][0]["anchor"],
+-                    anchor(1, "updated\n")
+-                );
++                assert_eq!(result["post_edit"]["lines"][0]["anchor"], "L1");
+             } else {
+                 assert_eq!(result["post_edit"], Value::Null);
+                 assert_eq!(fs::read_to_string(path).unwrap(), "original\n");
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/lsp.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/lsp.rs
+@@ -2,8 +2,11 @@
+ //! Protocol reference: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/
+ //! No agent, model request, installation, server command, or workspace edit is executed here.
+ 
++use super::edits::read_file;
++use super::state::{ChangePlan, EngineeringState, PlannedFile, Snapshot};
+ use super::{json_result, workspace_path, workspace_root};
+ use crate::agents::ToolCallContext;
++use ignore::WalkBuilder;
+ use rmcp::model::{CallToolResult, JsonObject, Tool, ToolAnnotations};
+ use serde::Deserialize;
+ use serde_json::{json, Value};
+@@ -41,10 +44,460 @@
+     offset: usize,
+     #[serde(default = "default_true")]
+     include_declaration: bool,
++    new_name: Option<String>,
++    scope: Option<String>,
++}
++
++pub(super) fn rename_scope_paths(
++    ctx: &ToolCallContext,
++    scope: &Path,
++    language: &str,
++    token: &CancellationToken,
++) -> Result<Vec<PathBuf>, String> {
++    let root = workspace_root(ctx)?;
++    let mut source_count = 0;
++    let mut paths = Vec::new();
++    let mut builder = WalkBuilder::new(scope);
++    builder
++        .follow_links(false)
++        .sort_by_file_name(|a, b| a.cmp(b));
++    for (index, entry) in builder.build().enumerate() {
++        if token.is_cancelled() {
++            return Err("CANCELLED".into());
++        }
++        if index >= 4096 {
++            return Err("SCOPE_TOO_LARGE: Narrow the rename directory.".into());
++        }
++        let entry = entry.map_err(|_| "SCOPE_UNAVAILABLE: Cannot enumerate every scope input.")?;
++        if entry.file_type().is_some_and(|kind| kind.is_dir()) {
++            continue;
++        }
++        let input = entry.path();
++        let selected =
++            language_for(input, None).is_some_and(|value| server_language(value) == language);
++        let config = input
++            .file_name()
++            .and_then(|name| name.to_str())
++            .is_some_and(|name| {
++                (name.starts_with("tsconfig") && name.ends_with(".json"))
++                    || name == "pyrightconfig.json"
++            });
++        if !selected && !config {
++            continue;
++        }
++        let path = workspace_path(ctx, input.to_str().ok_or("UNSUPPORTED_PATH_ENCODING")?)?;
++        if selected {
++            source_count += 1;
++        }
++        if source_count > MAX_DOCUMENTS || paths.len() >= 64 {
++            return Err("SCOPE_TOO_LARGE: Rename supports at most 32 language files and 64 total inputs; use a narrower scope or ordinary edits.".into());
++        }
++        paths.push(path);
++    }
++    // Ancestor configuration/ignore changes can alter the graph or scope membership.
++    let mut directory = Some(scope);
++    while let Some(parent) = directory {
++        for name in [
++            "tsconfig.json",
++            "jsconfig.json",
++            "pyrightconfig.json",
++            ".gitignore",
++        ] {
++            let config = parent.join(name);
++            if config.exists() {
++                paths.push(workspace_path(
++                    ctx,
++                    config.to_str().ok_or("UNSUPPORTED_PATH_ENCODING")?,
++                )?);
++            }
++        }
++        if parent == root {
++            break;
++        }
++        directory = parent.parent();
++    }
++    paths.sort();
++    paths.dedup();
++    if paths.len() > 64 {
++        return Err("SCOPE_TOO_LARGE: At most 64 source/config inputs are supported.".into());
++    }
++    Ok(paths)
++}
++
++#[derive(Deserialize)]
++#[serde(deny_unknown_fields)]
++struct EditPosition {
++    line: u32,
++    character: u32,
++}
++#[derive(Deserialize)]
++#[serde(deny_unknown_fields)]
++struct EditRange {
++    start: EditPosition,
++    end: EditPosition,
++}
++#[derive(Deserialize)]
++#[serde(deny_unknown_fields)]
++struct RenameEdit {
++    range: EditRange,
++    #[serde(rename = "newText")]
++    new_text: String,
++}
++
++fn byte_position(text: &str, position: &EditPosition) -> Result<usize, String> {
++    let mut offset = 0;
++    let mut rows = text.split('\n');
++    for _ in 0..position.line {
++        offset += rows.next().ok_or("INVALID_EDIT_RANGE")?.len() + 1;
++    }
++    let row = rows.next().ok_or("INVALID_EDIT_RANGE")?;
++    let row = row.strip_suffix('\r').unwrap_or(row);
++    let mut utf16 = 0;
++    for (index, ch) in row.char_indices() {
++        if utf16 == position.character {
++            return Ok(offset + index);
++        }
++        utf16 += ch.len_utf16() as u32;
++    }
++    if utf16 == position.character {
++        Ok(offset + row.len())
++    } else {
++        Err("INVALID_EDIT_RANGE: Invalid UTF-16 boundary.".into())
++    }
++}
++
++fn rename_plan(
++    value: Value,
++    ctx: &ToolCallContext,
++    scope: &Path,
++    language: &str,
++    guards: &[Snapshot],
++    documents: &HashMap<String, Document>,
++) -> Result<(ChangePlan, Value), String> {
++    if !value.is_object() || value.get("changeAnnotations").is_some() {
++        return Err(
++            "unsupported_edit: Expected plain workspace text edits without annotations.".into(),
++        );
++    }
++    let mut targets = std::collections::BTreeMap::<String, Value>::new();
++    match (value.get("changes"), value.get("documentChanges")) {
++        (Some(changes), None) => {
++            for (uri, edits) in changes
++                .as_object()
++                .ok_or("invalid_edit: Expected changes map.")?
++            {
++                targets.insert(uri.clone(), edits.clone());
++            }
++        }
++        (None, Some(changes)) => {
++            for change in changes
++                .as_array()
++                .ok_or("invalid_edit: Expected documentChanges array.")?
++            {
++                if change.get("kind").is_some() {
++                    return Err(
++                        "unsupported_edit: File create/rename/delete operations are not applied."
++                            .into(),
++                    );
++                }
++                let document = change
++                    .get("textDocument")
++                    .ok_or("invalid_edit: Missing textDocument.")?;
++                let uri = document["uri"]
++                    .as_str()
++                    .ok_or("invalid_edit: Missing URI.")?;
++                if let Some(version) = document.get("version").filter(|v| !v.is_null()) {
++                    if documents
++                        .get(uri)
++                        .is_none_or(|doc| version.as_i64() != Some(doc.version))
++                    {
++                        return Err("stale_edit: Document version mismatch.".into());
++                    }
++                }
++                if targets
++                    .insert(
++                        uri.to_owned(),
++                        change
++                            .get("edits")
++                            .cloned()
++                            .ok_or("invalid_edit: Missing edits.")?,
++                    )
++                    .is_some()
++                {
++                    return Err("invalid_edit: Duplicate file target.".into());
++                }
++            }
++        }
++        _ => return Err("invalid_edit: Supply exactly one workspace edit form.".into()),
++    }
++    if targets.is_empty() || targets.len() > 32 {
++        return Err("rename_unavailable: Expected edits to 1–32 files.".into());
++    }
++    let root = workspace_root(ctx)?;
++    let mut files = Vec::new();
++    let mut preview = Vec::new();
++    for (uri, raw) in targets {
++        let input = Url::parse(&uri)
++            .ok()
++            .and_then(|uri| uri.to_file_path().ok())
++            .ok_or("invalid_edit: Only local file URIs are supported.")?;
++        let path = workspace_path(ctx, input.to_str().ok_or("UNSUPPORTED_PATH_ENCODING")?)?;
++        let before = guards.iter().find(|snapshot|snapshot.path==path && language_for(&path,None).is_some_and(|value|server_language(value)==language)).ok_or("edit_outside_scope: Server returned edits outside the synchronized language scope.")?;
++        let text =
++            std::str::from_utf8(&before.bytes).map_err(|_| "invalid_edit: UTF-8 required.")?;
++        let edits: Vec<RenameEdit> = serde_json::from_value(raw)
++            .map_err(|_| "unsupported_edit: Expected unannotated TextEdits.")?;
++        if edits.is_empty() || edits.len() > 1000 {
++            return Err("invalid_edit: Expected 1–1000 edits per file.".into());
++        }
++        let mut ranges = Vec::new();
++        let mut descriptions = Vec::new();
++        for edit in edits {
++            let start = byte_position(text, &edit.range.start)?;
++            let end = byte_position(text, &edit.range.end)?;
++            if end < start || edit.new_text.contains('\0') {
++                return Err("invalid_edit: Invalid text replacement.".into());
++            }
++            let line_start = text
++                .get(..start)
++                .ok_or("invalid_edit: Invalid start boundary.")?
++                .rfind('\n')
++                .map_or(0, |index| index + 1);
++            let line_end = text
++                .get(end..)
++                .ok_or("invalid_edit: Invalid end boundary.")?
++                .find('\n')
++                .map_or(text.len(), |index| end + index);
++            descriptions.push(json!({"line":edit.range.start.line+1,"before":text.get(start..end).ok_or("invalid_edit: Invalid range boundary.")?,"after":edit.new_text,"context":text.get(line_start..line_end).ok_or("invalid_edit: Invalid context boundary.")?}));
++            ranges.push((start, end, edit.new_text));
++        }
++        ranges.sort_by_key(|(start, end, _)| (*start, *end));
++        if ranges
++            .windows(2)
++            .any(|rows| rows[1].0 < rows[0].1 || rows[1].0 == rows[0].0)
++        {
++            return Err("invalid_edit: Overlapping or ambiguous edit ranges.".into());
++        }
++        let mut after = String::new();
++        let mut cursor = 0;
++        for (start, end, replacement) in ranges {
++            after.push_str(
++                text.get(cursor..start)
++                    .ok_or("invalid_edit: Invalid edit boundary.")?,
++            );
++            after.push_str(&replacement);
++            cursor = end;
++        }
++        after.push_str(
++            text.get(cursor..)
++                .ok_or("invalid_edit: Invalid trailing boundary.")?,
++        );
++        if after.len() > 1024 * 1024 {
++            return Err("invalid_edit: Result exceeds 1 MiB/file.".into());
++        }
++        preview.push(json!({"path":path.strip_prefix(&root).map_err(|_|"edit_outside_scope")?,"edits":descriptions}));
++        if after.as_bytes() != &**before.bytes {
++            files.push(PlannedFile {
++                before: before.clone(),
++                after: after.into_bytes(),
++            });
++        }
++    }
++    let preview = json!(preview);
++    if serde_json::to_vec(&preview)
++        .map_err(|_| "invalid_edit")?
++        .len()
++        > 24 * 1024
++    {
++        return Err(
++            "preview_too_large: Narrow the operation; no truncated preview is executable.".into(),
++        );
++    }
++    if files.is_empty() {
++        return Err("rename_unavailable: Rename produced no change.".into());
++    }
++    Ok((
++        ChangePlan {
++            files,
++            guards: guards.to_vec(),
++            scope: scope.to_owned(),
++            language: language.to_owned(),
++            scope_files: guards.iter().map(|s| s.path.clone()).collect(),
++        },
++        preview,
++    ))
+ }
+ 
+ fn default_true() -> bool {
+     true
++}
++
++#[cfg(test)]
++mod rename_tests {
++    use super::super::edits::EditTools;
++    use super::*;
++
++    #[test]
++    fn workspace_edits_validate_utf16_scope_overlap_versions_and_resource_operations() {
++        let dir = tempfile::tempdir().unwrap();
++        let ctx = ToolCallContext::new("rename".into(), Some(dir.path().to_owned()), None);
++        let path = dir.path().join("a.ts");
++        let source = "// 😀\r\nexport const old = 1;\r\n";
++        std::fs::write(&path, source).unwrap();
++        let guards = vec![Snapshot {
++            path: path.canonicalize().unwrap(),
++            bytes: Arc::new(source.as_bytes().to_vec()),
++        }];
++        let uri = file_uri(&guards[0].path).unwrap();
++        let range = json!({"start":{"line":1,"character":13},"end":{"line":1,"character":16}});
++        let edit = json!({"range":range,"newText":"fresh"});
++        let value = json!({"changes":{uri.clone():[edit.clone()]}});
++        let (plan, preview) = rename_plan(
++            value,
++            &ctx,
++            dir.path(),
++            "typescript",
++            &guards,
++            &HashMap::new(),
++        )
++        .unwrap();
++        assert_eq!(
++            plan.files[0].after,
++            b"// \xf0\x9f\x98\x80\r\nexport const fresh = 1;\r\n"
++        );
++        assert_eq!(preview[0]["edits"][0]["before"], "old");
++        assert!(byte_position(
++            source,
++            &EditPosition {
++                line: 0,
++                character: 4
++            }
++        )
++        .is_err());
++        assert_eq!(
++            byte_position(
++                source,
++                &EditPosition {
++                    line: 0,
++                    character: 5
++                }
++            )
++            .unwrap(),
++            7
++        );
++        for value in [
++            json!({"changes":{uri.clone():[edit.clone(),edit.clone()]}}),
++            json!({"documentChanges":[{"kind":"delete","uri":uri}]}),
++            json!({"documentChanges":[{"textDocument":{"uri":uri,"version":123},"edits":[edit]}]}),
++            json!({"changes":{"file:///outside.ts":[]}}),
++        ] {
++            assert!(rename_plan(
++                value,
++                &ctx,
++                dir.path(),
++                "typescript",
++                &guards,
++                &HashMap::new()
++            )
++            .is_err());
++        }
++        assert_eq!(std::fs::read(&path).unwrap(), source.as_bytes());
++    }
++
++    #[tokio::test]
++    #[ignore = "set GOOSE_REAL_LSP_RUNTIME to the prepared orqaly-runtime directory"]
++    async fn real_rename_preserves_wire_keys_aliases_shadowing_and_rejects_stale_scope() {
++        let runtime =
++            PathBuf::from(std::env::var_os("GOOSE_REAL_LSP_RUNTIME").expect("runtime required"));
++        let dir = tempfile::tempdir().unwrap();
++        let ctx = ToolCallContext::new("rename-real".into(), Some(dir.path().to_owned()), None);
++        std::fs::write(dir.path().join("tsconfig.json"),r#"{"compilerOptions":{"strict":true,"target":"ES2022","module":"commonjs"},"include":["*.ts"]}"#).unwrap();
++        std::fs::write(dir.path().join("api.ts"),"export interface RequestContext { requestId: string; }\nexport interface Job { requestId: string; }\n").unwrap();
++        std::fs::write(
++            dir.path().join("barrel.ts"),
++            "export { RequestContext as Ctx } from './api';\n",
++        )
++        .unwrap();
++        let source = "import { Ctx as Context } from './barrel';\nimport { Job } from './api';\nexport function build() { const ctx: Context = {requestId:'id'}; const {requestId} = ctx; const job: Job = {requestId:'job'}; return {requestId, jobId:job.requestId, propagated:ctx.requestId}; }\nexport function shadow(requestId:string) { return requestId; }\n";
++        std::fs::write(dir.path().join("consumer.ts"), source).unwrap();
++        let state = Arc::new(EngineeringState::default());
++        let client = LspTools {
++            configured: Ok(HashMap::from([(
++                "typescript".into(),
++                vec![
++                    runtime.join("node/bin/node").to_string_lossy().into(),
++                    runtime
++                        .join(
++                            "language-servers/node_modules/typescript-language-server/lib/cli.mjs",
++                        )
++                        .to_string_lossy()
++                        .into(),
++                    "--stdio".into(),
++                ],
++            )])),
++            sessions: Mutex::new(HashMap::new()),
++            lifetime: CancellationToken::new(),
++            state: state.clone(),
++        };
++        let edits = EditTools::with_state(state);
++        let args = json!({"action":"rename","path":"api.ts","symbol":"RequestContext.requestId","new_name":"traceId","scope":"."});
++        let first = client
++            .call_tool(args.as_object().cloned(), &ctx, CancellationToken::new())
++            .await
++            .structured_content
++            .unwrap();
++        assert_eq!(first["status"], "completed", "{first}");
++        assert_eq!(first["result"]["preview_complete"], true);
++        assert_eq!(
++            std::fs::read_to_string(dir.path().join("consumer.ts")).unwrap(),
++            source,
++            "planning is read-only"
++        );
++        std::fs::write(dir.path().join("added.ts"), "export const unrelated=1;\n").unwrap();
++        let stale = edits.call_tool("safe_edit_and_test",json!({"plan_id":first["result"]["plan_id"],"test_command":["/bin/sh","-c","touch forbidden-test"]}).as_object().cloned(),&ctx,CancellationToken::new()).await.structured_content.unwrap();
++        assert!(
++            stale["error"].as_str().unwrap().starts_with("STALE_SCOPE"),
++            "{stale}"
++        );
++        assert!(!dir.path().join("forbidden-test").exists());
++        let fresh = client
++            .call_tool(args.as_object().cloned(), &ctx, CancellationToken::new())
++            .await
++            .structured_content
++            .unwrap();
++        assert_eq!(fresh["status"], "completed", "{fresh}");
++        let script = format!("require('node:child_process').execFileSync(process.execPath,[{},'--outDir','out']); const value=require('./out/consumer.js').build(); if(JSON.stringify(value)!==JSON.stringify({{requestId:'id',jobId:'job',propagated:'id'}}))process.exit(1);",serde_json::to_string(&runtime.join("language-servers/node_modules/typescript/lib/tsc.js")).unwrap());
++        let apply = json!({"plan_id":fresh["result"]["plan_id"],"test_command":[runtime.join("node/bin/node"),"--eval",script]});
++        let result = edits
++            .call_tool(
++                "safe_edit_and_test",
++                apply.as_object().cloned(),
++                &ctx,
++                CancellationToken::new(),
++            )
++            .await
++            .structured_content
++            .unwrap();
++        assert_eq!(result["verified"], true, "{result}");
++        let consumer = std::fs::read_to_string(dir.path().join("consumer.ts")).unwrap();
++        assert!(consumer.contains("ctx.traceId"), "{consumer}");
++        assert!(consumer.contains("job.requestId"));
++        assert!(consumer.contains("shadow(requestId:string) { return requestId; }"));
++        let replay = edits
++            .call_tool(
++                "safe_edit_and_test",
++                apply.as_object().cloned(),
++                &ctx,
++                CancellationToken::new(),
++            )
++            .await
++            .structured_content
++            .unwrap();
++        assert!(replay["error"]
++            .as_str()
++            .unwrap()
++            .starts_with("PLAN_UNAVAILABLE"));
++    }
+ }
+ 
+ type ServerMap = HashMap<String, Vec<String>>;
+@@ -54,6 +507,7 @@
+     configured: Result<ServerMap, String>,
+     sessions: Mutex<HashMap<SessionKey, Arc<Mutex<Session>>>>,
+     lifetime: CancellationToken,
++    state: Arc<EngineeringState>,
+ }
+ 
+ impl Default for LspTools {
+@@ -64,6 +518,10 @@
+ 
+ impl LspTools {
+     pub fn new() -> Self {
++        Self::with_state(Arc::new(EngineeringState::default()))
++    }
++
++    pub(super) fn with_state(state: Arc<EngineeringState>) -> Self {
+         let configured = match std::env::var("GOOSE_NATIVE_LSP_SERVERS") {
+             Ok(value) => parse_servers(&value),
+             Err(std::env::VarError::NotPresent) => Ok(HashMap::new()),
+@@ -73,6 +531,7 @@
+             configured,
+             sessions: Mutex::new(HashMap::new()),
+             lifetime: CancellationToken::new(),
++            state,
+         }
+     }
+ 
+@@ -97,19 +556,21 @@
+             "type":"object", "additionalProperties":false,
+             "required":["action","path"],
+             "properties":{
+-                "action":{"type":"string","enum":["symbols","definition","references","hover","diagnostics"]},
++                "action":{"type":"string","enum":["symbols","definition","references","hover","diagnostics","rename"]},
+                 "path":{"type":"string","description":"Existing file inside this conversation's workspace; relative paths are preferred."},
+                 "language":{"type":"string","enum":["typescript","typescriptreact","javascript","javascriptreact","python","rust","go","c","cpp","json"],"description":"Optional language override; never an executable or command."},
+                 "line":{"type":"integer","minimum":0,"description":"Zero-based line for a use-site query. Omit when symbol is supplied. Required with character only when symbol is absent."},
+                 "character":{"type":"integer","minimum":0,"description":"Zero-based UTF-16 offset for a use-site query. Omit when symbol is supplied. Required with line only when symbol is absent."},
+                 "symbol":{"type":"string","maxLength":256,"description":"Instead of line/character: exact declaration name in this file, optionally qualified as Class.member. Resolves position and runs the semantic query in one call; ambiguity returns candidates. Named references/definition return up to 40 compact locations with saved-line context."},
+                 "offset":{"type":"integer","minimum":0,"default":0,"description":"Named references/definition pagination; use returned next_offset. Each page queries current saved state."},
++                "new_name":{"type":"string","maxLength":256,"description":"rename only: new identifier. Returns a complete read-only edit preview and plan_id; apply with safe_edit_and_test."},
++                "scope":{"type":"string","description":"rename only: existing directory containing the intended source scope (default workspace). Bounded to 32 language files/8 MiB. All scope files are synchronized, including unopened consumers; larger scopes fail without edits. Inspect preview for public keys and unrelated symbols."},
+                 "include_declaration":{"type":"boolean","default":true}
+             }
+         });
+         vec![Tool::new(
+             "lsp_query",
+-            "Find semantic references/definitions/types across aliases and shadowed names using a real language server. For a known declaration use path + symbol, without first calling symbols. Otherwise use zero-based line and UTF-16 character. Use symbols for an outline; diagnostics only when needed. Read-only; servers are host-configured and reused. Inspect partial/ambiguous results; no automatic installation or model delegation.",
++            "For a source-level rename prefer action=rename with path, symbol, new_name and a narrow scope: returns a read-only multi-file edit preview and plan_id for safe_edit_and_test. Preserve external keys and unrelated symbols by inspecting the plan. Otherwise find semantic references/definitions/types across aliases and shadowed names using a real language server. For a known declaration use path + symbol, without first calling symbols. Otherwise use zero-based line and UTF-16 character. Use symbols for an outline; diagnostics only when needed. Read-only; servers are host-configured and reused. Inspect partial/ambiguous results; no automatic installation or model delegation.",
+             schema.as_object().expect("literal object").clone(),
+         ).annotate(ToolAnnotations::from_raw(Some("Language intelligence".into()), Some(true), Some(false), Some(true), Some(true))) ]
+     }
+@@ -132,7 +593,7 @@
+             };
+         if !matches!(
+             query.action.as_str(),
+-            "symbols" | "definition" | "references" | "hover" | "diagnostics"
++            "symbols" | "definition" | "references" | "hover" | "diagnostics" | "rename"
+         ) {
+             return failure("invalid_arguments", "Unsupported language-server action.");
+         }
+@@ -141,9 +602,28 @@
+                 || symbol.len() > 256
+                 || query.line.is_some()
+                 || query.character.is_some()
+-                || !matches!(query.action.as_str(), "definition" | "references" | "hover")
++                || !matches!(
++                    query.action.as_str(),
++                    "definition" | "references" | "hover" | "rename"
++                )
+         }) {
+-            return failure("invalid_arguments", "Use symbol only for definition/references/hover, instead of line/character (1..256 bytes).");
++            return failure("invalid_arguments", "Use symbol only for definition/references/hover/rename, instead of line/character (1..256 bytes).");
++        }
++        if query.action == "rename" {
++            if !query.new_name.as_ref().is_some_and(|name| {
++                !name.is_empty() && name.len() <= 256 && !name.contains(['\0', '\n', '\r'])
++            }) || query.offset != 0
++            {
++                return failure(
++                    "invalid_arguments",
++                    "rename requires a bounded new_name and no pagination.",
++                );
++            }
++        } else if query.new_name.is_some() || query.scope.is_some() {
++            return failure(
++                "invalid_arguments",
++                "new_name/scope are only available for rename.",
++            );
+         }
+         if query.offset > 100_000
+             || (query.offset != 0
+@@ -176,8 +656,10 @@
+             Ok(content) => content,
+             Err(error) => return failure("invalid_document", &error),
+         };
+-        if matches!(query.action.as_str(), "definition" | "references" | "hover")
+-            && query.symbol.is_none()
++        if matches!(
++            query.action.as_str(),
++            "definition" | "references" | "hover" | "rename"
++        ) && query.symbol.is_none()
+             && !valid_position(&content, query.line, query.character)
+         {
+             return failure(
+@@ -185,6 +667,57 @@
+                 "Provide an in-bounds zero-based line and UTF-16 character offset.",
+             );
+         }
++        let rename_inputs = if query.action == "rename" {
++            let scope = match workspace_path(ctx, query.scope.as_deref().unwrap_or(".")) {
++                Ok(scope) if scope.is_dir() => scope,
++                _ => {
++                    return failure(
++                        "invalid_scope",
++                        "rename scope must be an existing workspace directory.",
++                    )
++                }
++            };
++            let paths = match rename_scope_paths(
++                ctx,
++                &scope,
++                server_language(language),
++                &cancellation_token,
++            ) {
++                Ok(paths) => paths,
++                Err(error) => return failure("invalid_scope", &error),
++            };
++            if !paths.contains(&path) {
++                return failure(
++                    "invalid_scope",
++                    "The declaration must be inside the selected scope.",
++                );
++            }
++            let mut guards = Vec::new();
++            let mut size = 0;
++            for input in paths {
++                let bytes = match read_file(&input) {
++                    Ok((bytes, _)) => bytes,
++                    Err(error) => return failure("invalid_document", &error),
++                };
++                if std::str::from_utf8(&bytes).is_err() || bytes.contains(&0) {
++                    return failure("invalid_document", "Rename scope must contain UTF-8 text.");
++                }
++                size += bytes.len();
++                if size > 8 * 1024 * 1024 {
++                    return failure(
++                        "scope_too_large",
++                        "Narrow the rename scope (maximum 8 MiB).",
++                    );
++                }
++                guards.push(Snapshot {
++                    path: input,
++                    bytes: Arc::new(bytes),
++                });
++            }
++            Some((scope, guards))
++        } else {
++            None
++        };
+         let uri = match Url::from_file_path(&path) {
+             Ok(uri) => uri.to_string(),
+             Err(_) => return failure("invalid_path", "Cannot represent the file as an LSP URI."),
+@@ -226,6 +759,39 @@
+             }
+             server.refresh_open_documents(&uri).await?;
+             server.sync_document(&uri, language, content).await?;
++            if let Some((_, guards)) = &rename_inputs {
++                // Close unrelated documents before opening every bounded source input.
++                let keep: Vec<_> = guards
++                    .iter()
++                    .map(|snapshot| file_uri(&snapshot.path))
++                    .collect::<Result<_, _>>()?;
++                let close: Vec<_> = server
++                    .documents
++                    .keys()
++                    .filter(|uri| !keep.contains(uri))
++                    .cloned()
++                    .collect();
++                for uri in close {
++                    server.documents.remove(&uri);
++                    server
++                        .notify("textDocument/didClose", json!({"textDocument":{"uri":uri}}))
++                        .await?;
++                }
++                for snapshot in guards {
++                    if let Some(language) = language_for(&snapshot.path, None) {
++                        if super::lsp::server_language(language) == server_language {
++                            server
++                                .sync_document(
++                                    &file_uri(&snapshot.path)?,
++                                    language,
++                                    String::from_utf8((*snapshot.bytes).clone())
++                                        .expect("validated UTF-8"),
++                                )
++                                .await?;
++                        }
++                    }
++                }
++            }
+             let version = server.documents.get(&uri).expect("opened document").version;
+             if let Some(symbol) = &query.symbol {
+                 if !server.supports("documentSymbolProvider") {
+@@ -246,6 +812,36 @@
+                 query.character = Some(position.1);
+             }
+             let value = server.query(&query, &uri).await?;
++            let value = if let Some((scope, guards)) = &rename_inputs {
++                let (plan, preview) = rename_plan(
++                    value,
++                    ctx,
++                    scope,
++                    server_language,
++                    guards,
++                    &server.documents,
++                )?;
++                if rename_scope_paths(ctx, scope, server_language, &cancellation_token)?
++                    != plan.scope_files
++                {
++                    return Err(
++                        "stale_scope: Scope changed while planning; retry after reconciling."
++                            .into(),
++                    );
++                }
++                for input in guards {
++                    if read_file(&input.path)?.0 != *input.bytes {
++                        return Err("stale_plan: A source input changed while planning.".into());
++                    }
++                }
++                let id = self.state.save_plan(ctx, plan)?;
++                json!({"plan_id":id,"preview":preview,"preview_complete":true,
++                    "coverage":"all_nonignored_language_files_in_scope_synchronized", "scope":scope,
++                    "project_coverage":"not_proven_outside_scope", "source_files":guards.iter().filter(|s|language_for(&s.path,None).is_some_and(|value|super::lsp::server_language(value)==server_language)).count(),
++                    "note":"Read-only proposal. Inspect external/wire keys, aliases and unrelated symbols. Apply only with a relevant test/type-check command; plan expires after ten minutes and is consumed once."})
++            } else {
++                value
++            };
+             let value = if query.symbol.is_some()
+                 && matches!(query.action.as_str(), "references" | "definition")
+             {
+@@ -834,9 +1430,10 @@
+             "workspaceFolders":[{"uri":root_uri,"name":"workspace"}],
+             "capabilities":{
+                 "general":{"positionEncodings":["utf-16"]},
+-                "workspace":{"applyEdit":false,"configuration":true,"workspaceFolders":true},
++                "workspace":{"applyEdit":false,"configuration":true,"workspaceFolders":true,"workspaceEdit":{"documentChanges":true,"resourceOperations":[]}},
+                 "textDocument":{
+                     "synchronization":{"dynamicRegistration":false,"didSave":true},
++                    "rename":{"dynamicRegistration":false,"prepareSupport":true},
+                     "documentSymbol":{"hierarchicalDocumentSymbolSupport":true},
+                     "hover":{"contentFormat":["plaintext","markdown"]},
+                     "publishDiagnostics":{"versionSupport":true},
+@@ -1029,6 +1626,7 @@
+             "definition" => ("textDocument/definition", "definitionProvider"),
+             "references" => ("textDocument/references", "referencesProvider"),
+             "hover" => ("textDocument/hover", "hoverProvider"),
++            "rename" => ("textDocument/rename", "renameProvider"),
+             _ => return Err("invalid_arguments: Unsupported query.".into()),
+         };
+         if !self.supports(capability) {
+@@ -1040,6 +1638,17 @@
+         }
+         if query.action == "references" {
+             params["context"] = json!({"includeDeclaration":query.include_declaration});
++        }
++        if query.action == "rename" {
++            if self.capabilities["renameProvider"]["prepareProvider"] == true
++                && self
++                    .request("textDocument/prepareRename", params.clone())
++                    .await?
++                    .is_null()
++            {
++                return Err("rename_unavailable: This symbol cannot be renamed.".into());
++            }
++            params["newName"] = json!(query.new_name);
+         }
+         self.request(method, params).await
+     }
+@@ -1317,6 +1926,7 @@
+             configured: Ok(HashMap::from([("rust".into(), argv)])),
+             sessions: Mutex::new(HashMap::new()),
+             lifetime: CancellationToken::new(),
++            state: Arc::new(EngineeringState::default()),
+         }
+     }
+ 
+@@ -1726,6 +2336,7 @@
+             )])),
+             sessions: Mutex::new(HashMap::new()),
+             lifetime: CancellationToken::new(),
++            state: Arc::new(EngineeringState::default()),
+         };
+         let ctx = context(root.path());
+         let invoke = |input: Value| {
+@@ -1825,7 +2436,7 @@
+         ] {
+             let root = tempfile::tempdir().unwrap();
+             std::fs::write(root.path().join(filename), text).unwrap();
+-            let client = LspTools { configured: Ok(HashMap::from([(language.into(), vec![node.to_string_lossy().into(), modules.join(cli).to_string_lossy().into(), "--stdio".into()])])), sessions: Mutex::new(HashMap::new()), lifetime: CancellationToken::new() };
++            let client = LspTools { configured: Ok(HashMap::from([(language.into(), vec![node.to_string_lossy().into(), modules.join(cli).to_string_lossy().into(), "--stdio".into()])])), sessions: Mutex::new(HashMap::new()), lifetime: CancellationToken::new(), state: Arc::new(EngineeringState::default()) };
+             for action in ["symbols", "definition", "references", "hover"] {
+                 let started = std::time::Instant::now();
+                 let result = client.call_tool(Some(json!({"action":action,"path":filename,"line":line,"character":character}).as_object().unwrap().clone()), &context(root.path()), CancellationToken::new()).await.structured_content.unwrap();
+--- /dev/null
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/state.rs
+@@ -0,0 +1,160 @@
++use super::workspace_root;
++use crate::agents::ToolCallContext;
++use std::collections::VecDeque;
++use std::path::PathBuf;
++use std::sync::{Arc, Mutex};
++use std::time::{Duration, Instant};
++
++const MAX_ENTRIES: usize = 128;
++const MAX_BYTES: usize = 16 * 1024 * 1024;
++const TTL: Duration = Duration::from_secs(600);
++
++#[derive(Clone)]
++pub(super) struct Snapshot {
++    pub path: PathBuf,
++    pub bytes: Arc<Vec<u8>>,
++}
++
++#[derive(Clone)]
++pub(super) struct PlannedFile {
++    pub before: Snapshot,
++    pub after: Vec<u8>,
++}
++
++#[derive(Clone)]
++pub(super) struct ChangePlan {
++    pub files: Vec<PlannedFile>,
++    pub guards: Vec<Snapshot>,
++    pub scope: PathBuf,
++    pub language: String,
++    pub scope_files: Vec<PathBuf>,
++}
++
++enum Stored {
++    Snapshot(Snapshot),
++    Plan(ChangePlan),
++}
++
++struct Entry {
++    id: String,
++    session: String,
++    root: PathBuf,
++    created: Instant,
++    size: usize,
++    value: Stored,
++}
++
++#[derive(Default)]
++pub(super) struct EngineeringState(Mutex<VecDeque<Entry>>);
++
++impl EngineeringState {
++    fn insert(&self, ctx: &ToolCallContext, value: Stored, size: usize) -> Result<String, String> {
++        if size > MAX_BYTES {
++            return Err("STATE_TOO_LARGE: Narrow the change scope.".into());
++        }
++        let root = workspace_root(ctx)?;
++        let id = uuid::Uuid::new_v4().simple().to_string();
++        let mut entries = self.0.lock().map_err(|_| "STATE_UNAVAILABLE")?;
++        entries.retain(|entry| entry.created.elapsed() < TTL);
++        let mut used: usize = entries.iter().map(|entry| entry.size).sum();
++        while entries.len() >= MAX_ENTRIES || used + size > MAX_BYTES {
++            used -= entries.pop_front().expect("nonempty bounded store").size;
++        }
++        entries.push_back(Entry {
++            id: id.clone(),
++            session: ctx.session_id.clone(),
++            root,
++            created: Instant::now(),
++            size,
++            value,
++        });
++        Ok(id)
++    }
++
++    pub fn save_snapshot(
++        &self,
++        ctx: &ToolCallContext,
++        snapshot: Snapshot,
++    ) -> Result<String, String> {
++        let size = snapshot.bytes.len();
++        self.insert(ctx, Stored::Snapshot(snapshot), size)
++    }
++
++    pub fn snapshot(&self, ctx: &ToolCallContext, id: &str) -> Result<Snapshot, String> {
++        let root = workspace_root(ctx)?;
++        let mut entries = self.0.lock().map_err(|_| "STATE_UNAVAILABLE")?;
++        entries.retain(|entry| entry.created.elapsed() < TTL);
++        match entries
++            .iter()
++            .find(|entry| entry.id == id && entry.session == ctx.session_id && entry.root == root)
++            .map(|entry| &entry.value)
++        {
++            Some(Stored::Snapshot(snapshot)) => Ok(snapshot.clone()),
++            _ => Err("SNAPSHOT_UNAVAILABLE: Read again in this session and workspace.".into()),
++        }
++    }
++
++    pub fn save_plan(&self, ctx: &ToolCallContext, plan: ChangePlan) -> Result<String, String> {
++        let size = plan.guards.iter().map(|s| s.bytes.len()).sum::<usize>()
++            + plan.files.iter().map(|f| f.after.len()).sum::<usize>();
++        self.insert(ctx, Stored::Plan(plan), size)
++    }
++
++    pub fn take_plan(&self, ctx: &ToolCallContext, id: &str) -> Result<ChangePlan, String> {
++        let root = workspace_root(ctx)?;
++        let mut entries = self.0.lock().map_err(|_| "STATE_UNAVAILABLE")?;
++        entries.retain(|entry| entry.created.elapsed() < TTL);
++        let index = entries
++            .iter()
++            .position(|entry| {
++                entry.id == id && entry.session == ctx.session_id && entry.root == root
++            })
++            .ok_or("PLAN_UNAVAILABLE: Prepare a fresh plan in this session and workspace.")?;
++        if !matches!(entries[index].value, Stored::Plan(_)) {
++            return Err("PLAN_UNAVAILABLE: Expected a change plan.".into());
++        }
++        match entries.remove(index).expect("located entry").value {
++            Stored::Plan(plan) => Ok(plan),
++            _ => unreachable!(),
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn snapshots_are_bound_to_session_root_lifetime_and_budget() {
++        let dir = tempfile::tempdir().unwrap();
++        let ctx = ToolCallContext::new("one".into(), Some(dir.path().to_owned()), None);
++        let state = EngineeringState::default();
++        let snapshot = Snapshot {
++            path: dir.path().join("file"),
++            bytes: Arc::new(b"original".to_vec()),
++        };
++        let id = state.save_snapshot(&ctx, snapshot.clone()).unwrap();
++        assert_eq!(&**state.snapshot(&ctx, &id).unwrap().bytes, b"original");
++        let other = ToolCallContext::new("two".into(), ctx.working_dir.clone(), None);
++        assert!(state.snapshot(&other, &id).is_err());
++        let other_root = tempfile::tempdir().unwrap();
++        let moved = ToolCallContext::new("one".into(), Some(other_root.path().to_owned()), None);
++        assert!(state.snapshot(&moved, &id).is_err());
++        state.0.lock().unwrap()[0].created = Instant::now() - TTL;
++        assert!(state.snapshot(&ctx, &id).is_err());
++        let id = state.save_snapshot(&ctx, snapshot.clone()).unwrap();
++        for _ in 0..MAX_ENTRIES {
++            state.save_snapshot(&ctx, snapshot.clone()).unwrap();
++        }
++        assert!(state.snapshot(&ctx, &id).is_err());
++        assert!(state
++            .save_snapshot(
++                &ctx,
++                Snapshot {
++                    bytes: Arc::new(vec![0; MAX_BYTES + 1]),
++                    ..snapshot
++                }
++            )
++            .is_err());
++    }
++}
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/selection.md
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/selection.md
+@@ -1,8 +1,8 @@
+-Native engineering selection policy v3
++Native engineering selection policy v4
+ 
+-Choose tools that reduce work for this task; native tools are not a checklist.
++Use native operations when they replace work. Keep the ordinary developer workflow for simple textual changes; tools are not a checklist.
+ 
+-- For code structure obscured by comments, strings or formatting, use `ast_search` with a preset: `{"path":"src","language":"typescript","preset":"calls","name":"parse"}`. Presets also include functions/classes. These match syntax, not symbol bindings.
+-- For references through aliases or shadowed names, use `lsp_query` on the declaration: `{"action":"references","path":"src/client.ts","symbol":"Client.send"}`. It resolves the declaration and queries references in one call, returning compact locations and saved-line context. Inspect ambiguity/partial results and follow `next_offset` when present. Use explicit zero-based UTF-16 positions for use sites. Servers start only on demand and are reused. Use ordinary search if unsupported; do not install servers or repeatedly retry unavailable ones.
+-- For simple unique textual edits, ordinary read/edit is sufficient. Use guarded hashline edits when exact snapshot protection is useful; gather only edit targets with `read_many`, reuse snapshots, and group edits per file. Never bypass a stale guard: reread and reconcile. Use write for new files. A relevant single-file check can be combined with a guarded change via `safe_edit_and_test`; interdependent edits need verification after all changes.
+-- Verify behavior and regression cases. Reuse valid tool results and successful checks until relevant inputs change. Do not add routine AST queries, LSP diagnostics, rereads or duplicate tests after success. No result proves all requirements; unversioned diagnostics do not prove freshness. Respect scope and normal permissions.
++- For a source-level symbol rename, prefer one `lsp_query` action=rename with path, symbol, new_name and the intended scope directory. It synchronizes every nonignored language file in a bounded scope, including unopened consumers, and returns a complete edit preview plus plan_id. Inspect public/wire keys, aliases and unrelated symbols. If the plan fits the request, apply it once with `safe_edit_and_test` plan_id and a relevant test/type-check command. Do not manually recreate the same edits or reread every proposed target. Scope coverage does not establish coverage outside that directory. Unsupported/oversized/unsafe plans require ordinary edits; never force a global text replacement.
++- For custom multi-file changes, gather only needed context with `hashline_edit` read_many. Copy snapshot_id and compact line anchors into `safe_edit_and_test` files to apply the whole batch and check it once. Use hashline_edit edit_many when checks need a later step. All guards bind the full preimage internally. Reconcile stale changes; never bypass a guard. Use write for new files.
++- Use `ast_search` presets (functions/classes/calls plus an exact name) for structural discovery obscured by comments/strings. AST matches syntax, not bindings. Use `lsp_query` references/definition with a declaration's qualified symbol for alias/shadowing questions; inspect ambiguity, partial results and pagination. Servers start on demand and are reused. For host-configured languages, call LSP directly: no shell prerequisite checks or searches of host bundles/server executables are needed. An unavailable response is sufficient evidence to fall back. Unsupported tools require bounded local alternatives, not installation or repeated retries.
++- Add appropriate behavior/regression tests and run necessary checks after relevant changes. Reuse current results and successful checks while inputs are unchanged. Avoid routine semantic queries, duplicate reads or checks after success. Receipts prove only the checks that ran; unversioned diagnostics do not prove freshness. Respect normal scope and permissions. No OMP or separate model is involved.
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/README.md
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/README.md
+@@ -99,3 +99,16 @@
+ ```
+ 
+ The host must also supply its pinned language-server configuration. This command is functional validation, not a performance benchmark.
++
++
++## Native operations v4
++
++The host still mounts exactly four tools under the existing feature flag. Ordinary developer instructions are preserved. No OMP process or extra model performs these operations.
++
++`lsp_query` adds read-only `action=rename` with `path`, `symbol` (or a position), `new_name`, and optional `scope` directory. Every nonignored language file in that bounded directory is synchronized before requesting the language server's WorkspaceEdit. The complete preview and opaque `plan_id` contain all proposed text edits. Up to 32 language files/8 MiB are supported; excessive enumeration, unsupported resource operations/annotations, out-of-scope edits, malformed/overlapping UTF-16 ranges and excessive previews fail explicitly. Scope coverage does not prove project coverage outside that directory. The model must inspect wire keys and request constraints; compiler/tests remain necessary. Server-initiated workspace/applyEdit stays rejected.
++
++`hashline_edit` reads now return compact `L<number>` anchors and a session/workspace-bound `snapshot_id`. Full SHA-256 and legacy anchors remain accepted for compatibility; compact anchors are validated only with an exact full preimage guard. The bounded store retains up to 128 entries/16 MiB for ten minutes, with eviction. Single reads return at most 16 KiB of line data, batched reads 64 KiB; whole oversized lines are omitted with explicit pagination. `edit_many` accepts `files`, each containing its path, snapshot_id (or expected_sha256) and anchored edits.
++
++`safe_edit_and_test` accepts exactly one of the existing single-file fields, a `files` batch, or a reviewed rename `plan_id`, plus explicit literal test_command argv. Plans are consumed once. Scope topology, ancestor configs/ignores and all captured inputs are rechecked. All target guards/ranges/unique paths are validated and locks acquired in stable order before publication. Tests run after the complete batch. Failure, timeout, cancellation or dropped futures roll back only files still equal to owned postimages; intervening changes are preserved with explicit receipts. Scope inputs are checked again after verification.
++
++Multi-file publication is not a filesystem-wide atomic transaction. Advisory locks coordinate cooperating processes and cannot eliminate races with arbitrary external writers. Tests may change unowned files; rollback does not undo those effects. Commands retain normal permission handling and Unix process-tree containment.
+--- a/crates/goose/src/agents/platform_extensions/developer/mod.rs
++++ b/crates/goose/src/agents/platform_extensions/developer/mod.rs
+@@ -39,17 +39,7 @@
+     image_tool: Arc<ImageTool>,
+ }
+ 
+-pub(crate) fn developer_instructions(native_engineering: bool) -> &'static str {
+-    if native_engineering {
+-        return indoc! {"
+-            Use the developer extension for requested software work and terminal commands.
+-            Read relevant context, make the requested change and verify it efficiently.
+-            Native engineering selection policy v3 describes optional semantic queries and
+-            guarded edits. Ordinary read/edit remains appropriate for simple unique changes.
+-            Reuse current results; respect scope, permissions and failed conflict/test checks.
+-            Use python3 for Python commands.
+-        "};
+-    }
++pub(crate) fn developer_instructions(_native_engineering: bool) -> &'static str {
+     if cfg!(windows) {
+         indoc! {"
+             Use the developer extension to build software and operate a terminal.
+--- a/crates/goose/tests/native_engineering_integration.rs
++++ b/crates/goose/tests/native_engineering_integration.rs
+@@ -89,13 +89,10 @@
+     assert_eq!(observations.len(), 1);
+     let (prompt, tools) = &observations[0];
+     assert_eq!(
+-        prompt.contains("Native engineering selection policy v3"),
++        prompt.contains("Native engineering selection policy v4"),
+         native
+     );
+-    assert_eq!(
+-        prompt.contains("Use write and edit to efficiently make changes"),
+-        !native
+-    );
++    assert!(prompt.contains("Use write and edit to efficiently make changes"));
+     assert_eq!(
+         prompt.contains("Host-configured LSP languages: python"),
+         native
+--- a/goose-self-test.yaml
++++ b/goose-self-test.yaml
+@@ -195,7 +195,9 @@
+   This is an optional host-controlled feature. Do not enable it using a model tool or install OMP.
+   If ast_search, lsp_query, hashline_edit, and safe_edit_and_test are absent, record the native phase
+   as skipped (feature disabled). Their absence is expected when the host feature flag is off.
+-  If all four are available, use them directly in this conversation:
++  If all four are available, use them directly in this conversation. Host LSP configuration
++  is provided by the extension: query it directly, without shell searches for server executables
++  or prerequisite/version probes. Do not inspect the application bundle or parent directories:
+   1. Create a disposable source fixture under the session workspace with a real declaration plus
+      a comment and string containing declaration-shaped decoys. Use ast_search preset=functions with the exact declaration name and verify it finds
+      the declaration and excludes both decoys. Also check preset=calls against comment/string decoys.
+@@ -209,12 +211,20 @@
+      Inspect pagination and source snapshots. Check that the response comes from a real language server. If that language server is unavailable, record the LSP check as skipped;
+      never report heuristic text search as a successful LSP check.
+   3. Read the source and another existing text file together with hashline_edit action=read_many.
+-     Inspect per-file results and pagination. Copy its full digest and line anchors into
++     Inspect per-file results and pagination. Copy its snapshot_id and compact line anchors into
+      safe_edit_and_test, making a small correction and running a local test command as literal argv.
+      Verify the file bytes, test exit code, and verified field. A completed call alone is not a pass.
+   4. Read new anchors and exercise a deliberately failing test. Verify rollback restores the
+      preimage. Exercise a stale digest and verify it changes no file and starts no test process.
+-  5. Respect normal approvals and cancellation. Repair any real failure through a later tool call
++  5. Prepare a source-level rename with lsp_query action=rename, path, symbol, new_name and
++     the disposable fixture directory as scope. Inspect its complete preview for the alias,
++     shadow and unrelated public keys. Apply the reviewed plan_id with safe_edit_and_test and
++     a relevant test/type-check command. Verify every changed file and the receipt. Also make
++     two interdependent text changes using safe_edit_and_test files with snapshot_ids in one
++     batch. A deliberately failing batch test must restore both owned preimages. A stale
++     member must prevent every publication and the test process. Do not claim scope coverage
++     outside the selected directory. Unsupported rename servers are explicit skips.
++  6. Respect normal approvals and cancellation. Repair any real failure through a later tool call
+      in this same conversation; there is no separate coding agent or automatic model repair.
+   Check Rust prerequisites only with `command -v cargo` and a Cargo.toml in the current workspace.
+   Never search parent directories or the filesystem for a toolchain or source checkout. If either
+--- a/crates/goose/src/agents/extension_manager.rs
++++ b/crates/goose/src/agents/extension_manager.rs
+@@ -2833,7 +2833,7 @@
+             )
+             .await;
+         let (_, prompt) = manager.code_mode_capability_prompt().await.unwrap();
+-        assert!(prompt.contains("Native engineering selection policy v3"));
++        assert!(prompt.contains("Native engineering selection policy v4"));
+         assert!(!prompt.contains("Use write and edit to efficiently make changes"));
+         manager
+             .remove_extension("native_engineering")

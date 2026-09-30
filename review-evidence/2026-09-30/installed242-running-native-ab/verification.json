@@ -1,0 +1,22 @@
+{
+  "schema": "orqanix.running242-verification.v1",
+  "checks": {
+    "exactly12Rows": true,
+    "exactSchedule": true,
+    "allQualityPassed": true,
+    "allUICompletionsVerified": true,
+    "allPromptsExact": true,
+    "allFlagsMatchedMounts": true,
+    "allSmartMode": true,
+    "allLowThinkingEffort": true,
+    "sameRequestedModel": true,
+    "installedFilesUnchanged": true,
+    "sameRunningProcesses": true,
+    "originalSettingsRestored": true,
+    "noEngineeringToolCalls": true,
+    "allIndependentGraderBoundariesPassed": true,
+    "sameNonEngineeringExtensionMounts": true
+  },
+  "passed": true,
+  "scope": "Functional correctness, exact task prompts, extension mount behavior, unchanged installation/processes and restored settings. Does not certify bridge operation execution, actual advertised schema inventory, resolved upstream model identity, or performance equivalence."
+}

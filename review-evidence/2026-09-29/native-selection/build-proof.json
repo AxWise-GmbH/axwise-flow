@@ -1,0 +1,127 @@
+{
+  "schema": "orqanix.native-selection-build.v1",
+  "createdAt": "2026-09-29T13:48:18.304094+00:00",
+  "sourceCheckout": "/Users/admin/axwise-opensource/orqaly-goose",
+  "buildCheckout": "/private/tmp/orqaly-goose-verified-fixes",
+  "candidate": {
+    "path": "/private/tmp/orqanix-native-selection-build-20260929/goose",
+    "sha256": "5f004856e9ac5e86c10fb6d6e98184e4f8e25dbbccc5da59194a472e2d78b681",
+    "bytes": 251779528,
+    "version": "1.50.0",
+    "signatureVerification": "codesign --verify --strict passed",
+    "profile": "dev",
+    "releaseEligible": false
+  },
+  "cargoCommand": [
+    "cargo",
+    "build",
+    "-p",
+    "goose-cli",
+    "--bin",
+    "goose",
+    "--offline",
+    "--no-default-features",
+    "--features",
+    "rustls-tls"
+  ],
+  "toolchain": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+  "baselineBinaryUnchanged": {
+    "path": "/private/tmp/orqanix-native-desktop-benchmark-20260929/Orqanix Benchmark-darwin-arm64/Orqanix Benchmark.app/Contents/Resources/bin/goose",
+    "sha256": "ff80a98ec86c080d63894aaa15f419f20fae3b78967e211d33b1cd02f0f446a2"
+  },
+  "gooseFiles": [
+    {
+      "path": "crates/goose/src/agents/extension_manager.rs",
+      "before": "92f8bc9715bd663f40df57841f3ace18f1d3f65aec7f6030bf58fc0a4b7e443a",
+      "after": "a6254be73a506c6027d4c241a130848092832e96bd90f7a67b815689930a0cb9"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/developer/mod.rs",
+      "before": "73b27264675f2746c8ae16b93921cc1c33630c4678b70c90e330bd8737a4e079",
+      "after": "9d3172e6239f400cba26ff265ec59ab95138a512594ede71d8fbee866ce6979b"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/mod.rs",
+      "before": "e63766a7b4c2df12a348841e389057e19a838a29131f623bead0d8a96bacc3a5",
+      "after": "233102812b7fae8a9002f44a6165ce602aa13d32244d928e81f61f0336cd1642"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/ast.rs",
+      "before": "fe1b9db3d0b0241b22b2c5bffdcc83d0c8e66156827107233385a6066c56d2c7",
+      "after": "beb7edcb6b8b042e65905f863b378687b38ceb11ce89da9cd56f3b7c3a61b2ef"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/lsp.rs",
+      "before": "43d2d3477870d26e5416a3df9e687c416e6c9ca6fb0d6401ce02d35dfc210073",
+      "after": "ff4c971214f8bcb2295ee4e882678ba95e05a3ddfbb6db1e3708dce547f06f38"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/edits.rs",
+      "before": "e7703dd78cdfc33ccf772d461c695237714f74f9b330f0215ae8b9fef00809a0",
+      "after": "c8b83ff3543e4eedc03080910ba88a8793e5fcf485a3ac685981ce6ec970286d"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/README.md",
+      "before": "5171a4d2f47ce2ba050dd8fda5960307a3a33f990241a31fabbf4cb97f04965d",
+      "after": "eadad8cd9a2dda73ea8193e1a3e71019576e21a4155739e3c8c35bc8609b7b21"
+    },
+    {
+      "path": "crates/goose/tests/native_engineering_integration.rs",
+      "before": "ea2671e89f55f22dccd621c519888063cb54a651f23a80c37357fab4eefa1e53",
+      "after": "0a4c0ff7c992b1eefda898fe4dce737cd314ea6618e46a7d85968edb0712fddd"
+    },
+    {
+      "path": "goose-self-test.yaml",
+      "before": "c75648ff42ecccc55548671973b18ad2abb0d8aa40cc409c8575a2557ad14dc4",
+      "after": "27ac577f23eb9cae068736ab46308d800fab7ba83f9a18472a320d75b270bf3a"
+    },
+    {
+      "path": "crates/goose/src/agents/platform_extensions/native_engineering/selection.md",
+      "before": null,
+      "after": "fbe35c2e5f68e3f089d2827b87b16dec2e25a60ec8aa604b73cd0c30feaae21e"
+    }
+  ],
+  "benchmarkFiles": {
+    "scripts/lib/orqanix-benchmark-relay.mjs": "f2097a65ac35c1e5e6eb8936617314fa6e9413c73d9a66a08aee5525b324597a",
+    "scripts/lib/orqanix-benchmark-relay.test.mjs": "24e163e966d08c3746e3911d61dd1c347ceef791a994cda9e78b32ddb199e091",
+    "scripts/BENCHMARKS.md": "8e6aeebc87091f59dd2be7ddca744997743c194281692794394834739b5744f4"
+  },
+  "validation": {
+    "nativeUnitPassed": 40,
+    "realLspOptInIgnored": 1,
+    "loopAndResumeIntegrationPassed": 4,
+    "securityPassed": 52,
+    "codeModePassed": 6,
+    "relayPassed": 14,
+    "offlineAcpPreflightsPassed": 4,
+    "modelRequests": 0,
+    "strictClippy": "passed with code-mode feature",
+    "format": "passed"
+  },
+  "limitations": [
+    "Separate debug Rust CLI candidate, matching prior benchmark build flags; installed desktop app not replaced.",
+    "Code Mode support compiled/tested separately; code-mode is not enabled in this candidate binary.",
+    "No new live model-selection or latency comparison performed.",
+    "Initial parallel lock failures preserved; descriptor-duplication reproduction failed before explicit-unlock fix and passes in final suite.",
+    "Initial relay and one Code Mode test could not bind localhost under the command sandbox; all passed with local mock-server binding allowed."
+  ],
+  "evidenceSha256": {
+    "build.log": "54b9a1aaca9c1ffd577ffe30dc4d97e7bfa81f21f0023d4a1460c961f1b2155e",
+    "clippy.log": "b82bd49fa35468e7d7b1ebc0722731d982efd72aea28e70cb6b5747bf73470dd",
+    "code-mode-restricted-bind.log": "84efac25f6bececea0242919e8118734c4dfed3129dd361563ff49f05c4fe45f",
+    "code-mode.log": "b7cb2fe63b0c857283ff3815eed085315d24bcb2c42ff743e5d5c9358b78d725",
+    "goose-changes-from-prior-working-state.patch": "821083c570e80ecf0155e4a7ba3f618b0d8ec5cacfa2ee40bd2bce3bc04661b5",
+    "integration-final.log": "60c3fc9bea198045d72e86f8c1e4e8689f451046e8a00f7dd7884ae94cde5941",
+    "lock-descriptor-reproduction-before-fix.log": "a7a91e9887eff1c5218b4d765a4c86aac60e0665b22c473a6e214c737bf98d31",
+    "lock-isolated-before-fix.log": "5ef8a5f2c84baaf2c6057f8a01d93501f4676e31b16a5f9de4366ceabc248574",
+    "preflight.json": "9a3b4b206aae48b067fe9e9a1a6a787574305ee9d25c86779978e7df4059471b",
+    "preflight.log": "3b3cd6876a19bc50ebe364691203a23e12c6800338d47f48eb0dacfe0ce0f1b6",
+    "relay-restricted-bind.log": "ddef8a79f3bba3ebeb2e9507367aca7181eec46e58d8f7284b626b05ff9280a1",
+    "relay.log": "5648941b35391ae568a3fdbf0a4f63efd894e7467aa5899dd0f986760ccf4f3d",
+    "security.log": "ee1e654419b8c69ef110ca954a2b8e5b8c34b37e4774e8168b28f9af502086bc",
+    "sync-receipt.json": "acb1f7f024f774f455d8c9e9517633c7ef9f25aadced6d189c6ffd9e6492aba0",
+    "unit-final.log": "d8dfa34e5a9a2a802952c2e78d50b649b838e9bf951f49db63382eba61071654",
+    "unit-initial-failure.log": "58e53fa09c92c9e74f54aef92eb644274f4099a07ca7772ea5703abd9a3f9a73",
+    "unit-recheck-before-fix.log": "b39e7a59e082084eac10d8a32cfd22a21aefd5f5cc966dd0d614154a2930e6c0"
+  }
+}

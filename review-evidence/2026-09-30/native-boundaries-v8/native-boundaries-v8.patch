@@ -1,0 +1,344 @@
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/edits.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/edits.rs
+@@ -33,6 +33,14 @@
+ #[cfg(test)]
+ const MAX_BATCH_BYTES: usize = 262_144;
+ const MAX_RECEIPT_BYTES: usize = 16_384;
++
++#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, JsonSchema)]
++#[serde(rename_all = "snake_case")]
++pub enum ReplacementMode {
++    #[default]
++    Lines,
++    Exact,
++}
+ 
+ #[derive(Clone, Debug, Deserialize, JsonSchema)]
+ #[serde(deny_unknown_fields)]
+@@ -45,8 +53,11 @@
+     /// Copy the exact start/end anchors returned by hashline_edit action=read.
+     pub start_anchor: String,
+     pub end_anchor: String,
+-    /// Exact replacement text, including any desired trailing newline. Empty deletes the range.
++    /// Replacement lines. Empty deletes the range; omitted trailing newline preserves the replaced line boundary.
+     pub replacement: String,
++    /// lines (default) uses local LF/CRLF and preserves the replaced boundary; exact copies bytes for intentional joins or ending changes.
++    #[serde(default)]
++    pub replacement_mode: ReplacementMode,
+ }
+ 
+ #[derive(Debug, Deserialize, JsonSchema)]
+@@ -95,7 +106,7 @@
+     pub expected_sha256: Option<String>,
+     pub snapshot_id: Option<String>,
+     pub edits: Option<Vec<AnchoredEdit>>,
+-    /// Multi-file changes; omit single-file fields and plan_id.
++    /// One complete coherent batch, checked once; omit single-file fields and plan_id.
+     pub files: Option<Vec<FileChange>>,
+     /// Reviewed plan_id from lsp_query action=rename; omit all edit fields.
+     pub plan_id: Option<String>,
+@@ -234,6 +245,49 @@
+     }
+ 
+     #[tokio::test]
++    async fn batch_preserves_omitted_line_boundaries_and_checks_complete_changes_once() {
++        let (dir, ctx, client) = fixture();
++        fs::write(dir.path().join("a.txt"), "old\r\nkeep\r\n").unwrap();
++        fs::write(dir.path().join("b.txt"), "old\nkeep\n").unwrap();
++        fs::write(dir.path().join("expected-a.txt"), "A\r\nkeep\r\n").unwrap();
++        fs::write(dir.path().join("expected-b.txt"), "B\nkeep\n").unwrap();
++        let read = invoke(
++            &client,
++            &ctx,
++            "hashline_edit",
++            json!({"action":"read_many","paths":["a.txt","b.txt"]}),
++            CancellationToken::new(),
++        )
++        .await;
++        let files: Vec<_> = ["a.txt", "b.txt"]
++            .iter()
++            .enumerate()
++            .map(|(i, path)| {
++                json!({"path":path,"snapshot_id":read["files"][i]["snapshot_id"],
++                "edits":[{"start_line":1,"end_line":1,"start_anchor":"L1","end_anchor":"L1",
++                    "replacement":if i==0 {"A"} else {"B"}}]})
++            })
++            .collect();
++        let result = invoke(
++            &client,
++            &ctx,
++            "safe_edit_and_test",
++            json!({"files":files,"compact":true,"test_command":["/bin/sh","-c",
++                "printf x >> checks; cmp a.txt expected-a.txt && cmp b.txt expected-b.txt"]}),
++            CancellationToken::new(),
++        )
++        .await;
++        assert_eq!(result["verified"], true, "{result}");
++        assert_eq!(result["test"]["exit_code"], 0);
++        assert_eq!(fs::read_to_string(dir.path().join("checks")).unwrap(), "x");
++        assert_eq!(
++            fs::read(dir.path().join("a.txt")).unwrap(),
++            b"A\r\nkeep\r\n"
++        );
++        assert_eq!(fs::read(dir.path().join("b.txt")).unwrap(), b"B\nkeep\n");
++    }
++
++    #[tokio::test]
+     async fn failed_batch_preserves_intervening_changes_and_restores_other_owned_files() {
+         let (dir, ctx, client) = fixture();
+         let files = changes(&client, &ctx).await;
+@@ -297,8 +351,8 @@
+             super::compact_schema(serde_json::to_value(schema_for!(T)).expect("native edit schema"))
+         }
+         [
+-            Tool::new("hashline_edit", "Read existing UTF-8 files (1 MiB/file): read/path or read_many/paths. Use compact=true for anchor-tab-text and reuse snapshot_ids from reads/AST; read only missing context. edit or edit_many/files validates complete preimages and original line ranges. recover explicitly restores interrupted batches, preserving intervening edits. Workspace paths only; no symlinks. Legacy SHA/anchors remain accepted.", schema::<HashlineParams>()),
+-            Tool::new("safe_edit_and_test", "Apply a reviewed rename plan_id, files batch, or single path/snapshot_id/edits (exactly one mode); test_command is literal executable argv. Use compact=true for short successful output. All guards/locks precede publication; run relevant checks once. Failure/cancellation rolls back owned postimages, preserving intervening edits; interrupted batches have durable recovery. Multi-file publication is not atomic. Approval covers edits/command; Unix containment, 1–600s. Other test side effects are not rolled back.", schema::<SafeEditParams>()),
++            Tool::new("hashline_edit", "Read existing UTF-8 files (1 MiB/file): read/path or read_many/paths. Use compact=true and reuse read/AST snapshots; read only missing context. edit or edit_many/files validates complete preimages and original line ranges. Replacement lines preserve local LF/CRLF boundaries by default; replacement_mode=exact opts into byte-exact text. recover restores interrupted batches, preserving intervening edits. Workspace paths only; no symlinks. Legacy SHA/anchors remain accepted.", schema::<HashlineParams>()),
++            Tool::new("safe_edit_and_test", "Apply one complete coherent files batch, reviewed rename plan_id, or single path/snapshot_id/edits (exactly one mode), then run relevant checks once. test_command is literal executable argv. Replacement lines preserve local LF/CRLF boundaries unless replacement_mode=exact. Use compact=true; successful checks need no routine rereads or diagnostics. All guards/locks precede publication. Failure/cancellation rolls back owned postimages, preserving intervening edits; interrupted batches have durable recovery. Multi-file publication is not atomic. Approval covers edits/command; Unix containment, 1–600s. Other test side effects are not rolled back.", schema::<SafeEditParams>()),
+         ].into_iter().map(|tool| tool.annotate(ToolAnnotations::from_raw(
+             None, Some(false), Some(true), Some(false), Some(true),
+         ))).collect()
+@@ -431,7 +485,38 @@
+         for line in &rows[previous_end..edit.start_line - 1] {
+             changed.push_str(line);
+         }
+-        changed.push_str(&edit.replacement);
++        match edit.replacement_mode {
++            ReplacementMode::Exact => changed.push_str(&edit.replacement),
++            ReplacementMode::Lines => {
++                let ending = rows[..edit.end_line]
++                    .iter()
++                    .rev()
++                    .find_map(|row| {
++                        if row.ends_with("\r\n") {
++                            Some("\r\n")
++                        } else if row.ends_with('\n') {
++                            Some("\n")
++                        } else {
++                            None
++                        }
++                    })
++                    .unwrap_or("\n");
++                for row in edit.replacement.split_inclusive('\n') {
++                    if let Some(content) = row.strip_suffix('\n') {
++                        changed.push_str(content.strip_suffix('\r').unwrap_or(content));
++                        changed.push_str(ending);
++                    } else {
++                        changed.push_str(row);
++                    }
++                }
++                if !edit.replacement.is_empty()
++                    && !edit.replacement.ends_with('\n')
++                    && rows[edit.end_line - 1].ends_with('\n')
++                {
++                    changed.push_str(ending);
++                }
++            }
++        }
+         if changed.len() > MAX_FILE_BYTES {
+             return Err("FILE_TOO_LARGE: Replacement exceeds 1 MiB.".into());
+         }
+@@ -1479,6 +1564,77 @@
+         args
+     }
+ 
++    #[test]
++    fn whole_line_replacements_keep_boundaries_deletions_and_eof() {
++        for (original, start, end, new, expected) in [
++            ("first\nkeep\n", 1, 1, "changed", "changed\nkeep\n"),
++            ("first\r\nkeep\r\n", 1, 1, "a\nb", "a\r\nb\r\nkeep\r\n"),
++            (
++                "first\r\nkeep\r\n",
++                1,
++                1,
++                "a\r\nb\r\n",
++                "a\r\nb\r\nkeep\r\n",
++            ),
++            ("first\nkeep\n", 1, 1, "", "keep\n"),
++            ("first\r\nlast\r\n", 2, 2, "final", "first\r\nfinal\r\n"),
++            ("first\r\nlast", 2, 2, "final", "first\r\nfinal"),
++            ("first\r\nlast", 2, 2, "a\nb", "first\r\na\r\nb"),
++            ("first\nlast", 2, 2, "final\n", "first\nfinal\n"),
++            ("first\nlast", 2, 2, "", "first\n"),
++            ("last\n", 1, 1, "", ""),
++            ("", 1, 1, "new", "new"),
++        ] {
++            let edits: Vec<AnchoredEdit> =
++                serde_json::from_value(json!([edit_json(original, start, end, new)])).unwrap();
++            assert_eq!(
++                replacement(original.as_bytes(), &edits).unwrap(),
++                expected.as_bytes()
++            );
++        }
++        let original = "first\r\nsecond\nlast";
++        let edits: Vec<AnchoredEdit> = serde_json::from_value(json!([
++            edit_json(original, 2, 2, "B"),
++            edit_json(original, 1, 1, "A"),
++        ]))
++        .unwrap();
++        assert_eq!(
++            replacement(original.as_bytes(), &edits).unwrap(),
++            b"A\r\nB\nlast"
++        );
++    }
++
++    #[test]
++    fn exact_replacements_can_join_lines_or_change_eof_termination() {
++        for (original, new, expected) in [
++            ("first\r\nkeep\r\n", "joined", "joinedkeep\r\n"),
++            ("first\r\nkeep\r\n", "new\n", "new\nkeep\r\n"),
++            ("first\n", "new", "new"),
++        ] {
++            let mut edit = edit_json(original, 1, 1, new);
++            edit["replacement_mode"] = json!("exact");
++            let edits: Vec<AnchoredEdit> = serde_json::from_value(json!([edit])).unwrap();
++            assert_eq!(
++                replacement(original.as_bytes(), &edits).unwrap(),
++                expected.as_bytes()
++            );
++        }
++    }
++
++    #[test]
++    fn normalized_terminator_counts_towards_file_size_limit() {
++        let edits: Vec<AnchoredEdit> = serde_json::from_value(json!([edit_json(
++            "old\n",
++            1,
++            1,
++            &"x".repeat(MAX_FILE_BYTES)
++        )]))
++        .unwrap();
++        assert!(replacement(b"old\n", &edits)
++            .unwrap_err()
++            .starts_with("FILE_TOO_LARGE"));
++    }
++
+     #[tokio::test]
+     async fn read_returns_full_digest_and_exact_paginated_line_anchors() {
+         let (_directory, ctx, _path) = setup("dirty first\r\nsecond\nlast");
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/selection.md
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/selection.md
+@@ -1,8 +1,8 @@
+-Native engineering selection policy v7
++Native engineering selection policy v8
+ 
+ Use native operations when they replace work. Keep the ordinary developer workflow for simple textual changes; tools are not a checklist. Read-only exploration and unique edits may use ordinary shell/read/edit/write. Do not add guarded reads, AST or LSP when the needed context is already sufficient and preimage protection is unnecessary.
+ 
+-- For custom multi-file changes, gather only needed context with `hashline_edit` read_many, or reuse unchanged AST/read snapshots. Copy snapshot_id and L<line> anchors into `safe_edit_and_test` files to apply the whole batch and check it once. Use compact=true for hashline/safe tools. Use edit_many when checks need a later step. All guards bind the full preimage internally. Reconcile stale changes; never bypass a guard. Use write for new files and add requested regression tests before planning/applying guarded changes.
+-- When a source-level rename needs binding-aware edits, prefer one `lsp_query` action=rename with path, qualified symbol (or line/character), new_name and optional scope. Scope bounds edits; the server's project graph discovers consumers and workspace sources/configs are guarded. TS/JS requires tsconfig/jsconfig. Inspect public/wire keys, aliases and unrelated symbols, including all preview pages via action=rename_preview, path, plan_id and next_offset. Apply a fitting plan once with `safe_edit_and_test` plan_id and relevant tests/typecheck. Do not manually recreate its edits or reread every target. Project coverage still needs validation. Unsupported/oversized/unsafe plans require bounded ordinary edits; never force a global text replacement.
++- For custom multi-file changes, gather only needed context with `hashline_edit` read_many, or reuse unchanged AST/read snapshots. Copy snapshot_id and L<line> anchors into `safe_edit_and_test` files to apply the whole batch and check it once. Use compact=true for hashline/safe tools. Replacement lines preserve local LF/CRLF boundaries; use replacement_mode=exact only for intentional byte-exact joins or ending changes. Finish the coherent source/test change in one batch; do not split it into line-by-line edit/test cycles. Use edit_many when checks need a later step. All guards bind the full preimage internally. Reconcile stale changes; never bypass a guard. Use write for new files and add requested regression tests before planning/applying guarded changes.
++- When a source-level rename needs binding-aware edits, prefer one `lsp_query` action=rename with path, qualified symbol (or line/character), new_name and optional scope. Scope bounds edits; the server's project graph discovers consumers and workspace sources/configs are guarded. TS/JS requires tsconfig/jsconfig. Inspect public/wire keys, aliases and unrelated symbols, including all preview pages via action=rename_preview, path, plan_id and next_offset. Add requested tests before the rename plan so the scope stays current. Apply a fitting plan once with `safe_edit_and_test` plan_id and relevant tests/typecheck. Do not manually recreate its edits or reread every target. Project coverage still needs validation. Unsupported/oversized/unsafe plans require bounded ordinary edits; never force a global text replacement.
+ - Use `ast_search` presets for structural discovery obscured by comments/strings or repeated patterns. Direct inline async TS/JS handlers can use preset=calls, receiver, async_argument=true and language. Reuse returned syntax context, snapshot_id and line anchors; read only missing/truncated context. AST matches syntax, not bindings. Use `lsp_query` references/definition with a qualified declaration symbol for alias/shadowing questions; inspect ambiguity, partial results and pagination. Servers start on demand and are reused. Call configured servers directly, without prerequisite probes, host-bundle searches, installation or an extra model. An unavailable response is sufficient evidence to fall back.
+-- Add appropriate behavior/regression tests and run necessary checks after relevant changes. Reuse current context and applicable successful checks only while their relevant inputs are unchanged; never cache test success automatically. Avoid routine semantic queries, duplicate reads and repeated checks after success. Diagnostics are optional, with a 750 ms report wait after initialization; pending is unknown, never clean. Receipts prove only the checks that ran; unversioned diagnostics do not prove freshness. RECOVERY_REQUIRED needs explicit hashline_edit action=recover and reconciliation of conflicts. Respect normal scope and permissions. No OMP or separate model is involved.
++- Add appropriate behavior/regression tests and run necessary checks after relevant changes. Reuse current context and applicable successful checks only while their relevant inputs are unchanged; never cache test success automatically. After the requested behavior and relevant checks pass, report the result. Do not add optional formatting edits, routine diagnostics, duplicate reads or repeated checks without a concrete unresolved issue. Diagnostics are optional, with a 750 ms report wait after initialization; pending is unknown, never clean. Receipts prove only the checks that ran; unversioned diagnostics do not prove freshness. RECOVERY_REQUIRED needs explicit hashline_edit action=recover and reconciliation of conflicts. Respect normal scope and permissions. No OMP or separate model is involved.
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/README.md
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/README.md
+@@ -14,7 +14,7 @@
+ | `hashline_edit` | `action: "read"` returns the whole-file SHA-256 and per-line anchors. `action: "read_many"` gathers up to 16 independent snapshots, with a 64 KiB combined line-data limit and per-file errors/pagination. `action: "edit"` requires that digest and exact boundary anchors before applying ranges to one file. |
+ | `safe_edit_and_test` | Applies the same guarded edit, runs literal `test_command` argv in the workspace, and returns the exit status and captured output. A failed, timed out or cancelled test rolls back only if the edited file still matches the tool's postimage. |
+ 
+-When this host-mounted extension is active, both Goose loops use selection policy v7.
++When this host-mounted extension is active, both Goose loops use selection policy v8.
+ The ordinary developer instructions are identical with the mode off or on, restoring
+ the efficient workflow used in the v4 screening build. The additional policy offers
+ compact batched reads and one batch apply/test when these replace work. AST serves
+@@ -105,7 +105,7 @@
+ 
+ ## Native operations v4
+ 
+-The host still mounts exactly four tools under the existing feature flag. Efficient ordinary developer instructions remain available; optional structural and semantic operations follow policy v7. No OMP process or extra model performs these operations.
++The host still mounts exactly four tools under the existing feature flag. Efficient ordinary developer instructions remain available; optional structural and semantic operations follow policy v8. No OMP process or extra model performs these operations.
+ 
+ `lsp_query` supports read-only `action=rename` with `path`, qualified `symbol` (or a position), `new_name`, and optional `scope`. Scope limits edits, while analysis guards workspace source/configuration inputs. The language server discovers consumers from its project graph; the client opens only the declaration and other queried documents, rather than opening every workspace file. TypeScript/JavaScript rename requires an ancestor tsconfig/jsconfig. Configured projects, project references and tests still determine semantic coverage; no response claims that every workspace file participates in the graph.
+ 
+@@ -123,7 +123,7 @@
+ 
+ ## AST selection and compact output
+ 
+-Both agent loops and Code Mode carry the host-owned selection policy v7. Scoped AST presets are optional when structural discovery is needed; direct TS/JS async handlers can filter `receiver` and `async_argument=true`. The latter matches direct inline async arrows/function expressions, excluding nested callbacks and synchronous handlers. Receivers are exact syntax, not semantic types. Presets provide line ranges, bounded syntax context and session/workspace snapshot IDs; reuse these with `L<line>` anchors rather than rereading complete files. Truncated snippets or scans require additional context.
++Both agent loops and Code Mode carry the host-owned selection policy v8. Scoped AST presets are optional when structural discovery is needed; direct TS/JS async handlers can filter `receiver` and `async_argument=true`. The latter matches direct inline async arrows/function expressions, excluding nested callbacks and synchronous handlers. Receivers are exact syntax, not semantic types. Presets provide line ranges, bounded syntax context and session/workspace snapshot IDs; reuse these with `L<line>` anchors rather than rereading complete files. Truncated snippets or scans require additional context.
+ 
+ `compact=true` on hashline/safe tools projects reads to anchor-tab-text and shortens successful test output to a 2,048-character tail per stream with original byte counts. Canonical structured receipts retain the complete bounded output, guards, rollback and test evidence. Failures retain diagnostics. The default output contract remains compatible; Code Mode intentionally consumes visible content rather than hidden structured metadata.
+ 
+@@ -135,9 +135,25 @@
+ 
+ Diagnostics wait at most 750 ms for a report after server initialization. Absent reports return `status=pending`, `diagnostics=null` and `versionVerified=false`, preserving the warm server. Timed-out pull requests are cancelled; late replies are discarded. Pending results never prove a clean workspace. Compiler/tests remain the correctness gate.
+ 
+-Policy v7 combines the v4 ordinary developer workflow with the current tool implementation:
++Policy v8 combines the v4 ordinary developer workflow with the current tool implementation:
+ large-project analysis guards, paged rename previews, AST snapshot reuse, compact output,
+ and interrupted-batch recovery remain unchanged. This is guidance, not an automatic task
+ classifier or deferred tool loading: all four tool schemas remain available while the
+ mode is enabled. Historical v4 time reductions do not establish performance of this
+ combined build; matched desktop measurements are required before promotion.
++
++## Whole-line replacements (v8)
++
++Guarded edits use `replacement_mode: "lines"` by default. Replacement lines adopt
++the last applicable LF/CRLF ending at the original range. A nonempty replacement
++without a final newline retains the replaced range's original terminator, including
++at EOF. An originally unterminated EOF stays unterminated unless the supplied
++replacement explicitly adds a newline. Empty text deletes the entire range.
++Use `replacement_mode: "exact"` to copy replacement bytes verbatim, intentionally
++join lines, remove an EOF terminator or change line-ending style. LSP plans retain
++the server's exact edits and do not pass through this line normalization.
++
++Policy v8 favors one complete coherent batch and requested checks, then reporting
++success without optional formatting or routine diagnostics. It does not cache or
++skip tests, dynamically hide tools, or classify tasks automatically. Both loops
++use the same edit implementation. Timing remains a separate acceptance gate.
+--- a/crates/goose/src/agents/platform_extensions/native_engineering/mod.rs
++++ b/crates/goose/src/agents/platform_extensions/native_engineering/mod.rs
+@@ -44,7 +44,7 @@
+         );
+         let info = InitializeResult::new(ServerCapabilities::builder().enable_tools().build())
+             .with_server_info(
+-                Implementation::new(EXTENSION_NAME, "1.5.2").with_title("Native Engineering"),
++                Implementation::new(EXTENSION_NAME, "1.5.3").with_title("Native Engineering"),
+             )
+             .with_instructions(instructions);
+         Ok(Self {
+--- a/crates/goose/src/agents/extension_manager.rs
++++ b/crates/goose/src/agents/extension_manager.rs
+@@ -2833,7 +2833,7 @@
+             )
+             .await;
+         let (_, prompt) = manager.code_mode_capability_prompt().await.unwrap();
+-        assert!(prompt.contains("Native engineering selection policy v7"));
++        assert!(prompt.contains("Native engineering selection policy v8"));
+         assert!(!prompt.contains("Use write and edit to efficiently make changes"));
+         manager
+             .remove_extension("native_engineering")
+--- a/crates/goose/tests/native_engineering_integration.rs
++++ b/crates/goose/tests/native_engineering_integration.rs
+@@ -89,7 +89,7 @@
+     assert_eq!(observations.len(), 1);
+     let (prompt, tools) = &observations[0];
+     assert_eq!(
+-        prompt.contains("Native engineering selection policy v7"),
++        prompt.contains("Native engineering selection policy v8"),
+         native
+     );
+     assert!(prompt.contains("Use write and edit to efficiently make changes"));
+@@ -353,7 +353,7 @@
+         "safe_edit_and_test",
+         json!({
+             "path":"source.py", "expected_sha256":read["sha256"],
+-            "edits":[{"start_line":1,"end_line":1,"start_anchor":read["lines"][0]["anchor"],"end_anchor":read["lines"][0]["anchor"],"replacement":UPDATED}],
++            "edits":[{"start_line":1,"end_line":1,"start_anchor":read["lines"][0]["anchor"],"end_anchor":read["lines"][0]["anchor"],"replacement":UPDATED.trim_end_matches('\n')}],
+             "test_command":["/bin/sh","check.sh"],"timeout_secs":5,
+         }),
+     ))
+--- a/goose-self-test.yaml
++++ b/goose-self-test.yaml
+@@ -216,6 +216,10 @@
+      Inspect per-file results and pagination. Copy its snapshot_id and compact line anchors into
+      safe_edit_and_test, making a small correction and running a local test command as literal argv.
+      Verify the file bytes, test exit code, and verified field. A completed call alone is not a pass.
++     In one batch omit trailing newlines in middle-line replacements in both LF and CRLF
++     files. Verify following lines remain separate, tests run once, deletion removes the
++     full line, and EOF termination is preserved. Exercise replacement_mode=exact for an
++     intentional line join and verify the actual bytes.
+   4. Read new anchors and exercise a deliberately failing test. Verify rollback restores the
+      preimage. Exercise a stale digest and verify it changes no file and starts no test process.
+   5. Prepare a source-level rename with lsp_query action=rename, path, symbol, new_name and

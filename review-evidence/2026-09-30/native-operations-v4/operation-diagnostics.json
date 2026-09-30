@@ -1,0 +1,365 @@
+{
+  "counts": {
+    "todo__todo_write": 12,
+    "tree": 6,
+    "hashline_edit": 26,
+    "shell": 46,
+    "write": 6,
+    "edit": 15,
+    "safe_edit_and_test": 3
+  },
+  "operations": [
+    {
+      "key": "control-candidate-1",
+      "name": "hashline_edit",
+      "action": "read_many",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 12
+    },
+    {
+      "key": "control-candidate-1",
+      "name": "hashline_edit",
+      "action": "read",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 17
+    },
+    {
+      "key": "control-candidate-1",
+      "name": "hashline_edit",
+      "action": "read",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 20
+    },
+    {
+      "key": "control-candidate-1",
+      "name": "hashline_edit",
+      "action": "read",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 20
+    },
+    {
+      "key": "ast-candidate-1",
+      "name": "hashline_edit",
+      "action": "read",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 7
+    },
+    {
+      "key": "ast-candidate-1",
+      "name": "hashline_edit",
+      "action": "read_many",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 12
+    },
+    {
+      "key": "ast-candidate-1",
+      "name": "hashline_edit",
+      "action": "read_many",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 12
+    },
+    {
+      "key": "ast-candidate-1",
+      "name": "hashline_edit",
+      "action": "read_many",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 22
+    },
+    {
+      "key": "ast-candidate-1",
+      "name": "hashline_edit",
+      "action": "read_many",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 24
+    },
+    {
+      "key": "ast-candidate-1",
+      "name": "safe_edit_and_test",
+      "action": null,
+      "plan": false,
+      "files": 2,
+      "status": "completed",
+      "intervalMs": 133
+    },
+    {
+      "key": "lsp-candidate-1",
+      "name": "hashline_edit",
+      "action": "read",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 11
+    },
+    {
+      "key": "lsp-candidate-1",
+      "name": "hashline_edit",
+      "action": "read_many",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 14
+    },
+    {
+      "key": "lsp-candidate-1",
+      "name": "hashline_edit",
+      "action": "read_many",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 21
+    },
+    {
+      "key": "lsp-candidate-1",
+      "name": "hashline_edit",
+      "action": "read",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 28
+    },
+    {
+      "key": "lsp-candidate-1",
+      "name": "safe_edit_and_test",
+      "action": null,
+      "plan": false,
+      "files": 14,
+      "status": "completed",
+      "intervalMs": 126
+    },
+    {
+      "key": "control-candidate-2",
+      "name": "hashline_edit",
+      "action": "read",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 11
+    },
+    {
+      "key": "control-candidate-2",
+      "name": "hashline_edit",
+      "action": "read_many",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 12
+    },
+    {
+      "key": "control-candidate-2",
+      "name": "hashline_edit",
+      "action": "read",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 17
+    },
+    {
+      "key": "control-candidate-2",
+      "name": "safe_edit_and_test",
+      "action": null,
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 113
+    },
+    {
+      "key": "ast-candidate-2",
+      "name": "hashline_edit",
+      "action": "read",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 13
+    },
+    {
+      "key": "ast-candidate-2",
+      "name": "hashline_edit",
+      "action": "read_many",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 11
+    },
+    {
+      "key": "ast-candidate-2",
+      "name": "hashline_edit",
+      "action": "read",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 22
+    },
+    {
+      "key": "ast-candidate-2",
+      "name": "hashline_edit",
+      "action": "edit",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 153
+    },
+    {
+      "key": "ast-candidate-2",
+      "name": "hashline_edit",
+      "action": "edit",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 26
+    },
+    {
+      "key": "ast-candidate-2",
+      "name": "hashline_edit",
+      "action": "read_many",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 31
+    },
+    {
+      "key": "lsp-candidate-2",
+      "name": "hashline_edit",
+      "action": "read",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 12
+    },
+    {
+      "key": "lsp-candidate-2",
+      "name": "hashline_edit",
+      "action": "read_many",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 11
+    },
+    {
+      "key": "lsp-candidate-2",
+      "name": "hashline_edit",
+      "action": "read_many",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 21
+    },
+    {
+      "key": "lsp-candidate-2",
+      "name": "hashline_edit",
+      "action": "read_many",
+      "plan": false,
+      "files": 0,
+      "status": "completed",
+      "intervalMs": 27
+    }
+  ],
+  "promptVerification": [
+    {
+      "key": "control-default-1",
+      "agentRequests": 14,
+      "auxiliaryRequests": 1,
+      "nativePolicyPresent": true,
+      "baselineDeveloperGuidancePresent": true
+    },
+    {
+      "key": "control-candidate-1",
+      "agentRequests": 17,
+      "auxiliaryRequests": 1,
+      "nativePolicyPresent": true,
+      "baselineDeveloperGuidancePresent": true
+    },
+    {
+      "key": "ast-candidate-1",
+      "agentRequests": 17,
+      "auxiliaryRequests": 1,
+      "nativePolicyPresent": true,
+      "baselineDeveloperGuidancePresent": true
+    },
+    {
+      "key": "ast-default-1",
+      "agentRequests": 20,
+      "auxiliaryRequests": 1,
+      "nativePolicyPresent": true,
+      "baselineDeveloperGuidancePresent": true
+    },
+    {
+      "key": "lsp-default-1",
+      "agentRequests": 45,
+      "auxiliaryRequests": 1,
+      "nativePolicyPresent": true,
+      "baselineDeveloperGuidancePresent": true
+    },
+    {
+      "key": "lsp-candidate-1",
+      "agentRequests": 19,
+      "auxiliaryRequests": 1,
+      "nativePolicyPresent": true,
+      "baselineDeveloperGuidancePresent": true
+    },
+    {
+      "key": "control-candidate-2",
+      "agentRequests": 14,
+      "auxiliaryRequests": 1,
+      "nativePolicyPresent": true,
+      "baselineDeveloperGuidancePresent": true
+    },
+    {
+      "key": "control-default-2",
+      "agentRequests": 15,
+      "auxiliaryRequests": 1,
+      "nativePolicyPresent": true,
+      "baselineDeveloperGuidancePresent": true
+    },
+    {
+      "key": "ast-default-2",
+      "agentRequests": 20,
+      "auxiliaryRequests": 1,
+      "nativePolicyPresent": true,
+      "baselineDeveloperGuidancePresent": true
+    },
+    {
+      "key": "ast-candidate-2",
+      "agentRequests": 20,
+      "auxiliaryRequests": 1,
+      "nativePolicyPresent": true,
+      "baselineDeveloperGuidancePresent": true
+    },
+    {
+      "key": "lsp-candidate-2",
+      "agentRequests": 33,
+      "auxiliaryRequests": 1,
+      "nativePolicyPresent": true,
+      "baselineDeveloperGuidancePresent": true
+    },
+    {
+      "key": "lsp-default-2",
+      "agentRequests": 42,
+      "auxiliaryRequests": 1,
+      "nativePolicyPresent": true,
+      "baselineDeveloperGuidancePresent": true
+    }
+  ],
+  "semanticSelection": {
+    "ast": 0,
+    "lsp": 0
+  },
+  "note": "Tool intervals are observed wall intervals, not a full causal latency decomposition. Requests with tools distinguish agent calls from one auxiliary request per trial."
+}

@@ -1,0 +1,1395 @@
+{
+  "calls": [
+    {
+      "tool": "ast_search",
+      "arguments": {
+        "preset": "functions",
+        "path": "fixtures/ast_test.py",
+        "language": "python",
+        "name": "target_func"
+      },
+      "result": {
+        "status": "completed",
+        "engine": "tree-sitter",
+        "language": "python",
+        "matches": [
+          {
+            "path": "fixtures/ast_test.py",
+            "name": "target_func",
+            "kind": "function_definition",
+            "position": {
+              "line": 4,
+              "character": 4
+            },
+            "snippet": "def target_func(x):\n    return x * 2",
+            "snippet_truncated": false
+          }
+        ],
+        "scope": {
+          "max_depth": 12,
+          "respects_ignore_rules": true
+        },
+        "files_scanned": 1,
+        "bytes_scanned": 300,
+        "truncated": false,
+        "limit_reason": null,
+        "skipped": [],
+        "syntax_error_files": [],
+        "files": {
+          "fixtures/ast_test.py": {
+            "sha256": "50c92106cf1027ac779bfa4116a0ccfae66f00652af536589e8da55e86b2a317"
+          }
+        },
+        "positionEncoding": "utf-16"
+      },
+      "isError": false
+    },
+    {
+      "tool": "ast_search",
+      "arguments": {
+        "name": "target_func",
+        "path": "fixtures/ast_test.py",
+        "preset": "calls",
+        "language": "python"
+      },
+      "result": {
+        "status": "completed",
+        "engine": "tree-sitter",
+        "language": "python",
+        "matches": [
+          {
+            "path": "fixtures/ast_test.py",
+            "name": "target_func",
+            "kind": "call",
+            "position": {
+              "line": 11,
+              "character": 10
+            },
+            "snippet": "target_func(10)",
+            "snippet_truncated": false
+          }
+        ],
+        "scope": {
+          "max_depth": 12,
+          "respects_ignore_rules": true
+        },
+        "files_scanned": 1,
+        "bytes_scanned": 300,
+        "truncated": false,
+        "limit_reason": null,
+        "skipped": [],
+        "syntax_error_files": [],
+        "files": {
+          "fixtures/ast_test.py": {
+            "sha256": "50c92106cf1027ac779bfa4116a0ccfae66f00652af536589e8da55e86b2a317"
+          }
+        },
+        "positionEncoding": "utf-16"
+      },
+      "isError": false
+    },
+    {
+      "tool": "lsp_query",
+      "arguments": {
+        "symbol": "computeValue",
+        "action": "references",
+        "path": "fixtures/math_module.ts"
+      },
+      "result": {
+        "status": "completed",
+        "action": "references",
+        "language": "typescript",
+        "path": "fixtures/math_module.ts",
+        "documentVersion": 1,
+        "positionEncoding": "utf-16",
+        "result": {
+          "locations": [
+            {
+              "path": "fixtures/math_module.ts",
+              "range": {
+                "start": {
+                  "line": 0,
+                  "character": 16
+                },
+                "end": {
+                  "line": 0,
+                  "character": 28
+                }
+              },
+              "line_text": "export function computeValue(x: number): number {",
+              "line_truncated": false
+            },
+            {
+              "path": "fixtures/math_module.ts",
+              "range": {
+                "start": {
+                  "line": 6,
+                  "character": 15
+                },
+                "end": {
+                  "line": 6,
+                  "character": 27
+                }
+              },
+              "line_text": "        return computeValue(n);",
+              "line_truncated": false
+            }
+          ],
+          "files": {
+            "fixtures/math_module.ts": {
+              "sha256": "d89bfe544634c3c34d327ba52415dbca827cb400eac432afa79df9a4714e38d3"
+            }
+          },
+          "total": 2,
+          "offset": 0,
+          "truncated": false,
+          "next_offset": null,
+          "context": "saved file snapshots; not an atomic project snapshot"
+        }
+      },
+      "isError": false
+    },
+    {
+      "tool": "lsp_query",
+      "arguments": {
+        "path": "fixtures/consumer.ts",
+        "action": "symbols"
+      },
+      "result": {
+        "status": "completed",
+        "action": "symbols",
+        "language": "typescript",
+        "path": "fixtures/consumer.ts",
+        "documentVersion": 1,
+        "positionEncoding": "utf-16",
+        "result": [
+          {
+            "name": "runCalculation",
+            "detail": "",
+            "kind": 12,
+            "range": {
+              "start": {
+                "line": 2,
+                "character": 0
+              },
+              "end": {
+                "line": 4,
+                "character": 1
+              }
+            },
+            "selectionRange": {
+              "start": {
+                "line": 2,
+                "character": 16
+              },
+              "end": {
+                "line": 2,
+                "character": 30
+              }
+            },
+            "children": []
+          },
+          {
+            "name": "shadowedScope",
+            "detail": "",
+            "kind": 12,
+            "range": {
+              "start": {
+                "line": 6,
+                "character": 0
+              },
+              "end": {
+                "line": 9,
+                "character": 1
+              }
+            },
+            "selectionRange": {
+              "start": {
+                "line": 6,
+                "character": 16
+              },
+              "end": {
+                "line": 6,
+                "character": 29
+              }
+            },
+            "children": [
+              {
+                "name": "calculate",
+                "detail": "",
+                "kind": 14,
+                "range": {
+                  "start": {
+                    "line": 7,
+                    "character": 10
+                  },
+                  "end": {
+                    "line": 7,
+                    "character": 24
+                  }
+                },
+                "selectionRange": {
+                  "start": {
+                    "line": 7,
+                    "character": 10
+                  },
+                  "end": {
+                    "line": 7,
+                    "character": 19
+                  }
+                },
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      "isError": false
+    },
+    {
+      "tool": "lsp_query",
+      "arguments": {
+        "path": "fixtures/math_module.ts",
+        "symbol": "computeValue",
+        "action": "references"
+      },
+      "result": {
+        "status": "completed",
+        "action": "references",
+        "language": "typescript",
+        "path": "fixtures/math_module.ts",
+        "documentVersion": 1,
+        "positionEncoding": "utf-16",
+        "result": {
+          "locations": [
+            {
+              "path": "fixtures/consumer.ts",
+              "range": {
+                "start": {
+                  "line": 0,
+                  "character": 9
+                },
+                "end": {
+                  "line": 0,
+                  "character": 21
+                }
+              },
+              "line_text": "import { computeValue as calculate } from './math_module';",
+              "line_truncated": false
+            },
+            {
+              "path": "fixtures/consumer.ts",
+              "range": {
+                "start": {
+                  "line": 0,
+                  "character": 25
+                },
+                "end": {
+                  "line": 0,
+                  "character": 34
+                }
+              },
+              "line_text": "import { computeValue as calculate } from './math_module';",
+              "line_truncated": false
+            },
+            {
+              "path": "fixtures/consumer.ts",
+              "range": {
+                "start": {
+                  "line": 3,
+                  "character": 11
+                },
+                "end": {
+                  "line": 3,
+                  "character": 20
+                }
+              },
+              "line_text": "    return calculate(a);",
+              "line_truncated": false
+            },
+            {
+              "path": "fixtures/math_module.ts",
+              "range": {
+                "start": {
+                  "line": 0,
+                  "character": 16
+                },
+                "end": {
+                  "line": 0,
+                  "character": 28
+                }
+              },
+              "line_text": "export function computeValue(x: number): number {",
+              "line_truncated": false
+            },
+            {
+              "path": "fixtures/math_module.ts",
+              "range": {
+                "start": {
+                  "line": 6,
+                  "character": 15
+                },
+                "end": {
+                  "line": 6,
+                  "character": 27
+                }
+              },
+              "line_text": "        return computeValue(n);",
+              "line_truncated": false
+            }
+          ],
+          "files": {
+            "fixtures/consumer.ts": {
+              "sha256": "b84e9da2985eaa63b892f4a28a04fd84962a1e047bda05621c0ce024f7fb68d9"
+            },
+            "fixtures/math_module.ts": {
+              "sha256": "d89bfe544634c3c34d327ba52415dbca827cb400eac432afa79df9a4714e38d3"
+            }
+          },
+          "total": 5,
+          "offset": 0,
+          "truncated": false,
+          "next_offset": null,
+          "context": "saved file snapshots; not an atomic project snapshot"
+        }
+      },
+      "isError": false
+    },
+    {
+      "tool": "lsp_query",
+      "arguments": {
+        "symbol": "process",
+        "action": "references",
+        "path": "fixtures/math_module.ts"
+      },
+      "result": {
+        "status": "failed",
+        "code": "ambiguous_symbol",
+        "symbol": "process",
+        "total": 2,
+        "candidates": [
+          {
+            "symbol": "ServiceB.process",
+            "line": 11,
+            "character": 4
+          },
+          {
+            "symbol": "ServiceA.process",
+            "line": 5,
+            "character": 4
+          }
+        ],
+        "message": "Choose a qualified name or an explicit line/character; no symbol was selected."
+      },
+      "isError": true
+    },
+    {
+      "tool": "lsp_query",
+      "arguments": {
+        "symbol": "ServiceA.process",
+        "path": "fixtures/math_module.ts",
+        "action": "references"
+      },
+      "result": {
+        "status": "completed",
+        "action": "references",
+        "language": "typescript",
+        "path": "fixtures/math_module.ts",
+        "documentVersion": 1,
+        "positionEncoding": "utf-16",
+        "result": {
+          "locations": [
+            {
+              "path": "fixtures/math_module.ts",
+              "range": {
+                "start": {
+                  "line": 5,
+                  "character": 4
+                },
+                "end": {
+                  "line": 5,
+                  "character": 11
+                }
+              },
+              "line_text": "    process(n: number): number {",
+              "line_truncated": false
+            }
+          ],
+          "files": {
+            "fixtures/math_module.ts": {
+              "sha256": "d89bfe544634c3c34d327ba52415dbca827cb400eac432afa79df9a4714e38d3"
+            }
+          },
+          "total": 1,
+          "offset": 0,
+          "truncated": false,
+          "next_offset": null,
+          "context": "saved file snapshots; not an atomic project snapshot"
+        }
+      },
+      "isError": false
+    },
+    {
+      "tool": "lsp_query",
+      "arguments": {
+        "path": "fixtures/math_module.ts",
+        "symbol": "ServiceB.process",
+        "action": "references"
+      },
+      "result": {
+        "status": "completed",
+        "action": "references",
+        "language": "typescript",
+        "path": "fixtures/math_module.ts",
+        "documentVersion": 1,
+        "positionEncoding": "utf-16",
+        "result": {
+          "locations": [
+            {
+              "path": "fixtures/math_module.ts",
+              "range": {
+                "start": {
+                  "line": 11,
+                  "character": 4
+                },
+                "end": {
+                  "line": 11,
+                  "character": 11
+                }
+              },
+              "line_text": "    process(n: number): number {",
+              "line_truncated": false
+            }
+          ],
+          "files": {
+            "fixtures/math_module.ts": {
+              "sha256": "d89bfe544634c3c34d327ba52415dbca827cb400eac432afa79df9a4714e38d3"
+            }
+          },
+          "total": 1,
+          "offset": 0,
+          "truncated": false,
+          "next_offset": null,
+          "context": "saved file snapshots; not an atomic project snapshot"
+        }
+      },
+      "isError": false
+    },
+    {
+      "tool": "lsp_query",
+      "arguments": {
+        "symbol": "computeValue",
+        "action": "references",
+        "path": "fixtures/math_module.ts"
+      },
+      "result": {
+        "status": "completed",
+        "action": "references",
+        "language": "typescript",
+        "path": "fixtures/math_module.ts",
+        "documentVersion": 1,
+        "positionEncoding": "utf-16",
+        "result": {
+          "locations": [
+            {
+              "path": "fixtures/consumer.ts",
+              "range": {
+                "start": {
+                  "line": 0,
+                  "character": 9
+                },
+                "end": {
+                  "line": 0,
+                  "character": 21
+                }
+              },
+              "line_text": "import { computeValue as calculate } from './math_module';",
+              "line_truncated": false
+            },
+            {
+              "path": "fixtures/consumer.ts",
+              "range": {
+                "start": {
+                  "line": 0,
+                  "character": 25
+                },
+                "end": {
+                  "line": 0,
+                  "character": 34
+                }
+              },
+              "line_text": "import { computeValue as calculate } from './math_module';",
+              "line_truncated": false
+            },
+            {
+              "path": "fixtures/consumer.ts",
+              "range": {
+                "start": {
+                  "line": 3,
+                  "character": 17
+                },
+                "end": {
+                  "line": 3,
+                  "character": 26
+                }
+              },
+              "line_text": "    const temp = calculate(a);",
+              "line_truncated": false
+            },
+            {
+              "path": "fixtures/consumer.ts",
+              "range": {
+                "start": {
+                  "line": 4,
+                  "character": 11
+                },
+                "end": {
+                  "line": 4,
+                  "character": 20
+                }
+              },
+              "line_text": "    return calculate(temp);",
+              "line_truncated": false
+            },
+            {
+              "path": "fixtures/math_module.ts",
+              "range": {
+                "start": {
+                  "line": 0,
+                  "character": 16
+                },
+                "end": {
+                  "line": 0,
+                  "character": 28
+                }
+              },
+              "line_text": "export function computeValue(x: number): number {",
+              "line_truncated": false
+            },
+            {
+              "path": "fixtures/math_module.ts",
+              "range": {
+                "start": {
+                  "line": 6,
+                  "character": 15
+                },
+                "end": {
+                  "line": 6,
+                  "character": 27
+                }
+              },
+              "line_text": "        return computeValue(n);",
+              "line_truncated": false
+            }
+          ],
+          "files": {
+            "fixtures/consumer.ts": {
+              "sha256": "6b5b565822e788bf41ceaf09b26eff502294439774c89079b5a01635c5220651"
+            },
+            "fixtures/math_module.ts": {
+              "sha256": "d89bfe544634c3c34d327ba52415dbca827cb400eac432afa79df9a4714e38d3"
+            }
+          },
+          "total": 6,
+          "offset": 0,
+          "truncated": false,
+          "next_offset": null,
+          "context": "saved file snapshots; not an atomic project snapshot"
+        }
+      },
+      "isError": false
+    },
+    {
+      "tool": "lsp_query",
+      "arguments": {
+        "offset": 2,
+        "action": "references",
+        "symbol": "computeValue",
+        "path": "fixtures/math_module.ts"
+      },
+      "result": {
+        "status": "completed",
+        "action": "references",
+        "language": "typescript",
+        "path": "fixtures/math_module.ts",
+        "documentVersion": 1,
+        "positionEncoding": "utf-16",
+        "result": {
+          "locations": [
+            {
+              "path": "fixtures/consumer.ts",
+              "range": {
+                "start": {
+                  "line": 3,
+                  "character": 17
+                },
+                "end": {
+                  "line": 3,
+                  "character": 26
+                }
+              },
+              "line_text": "    const temp = calculate(a);",
+              "line_truncated": false
+            },
+            {
+              "path": "fixtures/consumer.ts",
+              "range": {
+                "start": {
+                  "line": 4,
+                  "character": 11
+                },
+                "end": {
+                  "line": 4,
+                  "character": 20
+                }
+              },
+              "line_text": "    return calculate(temp);",
+              "line_truncated": false
+            },
+            {
+              "path": "fixtures/math_module.ts",
+              "range": {
+                "start": {
+                  "line": 0,
+                  "character": 16
+                },
+                "end": {
+                  "line": 0,
+                  "character": 28
+                }
+              },
+              "line_text": "export function computeValue(x: number): number {",
+              "line_truncated": false
+            },
+            {
+              "path": "fixtures/math_module.ts",
+              "range": {
+                "start": {
+                  "line": 6,
+                  "character": 15
+                },
+                "end": {
+                  "line": 6,
+                  "character": 27
+                }
+              },
+              "line_text": "        return computeValue(n);",
+              "line_truncated": false
+            }
+          ],
+          "files": {
+            "fixtures/consumer.ts": {
+              "sha256": "6b5b565822e788bf41ceaf09b26eff502294439774c89079b5a01635c5220651"
+            },
+            "fixtures/math_module.ts": {
+              "sha256": "d89bfe544634c3c34d327ba52415dbca827cb400eac432afa79df9a4714e38d3"
+            }
+          },
+          "total": 6,
+          "offset": 2,
+          "truncated": false,
+          "next_offset": null,
+          "context": "saved file snapshots; not an atomic project snapshot"
+        }
+      },
+      "isError": false
+    },
+    {
+      "tool": "lsp_query",
+      "arguments": {
+        "path": "fixtures/ast_test.py",
+        "action": "symbols"
+      },
+      "result": {
+        "status": "completed",
+        "action": "symbols",
+        "language": "python",
+        "path": "fixtures/ast_test.py",
+        "documentVersion": 1,
+        "positionEncoding": "utf-16",
+        "result": [
+          {
+            "name": "comment_decoy",
+            "kind": 13,
+            "range": {
+              "start": {
+                "line": 1,
+                "character": 0
+              },
+              "end": {
+                "line": 1,
+                "character": 13
+              }
+            },
+            "selectionRange": {
+              "start": {
+                "line": 1,
+                "character": 0
+              },
+              "end": {
+                "line": 1,
+                "character": 13
+              }
+            },
+            "children": []
+          },
+          {
+            "name": "string_decoy",
+            "kind": 13,
+            "range": {
+              "start": {
+                "line": 2,
+                "character": 0
+              },
+              "end": {
+                "line": 2,
+                "character": 12
+              }
+            },
+            "selectionRange": {
+              "start": {
+                "line": 2,
+                "character": 0
+              },
+              "end": {
+                "line": 2,
+                "character": 12
+              }
+            },
+            "children": []
+          },
+          {
+            "name": "target_func",
+            "kind": 12,
+            "range": {
+              "start": {
+                "line": 4,
+                "character": 0
+              },
+              "end": {
+                "line": 5,
+                "character": 16
+              }
+            },
+            "selectionRange": {
+              "start": {
+                "line": 4,
+                "character": 4
+              },
+              "end": {
+                "line": 4,
+                "character": 15
+              }
+            },
+            "children": [
+              {
+                "name": "x",
+                "kind": 13,
+                "range": {
+                  "start": {
+                    "line": 4,
+                    "character": 16
+                  },
+                  "end": {
+                    "line": 4,
+                    "character": 17
+                  }
+                },
+                "selectionRange": {
+                  "start": {
+                    "line": 4,
+                    "character": 16
+                  },
+                  "end": {
+                    "line": 4,
+                    "character": 17
+                  }
+                },
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "call_string_decoy",
+            "kind": 13,
+            "range": {
+              "start": {
+                "line": 8,
+                "character": 0
+              },
+              "end": {
+                "line": 8,
+                "character": 17
+              }
+            },
+            "selectionRange": {
+              "start": {
+                "line": 8,
+                "character": 0
+              },
+              "end": {
+                "line": 8,
+                "character": 17
+              }
+            },
+            "children": []
+          },
+          {
+            "name": "caller",
+            "kind": 12,
+            "range": {
+              "start": {
+                "line": 10,
+                "character": 0
+              },
+              "end": {
+                "line": 12,
+                "character": 14
+              }
+            },
+            "selectionRange": {
+              "start": {
+                "line": 10,
+                "character": 4
+              },
+              "end": {
+                "line": 10,
+                "character": 10
+              }
+            },
+            "children": [
+              {
+                "name": "val",
+                "kind": 13,
+                "range": {
+                  "start": {
+                    "line": 11,
+                    "character": 4
+                  },
+                  "end": {
+                    "line": 11,
+                    "character": 7
+                  }
+                },
+                "selectionRange": {
+                  "start": {
+                    "line": 11,
+                    "character": 4
+                  },
+                  "end": {
+                    "line": 11,
+                    "character": 7
+                  }
+                },
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      "isError": false
+    },
+    {
+      "tool": "hashline_edit",
+      "arguments": {
+        "action": "read_many",
+        "paths": [
+          "fixtures/ast_test.py",
+          "fixtures/consumer.ts"
+        ]
+      },
+      "result": {
+        "status": "read_many",
+        "files": [
+          {
+            "status": "read",
+            "sha256": "50c92106cf1027ac779bfa4116a0ccfae66f00652af536589e8da55e86b2a317",
+            "total_lines": 13,
+            "start_line": 1,
+            "has_more": false,
+            "next_line": null,
+            "lines": [
+              {
+                "line": 1,
+                "anchor": "1:441a4ba3e498066072c7e584eaa545d1e8aa114db226d091118ad06a7d6e697e",
+                "text": "# def target_func(): decoy in comment\n"
+              },
+              {
+                "line": 2,
+                "anchor": "2:ff669f69a799b31193cd590275b2eeb4e18e3beaf83fc82820b76c85e1b9268b",
+                "text": "comment_decoy = \"# def target_func(): pass\"\n"
+              },
+              {
+                "line": 3,
+                "anchor": "3:6494610845070b6399c2b13a02a4e3c7ad51340cb053aefc26902ecda98873bb",
+                "text": "string_decoy = \"def target_func(): pass\"\n"
+              },
+              {
+                "line": 4,
+                "anchor": "4:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+                "text": "\n"
+              },
+              {
+                "line": 5,
+                "anchor": "5:a5ce419ae0ea1a443dd70e1d9bc9d6144592ae38411054ca1bf76025d35a1272",
+                "text": "def target_func(x):\n"
+              },
+              {
+                "line": 6,
+                "anchor": "6:b7a4091f398224885a55db259819591ed3c9311cdbf5965aef4b54274d3aacef",
+                "text": "    return x * 2\n"
+              },
+              {
+                "line": 7,
+                "anchor": "7:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+                "text": "\n"
+              },
+              {
+                "line": 8,
+                "anchor": "8:88dfdc58b70e76d9a0685cba7a1d90c55568c5cb1e1f17644308e28ec59bc54b",
+                "text": "# target_func(123) - decoy call in comment\n"
+              },
+              {
+                "line": 9,
+                "anchor": "9:1800f195d70c1e2b09f0578e4c989d6581f9aba3faa8e81753cb31532ed047c3",
+                "text": "call_string_decoy = \"target_func(456)\"\n"
+              },
+              {
+                "line": 10,
+                "anchor": "10:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+                "text": "\n"
+              },
+              {
+                "line": 11,
+                "anchor": "11:b2403a1200599a7fa9cc76e1cdee99636027bb103c08b7560ca1fcfcea3e6421",
+                "text": "def caller():\n"
+              },
+              {
+                "line": 12,
+                "anchor": "12:fa33fb9e5128c0db16b37c41344cbc1ca00115957a4e42843eba660a59125d24",
+                "text": "    val = target_func(10)\n"
+              },
+              {
+                "line": 13,
+                "anchor": "13:b480aad78861d78f44d3561b597180846d478790ce302072aa6f948d20008fc7",
+                "text": "    return val\n"
+              }
+            ],
+            "verified": false,
+            "path": "/private/tmp/orqanix-semantic-v3-recipe3-20260929/workspace/fixtures/ast_test.py"
+          },
+          {
+            "status": "read",
+            "sha256": "6b5b565822e788bf41ceaf09b26eff502294439774c89079b5a01635c5220651",
+            "total_lines": 11,
+            "start_line": 1,
+            "has_more": false,
+            "next_line": null,
+            "lines": [
+              {
+                "line": 1,
+                "anchor": "1:f7e640f54c70263ed0d6f13477c0ce9f0fdc3295a6bfc9105023d47ce6cda723",
+                "text": "import { computeValue as calculate } from './math_module';\n"
+              },
+              {
+                "line": 2,
+                "anchor": "2:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+                "text": "\n"
+              },
+              {
+                "line": 3,
+                "anchor": "3:78eee7c2edb0010d7943006e7a0d18d9e58d49fcae712fe547af33cf535cafed",
+                "text": "export function runCalculation(a: number): number {\n"
+              },
+              {
+                "line": 4,
+                "anchor": "4:82c45adb9a6f38d0e0dc434ac89c6beafcbc29cd1bcf5da7fbf9cebd26d97329",
+                "text": "    const temp = calculate(a);\n"
+              },
+              {
+                "line": 5,
+                "anchor": "5:e207e3035201bff078eaad60313591b4b99d35653d1adb342e7762a4db256891",
+                "text": "    return calculate(temp);\n"
+              },
+              {
+                "line": 6,
+                "anchor": "6:412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+                "text": "}\n"
+              },
+              {
+                "line": 7,
+                "anchor": "7:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+                "text": "\n"
+              },
+              {
+                "line": 8,
+                "anchor": "8:71f67b80c35d0bc237871a59c6491470b5e6a60419fb12ebe0497b3af553c814",
+                "text": "export function shadowedScope(): number {\n"
+              },
+              {
+                "line": 9,
+                "anchor": "9:074b26128cff36b80425f0974501a5d32ff62ef42c7687f30329c5146cfc3b55",
+                "text": "    const calculate = 42;\n"
+              },
+              {
+                "line": 10,
+                "anchor": "10:8797fd4b70fe0d3e7fafae62a576a9c504a7084e61f0134692281ce65201c2f2",
+                "text": "    return calculate;\n"
+              },
+              {
+                "line": 11,
+                "anchor": "11:412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+                "text": "}\n"
+              }
+            ],
+            "verified": false,
+            "path": "/private/tmp/orqanix-semantic-v3-recipe3-20260929/workspace/fixtures/consumer.ts"
+          }
+        ],
+        "verified": false,
+        "line_bytes_returned": 2960,
+        "note": "Independent file snapshots; inspect every file for errors and has_more."
+      },
+      "isError": false
+    },
+    {
+      "tool": "safe_edit_and_test",
+      "arguments": {
+        "test_command": [
+          "python3",
+          "-c",
+          "import fixtures.ast_test as t; assert t.target_func(10) == 30"
+        ],
+        "edits": [
+          {
+            "end_line": 6,
+            "start_anchor": "6:b7a4091f398224885a55db259819591ed3c9311cdbf5965aef4b54274d3aacef",
+            "replacement": "    return x * 3\n",
+            "start_line": 6,
+            "end_anchor": "6:b7a4091f398224885a55db259819591ed3c9311cdbf5965aef4b54274d3aacef"
+          }
+        ],
+        "path": "fixtures/ast_test.py",
+        "expected_sha256": "50c92106cf1027ac779bfa4116a0ccfae66f00652af536589e8da55e86b2a317"
+      },
+      "result": {
+        "status": "verified",
+        "verified": true,
+        "path": "/private/tmp/orqanix-semantic-v3-recipe3-20260929/workspace/fixtures/ast_test.py",
+        "before_sha256": "50c92106cf1027ac779bfa4116a0ccfae66f00652af536589e8da55e86b2a317",
+        "edited_sha256": "b720f8898b626194747195771d7acb90c42263ee02f4ebd6b0fa84eb9c845c17",
+        "current_sha256": "b720f8898b626194747195771d7acb90c42263ee02f4ebd6b0fa84eb9c845c17",
+        "target_unchanged_during_test": true,
+        "test": {
+          "executed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "stdout": "",
+          "stderr": "python3: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-CLffEprR' (errno=Operation not permitted)\npython3: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-DLfexZ57' (errno=Operation not permitted)\n",
+          "output_truncated": false,
+          "output_error": null
+        },
+        "rollback": {
+          "attempted": false,
+          "restored": false,
+          "reason": "tests_passed"
+        },
+        "post_edit": {
+          "status": "read",
+          "sha256": "b720f8898b626194747195771d7acb90c42263ee02f4ebd6b0fa84eb9c845c17",
+          "total_lines": 13,
+          "start_line": 4,
+          "has_more": true,
+          "next_line": 9,
+          "lines": [
+            {
+              "line": 4,
+              "anchor": "4:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+              "text": "\n"
+            },
+            {
+              "line": 5,
+              "anchor": "5:a5ce419ae0ea1a443dd70e1d9bc9d6144592ae38411054ca1bf76025d35a1272",
+              "text": "def target_func(x):\n"
+            },
+            {
+              "line": 6,
+              "anchor": "6:6d37dbb0e2b6d7c15bcca8a131f7915176b81abb18e7d94a1c26283524df66cd",
+              "text": "    return x * 3\n"
+            },
+            {
+              "line": 7,
+              "anchor": "7:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+              "text": "\n"
+            },
+            {
+              "line": 8,
+              "anchor": "8:88dfdc58b70e76d9a0685cba7a1d90c55568c5cb1e1f17644308e28ec59bc54b",
+              "text": "# target_func(123) - decoy call in comment\n"
+            }
+          ],
+          "verified": false,
+          "changed_context_truncated": false
+        }
+      },
+      "isError": false
+    },
+    {
+      "tool": "hashline_edit",
+      "arguments": {
+        "action": "read",
+        "path": "fixtures/ast_test.py"
+      },
+      "result": {
+        "status": "read",
+        "sha256": "b720f8898b626194747195771d7acb90c42263ee02f4ebd6b0fa84eb9c845c17",
+        "total_lines": 13,
+        "start_line": 1,
+        "has_more": false,
+        "next_line": null,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:441a4ba3e498066072c7e584eaa545d1e8aa114db226d091118ad06a7d6e697e",
+            "text": "# def target_func(): decoy in comment\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:ff669f69a799b31193cd590275b2eeb4e18e3beaf83fc82820b76c85e1b9268b",
+            "text": "comment_decoy = \"# def target_func(): pass\"\n"
+          },
+          {
+            "line": 3,
+            "anchor": "3:6494610845070b6399c2b13a02a4e3c7ad51340cb053aefc26902ecda98873bb",
+            "text": "string_decoy = \"def target_func(): pass\"\n"
+          },
+          {
+            "line": 4,
+            "anchor": "4:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+            "text": "\n"
+          },
+          {
+            "line": 5,
+            "anchor": "5:a5ce419ae0ea1a443dd70e1d9bc9d6144592ae38411054ca1bf76025d35a1272",
+            "text": "def target_func(x):\n"
+          },
+          {
+            "line": 6,
+            "anchor": "6:6d37dbb0e2b6d7c15bcca8a131f7915176b81abb18e7d94a1c26283524df66cd",
+            "text": "    return x * 3\n"
+          },
+          {
+            "line": 7,
+            "anchor": "7:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+            "text": "\n"
+          },
+          {
+            "line": 8,
+            "anchor": "8:88dfdc58b70e76d9a0685cba7a1d90c55568c5cb1e1f17644308e28ec59bc54b",
+            "text": "# target_func(123) - decoy call in comment\n"
+          },
+          {
+            "line": 9,
+            "anchor": "9:1800f195d70c1e2b09f0578e4c989d6581f9aba3faa8e81753cb31532ed047c3",
+            "text": "call_string_decoy = \"target_func(456)\"\n"
+          },
+          {
+            "line": 10,
+            "anchor": "10:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+            "text": "\n"
+          },
+          {
+            "line": 11,
+            "anchor": "11:b2403a1200599a7fa9cc76e1cdee99636027bb103c08b7560ca1fcfcea3e6421",
+            "text": "def caller():\n"
+          },
+          {
+            "line": 12,
+            "anchor": "12:fa33fb9e5128c0db16b37c41344cbc1ca00115957a4e42843eba660a59125d24",
+            "text": "    val = target_func(10)\n"
+          },
+          {
+            "line": 13,
+            "anchor": "13:b480aad78861d78f44d3561b597180846d478790ce302072aa6f948d20008fc7",
+            "text": "    return val\n"
+          }
+        ],
+        "verified": false,
+        "path": "/private/tmp/orqanix-semantic-v3-recipe3-20260929/workspace/fixtures/ast_test.py"
+      },
+      "isError": false
+    },
+    {
+      "tool": "safe_edit_and_test",
+      "arguments": {
+        "path": "fixtures/ast_test.py",
+        "test_command": [
+          "python3",
+          "-c",
+          "import fixtures.ast_test as t; assert t.target_func(10) == 30"
+        ],
+        "edits": [
+          {
+            "end_line": 6,
+            "start_line": 6,
+            "replacement": "    return x * 99\n",
+            "start_anchor": "6:6d37dbb0e2b6d7c15bcca8a131f7915176b81abb18e7d94a1c26283524df66cd",
+            "end_anchor": "6:6d37dbb0e2b6d7c15bcca8a131f7915176b81abb18e7d94a1c26283524df66cd"
+          }
+        ],
+        "expected_sha256": "b720f8898b626194747195771d7acb90c42263ee02f4ebd6b0fa84eb9c845c17"
+      },
+      "result": {
+        "status": "failed",
+        "verified": false,
+        "path": "/private/tmp/orqanix-semantic-v3-recipe3-20260929/workspace/fixtures/ast_test.py",
+        "before_sha256": "b720f8898b626194747195771d7acb90c42263ee02f4ebd6b0fa84eb9c845c17",
+        "edited_sha256": "e8ee5c7ffc802d0ef74b97141206860c8030ebba817f53b2acb2631f214cc1ab",
+        "current_sha256": "b720f8898b626194747195771d7acb90c42263ee02f4ebd6b0fa84eb9c845c17",
+        "target_unchanged_during_test": true,
+        "test": {
+          "executed": true,
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "stdout": "",
+          "stderr": "python3: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-m3rSA72K' (errno=Operation not permitted)\npython3: error: couldn't create cache file '/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/xcrun_db-wprIYPPv' (errno=Operation not permitted)\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nAssertionError\n",
+          "output_truncated": false,
+          "output_error": null
+        },
+        "rollback": {
+          "attempted": true,
+          "restored": true,
+          "sha256": "b720f8898b626194747195771d7acb90c42263ee02f4ebd6b0fa84eb9c845c17"
+        },
+        "post_edit": null
+      },
+      "isError": true
+    },
+    {
+      "tool": "safe_edit_and_test",
+      "arguments": {
+        "test_command": [
+          "touch",
+          "fixtures/should_not_exist"
+        ],
+        "edits": [
+          {
+            "start_anchor": "6:6d37dbb0e2b6d7c15bcca8a131f7915176b81abb18e7d94a1c26283524df66cd",
+            "replacement": "    return x * 5\n",
+            "end_line": 6,
+            "end_anchor": "6:6d37dbb0e2b6d7c15bcca8a131f7915176b81abb18e7d94a1c26283524df66cd",
+            "start_line": 6
+          }
+        ],
+        "expected_sha256": "50c92106cf1027ac779bfa4116a0ccfae66f00652af536589e8da55e86b2a317",
+        "path": "fixtures/ast_test.py"
+      },
+      "result": {
+        "status": "error",
+        "error": "STALE_PREIMAGE: Read the current file and regenerate anchors.",
+        "verified": false
+      },
+      "isError": true
+    },
+    {
+      "tool": "hashline_edit",
+      "arguments": {
+        "path": "fixtures/ast_test.py",
+        "action": "read"
+      },
+      "result": {
+        "status": "read",
+        "sha256": "b720f8898b626194747195771d7acb90c42263ee02f4ebd6b0fa84eb9c845c17",
+        "total_lines": 13,
+        "start_line": 1,
+        "has_more": false,
+        "next_line": null,
+        "lines": [
+          {
+            "line": 1,
+            "anchor": "1:441a4ba3e498066072c7e584eaa545d1e8aa114db226d091118ad06a7d6e697e",
+            "text": "# def target_func(): decoy in comment\n"
+          },
+          {
+            "line": 2,
+            "anchor": "2:ff669f69a799b31193cd590275b2eeb4e18e3beaf83fc82820b76c85e1b9268b",
+            "text": "comment_decoy = \"# def target_func(): pass\"\n"
+          },
+          {
+            "line": 3,
+            "anchor": "3:6494610845070b6399c2b13a02a4e3c7ad51340cb053aefc26902ecda98873bb",
+            "text": "string_decoy = \"def target_func(): pass\"\n"
+          },
+          {
+            "line": 4,
+            "anchor": "4:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+            "text": "\n"
+          },
+          {
+            "line": 5,
+            "anchor": "5:a5ce419ae0ea1a443dd70e1d9bc9d6144592ae38411054ca1bf76025d35a1272",
+            "text": "def target_func(x):\n"
+          },
+          {
+            "line": 6,
+            "anchor": "6:6d37dbb0e2b6d7c15bcca8a131f7915176b81abb18e7d94a1c26283524df66cd",
+            "text": "    return x * 3\n"
+          },
+          {
+            "line": 7,
+            "anchor": "7:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+            "text": "\n"
+          },
+          {
+            "line": 8,
+            "anchor": "8:88dfdc58b70e76d9a0685cba7a1d90c55568c5cb1e1f17644308e28ec59bc54b",
+            "text": "# target_func(123) - decoy call in comment\n"
+          },
+          {
+            "line": 9,
+            "anchor": "9:1800f195d70c1e2b09f0578e4c989d6581f9aba3faa8e81753cb31532ed047c3",
+            "text": "call_string_decoy = \"target_func(456)\"\n"
+          },
+          {
+            "line": 10,
+            "anchor": "10:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+            "text": "\n"
+          },
+          {
+            "line": 11,
+            "anchor": "11:b2403a1200599a7fa9cc76e1cdee99636027bb103c08b7560ca1fcfcea3e6421",
+            "text": "def caller():\n"
+          },
+          {
+            "line": 12,
+            "anchor": "12:fa33fb9e5128c0db16b37c41344cbc1ca00115957a4e42843eba660a59125d24",
+            "text": "    val = target_func(10)\n"
+          },
+          {
+            "line": 13,
+            "anchor": "13:b480aad78861d78f44d3561b597180846d478790ce302072aa6f948d20008fc7",
+            "text": "    return val\n"
+          }
+        ],
+        "verified": false,
+        "path": "/private/tmp/orqanix-semantic-v3-recipe3-20260929/workspace/fixtures/ast_test.py"
+      },
+      "isError": false
+    },
+    {
+      "tool": "shell",
+      "arguments": {
+        "command": "find / -name cargo -type f -perm +111 2>/dev/null"
+      },
+      "result": {
+        "stdout": "",
+        "stderr": "",
+        "exit_code": 1
+      },
+      "isError": true
+    }
+  ],
+  "prerequisiteSearch": "Returned exit code 1 with no output under confinement. Stop attempts found no matching live process; no termination was confirmed."
+}

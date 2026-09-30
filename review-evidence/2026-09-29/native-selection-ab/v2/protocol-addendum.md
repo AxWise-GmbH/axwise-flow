@@ -1,0 +1,7 @@
+# Protocol v2 — authentication transport repair before inference
+
+The seven UI attempts recorded in ../authentication-setup-failures.json all failed confined Keychain access before any tool or model request. They are infrastructure failures, not coding trials, and their sub-second terminal times are not performance measurements. No successful model attempt was repeated or discarded.
+
+The v2 temporary app is cloned from v1. Same Electron, Rust binaries, task definitions, scoring, filesystem boundary and 12-row schedule. A benchmark-only connector adapter reads a normal, parent-validated OAuth token from process memory. The unsandboxed parent uses the ordinary Keychain connector and verifies the production session before each row. The child adapter only transports that token; the production router still validates authentication. No credentials are saved in profiles or reports. The confined auth command is explicitly tested before Send. The batch halts immediately after a row with zero model requests. Source and app fingerprints distinguish this setup from v1.
+
+The standalone calibration remains valid: fixture and oracle source hashes are unchanged. Each row repeats the same 13 filesystem sentinel checks. Twelve model trials are planned; no per-model-task retries. Any inference or coding failures remain in the 12-row result. This adapter means the result covers coding/tool-loop behavior under a controlled auth transport, not production Keychain compatibility.

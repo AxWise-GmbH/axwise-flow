@@ -1,0 +1,20 @@
+{
+  "before": {
+    "crates/goose/src/agents/platform_extensions/native_engineering/edits.rs": "58a70c029b1265f9d157cea9276eba6287d9a4bafb32626cf1e02c2a45a2e0ac",
+    "crates/goose/src/agents/platform_extensions/native_engineering/selection.md": "95b69ddb2dd23b3b8e6c577cf7bcbede12d500ea9bb0a46092e3e5f9ac8ed237",
+    "crates/goose/src/agents/platform_extensions/native_engineering/README.md": "16f91651be5701a4b0e8687b390ecc6a57b3a5d2eff1d86129dfbd4cb7d35586",
+    "crates/goose/src/agents/platform_extensions/native_engineering/mod.rs": "a3b2d1f953d80d30e92003d302108a7120f0a18e7ab66747d6466c9bba46f2a6",
+    "crates/goose/src/agents/extension_manager.rs": "3f98119de9f7bf3db094bef07c912ea3d5221a533f8ad66d11911112bf8da2f9",
+    "crates/goose/tests/native_engineering_integration.rs": "ff5f0276ac4538b7ff7f9c56e619d8eb1a1363714e470462b56298b962ecec46",
+    "goose-self-test.yaml": "6dd744ccdf5d3a2219539c2faf60f6c43e26dda53cc004fe8c8f37605c8c3f0f"
+  },
+  "candidate": {
+    "crates/goose/src/agents/platform_extensions/native_engineering/edits.rs": "20ab962d45dedbe006ba78918354a48c9450b0113c5e4e44cc1fd99a5064b66a",
+    "crates/goose/src/agents/platform_extensions/native_engineering/selection.md": "9b26aa6b81049efcab9f63405f00d14812560fabf1aa6632653d65aaa4be3931",
+    "crates/goose/src/agents/platform_extensions/native_engineering/README.md": "0972391d760d1de3b76df247ede98606a461e79d2461d78a9db389da94aa6d97",
+    "crates/goose/src/agents/platform_extensions/native_engineering/mod.rs": "bb02878ef3d4193ef61ab05bcb7202c4315171737373ae1c5608a648a67f72c0",
+    "crates/goose/src/agents/extension_manager.rs": "3f6e89f6fe558ffe4ef778477bdbd41102aac19e5351c9c710d6093491024597",
+    "crates/goose/tests/native_engineering_integration.rs": "9cbd136091155b0c6142e2b0a5bec8443a16f3c82a03cc8e64a72e09d479cd34",
+    "goose-self-test.yaml": "d5e11ff71793b3c889e2af01808616a690478f43d9fb684d065a7df804138c01"
+  }
+}

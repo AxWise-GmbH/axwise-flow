@@ -1,0 +1,23 @@
+{
+  "schema": "orqanix.selection-ab-app.v1",
+  "releaseEligible": false,
+  "sourceApp": "/private/tmp/orqanix-native-desktop-benchmark-20260929/Orqanix Benchmark-darwin-arm64/Orqanix Benchmark.app",
+  "note": "Same Electron and runtime for both arms. Only selected Rust binary differs. Both launched under the same per-row filesystem confinement. Original build proof applies to goose-baseline only.",
+  "files": {
+    "goose": "0a1c1fea784777a298cddf4e98c2e16f32bfebc0ebd6aa4bf69c80c9ceb4b0fe",
+    "goose-baseline": "ff80a98ec86c080d63894aaa15f419f20fae3b78967e211d33b1cd02f0f446a2",
+    "goose-candidate": "5f004856e9ac5e86c10fb6d6e98184e4f8e25dbbccc5da59194a472e2d78b681"
+  },
+  "authAdapter": {
+    "mode": "expiring-loopback-model-only-capability",
+    "parentOAuthInChildEnvironment": false,
+    "releaseEligible": false,
+    "cliSha256": "9155c13abf6ebea1de8426e593f4f09d9f659af95bd251516908a8cc2354e564"
+  },
+  "actionBudget": {
+    "override": null,
+    "rustDefault": 1000,
+    "timeLimitSeconds": 360,
+    "localRelayRequestLimit": 60
+  }
+}
