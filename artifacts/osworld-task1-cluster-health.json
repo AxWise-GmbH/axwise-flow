@@ -1,0 +1,31 @@
+{
+  "evaluatedStatus": "OPTIMAL",
+  "confidence": 0.91,
+  "metrics": {
+    "activeClusters": 14,
+    "throughputRps": 18420,
+    "p99LatencyMs": 4.2,
+    "systemUptime": 99.995,
+    "clusters": [
+      {
+        "id": "prod-inference-01",
+        "region": "eu-central-1",
+        "workload": "TypeSafe JEV",
+        "nodes": 32
+      },
+      {
+        "id": "prod-vision-02",
+        "region": "eu-west-1",
+        "workload": "CUA-Perception",
+        "nodes": 16
+      },
+      {
+        "id": "prod-gateway-03",
+        "region": "us-east-1",
+        "workload": "Edge Gateway",
+        "nodes": 24
+      }
+    ]
+  },
+  "generatedAt": "2026-09-30T20:22:20.492Z"
+}
