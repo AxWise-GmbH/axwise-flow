@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { createGooseProviderFromEnvironment } from '../server/workflow-v2/goose-provider-config.js';
 import { createGooseProviderRouter } from '../server/workflow-v2/goose-provider-http.js';
 import { createDesktopSearchService } from '../server/workflow-v2/desktop-search-service.js';
+import { createDesktopImageService } from '../server/workflow-v2/desktop-image-service.js';
 import { createDesktopDecisionService } from '../server/workflow-v2/desktop-decision-service.js';
 
 const LOOPBACK = '127.0.0.1';
@@ -43,6 +44,9 @@ export function createLocalDesktopRelay({ environment = process.env, fetchImpl =
       apiKey: relayEnvironment.ORQALY_GOOSE_GEMINI_API_KEY,
       fetchImpl,
       searchService: createDesktopSearchService({
+        apiKey: relayEnvironment.ORQALY_GOOSE_GEMINI_API_KEY, fetchImpl,
+      }),
+      imageService: createDesktopImageService({
         apiKey: relayEnvironment.ORQALY_GOOSE_GEMINI_API_KEY, fetchImpl,
       }),
       ...(relayEnvironment.TYPESAFE_API_KEY ? {

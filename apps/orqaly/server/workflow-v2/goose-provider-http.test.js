@@ -250,6 +250,18 @@ describe('authenticated Goose provider transport', () => {
     expect(JSON.parse(f.fetchImpl.mock.calls[0][1].body).messages).toEqual(body.messages);
     expect(f.commandService).toBeUndefined();
   });
+  it('relays image generation via imageService when mounted', async () => {
+    const imageService = { generate: vi.fn(async (_auth, input) => ({
+      kind: 'generated_image', mimeType: 'image/png', data: 'abc', sha256: 'def',
+      alt: input.prompt, model: 'models/gemini-3.1-flash-image',
+    })) };
+    const f = await fixture({ commandService: undefined, imageService });
+    const res = await f.call('/image', { prompt: 'Orqanix logo', aspectRatio: '1:1' });
+    expect(res.status).toBe(200);
+    expect((await res.json()).kind).toBe('generated_image');
+    expect(imageService.generate).toHaveBeenCalledWith({ userId: 'user-1' },
+      { prompt: 'Orqanix logo', aspectRatio: '1:1' }, { signal: expect.any(AbortSignal) });
+  });
   it('keeps optional engineering review authenticated and isolated from thin chat', async () => {
     const engineeringReviewService = { review: vi.fn(async (auth, input) => ({
       owner: auth.userId, taskId: input.taskId, review: { status: 'passed', advisory: true },
