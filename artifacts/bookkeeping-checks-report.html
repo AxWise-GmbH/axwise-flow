@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bookkeeping Summary & Check Processing</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      margin: 0;
+      padding: 40px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      width: 800px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    }
+    h1 {
+      margin-top: 0;
+      color: #38bdf8;
+      font-size: 24px;
+    }
+    .meta {
+      color: #94a3b8;
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .card {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .card-label {
+      font-size: 12px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .card-value {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 6px;
+    }
+    .income { color: #4ade80; }
+    .expense { color: #f87171; }
+    .balance { color: #38bdf8; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      background: #0f172a;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 13px;
+      border-bottom: 1px solid #1e293b;
+    }
+    th {
+      background: #334155;
+      color: #cbd5e1;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+    .badge-income { background: #064e3b; color: #4ade80; }
+    .badge-expense { background: #7f1d1d; color: #fca5a5; }
+    .badge-new { background: #1e3a8a; color: #93c5fd; margin-left: 6px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Bookkeeping Simple — Processed Receipts & Checks</h1>
+    <div class="meta">
+      Account: <strong>iforgez@gmail.com</strong> | Source: Google Photos & Drive | Generated: 2026-09-30T20:46:36.742Z
+    </div>
+
+    <div class="metrics">
+      <div class="card">
+        <div class="card-label">Total Income</div>
+        <div class="card-value income">+€1481.57</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Total Expenses</div>
+        <div class="card-value expense">-€1510.93</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Closing Balance</div>
+        <div class="card-value balance">€1070.64</div>
+      </div>
+    </div>
+
+    <h3>Transaction Ledger</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Category</th>
+          <th>Type</th>
+          <th>Amount (€)</th>
+          <th>Balance (€)</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          <tr>
+            <td>
+              Office Supplies Purchase
+              
+            </td>
+            <td>Office Supplies</td>
+            <td><span class="badge badge-expense">Expense</span></td>
+            <td style="font-family: monospace; font-weight: bold; color: #f87171">
+              -250.00
+            </td>
+            <td style="font-family: monospace;">850.00</td>
+          </tr>
+        
+          <tr>
+            <td>
+              Client Payment Received
+              
+            </td>
+            <td>Sales</td>
+            <td><span class="badge badge-income">Income</span></td>
+            <td style="font-family: monospace; font-weight: bold; color: #4ade80">
+              +500.00
+            </td>
+            <td style="font-family: monospace;">1350.00</td>
+          </tr>
+        
+          <tr>
+            <td>
+              Internet Bill
+              
+            </td>
+            <td>Utilities</td>
+            <td><span class="badge badge-expense">Expense</span></td>
+            <td style="font-family: monospace; font-weight: bold; color: #f87171">
+              -60.00
+            </td>
+            <td style="font-family: monospace;">1290.00</td>
+          </tr>
+        
+          <tr>
+            <td>
+              Freelance Services
+              
+            </td>
+            <td>Services</td>
+            <td><span class="badge badge-income">Income</span></td>
+            <td style="font-family: monospace; font-weight: bold; color: #4ade80">
+              +300.00
+            </td>
+            <td style="font-family: monospace;">1590.00</td>
+          </tr>
+        
+          <tr>
+            <td>
+              Rent Payment
+              
+            </td>
+            <td>Rent</td>
+            <td><span class="badge badge-expense">Expense</span></td>
+            <td style="font-family: monospace; font-weight: bold; color: #f87171">
+              -700.00
+            </td>
+            <td style="font-family: monospace;">890.00</td>
+          </tr>
+        
+          <tr>
+            <td>
+              Software Subscription
+              
+            </td>
+            <td>Software</td>
+            <td><span class="badge badge-expense">Expense</span></td>
+            <td style="font-family: monospace; font-weight: bold; color: #f87171">
+              -100.00
+            </td>
+            <td style="font-family: monospace;">790.00</td>
+          </tr>
+        
+          <tr>
+            <td>
+              Bundesagentur für Arbeit (SGB II 30.09.2026)
+              <span class="badge badge-new">Google Photos</span>
+            </td>
+            <td>Government Benefit</td>
+            <td><span class="badge badge-income">Income</span></td>
+            <td style="font-family: monospace; font-weight: bold; color: #4ade80">
+              +681.57
+            </td>
+            <td style="font-family: monospace;">1471.57</td>
+          </tr>
+        
+          <tr>
+            <td>
+              Hermes Germany Retoure (53257132402201 14.09.2026)
+              <span class="badge badge-new">Google Photos</span>
+            </td>
+            <td>Shipping & Returns</td>
+            <td><span class="badge badge-expense">Expense</span></td>
+            <td style="font-family: monospace; font-weight: bold; color: #4ade80">
+              +0.00
+            </td>
+            <td style="font-family: monospace;">1471.57</td>
+          </tr>
+        
+          <tr>
+            <td>
+              DHL Retoure Unverpackt - Amazon (81036503 09.09.2026)
+              <span class="badge badge-new">Google Photos</span>
+            </td>
+            <td>Shipping & Returns</td>
+            <td><span class="badge badge-expense">Expense</span></td>
+            <td style="font-family: monospace; font-weight: bold; color: #4ade80">
+              +0.00
+            </td>
+            <td style="font-family: monospace;">1471.57</td>
+          </tr>
+        
+          <tr>
+            <td>
+              MARKDEF1760 Überweisung (16.09.2026)
+              <span class="badge badge-new">Google Photos</span>
+            </td>
+            <td>Bank Transfer</td>
+            <td><span class="badge badge-expense">Expense</span></td>
+            <td style="font-family: monospace; font-weight: bold; color: #f87171">
+              -400.93
+            </td>
+            <td style="font-family: monospace;">1070.64</td>
+          </tr>
+        
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
