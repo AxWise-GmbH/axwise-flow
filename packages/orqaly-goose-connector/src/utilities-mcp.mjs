@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline';
 import { pathToFileURL } from 'node:url';
 import { main as authCommand } from './cli.mjs';
@@ -8,7 +8,10 @@ import { createUtilityProviders, UtilityLookupError } from './utility-providers.
 
 const CONVERSATION = /^[A-Za-z0-9_-]{1,128}$/;
 const ACCOUNT_HASH = /^[a-f0-9]{64}$/;
-const MAX_RESPONSE_BYTES = 1_048_576;
+const MAX_SEARCH_RESPONSE_BYTES = 1_048_576;
+const MAX_RESULT_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_IMAGE_RESPONSE_BYTES = 15 * 1024 * 1024;
+const SUPPORTED_ASPECT_RATIOS = new Set(['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9', '21:9']);
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const schema = (properties, required) => ({ type: 'object', properties, required, additionalProperties: false });
 const WEATHER_URI = 'ui://desktop-utilities/weather';
@@ -56,6 +59,15 @@ export const UTILITY_TOOLS = [
       radiusKm: { type: 'number', minimum: 0.1, maximum: 1_000 },
     }, ['query']),
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  },
+  {
+    name: 'generate_image', title: 'Create image',
+    description: 'Create an original image with Nano Banana 2 (Gemini 3.1 Flash Image) from a visual description. Returns the generated image directly in chat.',
+    inputSchema: schema({
+      prompt: { type: 'string', minLength: 1, maxLength: 8_000 },
+      aspectRatio: { type: 'string', enum: [...SUPPORTED_ASPECT_RATIOS] },
+    }, ['prompt']),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
 ];
 
@@ -183,7 +195,7 @@ async function readSearchResult(response, signal) {
       const { done, value } = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > MAX_RESPONSE_BYTES) throw new UtilityLookupError('SEARCH_INVALID', 'Web search returned too much data.');
+      if (size > MAX_SEARCH_RESPONSE_BYTES) throw new UtilityLookupError('SEARCH_INVALID', 'Web search returned too much data.');
       chunks.push(Buffer.from(value));
     }
   } finally { await reader.cancel().catch(() => {}); }
@@ -203,6 +215,54 @@ async function readSearchResult(response, signal) {
     markdown: data.markdown, sources: data.sources.map(({ title, url }) => ({ title, url })),
     outcome: data.outcome, ...(data.queries ? { queries: data.queries } : {}), retrievedAt: data.retrievedAt,
   };
+}
+
+function canonicalImageBase64(value, mimeType) {
+  if (typeof value !== 'string' || !value.length || value.length % 4
+    || !/^[A-Za-z0-9+/]*={0,2}$/.test(value)) return null;
+  const bytes = Buffer.from(value, 'base64');
+  if (!bytes.length || bytes.length > MAX_RESULT_IMAGE_BYTES || bytes.toString('base64') !== value) return null;
+  const signatureMatches = mimeType === 'image/png'
+    ? bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+    : mimeType === 'image/jpeg'
+      ? bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+      : mimeType === 'image/webp'
+        ? bytes.length >= 12 && bytes.subarray(0, 4).toString('ascii') === 'RIFF'
+          && bytes.subarray(8, 12).toString('ascii') === 'WEBP'
+        : false;
+  if (!signatureMatches) return null;
+  return bytes;
+}
+
+async function readImageResult(response, signal) {
+  if (!response.ok) {
+    if (response.status === 401) throw new UtilityLookupError('LOGIN_REQUIRED', 'Sign in to generate images.');
+    if (response.status === 429) throw new UtilityLookupError('BUSY', 'Image generation is busy. Try again shortly.');
+    throw new UtilityLookupError('IMAGE_UNAVAILABLE', 'Image generation is unavailable right now.');
+  }
+  if (response.redirected || !response.headers.get('content-type')?.includes('application/json') || !response.body)
+    throw new UtilityLookupError('IMAGE_INVALID', 'Image generation returned an unusable result.');
+  const reader = response.body.getReader();
+  const chunks = [];
+  let size = 0;
+  try {
+    while (true) {
+      signal.throwIfAborted();
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_IMAGE_RESPONSE_BYTES) throw new UtilityLookupError('IMAGE_INVALID', 'Image generation returned too much data.');
+      chunks.push(Buffer.from(value));
+    }
+  } finally { await reader.cancel().catch(() => {}); }
+  let data;
+  try { data = JSON.parse(Buffer.concat(chunks).toString('utf8')); }
+  catch { throw new UtilityLookupError('IMAGE_INVALID', 'Image generation returned an unusable result.'); }
+  if (!object(data) || data.kind !== 'generated_image' || !['image/jpeg', 'image/png', 'image/webp'].includes(data.mimeType)
+    || typeof data.data !== 'string' || !canonicalImageBase64(data.data, data.mimeType)
+    || typeof data.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(data.sha256))
+    throw new UtilityLookupError('IMAGE_INVALID', 'Image generation returned an unusable result.');
+  return data;
 }
 
 export function createUtilityTools({ apiUrl, conversationId, accountHash, token,
@@ -231,6 +291,61 @@ export function createUtilityTools({ apiUrl, conversationId, accountHash, token,
           version: 'orqaly.desktop-work.v1', conversationId, requestId, kind: 'currency', status: 'completed',
           markdown: result.markdown, presentations: [result.presentation], sources: result.sources,
           cacheHit: result.cacheHit,
+        };
+      } else if (name === 'generate_image') {
+        const prompt = typeof args.prompt === 'string' ? args.prompt.trim() : '';
+        const aspectRatio = typeof args.aspectRatio === 'string' ? args.aspectRatio.trim() : undefined;
+        if (!prompt || prompt.length > 8_000
+          || (aspectRatio !== undefined && !SUPPORTED_ASPECT_RATIOS.has(aspectRatio)))
+          throw new UtilityLookupError('INVALID_INPUT', 'Use a prompt between 1 and 8,000 characters and a valid aspect ratio.');
+        let image;
+        if (typeof providers?.image === 'function') {
+          image = await providers.image(prompt, aspectRatio, signal);
+        } else {
+          const body = { prompt, ...(aspectRatio ? { aspectRatio } : {}) };
+          const requestSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(60_000)]) : AbortSignal.timeout(60_000);
+          let accessToken;
+          try { accessToken = await waitWithSignal(Promise.resolve().then(token), requestSignal); }
+          catch (error) {
+            if (requestSignal.aborted) throw new UtilityLookupError('IMAGE_TIMEOUT', 'Image generation timed out.');
+            if (error?.code === 'LOGIN_REQUIRED') throw new UtilityLookupError('LOGIN_REQUIRED', 'Sign in to generate images.');
+            throw error;
+          }
+          if (typeof accessToken !== 'string' || !accessToken || /\s/.test(accessToken))
+            throw new UtilityLookupError('LOGIN_REQUIRED', 'Sign in to generate images.');
+          let response;
+          try {
+            response = await fetchImpl(`${apiOrigin}/desktop/v1/image`, {
+              method: 'POST', redirect: 'error', signal: requestSignal,
+              headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json',
+                'X-Orqaly-Account-Hash': accountHash }, body: JSON.stringify(body),
+            });
+          } catch {
+            throw new UtilityLookupError(requestSignal.aborted ? 'IMAGE_TIMEOUT' : 'IMAGE_UNAVAILABLE',
+              requestSignal.aborted ? 'Image generation timed out.' : 'Image generation is unavailable right now.');
+          }
+          try { image = await readImageResult(response, requestSignal); }
+          catch (error) {
+            if (requestSignal.aborted) throw new UtilityLookupError('IMAGE_TIMEOUT', 'Image generation timed out.');
+            throw error;
+          }
+        }
+        const bytes = canonicalImageBase64(image?.data, image?.mimeType);
+        if (!bytes) throw new UtilityLookupError('IMAGE_INVALID', 'Image generation returned an unusable result.');
+        const markdown = image.markdown || `![${prompt.slice(0, 50)}](generated)`;
+        const presentation = {
+          schemaVersion: 'axwise.presentation.generated-image.v1',
+          kind: 'generated_image',
+          mimeType: image.mimeType,
+          data: image.data,
+          sha256: image.sha256 || createHash('sha256').update(bytes).digest('hex'),
+          alt: image.alt || (prompt.length > 500 ? `${prompt.slice(0, 497)}...` : prompt),
+          model: image.model || 'models/gemini-3.1-flash-image',
+          markdown,
+        };
+        data = {
+          version: 'orqaly.desktop-work.v1', conversationId, requestId, kind: 'generate_image',
+          status: 'completed', markdown, presentations: [presentation],
         };
       } else {
         const query = typeof args.query === 'string' ? args.query.trim() : '';
@@ -273,7 +388,13 @@ export function createUtilityTools({ apiUrl, conversationId, accountHash, token,
         }
         data = { kind: 'search_web', conversationId, requestId, ...result };
       }
-      return { content: [{ type: 'text', text: data.markdown }], structuredContent: data, isError: false };
+      const content = data.presentations?.[0]?.kind === 'generated_image'
+        ? [
+            { type: 'image', data: data.presentations[0].data, mimeType: data.presentations[0].mimeType },
+            { type: 'text', text: data.markdown },
+          ]
+        : [{ type: 'text', text: data.markdown }];
+      return { content, structuredContent: data, isError: false };
     } catch (error) {
       const message = signal?.aborted ? 'The utility request was cancelled.'
         : error instanceof UtilityLookupError ? error.message : 'The utility could not complete this request.';
@@ -292,7 +413,7 @@ export async function serveUtilitiesMcp({ input = process.stdin, output = proces
   let initialized = false;
   for await (const line of lines) {
     let message;
-    try { if (Buffer.byteLength(line, 'utf8') > MAX_RESPONSE_BYTES) throw new Error(); message = JSON.parse(line); }
+    try { if (Buffer.byteLength(line, 'utf8') > MAX_IMAGE_RESPONSE_BYTES) throw new Error(); message = JSON.parse(line); }
     catch { write({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Invalid JSON-RPC message' } }); continue; }
     if (!object(message) || message.jsonrpc !== '2.0' || typeof message.method !== 'string') continue;
     if (message.method === 'notifications/cancelled') { active.get(message.params?.requestId)?.abort(); continue; }

@@ -174,10 +174,11 @@ test('MCP server exposes only real weather/currency app resources and separate s
   assert.deepEqual(replies[0].result.capabilities, { tools: {}, resources: {} });
   assert.equal(replies[0].result.serverInfo.name, 'desktop-utilities');
   assert.deepEqual(replies[1].result.tools.map((tool) => tool.name),
-    ['get_weather', 'convert_currency', 'search_web']);
+    ['get_weather', 'convert_currency', 'search_web', 'generate_image']);
   assert.equal(replies[1].result.tools[0]._meta.ui.resourceUri, 'ui://desktop-utilities/weather');
   assert.equal(replies[1].result.tools[1]._meta.ui.resourceUri, 'ui://desktop-utilities/currency');
   assert.equal(Object.hasOwn(replies[1].result.tools[2], '_meta'), false);
+  assert.equal(Object.hasOwn(replies[1].result.tools[3], '_meta'), false);
   assert.deepEqual(replies[2].result.resources.map((resource) => resource.uri),
     ['ui://desktop-utilities/weather', 'ui://desktop-utilities/currency']);
   for (const item of replies.slice(3, 5)) {
@@ -188,7 +189,7 @@ test('MCP server exposes only real weather/currency app resources and separate s
   }
   assert.equal(replies[5].error.code, -32602);
   assert.deepEqual(UTILITY_TOOLS.map((tool) => tool.name),
-    ['get_weather', 'convert_currency', 'search_web']);
+    ['get_weather', 'convert_currency', 'search_web', 'generate_image']);
 });
 
 test('MCP server handles another tool call while cancelling one active request', async () => {
@@ -223,3 +224,76 @@ test('MCP server handles another tool call while cancelling one active request',
   assert.equal(replies.find((reply) => reply.id === 2).result.isError, true);
   assert.equal(replies.find((reply) => reply.id === 3).result.content[0].text, 'currency ready');
 });
+
+test('generate_image with provider returns MCP image block and structured content', async () => {
+  const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  const call = createUtilityTools({
+    ...base,
+    providers: {
+      image: async (prompt, _aspectRatio) => ({
+        kind: 'generated_image',
+        mimeType: 'image/png',
+        data: pngBase64,
+        sha256: '9211ea15f63d640ff42c5cc694b7f75470d0ce09ee090b8f041ff91b1ae0e5d6',
+        alt: prompt,
+        model: 'models/gemini-3.1-flash-image',
+        markdown: `![${prompt}](generated)`,
+      }),
+    },
+  });
+  const res = await call('generate_image', { prompt: 'A glowing robot', aspectRatio: '16:9' });
+  assert.equal(res.isError, false);
+  assert.equal(res.content.length, 2);
+  assert.equal(res.content[0].type, 'image');
+  assert.equal(res.content[0].mimeType, 'image/png');
+  assert.equal(res.content[0].data, pngBase64);
+  assert.equal(res.content[1].type, 'text');
+  assert.equal(res.structuredContent.kind, 'generate_image');
+  assert.equal(res.structuredContent.presentations.length, 1);
+  assert.equal(res.structuredContent.presentations[0].kind, 'generated_image');
+});
+
+test('generate_image sends authenticated request to /desktop/v1/image and parses result', async () => {
+  const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  const calls = [];
+  const call = createUtilityTools({
+    ...base,
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return response({
+        kind: 'generated_image',
+        mimeType: 'image/png',
+        data: pngBase64,
+        sha256: '9211ea15f63d640ff42c5cc694b7f75470d0ce09ee090b8f041ff91b1ae0e5d6',
+        alt: 'Cybernetic core',
+        model: 'models/gemini-3.1-flash-image',
+      });
+    },
+  });
+  const res = await call('generate_image', { prompt: 'Cybernetic core', aspectRatio: '1:1' });
+  assert.equal(res.isError, false);
+  assert.equal(res.content[0].type, 'image');
+  assert.equal(calls[0].url, 'https://preview.example/desktop/v1/image');
+  assert.equal(calls[0].options.headers.Authorization, 'Bearer test-secret');
+  assert.equal(calls[0].options.headers['X-Orqaly-Account-Hash'], accountHash);
+  assert.deepEqual(JSON.parse(calls[0].options.body), { prompt: 'Cybernetic core', aspectRatio: '1:1' });
+});
+
+test('generate_image validates prompt and handles errors gracefully', async () => {
+  const call = createUtilityTools({
+    ...base,
+    fetchImpl: async () => response({}, 401),
+  });
+  const invalidAspect = await call('generate_image', { prompt: 'Something', aspectRatio: 'invalid' });
+  assert.equal(invalidAspect.isError, true);
+  assert.equal(invalidAspect.structuredContent.error.code, 'INVALID_INPUT');
+
+  const emptyPrompt = await call('generate_image', { prompt: '' });
+  assert.equal(emptyPrompt.isError, true);
+  assert.equal(emptyPrompt.structuredContent.error.code, 'INVALID_INPUT');
+
+  const unauth = await call('generate_image', { prompt: 'Valid prompt' });
+  assert.equal(unauth.isError, true);
+  assert.equal(unauth.structuredContent.error.code, 'LOGIN_REQUIRED');
+});
+
