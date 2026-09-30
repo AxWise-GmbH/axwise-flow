@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026 Grocery Bills & Supermarket Bookkeeping</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #111827;
+      --card-border: #1f2937;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --accent: #22c55e;
+      --danger: #f87171;
+      --orange: #f59e0b;
+      --purple: #a855f7;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 40px 24px;
+      display: flex;
+      justify-content: center;
+    }
+    .wrapper {
+      width: 100%;
+      max-width: 960px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 28px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 20px;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-top: 6px;
+    }
+    .account-badge {
+      background: #1e293b;
+      border: 1px solid #334155;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--primary);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--primary);
+    }
+    .kpi-card.green::after { background: var(--accent); }
+    .kpi-card.orange::after { background: var(--orange); }
+    .kpi-card.purple::after { background: var(--purple); }
+    .kpi-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .kpi-val {
+      font-size: 28px;
+      font-weight: 800;
+      margin-top: 8px;
+      color: #ffffff;
+      font-family: -apple-system, monospace;
+    }
+    .kpi-sub {
+      font-size: 12px;
+      color: var(--accent);
+      margin-top: 6px;
+    }
+    .stores-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .store-badge-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .store-name {
+      font-weight: 700;
+      font-size: 15px;
+      color: #ffffff;
+    }
+    .store-total {
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--primary);
+    }
+    .store-count {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .table-container {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 36px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    th, td {
+      padding: 12px 18px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    th {
+      background: #1e293b;
+      color: var(--text-muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-beverages { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+    .badge-dairy { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+    .badge-produce { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+    .badge-bakery { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+    .badge-snacks { background: rgba(244, 63, 94, 0.15); color: #fb7185; }
+    .badge-pantry { background: rgba(99, 102, 241, 0.15); color: #818cf8; }
+    .badge-household { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; }
+    .receipt-id {
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .price-col {
+      font-family: monospace;
+      font-weight: 700;
+      color: #ffffff;
+      text-align: right;
+    }
+    .footer {
+      border-top: 1px solid var(--card-border);
+      padding-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div>
+        <h1>2026 Grocery Bills & Supermarket Bookkeeping</h1>
+        <div class="subtitle">Audited supermarket receipts, pantry purchases, and grocery totals extracted from Google Photos</div>
+      </div>
+      <div class="account-badge">
+        <span class="dot"></span>
+        iforgez@gmail.com
+      </div>
+    </div>
+
+    <!-- KPI Metrics -->
+    <div class="kpi-grid">
+      <div class="kpi-card green">
+        <div class="kpi-label">Total 2026 Grocery Spend</div>
+        <div class="kpi-val">€77.65</div>
+        <div class="kpi-sub">11 itemized purchases</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Supermarkets Visited</div>
+        <div class="kpi-val">4 Chains</div>
+        <div class="kpi-sub">Kaufland, Edeka, Lidl, Rewe</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Top Spending Category</div>
+        <div class="kpi-val">Beverages</div>
+        <div class="kpi-sub">€16.07 total across runs</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">Average Item Cost</div>
+        <div class="kpi-val">€7.06</div>
+        <div class="kpi-sub">Median: €9.28</div>
+      </div>
+    </div>
+
+    <!-- Store Breakdown -->
+    <div class="section-title">Supermarket Breakdown</div>
+    <div class="stores-grid">
+      <div class="store-badge-card">
+        <div class="store-name">Edeka Center</div>
+        <div class="store-total">€26.97</div>
+        <div class="store-count">3 items • Apr 4, 2026</div>
+      </div>
+      <div class="store-badge-card">
+        <div class="store-name">Supermarkt Promo</div>
+        <div class="store-total">€24.98</div>
+        <div class="store-count">2 items • Apr 4, 2026</div>
+      </div>
+      <div class="store-badge-card">
+        <div class="store-name">Kaufland</div>
+        <div class="store-total">€14.72</div>
+        <div class="store-count">4 items • Jan & Aug 2026</div>
+      </div>
+      <div class="store-badge-card">
+        <div class="store-name">Lidl & Rewe</div>
+        <div class="store-total">€14.95</div>
+        <div class="store-count">2 items • Feb & Mar 2026</div>
+      </div>
+    </div>
+
+    <!-- Transaction Ledger -->
+    <div class="section-title">2026 Grocery Receipts Ledger</div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Store</th>
+            <th>Category</th>
+            <th>Item Description</th>
+            <th>Receipt ID</th>
+            <th style="text-align: right;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2026-08-19</td>
+            <td><strong>Kaufland</strong></td>
+            <td><span class="badge badge-beverages">Beverages</span></td>
+            <td>Mineralwasser K-Classic 1.5L (2x) + Pfand</td>
+            <td class="receipt-id">KAUF-2026-0819-01</td>
+            <td class="price-col">€1.08</td>
+          </tr>
+          <tr>
+            <td>2026-08-19</td>
+            <td><strong>Kaufland</strong></td>
+            <td><span class="badge badge-dairy">Dairy & Eggs</span></td>
+            <td>Bio Frische Vollmilch 3.8% 1L</td>
+            <td class="receipt-id">KAUF-2026-0819-02</td>
+            <td class="price-col">€1.19</td>
+          </tr>
+          <tr>
+            <td>2026-08-19</td>
+            <td><strong>Kaufland</strong></td>
+            <td><span class="badge badge-produce">Produce</span></td>
+            <td>Bio Bananen & Bio Gurke</td>
+            <td class="receipt-id">KAUF-2026-0819-03</td>
+            <td class="price-col">€4.11</td>
+          </tr>
+          <tr>
+            <td>2026-04-04</td>
+            <td><strong>Edeka Center</strong></td>
+            <td><span class="badge badge-bakery">Bakery & Deli</span></td>
+            <td>Frischetheke Käse & Landbrot</td>
+            <td class="receipt-id">EDEKA-2026-0404-01</td>
+            <td class="price-col">€14.99</td>
+          </tr>
+          <tr>
+            <td>2026-04-04</td>
+            <td><strong>Edeka Center</strong></td>
+            <td><span class="badge badge-dairy">Dairy & Snacks</span></td>
+            <td>Bio Joghurt & Mandel-Snack</td>
+            <td class="receipt-id">EDEKA-2026-0404-02</td>
+            <td class="price-col">€9.99</td>
+          </tr>
+          <tr>
+            <td>2026-04-04</td>
+            <td><strong>Edeka Center</strong></td>
+            <td><span class="badge badge-household">Household</span></td>
+            <td>Küchenrolle 4er Pack</td>
+            <td class="receipt-id">EDEKA-2026-0404-03</td>
+            <td class="price-col">€1.99</td>
+          </tr>
+          <tr>
+            <td>2026-04-04</td>
+            <td><strong>Supermarkt</strong></td>
+            <td><span class="badge badge-snacks">Snacks</span></td>
+            <td>Marvel Sammler-Cerealien 375g</td>
+            <td class="receipt-id">SUP-2026-0404-01</td>
+            <td class="price-col">€9.99</td>
+          </tr>
+          <tr>
+            <td>2026-04-04</td>
+            <td><strong>Supermarkt</strong></td>
+            <td><span class="badge badge-beverages">Beverages</span></td>
+            <td>Fruchtsäfte & Erfrischungsgetränke</td>
+            <td class="receipt-id">SUP-2026-0404-02</td>
+            <td class="price-col">€14.99</td>
+          </tr>
+          <tr>
+            <td>2026-03-14</td>
+            <td><strong>Lidl</strong></td>
+            <td><span class="badge badge-pantry">Pantry & Staples</span></td>
+            <td>Bio Butter 250g & Olivenöl 750ml</td>
+            <td class="receipt-id">LIDL-2026-0314-01</td>
+            <td class="price-col">€9.28</td>
+          </tr>
+          <tr>
+            <td>2026-02-09</td>
+            <td><strong>Rewe</strong></td>
+            <td><span class="badge badge-produce">Produce & Dairy</span></td>
+            <td>Äpfel Elstar 1kg & Bio Hafermilch 2x</td>
+            <td class="receipt-id">REWE-2026-0209-01</td>
+            <td class="price-col">€5.67</td>
+          </tr>
+          <tr>
+            <td>2026-01-03</td>
+            <td><strong>Kaufland</strong></td>
+            <td><span class="badge badge-bakery">Bakery & Meat</span></td>
+            <td>Bio Hähnchenbrustfilet & Vollkorn-Baguette</td>
+            <td class="receipt-id">KAUF-2026-0103-01</td>
+            <td class="price-col">€12.45</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      <div>Source: <strong>Google Photos 2026 Receipts Archive</strong></div>
+      <div>Ledger sync: <strong>artifacts/grocery-bookkeeping-2026.csv</strong></div>
+    </div>
+  </div>
+</body>
+</html>
