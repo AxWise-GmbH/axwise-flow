@@ -1,0 +1,143 @@
+{
+  "title": "OSWorld-10 Domains & 100-Step Memory Footprint Benchmark",
+  "timestamp": "2026-09-30T20:27:21.571Z",
+  "environment": {
+    "os": "macOS (darwin-arm64)",
+    "runtime": "Node.js v22.23.2",
+    "decisionEngine": "TypeSafe AI JEV System-1 (jev-latest)"
+  },
+  "domainsPhase": {
+    "totalDomains": 10,
+    "accuracy": "10/10",
+    "avgLatencyMs": 246,
+    "results": [
+      {
+        "domain": "chrome",
+        "title": "1. Chrome: Multi-Tab Research & Form Automation",
+        "choice": "act_1",
+        "confidence": 1,
+        "latencyMs": 313,
+        "accurate": true
+      },
+      {
+        "domain": "vs_code",
+        "title": "2. VS Code: Syntax Diagnostic & Refactoring Handoff",
+        "choice": "act_2",
+        "confidence": 1,
+        "latencyMs": 255,
+        "accurate": true
+      },
+      {
+        "domain": "libreoffice_calc",
+        "title": "3. Calc: Tabular Formula & Aggregation Pivot",
+        "choice": "act_1",
+        "confidence": 1,
+        "latencyMs": 234,
+        "accurate": true
+      },
+      {
+        "domain": "libreoffice_writer",
+        "title": "4. Writer: Executive Brief Formatting & Export",
+        "choice": "act_1",
+        "confidence": 1,
+        "latencyMs": 227,
+        "accurate": true
+      },
+      {
+        "domain": "libreoffice_impress",
+        "title": "5. Impress: Slide Layout & Telemetry Visual Insertion",
+        "choice": "act_2",
+        "confidence": 1,
+        "latencyMs": 232,
+        "accurate": true
+      },
+      {
+        "domain": "gimp",
+        "title": "6. GIMP: Visual Pixel Manipulation & Layer Masking",
+        "choice": "act_1",
+        "confidence": 1,
+        "latencyMs": 225,
+        "accurate": true
+      },
+      {
+        "domain": "thunderbird",
+        "title": "7. Thunderbird: Dispatch Quarterly Operational Report",
+        "choice": "act_3",
+        "confidence": 1,
+        "latencyMs": 233,
+        "accurate": true
+      },
+      {
+        "domain": "vlc",
+        "title": "8. VLC: Session Trajectory Recording Playback & Review",
+        "choice": "act_1",
+        "confidence": 1,
+        "latencyMs": 246,
+        "accurate": true
+      },
+      {
+        "domain": "os",
+        "title": "9. OS: Atomic File Operations & Process Management",
+        "choice": "act_2",
+        "confidence": 1,
+        "latencyMs": 264,
+        "accurate": true
+      },
+      {
+        "domain": "multi_apps",
+        "title": "10. Multi-Apps: Cross-Application Orchestration Pipeline",
+        "choice": "act_1",
+        "confidence": 1,
+        "latencyMs": 230,
+        "accurate": true
+      }
+    ]
+  },
+  "longHorizon100Steps": {
+    "totalSteps": 100,
+    "accuracy": "100/100",
+    "avgLatencyMs": 244,
+    "totalWallClockMs": 24475,
+    "throughputStepsPerSec": 4.09,
+    "memoryProfile": [
+      {
+        "step": 0,
+        "heapUsedMb": 8.6,
+        "heapTotalMb": 13.09,
+        "rssMb": 76.56
+      },
+      {
+        "step": 1,
+        "heapUsedMb": 8.75,
+        "heapTotalMb": 13.09,
+        "rssMb": 76.58
+      },
+      {
+        "step": 25,
+        "heapUsedMb": 8.04,
+        "heapTotalMb": 10.09,
+        "rssMb": 78.53
+      },
+      {
+        "step": 50,
+        "heapUsedMb": 8.6,
+        "heapTotalMb": 10.09,
+        "rssMb": 79.56
+      },
+      {
+        "step": 75,
+        "heapUsedMb": 9.54,
+        "heapTotalMb": 11.84,
+        "rssMb": 81.8
+      },
+      {
+        "step": 100,
+        "heapUsedMb": 10.44,
+        "heapTotalMb": 11.84,
+        "rssMb": 84.7
+      }
+    ],
+    "memoryDeltaMb": 1.84,
+    "leakDetected": false
+  }
+}
