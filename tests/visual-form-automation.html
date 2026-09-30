@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Enterprise Registration Form - Visual Automation</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 40px;
+      background: #0f172a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #f8fafc;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      width: 680px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    h2 {
+      margin-top: 0;
+      color: #38bdf8;
+      font-size: 22px;
+    }
+    p.subtitle {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    input[type="text"], input[type="email"], select {
+      width: 100%;
+      padding: 12px 14px;
+      background: #0f172a;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      color: #f8fafc;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus, input[type="email"]:focus, select:focus {
+      border-color: #38bdf8;
+    }
+    .radio-group, .checkbox-group {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      margin-top: 8px;
+    }
+    .radio-label, .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #e2e8f0;
+      cursor: pointer;
+      text-transform: none;
+      font-weight: normal;
+    }
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 32px;
+    }
+    button {
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s;
+    }
+    .btn-primary {
+      background: #2563eb;
+      color: #ffffff;
+      flex: 1;
+    }
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+    .btn-secondary {
+      background: #334155;
+      color: #cbd5e1;
+    }
+    .btn-secondary:hover {
+      background: #475569;
+    }
+    .status-card {
+      margin-top: 24px;
+      padding: 16px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    .status-pending {
+      background: #334155;
+      color: #94a3b8;
+    }
+    .status-success {
+      background: #166534;
+      color: #4ade80;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Enterprise Cloud Registration</h2>
+    <p class="subtitle">Complete organization profile to provision accelerated JEV cluster</p>
+
+    <form id="regForm" onsubmit="event.preventDefault(); handleSubmit();">
+      <div class="form-group">
+        <label for="fullName">Full Name</label>
+        <input type="text" id="fullName" name="fullName" placeholder="e.g. Dr. Jane Doe">
+      </div>
+
+      <div class="form-group">
+        <label for="company">Company / Organization</label>
+        <input type="text" id="company" name="company" placeholder="e.g. TypeSafe Robotics AG">
+      </div>
+
+      <div class="form-group">
+        <label for="email">Work Email</label>
+        <input type="email" id="email" name="email" placeholder="jane@typesafe.ai">
+      </div>
+
+      <div class="form-group">
+        <label for="planTier">Infrastructure Tier</label>
+        <select id="planTier" name="planTier">
+          <option value="developer">Developer (Single Node)</option>
+          <option value="enterprise_ha">Enterprise HA (Multi-Region Cluster)</option>
+          <option value="edge_embedded">Edge Embedded (Realtime ONNX)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Deployment Environment</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" name="environment" value="cloud_hosted" checked>
+            Cloud Hosted (AWS / GCP)
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="environment" value="sovereign_onprem">
+            Sovereign On-Premises (Air-gapped)
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="termsCheck" name="termsCheck">
+            I accept the Enterprise Service Level Agreement and Security Guidelines
+          </label>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button type="submit" class="btn-primary" id="submitBtn">Deploy Infrastructure</button>
+        <button type="button" class="btn-secondary" id="resetBtn" onclick="handleReset()">Reset</button>
+      </div>
+    </form>
+
+    <div class="status-card" id="statusCard">
+      <span class="status-badge status-pending" id="statusBadge">PENDING SUBMISSION</span>
+      <div id="statusOutput">Waiting for automated input...</div>
+    </div>
+  </div>
+
+  <script>
+    let submissionState = {
+      submitted: false,
+      timestamp: null,
+      data: null
+    };
+
+    window.formSubmissionState = submissionState;
+
+    function handleSubmit() {
+      const form = document.getElementById('regForm');
+      const formData = new FormData(form);
+      const values = Object.fromEntries(formData.entries());
+      values.termsAccepted = document.getElementById('termsCheck').checked;
+
+      submissionState.submitted = true;
+      submissionState.timestamp = new Date().toISOString();
+      submissionState.data = values;
+
+      const badge = document.getElementById('statusBadge');
+      badge.textContent = 'PROVISIONED SUCCESSFULLY';
+      badge.className = 'status-badge status-success';
+
+      const output = document.getElementById('statusOutput');
+      output.innerHTML = `
+Cluster ID: CLUSTER-` + Math.floor(100000 + Math.random() * 900000) + `<br>
+Org: ` + (values.company || 'N/A') + `<br>
+Lead: ` + (values.fullName || 'N/A') + ` &lt;` + (values.email || 'N/A') + `&gt;<br>
+Tier: ` + values.planTier + `<br>
+Env: ` + values.environment + `<br>
+SLA Accepted: ` + values.termsAccepted;
+    }
+
+    function handleReset() {
+      document.getElementById('regForm').reset();
+      submissionState.submitted = false;
+      submissionState.data = null;
+      const badge = document.getElementById('statusBadge');
+      badge.textContent = 'RESET';
+      badge.className = 'status-badge status-pending';
+      document.getElementById('statusOutput').textContent = 'Form reset to default values.';
+    }
+  </script>
+</body>
+</html>

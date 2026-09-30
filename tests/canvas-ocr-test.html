@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Canvas OCR Test Benchmark</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 40px;
+      background: #0f172a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      margin-bottom: 20px;
+      font-size: 24px;
+      color: #38bdf8;
+    }
+    canvas {
+      background: #1e293b;
+      border: 2px solid #38bdf8;
+      border-radius: 12px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>CUA-Perception Visual OCR on HTML5 Canvas</h1>
+  <canvas id="customCanvas" width="800" height="500"></canvas>
+
+  <script>
+    const canvas = document.getElementById('customCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let state = {
+      statusText: 'READY',
+      lastClicked: 'NONE',
+      clickCount: 0,
+      activeColor: '#2563eb'
+    };
+
+    window.canvasState = state;
+
+    function render() {
+      ctx.clearRect(0, 0, 800, 500);
+
+      // Header bar
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(0, 0, 800, 70);
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'bold 24px -apple-system, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('TypeSafe AI OmniParser & PP-OCR v5 Benchmark', 30, 44);
+
+      // Section 1: Dashboard metric card
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.roundRect(30, 100, 350, 160, 10);
+      ctx.fill();
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '14px sans-serif';
+      ctx.fillText('METRIC SUMMARY', 50, 130);
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 36px monospace';
+      ctx.fillText('99.85% ACC', 50, 180);
+
+      ctx.fillStyle = '#22c55e';
+      ctx.font = '16px sans-serif';
+      ctx.fillText('+5.51x Decision Speedup', 50, 225);
+
+      // Section 2: Interactive Controls / Actions
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.roundRect(410, 100, 360, 160, 10);
+      ctx.fill();
+      ctx.strokeStyle = '#64748b';
+      ctx.stroke();
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '14px sans-serif';
+      ctx.fillText('WORKFLOW ROUTING', 430, 130);
+
+      ctx.fillStyle = '#f1f5f9';
+      ctx.font = '18px sans-serif';
+      ctx.fillText('Target: Dolphin Navigation', 430, 170);
+
+      ctx.fillStyle = state.lastClicked === 'EXECUTE PIPELINE' ? '#4ade80' : '#e2e8f0';
+      ctx.font = '14px sans-serif';
+      ctx.fillText('Status: ' + state.statusText + ' (' + state.clickCount + ' clicks)', 430, 205);
+
+      // Section 3: Graphical Buttons drawn on canvas (pure pixels)
+      // Primary Button: EXECUTE PIPELINE [50, 300, 180, 50]
+      ctx.fillStyle = state.lastClicked === 'EXECUTE PIPELINE' ? '#16a34a' : '#2563eb';
+      ctx.beginPath();
+      ctx.roundRect(50, 300, 180, 50, 8);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(state.lastClicked === 'EXECUTE PIPELINE' ? 'PIPELINE ACTIVE' : 'EXECUTE PIPELINE', 140, 332);
+
+      // Secondary Button: ABORT RUN [260, 300, 140, 50]
+      ctx.fillStyle = state.lastClicked === 'ABORT RUN' ? '#dc2626' : '#475569';
+      ctx.beginPath();
+      ctx.roundRect(260, 300, 140, 50, 8);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('ABORT RUN', 330, 332);
+
+      // Tertiary Button: EXPORT METRICS [430, 300, 160, 50]
+      ctx.fillStyle = state.lastClicked === 'EXPORT METRICS' ? '#059669' : '#10b981';
+      ctx.beginPath();
+      ctx.roundRect(430, 300, 160, 50, 8);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('EXPORT METRICS', 510, 332);
+
+      // Status footer inside canvas
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#64748b';
+      ctx.font = '13px monospace';
+      ctx.fillText('ID: JEV-SESSION-20260930-TRACE | LAST: ' + state.lastClicked, 50, 440);
+    }
+
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      state.clickCount++;
+      if (x >= 50 && x <= 230 && y >= 300 && y <= 350) {
+        state.lastClicked = 'EXECUTE PIPELINE';
+        state.statusText = 'PIPELINE EXECUTED';
+      } else if (x >= 260 && x <= 400 && y >= 300 && y <= 350) {
+        state.lastClicked = 'ABORT RUN';
+        state.statusText = 'ABORTED';
+      } else if (x >= 430 && x <= 590 && y >= 300 && y <= 350) {
+        state.lastClicked = 'EXPORT METRICS';
+        state.statusText = 'METRICS EXPORTED';
+      } else {
+        state.lastClicked = `CANVAS (${Math.round(x)}, ${Math.round(y)})`;
+      }
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>

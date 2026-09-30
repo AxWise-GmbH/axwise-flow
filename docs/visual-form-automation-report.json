@@ -1,0 +1,33 @@
+{
+  "title": "Multi-Field Form Automation Benchmark",
+  "timestamp": "2026-09-30T20:01:57.038Z",
+  "profile": {
+    "fullName": "Dr. Alex Thorne",
+    "company": "TypeSafe AI Research",
+    "email": "alex.thorne@typesafe.ai",
+    "planTier": "enterprise_ha",
+    "environment": "sovereign_onprem",
+    "termsAccepted": true
+  },
+  "perception": {
+    "workerLatencyMs": 1967,
+    "detectedRegionsCount": 46,
+    "detectedLabels": [
+      "FULL NAME",
+      "COMPANY / ORGANIZATION",
+      "WORK EMAIL",
+      "INFRASTRUCTURE TIER",
+      "DEPLOYMENT ENVIRONMENT",
+      "Deploy Infrastructure"
+    ]
+  },
+  "jevDecision": {
+    "chosenAction": "act_1",
+    "confidence": 1,
+    "latencyMs": 410,
+    "probabilities": {
+      "act_1": 1,
+      "act_2": 0
+    }
+  }
+}

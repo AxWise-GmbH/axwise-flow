@@ -1,0 +1,39 @@
+{
+  "workflow": "End-to-End Multi-App Packaged Pipeline",
+  "timestamp": "2026-09-30T19:59:40.585Z",
+  "perception": {
+    "worker": "cua-perception v0.2.1",
+    "models": [
+      "OmniParser v2.0",
+      "PaddlePaddle PP-OCR v5"
+    ],
+    "latencyMs": 2002,
+    "totalRegions": 38,
+    "textRegions": 19,
+    "iconRegions": 19
+  },
+  "decision": {
+    "engine": "TypeSafe AI System-1 (jev-latest)",
+    "goal": "Export metrics report for multi-app verification and storage",
+    "chosenAction": "act_3",
+    "confidence": 1,
+    "latencyMs": 326,
+    "inputTokens": 422,
+    "outputTokens": 47
+  },
+  "execution": {
+    "app_1": {
+      "name": "Google Chrome",
+      "surface": "Canvas OCR Test Benchmark",
+      "dispatchedAction": "EXPORT METRICS",
+      "postcondition": "METRICS EXPORTED (Verified)"
+    },
+    "app_2": {
+      "name": "Apple Notes",
+      "surface": "macOS Native Accessibility",
+      "action": "Invoke File -> New Note & Paste Trajectory Record",
+      "postcondition": "New Note Created (Verified)"
+    }
+  },
+  "status": "SUCCESS"
+}

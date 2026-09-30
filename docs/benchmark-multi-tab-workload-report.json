@@ -1,0 +1,194 @@
+{
+  "summary": {
+    "totalTabsTested": 5,
+    "accuracy": "5/5",
+    "avgSequentialLatencyMs": 256,
+    "avgParallelLatencyMs": 261,
+    "parallelBurstWallClockMs": 287,
+    "throughputTabsPerSecond": 17.42
+  },
+  "sequentialResults": [
+    {
+      "tabId": "tab_1_quantum",
+      "title": "Tab 1: Quantum Computing Navigation",
+      "choice": "act_3",
+      "confidence": 0.98,
+      "probabilities": {
+        "act_4": 0,
+        "act_3": 0.99,
+        "act_1": 0,
+        "act_5": 0,
+        "act_2": 0.01
+      },
+      "expected": "act_3",
+      "accurate": true,
+      "latencyMs": 342,
+      "inputTokens": 425,
+      "outputTokens": 65
+    },
+    {
+      "tabId": "tab_2_photosynthesis",
+      "title": "Tab 2: Photosynthesis Navigation",
+      "choice": "act_2",
+      "confidence": 0.99,
+      "probabilities": {
+        "act_5": 0,
+        "act_1": 0,
+        "act_2": 1,
+        "act_3": 0,
+        "act_4": 0
+      },
+      "expected": "act_2",
+      "accurate": true,
+      "latencyMs": 216,
+      "inputTokens": 428,
+      "outputTokens": 65
+    },
+    {
+      "tabId": "tab_3_davinci",
+      "title": "Tab 3: Leonardo da Vinci Navigation",
+      "choice": "act_3",
+      "confidence": 0.85,
+      "probabilities": {
+        "act_4": 0,
+        "act_3": 0.88,
+        "act_2": 0.04,
+        "act_1": 0.07,
+        "act_5": 0.01
+      },
+      "expected": "act_3",
+      "accurate": true,
+      "latencyMs": 272,
+      "inputTokens": 423,
+      "outputTokens": 65
+    },
+    {
+      "tabId": "tab_4_checkout",
+      "title": "Tab 4: E-Commerce Multi-Step Cart",
+      "choice": "act_3",
+      "confidence": 1,
+      "probabilities": {
+        "act_4": 0,
+        "act_3": 1,
+        "act_2": 0,
+        "act_1": 0,
+        "act_5": 0
+      },
+      "expected": "act_3",
+      "accurate": true,
+      "latencyMs": 222,
+      "inputTokens": 422,
+      "outputTokens": 65
+    },
+    {
+      "tabId": "tab_5_analytics",
+      "title": "Tab 5: Analytics Metric Filter",
+      "choice": "act_3",
+      "confidence": 1,
+      "probabilities": {
+        "act_3": 1,
+        "act_1": 0,
+        "act_4": 0,
+        "act_5": 0,
+        "act_2": 0
+      },
+      "expected": "act_3",
+      "accurate": true,
+      "latencyMs": 229,
+      "inputTokens": 421,
+      "outputTokens": 65
+    }
+  ],
+  "parallelResults": [
+    {
+      "tabId": "tab_1_quantum",
+      "title": "Tab 1: Quantum Computing Navigation",
+      "choice": "act_3",
+      "confidence": 0.99,
+      "probabilities": {
+        "act_4": 0,
+        "act_2": 0.01,
+        "act_3": 0.99,
+        "act_5": 0,
+        "act_1": 0
+      },
+      "expected": "act_3",
+      "accurate": true,
+      "latencyMs": 217,
+      "inputTokens": 425,
+      "outputTokens": 65
+    },
+    {
+      "tabId": "tab_2_photosynthesis",
+      "title": "Tab 2: Photosynthesis Navigation",
+      "choice": "act_2",
+      "confidence": 0.99,
+      "probabilities": {
+        "act_3": 0,
+        "act_1": 0,
+        "act_4": 0,
+        "act_5": 0,
+        "act_2": 1
+      },
+      "expected": "act_2",
+      "accurate": true,
+      "latencyMs": 266,
+      "inputTokens": 428,
+      "outputTokens": 65
+    },
+    {
+      "tabId": "tab_3_davinci",
+      "title": "Tab 3: Leonardo da Vinci Navigation",
+      "choice": "act_3",
+      "confidence": 0.86,
+      "probabilities": {
+        "act_2": 0.04,
+        "act_5": 0.01,
+        "act_1": 0.06,
+        "act_4": 0,
+        "act_3": 0.89
+      },
+      "expected": "act_3",
+      "accurate": true,
+      "latencyMs": 285,
+      "inputTokens": 423,
+      "outputTokens": 65
+    },
+    {
+      "tabId": "tab_4_checkout",
+      "title": "Tab 4: E-Commerce Multi-Step Cart",
+      "choice": "act_3",
+      "confidence": 1,
+      "probabilities": {
+        "act_2": 0,
+        "act_5": 0,
+        "act_4": 0,
+        "act_1": 0,
+        "act_3": 1
+      },
+      "expected": "act_3",
+      "accurate": true,
+      "latencyMs": 285,
+      "inputTokens": 422,
+      "outputTokens": 65
+    },
+    {
+      "tabId": "tab_5_analytics",
+      "title": "Tab 5: Analytics Metric Filter",
+      "choice": "act_3",
+      "confidence": 1,
+      "probabilities": {
+        "act_1": 0,
+        "act_2": 0,
+        "act_3": 1,
+        "act_4": 0,
+        "act_5": 0
+      },
+      "expected": "act_3",
+      "accurate": true,
+      "latencyMs": 253,
+      "inputTokens": 421,
+      "outputTokens": 65
+    }
+  ]
+}
