@@ -1,0 +1,54 @@
+{
+  "timestamp": "2026-10-01T17:13:58.595Z",
+  "startPage": "Rocket science - Wikipedia",
+  "targetPage": "Dolphin - Wikipedia",
+  "hopsCount": 5,
+  "totalDurationSeconds": 26,
+  "history": [
+    {
+      "hop": 0,
+      "title": "Rocket science - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Rocket_science",
+      "action": "START"
+    },
+    {
+      "hop": 1,
+      "link": "Rocket Science Games",
+      "jevLatency": 316,
+      "navTime": 4760,
+      "title": "Rocket Science Games - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Rocket_Science_Games"
+    },
+    {
+      "hop": 2,
+      "link": "San Francisco, California",
+      "jevLatency": 250,
+      "navTime": 4785,
+      "title": "San Francisco - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/San_Francisco"
+    },
+    {
+      "hop": 3,
+      "link": "National Oceanic and Atmospheric Administration",
+      "jevLatency": 315,
+      "navTime": 4812,
+      "title": "National Oceanic and Atmospheric Administration - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/National_Oceanic_and_Atmospheric_Administration"
+    },
+    {
+      "hop": 4,
+      "link": "Marine Mammal Protection Act",
+      "jevLatency": 270,
+      "navTime": 4790,
+      "title": "Marine Mammal Protection Act - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Marine_Mammal_Protection_Act"
+    },
+    {
+      "hop": 5,
+      "link": "Dolphin",
+      "navTime": 4783,
+      "title": "Dolphin - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Dolphin"
+    }
+  ]
+}
