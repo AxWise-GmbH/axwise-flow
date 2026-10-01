@@ -1,6 +1,6 @@
 {
   "title": "OSWorld-10 Domains & 100-Step Memory Footprint Benchmark",
-  "timestamp": "2026-09-30T20:27:21.571Z",
+  "timestamp": "2026-10-01T14:13:23.174Z",
   "environment": {
     "os": "macOS (darwin-arm64)",
     "runtime": "Node.js v22.23.2",
@@ -9,14 +9,14 @@
   "domainsPhase": {
     "totalDomains": 10,
     "accuracy": "10/10",
-    "avgLatencyMs": 246,
+    "avgLatencyMs": 261,
     "results": [
       {
         "domain": "chrome",
         "title": "1. Chrome: Multi-Tab Research & Form Automation",
         "choice": "act_1",
         "confidence": 1,
-        "latencyMs": 313,
+        "latencyMs": 319,
         "accurate": true
       },
       {
@@ -24,7 +24,7 @@
         "title": "2. VS Code: Syntax Diagnostic & Refactoring Handoff",
         "choice": "act_2",
         "confidence": 1,
-        "latencyMs": 255,
+        "latencyMs": 260,
         "accurate": true
       },
       {
@@ -32,7 +32,7 @@
         "title": "3. Calc: Tabular Formula & Aggregation Pivot",
         "choice": "act_1",
         "confidence": 1,
-        "latencyMs": 234,
+        "latencyMs": 220,
         "accurate": true
       },
       {
@@ -40,7 +40,7 @@
         "title": "4. Writer: Executive Brief Formatting & Export",
         "choice": "act_1",
         "confidence": 1,
-        "latencyMs": 227,
+        "latencyMs": 313,
         "accurate": true
       },
       {
@@ -48,7 +48,7 @@
         "title": "5. Impress: Slide Layout & Telemetry Visual Insertion",
         "choice": "act_2",
         "confidence": 1,
-        "latencyMs": 232,
+        "latencyMs": 236,
         "accurate": true
       },
       {
@@ -56,7 +56,7 @@
         "title": "6. GIMP: Visual Pixel Manipulation & Layer Masking",
         "choice": "act_1",
         "confidence": 1,
-        "latencyMs": 225,
+        "latencyMs": 235,
         "accurate": true
       },
       {
@@ -64,7 +64,7 @@
         "title": "7. Thunderbird: Dispatch Quarterly Operational Report",
         "choice": "act_3",
         "confidence": 1,
-        "latencyMs": 233,
+        "latencyMs": 255,
         "accurate": true
       },
       {
@@ -72,7 +72,7 @@
         "title": "8. VLC: Session Trajectory Recording Playback & Review",
         "choice": "act_1",
         "confidence": 1,
-        "latencyMs": 246,
+        "latencyMs": 247,
         "accurate": true
       },
       {
@@ -80,7 +80,7 @@
         "title": "9. OS: Atomic File Operations & Process Management",
         "choice": "act_2",
         "confidence": 1,
-        "latencyMs": 264,
+        "latencyMs": 288,
         "accurate": true
       },
       {
@@ -88,7 +88,7 @@
         "title": "10. Multi-Apps: Cross-Application Orchestration Pipeline",
         "choice": "act_1",
         "confidence": 1,
-        "latencyMs": 230,
+        "latencyMs": 233,
         "accurate": true
       }
     ]
@@ -96,48 +96,48 @@
   "longHorizon100Steps": {
     "totalSteps": 100,
     "accuracy": "100/100",
-    "avgLatencyMs": 244,
-    "totalWallClockMs": 24475,
-    "throughputStepsPerSec": 4.09,
+    "avgLatencyMs": 269,
+    "totalWallClockMs": 27028,
+    "throughputStepsPerSec": 3.7,
     "memoryProfile": [
       {
         "step": 0,
-        "heapUsedMb": 8.6,
+        "heapUsedMb": 8.56,
         "heapTotalMb": 13.09,
-        "rssMb": 76.56
+        "rssMb": 75.88
       },
       {
         "step": 1,
-        "heapUsedMb": 8.75,
+        "heapUsedMb": 8.71,
         "heapTotalMb": 13.09,
-        "rssMb": 76.58
+        "rssMb": 75.91
       },
       {
         "step": 25,
-        "heapUsedMb": 8.04,
-        "heapTotalMb": 10.09,
-        "rssMb": 78.53
+        "heapUsedMb": 7.9,
+        "heapTotalMb": 9.59,
+        "rssMb": 76.56
       },
       {
         "step": 50,
-        "heapUsedMb": 8.6,
+        "heapUsedMb": 8.87,
         "heapTotalMb": 10.09,
-        "rssMb": 79.56
+        "rssMb": 78.8
       },
       {
         "step": 75,
-        "heapUsedMb": 9.54,
+        "heapUsedMb": 9.78,
         "heapTotalMb": 11.84,
-        "rssMb": 81.8
+        "rssMb": 81.17
       },
       {
         "step": 100,
-        "heapUsedMb": 10.44,
-        "heapTotalMb": 11.84,
-        "rssMb": 84.7
+        "heapUsedMb": 10.27,
+        "heapTotalMb": 11.59,
+        "rssMb": 82.78
       }
     ],
-    "memoryDeltaMb": 1.84,
+    "memoryDeltaMb": 1.72,
     "leakDetected": false
   }
 }

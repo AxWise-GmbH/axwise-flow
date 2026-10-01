@@ -1,6 +1,6 @@
 {
   "evaluatedStatus": "OPTIMAL",
-  "confidence": 0.91,
+  "confidence": 0.92,
   "metrics": {
     "activeClusters": 14,
     "throughputRps": 18420,
@@ -27,5 +27,5 @@
       }
     ]
   },
-  "generatedAt": "2026-09-30T20:22:20.492Z"
+  "generatedAt": "2026-10-01T14:12:50.386Z"
 }

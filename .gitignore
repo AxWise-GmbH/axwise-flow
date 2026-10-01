@@ -95,6 +95,7 @@ temp/
 !/packages/orqaly-goose-connector/src/utility-providers.mjs
 !/packages/orqaly-goose-connector/src/native-engineering-gems.mjs
 !/packages/orqaly-goose-connector/src/jev-loop-router.mjs
+!/packages/orqaly-goose-connector/src/batch-actions.mjs
 !/packages/orqaly-goose-connector/test/
 /packages/orqaly-goose-connector/test/*
 !/packages/orqaly-goose-connector/test/utilities-mcp.test.mjs
@@ -181,8 +182,14 @@ auth.json
 !/scripts/benchmark-desktop-engineering-flags.mjs
 !/scripts/benchmark-native-engineering.mjs
 !/scripts/benchmark-native-engineering.test.mjs
+!/scripts/batch-actions.mjs
+!/scripts/e2e-fast-cua-jev-speed.mjs
 !/scripts/lib/
 /scripts/lib/*
+!/scripts/lib/batch-actions.mjs
+!/scripts/lib/batch-actions.test.mjs
+!/scripts/lib/action-templates.mjs
+!/scripts/lib/action-templates.test.mjs
 !/scripts/lib/jev-lint-models.mjs
 !/scripts/jev-lint-models.test.mjs
 !/scripts/benchmark-orqanix-matrix.mjs

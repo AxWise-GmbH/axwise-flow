@@ -174,12 +174,13 @@ test('MCP server exposes only real weather/currency app resources and separate s
   assert.deepEqual(replies[0].result.capabilities, { tools: {}, resources: {} });
   assert.equal(replies[0].result.serverInfo.name, 'desktop-utilities');
   assert.deepEqual(replies[1].result.tools.map((tool) => tool.name),
-    ['get_weather', 'convert_currency', 'search_web', 'generate_image', 'speak_text']);
+    ['get_weather', 'convert_currency', 'search_web', 'generate_image', 'speak_text', 'batch_actions']);
   assert.equal(replies[1].result.tools[0]._meta.ui.resourceUri, 'ui://desktop-utilities/weather');
   assert.equal(replies[1].result.tools[1]._meta.ui.resourceUri, 'ui://desktop-utilities/currency');
   assert.equal(Object.hasOwn(replies[1].result.tools[2], '_meta'), false);
   assert.equal(Object.hasOwn(replies[1].result.tools[3], '_meta'), false);
   assert.equal(Object.hasOwn(replies[1].result.tools[4], '_meta'), false);
+  assert.equal(Object.hasOwn(replies[1].result.tools[5], '_meta'), false);
   assert.deepEqual(replies[2].result.resources.map((resource) => resource.uri),
     ['ui://desktop-utilities/weather', 'ui://desktop-utilities/currency']);
   for (const item of replies.slice(3, 5)) {
@@ -190,7 +191,7 @@ test('MCP server exposes only real weather/currency app resources and separate s
   }
   assert.equal(replies[5].error.code, -32602);
   assert.deepEqual(UTILITY_TOOLS.map((tool) => tool.name),
-    ['get_weather', 'convert_currency', 'search_web', 'generate_image', 'speak_text']);
+    ['get_weather', 'convert_currency', 'search_web', 'generate_image', 'speak_text', 'batch_actions']);
 });
 
 test('MCP server handles another tool call while cancelling one active request', async () => {
@@ -352,5 +353,27 @@ test('speak_text validates text and handles errors gracefully', async () => {
   assert.equal(unauth.isError, true);
   assert.equal(unauth.structuredContent.error.code, 'LOGIN_REQUIRED');
 });
+
+test('batch_actions executes sequential actions and returns structured outcome', async () => {
+  const call = createUtilityTools(base);
+  const emptyRes = await call('batch_actions', { actions: [] });
+  assert.equal(emptyRes.isError, true);
+  assert.equal(emptyRes.structuredContent.error.code, 'INVALID_INPUT');
+
+  const validRes = await call('batch_actions', {
+    actions: [
+      { type: 'wait', ms: 25 },
+      { type: 'wait', ms: 25 },
+    ],
+    defaultDelayMs: 0,
+  });
+  assert.equal(validRes.isError, false);
+  assert.equal(validRes.structuredContent.kind, 'batch_actions');
+  assert.equal(validRes.structuredContent.status, 'completed');
+  assert.equal(validRes.structuredContent.batchResult.totalActions, 2);
+  assert.equal(validRes.structuredContent.batchResult.successCount, 2);
+  assert.ok(validRes.structuredContent.batchResult.durationMs >= 40);
+});
+
 
 

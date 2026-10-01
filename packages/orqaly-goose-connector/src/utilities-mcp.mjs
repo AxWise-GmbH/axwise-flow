@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { main as authCommand } from './cli.mjs';
 import { parseArguments } from './config.mjs';
 import { createUtilityProviders, UtilityLookupError } from './utility-providers.mjs';
+import { executeBatchActions } from './batch-actions.mjs';
 
 const CONVERSATION = /^[A-Za-z0-9_-]{1,128}$/;
 const ACCOUNT_HASH = /^[a-f0-9]{64}$/;
@@ -76,6 +77,21 @@ export const UTILITY_TOOLS = [
       text: { type: 'string', minLength: 1, maxLength: 4_000 },
       voice: { type: 'string', enum: ['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'] },
     }, ['text']),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  },
+  {
+    name: 'batch_actions', title: 'Execute batch GUI actions',
+    description: 'Execute a batch of sequential GUI actions (clicks, drags, typing, key combinations, and waits) at high speed (50-100ms per action) without round-trips to the LLM. Essential for accelerated computer use in browsers, spreadsheets, games, and desktop apps.',
+    inputSchema: schema({
+      actions: {
+        type: 'array',
+        items: { type: 'object' },
+        description: 'Array of actions: click ({type: "click", x, y, speed?, button?}), double_click ({type: "double_click", x, y}), drag ({type: "drag", fromX, fromY, toX, toY, durationMs?, steps?}), type ({type: "type", text, delayMs?}), key ({type: "key", key}), hotkey ({type: "hotkey", keys}), wait ({type: "wait", ms}), activate ({type: "activate", appName}).',
+      },
+      appName: { type: 'string', description: 'Optional application name to activate before executing actions (e.g. "Google Chrome", "Notes").' },
+      stopOnError: { type: 'boolean', description: 'Stop execution immediately if any action fails (default: true).' },
+      defaultDelayMs: { type: 'integer', minimum: 0, maximum: 5000, description: 'Default delay in milliseconds between actions (default: 40).' },
+    }, ['actions']),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
 ];
@@ -316,7 +332,24 @@ export function createUtilityTools({ apiUrl, conversationId, accountHash, token,
     const requestId = newId();
     try {
       let data;
-      if (name === 'get_weather') {
+      if (name === 'batch_actions') {
+        const actions = Array.isArray(args.actions) ? args.actions : [];
+        if (!actions.length) {
+          throw new UtilityLookupError('INVALID_INPUT', 'The actions array must not be empty.');
+        }
+        const batchResult = await executeBatchActions(actions, {
+          appName: args.appName,
+          stopOnError: args.stopOnError ?? true,
+          defaultDelayMs: args.defaultDelayMs ?? 40,
+        });
+        const markdown = `Batch GUI actions: ${batchResult.successCount}/${batchResult.totalActions} succeeded in ${batchResult.durationMs}ms.`;
+        data = {
+          version: 'orqaly.desktop-work.v1', conversationId, requestId, kind: 'batch_actions',
+          status: batchResult.ok ? 'completed' : 'failed',
+          markdown,
+          batchResult,
+        };
+      } else if (name === 'get_weather') {
         const result = await providers.weather(args.location, args.temperatureUnit ?? 'C', signal);
         data = {
           version: 'orqaly.desktop-work.v1', conversationId, requestId, kind: 'weather', status: 'completed',
