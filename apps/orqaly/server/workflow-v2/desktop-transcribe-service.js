@@ -115,10 +115,14 @@ export function createDesktopTranscribeService({
       }
 
       const candidate = data?.candidates?.[0];
-      const text = candidate?.content?.parts?.[0]?.text ?? '';
+      let text = (candidate?.content?.parts?.[0]?.text ?? '').trim();
+      // Filter out hallucinated acoustic descriptions from Gemini (e.g. "0:00 - 0:05: Typing sounds and clicking on a keyboard", "[music playing]", "(applause)")
+      if (/^\[[^\]]+\]$/.test(text) || /^\([^\)]+\)$/.test(text) || /^\d{1,2}:\d{2}.*(?:typing|sound|noise|music|clicking|keyboard|chime|silence)/i.test(text)) {
+        text = '';
+      }
 
       return {
-        text: text.trim(),
+        text,
         model,
       };
     },
