@@ -186,7 +186,17 @@ export function physicalType(text, delayMs = 25) {
 }
 
 /**
- * Sends a keyboard shortcut (e.g. ['cmd', 'c'], ['cmd', 'v'], ['enter']).
+ * Presses a single key (e.g. 'return', 'tab', 'escape', 'up', 'down').
+ */
+export function physicalPressKey(key) {
+  execFileSync('cua-driver', ['call', 'press_key', JSON.stringify({
+    target: { kind: 'desktop', display_id: 'primary' },
+    key,
+  })]);
+}
+
+/**
+ * Sends a keyboard shortcut (e.g. ['cmd', 'c'], ['cmd', 'v'], ['shift', 'tab']).
  */
 export function physicalHotkey(keys) {
   execFileSync('cua-driver', ['call', 'hotkey', JSON.stringify({
