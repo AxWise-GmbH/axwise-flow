@@ -407,3 +407,111 @@ export async function triageComputerUseModalityWithJev({
     return unavailable(reasonFor(error));
   }
 }
+
+export async function evaluateJevActionSelection({
+  goal,
+  candidates,
+  apiKey = process.env.TYPESAFE_API_KEY,
+  signal,
+  fetchImpl = globalThis.fetch,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+}) {
+  const unavailable = (reason) => ({
+    evaluated: false,
+    reason,
+    choice: null,
+    confidence: 0,
+    latencyMs: 0,
+  });
+
+  if (!apiKey?.trim()) return unavailable("MISSING_API_KEY");
+  if (typeof goal !== "string" || !goal.trim()) return unavailable("EMPTY_GOAL");
+  if (!candidates || typeof candidates !== "object" || Object.keys(candidates).length === 0)
+    return unavailable("EMPTY_CANDIDATES");
+
+  try {
+    const { data, latencyMs } = await requestJev({
+      apiKey,
+      signal,
+      fetchImpl,
+      timeoutMs,
+      payload: {
+        model: "jev-latest",
+        state: {
+          goal: goal.slice(0, 16000),
+          visible_ui_elements: candidates,
+        },
+        questions: {
+          target_action: {
+            type: "choice",
+            instructions: "Select the exact action identifier that accomplishes the user goal.",
+            criteria: candidates,
+          },
+        },
+      },
+    });
+
+    const answer = data.answers?.target_action;
+    if (!answer || answer.type !== "choice" || !Object.hasOwn(candidates, answer.choice)) {
+      return unavailable("INVALID_JEV_RESPONSE");
+    }
+
+    return {
+      evaluated: true,
+      reason: answer.confidence >= 0.7 ? "CLASSIFIED" : "LOW_CONFIDENCE",
+      choice: answer.choice,
+      confidence: answer.confidence,
+      probabilities: answer.probabilities || {},
+      latencyMs,
+      model: data.model,
+    };
+  } catch (error) {
+    return unavailable(reasonFor(error));
+  }
+}
+
+export async function triageFullComputerUsePlan({
+  message,
+  activeApp = null,
+  candidates = null,
+  apiKey = process.env.TYPESAFE_API_KEY,
+  signal,
+  fetchImpl = globalThis.fetch,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+}) {
+  const modalityResult = await triageComputerUseModalityWithJev({
+    message,
+    apiKey,
+    signal,
+    fetchImpl,
+    timeoutMs,
+    activeApp,
+  });
+
+  let actionResult = null;
+  if (candidates && typeof candidates === "object" && Object.keys(candidates).length > 0) {
+    actionResult = await evaluateJevActionSelection({
+      goal: message,
+      candidates,
+      apiKey,
+      signal,
+      fetchImpl,
+      timeoutMs,
+    });
+  }
+
+  const batchRecommended =
+    modalityResult.modality === COMPUTER_USE_MODALITIES.PHYSICAL_GUI ||
+    modalityResult.cursorSpeed === "snappy" ||
+    modalityResult.cursorSpeed === "fast";
+
+  return {
+    evaluated: modalityResult.evaluated,
+    modality: modalityResult.modality,
+    cursorSpeed: modalityResult.cursorSpeed,
+    batchRecommended,
+    selectedAction: actionResult?.choice ?? null,
+    actionConfidence: actionResult?.confidence ?? null,
+    decisionLatencyMs: (modalityResult.latencyMs || 0) + (actionResult?.latencyMs || 0),
+  };
+}

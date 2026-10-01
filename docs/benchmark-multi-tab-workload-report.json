@@ -2,10 +2,10 @@
   "summary": {
     "totalTabsTested": 5,
     "accuracy": "5/5",
-    "avgSequentialLatencyMs": 256,
-    "avgParallelLatencyMs": 261,
-    "parallelBurstWallClockMs": 287,
-    "throughputTabsPerSecond": 17.42
+    "avgSequentialLatencyMs": 263,
+    "avgParallelLatencyMs": 288,
+    "parallelBurstWallClockMs": 352,
+    "throughputTabsPerSecond": 14.2
   },
   "sequentialResults": [
     {
@@ -15,14 +15,14 @@
       "confidence": 0.98,
       "probabilities": {
         "act_4": 0,
+        "act_2": 0.01,
         "act_3": 0.99,
         "act_1": 0,
-        "act_5": 0,
-        "act_2": 0.01
+        "act_5": 0
       },
       "expected": "act_3",
       "accurate": true,
-      "latencyMs": 342,
+      "latencyMs": 308,
       "inputTokens": 425,
       "outputTokens": 65
     },
@@ -32,15 +32,15 @@
       "choice": "act_2",
       "confidence": 0.99,
       "probabilities": {
-        "act_5": 0,
-        "act_1": 0,
-        "act_2": 1,
         "act_3": 0,
+        "act_1": 0,
+        "act_5": 0,
+        "act_2": 1,
         "act_4": 0
       },
       "expected": "act_2",
       "accurate": true,
-      "latencyMs": 216,
+      "latencyMs": 249,
       "inputTokens": 428,
       "outputTokens": 65
     },
@@ -48,17 +48,17 @@
       "tabId": "tab_3_davinci",
       "title": "Tab 3: Leonardo da Vinci Navigation",
       "choice": "act_3",
-      "confidence": 0.85,
+      "confidence": 0.86,
       "probabilities": {
-        "act_4": 0,
-        "act_3": 0.88,
         "act_2": 0.04,
-        "act_1": 0.07,
+        "act_4": 0,
+        "act_1": 0.05,
+        "act_3": 0.9,
         "act_5": 0.01
       },
       "expected": "act_3",
       "accurate": true,
-      "latencyMs": 272,
+      "latencyMs": 212,
       "inputTokens": 423,
       "outputTokens": 65
     },
@@ -68,15 +68,15 @@
       "choice": "act_3",
       "confidence": 1,
       "probabilities": {
+        "act_2": 0,
         "act_4": 0,
         "act_3": 1,
-        "act_2": 0,
         "act_1": 0,
         "act_5": 0
       },
       "expected": "act_3",
       "accurate": true,
-      "latencyMs": 222,
+      "latencyMs": 294,
       "inputTokens": 422,
       "outputTokens": 65
     },
@@ -86,15 +86,15 @@
       "choice": "act_3",
       "confidence": 1,
       "probabilities": {
-        "act_3": 1,
-        "act_1": 0,
         "act_4": 0,
+        "act_2": 0,
         "act_5": 0,
-        "act_2": 0
+        "act_1": 0,
+        "act_3": 1
       },
       "expected": "act_3",
       "accurate": true,
-      "latencyMs": 229,
+      "latencyMs": 250,
       "inputTokens": 421,
       "outputTokens": 65
     }
@@ -107,14 +107,14 @@
       "confidence": 0.99,
       "probabilities": {
         "act_4": 0,
-        "act_2": 0.01,
-        "act_3": 0.99,
         "act_5": 0,
-        "act_1": 0
+        "act_2": 0.01,
+        "act_1": 0,
+        "act_3": 0.99
       },
       "expected": "act_3",
       "accurate": true,
-      "latencyMs": 217,
+      "latencyMs": 245,
       "inputTokens": 425,
       "outputTokens": 65
     },
@@ -125,14 +125,14 @@
       "confidence": 0.99,
       "probabilities": {
         "act_3": 0,
-        "act_1": 0,
-        "act_4": 0,
         "act_5": 0,
-        "act_2": 1
+        "act_2": 1,
+        "act_1": 0,
+        "act_4": 0
       },
       "expected": "act_2",
       "accurate": true,
-      "latencyMs": 266,
+      "latencyMs": 291,
       "inputTokens": 428,
       "outputTokens": 65
     },
@@ -142,15 +142,15 @@
       "choice": "act_3",
       "confidence": 0.86,
       "probabilities": {
-        "act_2": 0.04,
-        "act_5": 0.01,
+        "act_3": 0.9,
         "act_1": 0.06,
-        "act_4": 0,
-        "act_3": 0.89
+        "act_5": 0.01,
+        "act_2": 0.03,
+        "act_4": 0
       },
       "expected": "act_3",
       "accurate": true,
-      "latencyMs": 285,
+      "latencyMs": 284,
       "inputTokens": 423,
       "outputTokens": 65
     },
@@ -160,15 +160,15 @@
       "choice": "act_3",
       "confidence": 1,
       "probabilities": {
-        "act_2": 0,
         "act_5": 0,
         "act_4": 0,
+        "act_2": 0,
         "act_1": 0,
         "act_3": 1
       },
       "expected": "act_3",
       "accurate": true,
-      "latencyMs": 285,
+      "latencyMs": 275,
       "inputTokens": 422,
       "outputTokens": 65
     },
@@ -178,15 +178,15 @@
       "choice": "act_3",
       "confidence": 1,
       "probabilities": {
-        "act_1": 0,
+        "act_5": 0,
         "act_2": 0,
-        "act_3": 1,
+        "act_1": 0,
         "act_4": 0,
-        "act_5": 0
+        "act_3": 1
       },
       "expected": "act_3",
       "accurate": true,
-      "latencyMs": 253,
+      "latencyMs": 346,
       "inputTokens": 421,
       "outputTokens": 65
     }

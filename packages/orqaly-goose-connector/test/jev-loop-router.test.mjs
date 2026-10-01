@@ -4,6 +4,8 @@ import {
   triageTurnIntentWithJev,
   evaluateArtifactSafetyWithJev,
   triageComputerUseModalityWithJev,
+  evaluateJevActionSelection,
+  triageFullComputerUsePlan,
   COMPUTER_USE_MODALITIES,
 } from "../src/jev-loop-router.mjs";
 
@@ -251,4 +253,89 @@ test("triageComputerUseModalityWithJev correctly classifies physical GUI and cur
   assert.equal(res.cursorSpeed, "fast");
   assert.equal(res.confidence, 0.95);
 });
+
+test("evaluateJevActionSelection and triageFullComputerUsePlan execute action selection", async () => {
+  const candidates = {
+    act_1: "Button: Cancel",
+    act_2: "Button: Save & Submit",
+  };
+  const mockBody = {
+    model: "jev-latest",
+    answers: {
+      target_action: {
+        type: "choice",
+        choice: "act_2",
+        confidence: 0.98,
+        probabilities: {
+          act_1: 0.02,
+          act_2: 0.98,
+        },
+      },
+      modality: {
+        type: "choice",
+        choice: "physical_gui",
+        confidence: 0.92,
+        probabilities: {
+          physical_gui: 0.92,
+          background_headless: 0.04,
+          visual_ocr: 0.02,
+          multiapp_workflow: 0.02,
+        },
+      },
+      cursor_speed: {
+        type: "choice",
+        choice: "snappy",
+        confidence: 0.91,
+        probabilities: {
+          snappy: 0.91,
+          fast: 0.05,
+          normal: 0.02,
+          smooth: 0.02,
+        },
+      },
+    },
+  };
+
+  const actionRes = await evaluateJevActionSelection({
+    goal: "Click Save & Submit",
+    candidates,
+    apiKey: "fake-key",
+    fetchImpl: async () => Response.json(mockBody),
+  });
+
+  assert.equal(actionRes.evaluated, true);
+  assert.equal(actionRes.choice, "act_2");
+  assert.equal(actionRes.confidence, 0.98);
+
+  const planRes = await triageFullComputerUsePlan({
+    message: "Click Save & Submit",
+    candidates,
+    apiKey: "fake-key",
+    fetchImpl: async (url, opts) => {
+      const payload = JSON.parse(opts.body);
+      if (payload.questions.target_action) {
+        return Response.json({
+          model: "jev-latest",
+          answers: {
+            target_action: mockBody.answers.target_action,
+          },
+        });
+      }
+      return Response.json({
+        model: "jev-latest",
+        answers: {
+          modality: mockBody.answers.modality,
+          cursor_speed: mockBody.answers.cursor_speed,
+        },
+      });
+    },
+  });
+
+  assert.equal(planRes.evaluated, true);
+  assert.equal(planRes.modality, "physical_gui");
+  assert.equal(planRes.batchRecommended, true);
+  assert.equal(planRes.selectedAction, "act_2");
+  assert.equal(planRes.actionConfidence, 0.98);
+});
+
 

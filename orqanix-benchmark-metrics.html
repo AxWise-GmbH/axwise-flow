@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orqanix Benchmark Metrics & Performance Report</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { background-color: #0b0f19; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .card { background: #131b2e; border: 1px solid #1e293b; border-radius: 12px; }
+    .glass { background: rgba(19, 27, 46, 0.7); backdrop-filter: blur(8px); }
+  </style>
+</head>
+<body class="p-6 md:p-10 min-h-screen">
+  <div class="max-w-7xl mx-auto space-y-8">
+    
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            ● Live Measured Data
+          </span>
+          <span class="text-xs text-slate-400">Environment: Orqanix 2.5.3 · Apple Silicon arm64</span>
+        </div>
+        <h1 class="text-3xl font-bold tracking-tight text-white mt-2">Orqanix Benchmark & Speed Metrics</h1>
+        <p class="text-slate-400 text-sm mt-1">Multi-turn session scaling, thinking effort calibration, and cross-tier task reliability.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700">Gemini 3.8 Flash Preview</span>
+        <span class="text-xs bg-indigo-950 text-indigo-300 px-3 py-1.5 rounded-lg border border-indigo-800/50">TypeSafe JEV System-1</span>
+      </div>
+    </header>
+
+    <!-- Top KPI Row -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="card p-5">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Multi-Turn Session (4 Turns)</p>
+        <div class="flex items-baseline gap-2 mt-2">
+          <span class="text-3xl font-extrabold text-white">11.6s</span>
+          <span class="text-xs text-slate-400">avg turn latency</span>
+        </div>
+        <div class="mt-3 text-xs text-emerald-400 flex items-center gap-1">
+          <span>✓</span> 4/4 turns completed (85x token growth)
+        </div>
+      </div>
+
+      <div class="card p-5">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Effort Calibration Range</p>
+        <div class="flex items-baseline gap-2 mt-2">
+          <span class="text-3xl font-extrabold text-white">1.8s – 12.2s</span>
+        </div>
+        <div class="mt-3 text-xs text-indigo-400 flex items-center gap-1">
+          <span>⚡</span> Dynamic off / low / high calibration
+        </div>
+      </div>
+
+      <div class="card p-5">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">E2E Discovery Reliability</p>
+        <div class="flex items-baseline gap-2 mt-2">
+          <span class="text-3xl font-extrabold text-white">15 / 15</span>
+          <span class="text-xs text-slate-400">stages</span>
+        </div>
+        <div class="mt-3 text-xs text-emerald-400 flex items-center gap-1">
+          <span>✓</span> 100% stop finish across all 3 tiers
+        </div>
+      </div>
+
+      <div class="card p-5">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">JEV Action Decision Speedup</p>
+        <div class="flex items-baseline gap-2 mt-2">
+          <span class="text-3xl font-extrabold text-white">4.87×</span>
+          <span class="text-xs text-emerald-400 font-medium">speedup</span>
+        </div>
+        <div class="mt-3 text-xs text-slate-400">
+          318 ms vs 1,548 ms generative routing
+        </div>
+      </div>
+    </section>
+
+    <!-- Visual Charts Grid -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Chart 1: Multi-Turn Progression -->
+      <div class="card p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <h2 class="text-lg font-semibold text-white">Multi-Turn Session Progression</h2>
+            <span class="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded">4-Turn Interaction</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-4">Correlation between cumulative prompt context tokens and wall-clock turn latency.</p>
+        </div>
+        <div class="h-64">
+          <canvas id="multiTurnChart"></canvas>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-800 grid grid-cols-4 text-center text-xs text-slate-400">
+          <div><p class="text-white font-medium">Turn 1</p>10.4s · 41 ctx</div>
+          <div><p class="text-white font-medium">Turn 2</p>10.9s · 1.2k ctx</div>
+          <div><p class="text-white font-medium">Turn 3</p>11.6s · 2.4k ctx</div>
+          <div><p class="text-white font-medium">Turn 4</p>12.0s · 3.5k ctx</div>
+        </div>
+      </div>
+
+      <!-- Chart 2: Thinking Effort Calibration -->
+      <div class="card p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <h2 class="text-lg font-semibold text-white">Thinking Effort Calibration by Difficulty</h2>
+            <span class="text-xs bg-indigo-950 text-indigo-300 px-2 py-1 rounded">JEV Adaptive Effort</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-4">Execution latency (ms) across difficulty tiers from trivial acknowledgments to complex modeling.</p>
+        </div>
+        <div class="h-64">
+          <canvas id="calibrationChart"></canvas>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between text-xs text-slate-400">
+          <span>Trivial: 1.88s (off)</span>
+          <span>Simple: 6.5s–6.8s (low)</span>
+          <span>Medium: 7.0s–9.8s (low)</span>
+          <span>Complex: 10.8s–12.2s (high)</span>
+        </div>
+      </div>
+
+      <!-- Chart 3: E2E Pipeline Stage Breakdown -->
+      <div class="card p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <h2 class="text-lg font-semibold text-white">End-to-End Artifact Pipeline Timings</h2>
+            <span class="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded">5 Sequential Stages</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-4">Stage-by-stage wall clock times across Simple, Middle, and Complicated project tiers.</p>
+        </div>
+        <div class="h-64">
+          <canvas id="pipelineChart"></canvas>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-800 flex justify-around text-xs text-slate-400">
+          <div><span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 mr-1"></span>Simple: 43.3s</div>
+          <div><span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1"></span>Middle: 40.8s</div>
+          <div><span class="inline-block w-2.5 h-2.5 rounded-full bg-purple-500 mr-1"></span>Complicated: 39.8s</div>
+        </div>
+      </div>
+
+      <!-- Chart 4: Decision Latency Comparison -->
+      <div class="card p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <h2 class="text-lg font-semibold text-white">Action Decision Latency (Computer Use)</h2>
+            <span class="text-xs bg-emerald-950 text-emerald-300 px-2 py-1 rounded">TypeSafe vs LLM</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-4">UI decision latency (ms) comparing TypeSafe JEV System-1 routing against autoregressive LLM.</p>
+        </div>
+        <div class="h-64">
+          <canvas id="decisionChart"></canvas>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between text-xs text-slate-400">
+          <span>Orqanix Sidebar: 350ms vs 1273ms</span>
+          <span>Auth Form: 246ms vs 1740ms</span>
+          <span>Intervals Calendar: 358ms vs 1632ms</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Detailed Measurement Tables -->
+    <section class="card p-6">
+      <h2 class="text-lg font-semibold text-white mb-4">Benchmark Data Breakdown</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="text-xs text-slate-400 uppercase bg-slate-900/50 border-b border-slate-800">
+            <tr>
+              <th class="py-3 px-4">Benchmark Scenario</th>
+              <th class="py-3 px-4">Task Type / Domain</th>
+              <th class="py-3 px-4">Routing / Effort</th>
+              <th class="py-3 px-4">Latency</th>
+              <th class="py-3 px-4">Tokens / Context</th>
+              <th class="py-3 px-4">Reliability</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800 text-slate-300">
+            <tr>
+              <td class="py-3 px-4 font-medium text-white">Multi-Turn: IoT Architecture</td>
+              <td class="py-3 px-4">Initial Scope Framing</td>
+              <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-xs bg-purple-500/10 text-purple-400 border border-purple-500/20">high</span></td>
+              <td class="py-3 px-4">10.41 s</td>
+              <td class="py-3 px-4">41 in / 1,120 out</td>
+              <td class="py-3 px-4 text-emerald-400">✓ STOP (648 words)</td>
+            </tr>
+            <tr>
+              <td class="py-3 px-4 font-medium text-white">Multi-Turn: Kafka vs Redis</td>
+              <td class="py-3 px-4">Queueing Technical Tradeoff</td>
+              <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-xs bg-purple-500/10 text-purple-400 border border-purple-500/20">high</span></td>
+              <td class="py-3 px-4">10.96 s</td>
+              <td class="py-3 px-4">1,188 in / 1,141 out</td>
+              <td class="py-3 px-4 text-emerald-400">✓ STOP (667 words)</td>
+            </tr>
+            <tr>
+              <td class="py-3 px-4 font-medium text-white">Multi-Turn: Replay Shedding</td>
+              <td class="py-3 px-4">Partition Recovery Constraint</td>
+              <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-xs bg-purple-500/10 text-purple-400 border border-purple-500/20">high</span></td>
+              <td class="py-3 px-4">11.63 s</td>
+              <td class="py-3 px-4">2,374 in / 1,081 out</td>
+              <td class="py-3 px-4 text-emerald-400">✓ STOP (646 words)</td>
+            </tr>
+            <tr>
+              <td class="py-3 px-4 font-medium text-white">Multi-Turn: Rate Limiter Token Bucket</td>
+              <td class="py-3 px-4">TypeScript Implementation</td>
+              <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-xs bg-purple-500/10 text-purple-400 border border-purple-500/20">high</span></td>
+              <td class="py-3 px-4">12.05 s</td>
+              <td class="py-3 px-4">3,488 in / 1,176 out</td>
+              <td class="py-3 px-4 text-emerald-400">✓ STOP (612 words)</td>
+            </tr>
+            <tr>
+              <td class="py-3 px-4 font-medium text-white">Calibration: Plan Acknowledgment</td>
+              <td class="py-3 px-4">Trivial Prompt</td>
+              <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-xs bg-slate-500/10 text-slate-400 border border-slate-500/20">off</span></td>
+              <td class="py-3 px-4">1.88 s</td>
+              <td class="py-3 px-4">192 total tokens</td>
+              <td class="py-3 px-4 text-emerald-400">✓ STOP (Zero overhead)</td>
+            </tr>
+            <tr>
+              <td class="py-3 px-4 font-medium text-white">Calibration: Forecasts & Currency</td>
+              <td class="py-3 px-4">Simple Explanations</td>
+              <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20">low</span></td>
+              <td class="py-3 px-4">6.56 s – 6.81 s</td>
+              <td class="py-3 px-4">1,013 – 1,328 tokens</td>
+              <td class="py-3 px-4 text-emerald-400">✓ STOP (Fast informative)</td>
+            </tr>
+            <tr>
+              <td class="py-3 px-4 font-medium text-white">Calibration: Vitest Tests & TS Aliases</td>
+              <td class="py-3 px-4">Medium Code & API Spec</td>
+              <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20">low</span></td>
+              <td class="py-3 px-4">7.04 s – 9.90 s</td>
+              <td class="py-3 px-4">1,474 – 1,494 tokens</td>
+              <td class="py-3 px-4 text-emerald-400">✓ STOP (Accurate syntax)</td>
+            </tr>
+            <tr>
+              <td class="py-3 px-4 font-medium text-white">Calibration: Consensus & DCF WACC</td>
+              <td class="py-3 px-4">Complex Deep Modeling</td>
+              <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-xs bg-purple-500/10 text-purple-400 border border-purple-500/20">high</span></td>
+              <td class="py-3 px-4">10.86 s – 12.20 s</td>
+              <td class="py-3 px-4">1,990 – 1,994 tokens</td>
+              <td class="py-3 px-4 text-emerald-400">✓ STOP (Full sensitivity table)</td>
+            </tr>
+            <tr>
+              <td class="py-3 px-4 font-medium text-white">OSWorld: 10 Application Domains</td>
+              <td class="py-3 px-4">Cross-app desktop routing</td>
+              <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">JEV System-1</span></td>
+              <td class="py-3 px-4">261 ms avg</td>
+              <td class="py-3 px-4">Zero token spend</td>
+              <td class="py-3 px-4 text-emerald-400">✓ 10/10 PASS (100%)</td>
+            </tr>
+            <tr>
+              <td class="py-3 px-4 font-medium text-white">OSWorld: 100-Step Memory Profile</td>
+              <td class="py-3 px-4">Continuous long horizon</td>
+              <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">JEV System-1</span></td>
+              <td class="py-3 px-4">269 ms / step</td>
+              <td class="py-3 px-4">+1.72 MB heap delta</td>
+              <td class="py-3 px-4 text-emerald-400">✓ 100/100 PASS (Zero leaks)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = '#1e293b';
+
+    // 1. MultiTurn Chart
+    new Chart(document.getElementById('multiTurnChart'), {
+      type: 'line',
+      data: {
+        labels: ['Turn 1 (Scope)', 'Turn 2 (Queueing)', 'Turn 3 (Edge Case)', 'Turn 4 (Code)'],
+        datasets: [
+          {
+            label: 'Turn Latency (s)',
+            data: [10.41, 10.96, 11.63, 12.05],
+            borderColor: '#38bdf8',
+            backgroundColor: 'rgba(56, 189, 248, 0.1)',
+            yAxisID: 'y',
+            tension: 0.3,
+            fill: true
+          },
+          {
+            label: 'Prompt Context Tokens',
+            data: [41, 1188, 2374, 3488],
+            borderColor: '#a855f7',
+            borderDash: [5, 5],
+            yAxisID: 'y1',
+            tension: 0.3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            type: 'linear',
+            position: 'left',
+            title: { display: true, text: 'Seconds' },
+            min: 8,
+            max: 15
+          },
+          y1: {
+            type: 'linear',
+            position: 'right',
+            grid: { drawOnChartArea: false },
+            title: { display: true, text: 'Context Tokens' },
+            min: 0,
+            max: 4000
+          }
+        }
+      }
+    });
+
+    // 2. Calibration Chart
+    new Chart(document.getElementById('calibrationChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Trivial', 'Simple Info', 'Simple FX', 'Medium Test', 'Medium TS', 'Complex Consensus', 'Complex DCF'],
+        datasets: [
+          {
+            label: 'Calibrated Execution (s)',
+            data: [1.88, 6.56, 6.81, 7.04, 9.90, 12.20, 10.86],
+            backgroundColor: [
+              '#64748b',
+              '#3b82f6',
+              '#3b82f6',
+              '#06b6d4',
+              '#06b6d4',
+              '#8b5cf6',
+              '#8b5cf6'
+            ],
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { title: { display: true, text: 'Latency (seconds)' }, min: 0, max: 14 }
+        }
+      }
+    });
+
+    // 3. Pipeline Chart
+    new Chart(document.getElementById('pipelineChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Frame', 'Personas', 'Interviews', 'Analysis', 'PRD (High)'],
+        datasets: [
+          {
+            label: 'Simple (Checklist)',
+            data: [9.64, 5.88, 8.34, 9.02, 10.46],
+            backgroundColor: '#3b82f6',
+            borderRadius: 4
+          },
+          {
+            label: 'Middle (Solar)',
+            data: [9.10, 7.63, 7.28, 5.54, 11.25],
+            backgroundColor: '#10b981',
+            borderRadius: 4
+          },
+          {
+            label: 'Complicated (Harbor)',
+            data: [8.59, 5.86, 7.87, 4.85, 12.63],
+            backgroundColor: '#a855f7',
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { title: { display: true, text: 'Stage Latency (s)' }, min: 0, max: 15 }
+        }
+      }
+    });
+
+    // 4. Decision Latency Chart
+    new Chart(document.getElementById('decisionChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Sidebar Nav', 'Auth Form', 'Calendar Pick'],
+        datasets: [
+          {
+            label: 'TypeSafe JEV System-1',
+            data: [350, 246, 358],
+            backgroundColor: '#10b981',
+            borderRadius: 6
+          },
+          {
+            label: 'Generative LLM (Gemini Flash)',
+            data: [1273, 1740, 1632],
+            backgroundColor: '#64748b',
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { title: { display: true, text: 'Decision Latency (ms)' }, min: 0, max: 2000 }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

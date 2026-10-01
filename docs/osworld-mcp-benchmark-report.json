@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-30T20:22:20.158Z",
+  "timestamp": "2026-10-01T14:12:50.060Z",
   "environment": {
     "os": "macOS (darwin-arm64)",
     "driver": "cua-driver v0.31.0",
@@ -11,8 +11,8 @@
       "taskId": "osworld-task-1",
       "name": "Multi-Region Telemetry Aggregation & Report Export",
       "status": "pass",
-      "decisionLatencyMs": 332,
-      "confidence": 0.91,
+      "decisionLatencyMs": 321,
+      "confidence": 0.92,
       "artifact": "artifacts/osworld-task1-cluster-health.json"
     },
     {
@@ -29,7 +29,7 @@
               "act_abort": 0,
               "act_init": 1
             },
-            "latencyMs": 292
+            "latencyMs": 266
           },
           "matched": true
         },
@@ -42,7 +42,7 @@
               "act_airgap": 1,
               "act_abort": 0
             },
-            "latencyMs": 268
+            "latencyMs": 271
           },
           "matched": true
         },
@@ -52,10 +52,10 @@
             "choice": "act_deploy",
             "confidence": 1,
             "probabilities": {
-              "act_deploy": 1,
-              "act_abort": 0
+              "act_abort": 0,
+              "act_deploy": 1
             },
-            "latencyMs": 281
+            "latencyMs": 261
           },
           "matched": true
         }
@@ -65,7 +65,7 @@
       "taskId": "osworld-task-3",
       "name": "OSWorld-MCP Semantic Capability Routing Optimization",
       "status": "pass",
-      "decisionLatencyMs": 244,
+      "decisionLatencyMs": 312,
       "chosenRoute": "route_mcp_clipboard",
       "confidence": 0.99
     }
@@ -74,6 +74,6 @@
     "totalTasks": 3,
     "passedTasks": 3,
     "score": "3/3 (100%)",
-    "avgDecisionLatencyMs": 285
+    "avgDecisionLatencyMs": 300
   }
 }
