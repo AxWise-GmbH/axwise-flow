@@ -6,6 +6,8 @@ import { createGooseProviderFromEnvironment } from '../server/workflow-v2/goose-
 import { createGooseProviderRouter } from '../server/workflow-v2/goose-provider-http.js';
 import { createDesktopSearchService } from '../server/workflow-v2/desktop-search-service.js';
 import { createDesktopImageService } from '../server/workflow-v2/desktop-image-service.js';
+import { createDesktopTranscribeService } from '../server/workflow-v2/desktop-transcribe-service.js';
+import { createDesktopSpeechService } from '../server/workflow-v2/desktop-speech-service.js';
 import { createDesktopDecisionService } from '../server/workflow-v2/desktop-decision-service.js';
 
 const LOOPBACK = '127.0.0.1';
@@ -47,6 +49,12 @@ export function createLocalDesktopRelay({ environment = process.env, fetchImpl =
         apiKey: relayEnvironment.ORQALY_GOOSE_GEMINI_API_KEY, fetchImpl,
       }),
       imageService: createDesktopImageService({
+        apiKey: relayEnvironment.ORQALY_GOOSE_GEMINI_API_KEY, fetchImpl,
+      }),
+      transcribeService: createDesktopTranscribeService({
+        apiKey: relayEnvironment.ORQALY_GOOSE_GEMINI_API_KEY, fetchImpl,
+      }),
+      speechService: createDesktopSpeechService({
         apiKey: relayEnvironment.ORQALY_GOOSE_GEMINI_API_KEY, fetchImpl,
       }),
       ...(relayEnvironment.TYPESAFE_API_KEY ? {

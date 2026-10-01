@@ -174,11 +174,12 @@ test('MCP server exposes only real weather/currency app resources and separate s
   assert.deepEqual(replies[0].result.capabilities, { tools: {}, resources: {} });
   assert.equal(replies[0].result.serverInfo.name, 'desktop-utilities');
   assert.deepEqual(replies[1].result.tools.map((tool) => tool.name),
-    ['get_weather', 'convert_currency', 'search_web', 'generate_image']);
+    ['get_weather', 'convert_currency', 'search_web', 'generate_image', 'speak_text']);
   assert.equal(replies[1].result.tools[0]._meta.ui.resourceUri, 'ui://desktop-utilities/weather');
   assert.equal(replies[1].result.tools[1]._meta.ui.resourceUri, 'ui://desktop-utilities/currency');
   assert.equal(Object.hasOwn(replies[1].result.tools[2], '_meta'), false);
   assert.equal(Object.hasOwn(replies[1].result.tools[3], '_meta'), false);
+  assert.equal(Object.hasOwn(replies[1].result.tools[4], '_meta'), false);
   assert.deepEqual(replies[2].result.resources.map((resource) => resource.uri),
     ['ui://desktop-utilities/weather', 'ui://desktop-utilities/currency']);
   for (const item of replies.slice(3, 5)) {
@@ -189,7 +190,7 @@ test('MCP server exposes only real weather/currency app resources and separate s
   }
   assert.equal(replies[5].error.code, -32602);
   assert.deepEqual(UTILITY_TOOLS.map((tool) => tool.name),
-    ['get_weather', 'convert_currency', 'search_web', 'generate_image']);
+    ['get_weather', 'convert_currency', 'search_web', 'generate_image', 'speak_text']);
 });
 
 test('MCP server handles another tool call while cancelling one active request', async () => {
@@ -296,4 +297,60 @@ test('generate_image validates prompt and handles errors gracefully', async () =
   assert.equal(unauth.isError, true);
   assert.equal(unauth.structuredContent.error.code, 'LOGIN_REQUIRED');
 });
+
+test('speak_text with provider returns presentation and structured content', async () => {
+  const call = createUtilityTools({
+    ...base,
+    providers: {
+      speech: async (text, voice) => ({
+        kind: 'synthesized_speech',
+        audio: 'dGVzdA==',
+        mimeType: 'audio/wav',
+        voice,
+      }),
+    },
+  });
+  const res = await call('speak_text', { text: 'Hello Vitaly', voice: 'Puck' });
+  assert.equal(res.isError, false);
+  assert.equal(res.structuredContent.kind, 'speak_text');
+  assert.equal(res.structuredContent.presentations[0].kind, 'synthesized_speech');
+  assert.equal(res.structuredContent.presentations[0].audio, 'dGVzdA==');
+});
+
+test('speak_text sends authenticated request to /desktop/v1/speech and parses result', async () => {
+  const calls = [];
+  const call = createUtilityTools({
+    ...base,
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return response({
+        kind: 'synthesized_speech',
+        audio: 'dGVzdA==',
+        mimeType: 'audio/wav',
+        voice: 'Aoede',
+        text: 'Hello world',
+      });
+    },
+  });
+  const res = await call('speak_text', { text: 'Hello world', voice: 'Aoede' });
+  assert.equal(res.isError, false);
+  assert.equal(calls[0].url, 'https://preview.example/desktop/v1/speech');
+  assert.equal(calls[0].options.headers.Authorization, 'Bearer test-secret');
+  assert.deepEqual(JSON.parse(calls[0].options.body), { text: 'Hello world', voice: 'Aoede' });
+});
+
+test('speak_text validates text and handles errors gracefully', async () => {
+  const call = createUtilityTools({
+    ...base,
+    fetchImpl: async () => response({}, 401),
+  });
+  const emptyText = await call('speak_text', { text: '' });
+  assert.equal(emptyText.isError, true);
+  assert.equal(emptyText.structuredContent.error.code, 'INVALID_INPUT');
+
+  const unauth = await call('speak_text', { text: 'Valid text' });
+  assert.equal(unauth.isError, true);
+  assert.equal(unauth.structuredContent.error.code, 'LOGIN_REQUIRED');
+});
+
 
