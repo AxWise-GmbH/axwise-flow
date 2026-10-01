@@ -174,6 +174,8 @@ export function createGooseProviderRouter({
   informationService = null,
   searchService = null,
   imageService = null,
+  transcribeService = null,
+  speechService = null,
   rateLimiter = (_req, _res, next) => next(),
   timeoutMs = MAX_DEADLINE_MS,
 }) {
@@ -190,6 +192,10 @@ export function createGooseProviderRouter({
     throw new Error('GOOSE_PROVIDER_SEARCH_SERVICE_INVALID');
   if (imageService !== null && typeof imageService?.generate !== 'function')
     throw new Error('GOOSE_PROVIDER_IMAGE_SERVICE_INVALID');
+  if (transcribeService !== null && typeof transcribeService?.transcribe !== 'function')
+    throw new Error('GOOSE_PROVIDER_TRANSCRIBE_SERVICE_INVALID');
+  if (speechService !== null && typeof speechService?.synthesize !== 'function')
+    throw new Error('GOOSE_PROVIDER_SPEECH_SERVICE_INVALID');
   if (typeof apiKey !== 'string' || !apiKey.trim() || /[\r\n]/.test(apiKey))
     throw new Error('GOOSE_PROVIDER_API_KEY_REQUIRED');
   if (typeof model !== 'string' || !/^gemini-[a-z0-9.-]+$/.test(model))
@@ -285,6 +291,36 @@ export function createGooseProviderRouter({
       res.once('close', disconnected);
       try {
         await desktopRead((request) => imageService.generate(request.authContext, request.body,
+          { signal: controller.signal }))(req, res);
+      } finally {
+        req.off('aborted', disconnected);
+        res.off('close', disconnected);
+      }
+    });
+  }
+  if (transcribeService) {
+    router.post('/transcribe', express.json({ limit: '20mb', strict: true }), async (req, res) => {
+      const controller = new AbortController();
+      const disconnected = () => { if (!res.writableEnded) controller.abort(); };
+      req.once('aborted', disconnected);
+      res.once('close', disconnected);
+      try {
+        await desktopRead((request) => transcribeService.transcribe(request.authContext, request.body,
+          { signal: controller.signal }))(req, res);
+      } finally {
+        req.off('aborted', disconnected);
+        res.off('close', disconnected);
+      }
+    });
+  }
+  if (speechService) {
+    router.post('/speech', express.json({ limit: '64kb', strict: true }), async (req, res) => {
+      const controller = new AbortController();
+      const disconnected = () => { if (!res.writableEnded) controller.abort(); };
+      req.once('aborted', disconnected);
+      res.once('close', disconnected);
+      try {
+        await desktopRead((request) => speechService.synthesize(request.authContext, request.body,
           { signal: controller.signal }))(req, res);
       } finally {
         req.off('aborted', disconnected);

@@ -262,6 +262,28 @@ describe('authenticated Goose provider transport', () => {
     expect(imageService.generate).toHaveBeenCalledWith({ userId: 'user-1' },
       { prompt: 'Orqanix logo', aspectRatio: '1:1' }, { signal: expect.any(AbortSignal) });
   });
+  it('relays speech transcription via transcribeService when mounted', async () => {
+    const transcribeService = { transcribe: vi.fn(async (_auth, input) => ({
+      text: 'Transcribed audio input', model: 'models/gemini-3.8-flash',
+    })) };
+    const f = await fixture({ commandService: undefined, transcribeService });
+    const res = await f.call('/transcribe', { audio: 'dGVzdA==', mimeType: 'audio/wav' });
+    expect(res.status).toBe(200);
+    expect((await res.json()).text).toBe('Transcribed audio input');
+    expect(transcribeService.transcribe).toHaveBeenCalledWith({ userId: 'user-1' },
+      { audio: 'dGVzdA==', mimeType: 'audio/wav' }, { signal: expect.any(AbortSignal) });
+  });
+  it('relays speech synthesis via speechService when mounted', async () => {
+    const speechService = { synthesize: vi.fn(async (_auth, input) => ({
+      kind: 'synthesized_speech', audio: 'dGVzdA==', mimeType: 'audio/wav', text: input.text,
+    })) };
+    const f = await fixture({ commandService: undefined, speechService });
+    const res = await f.call('/speech', { text: 'Hello', voice: 'Puck' });
+    expect(res.status).toBe(200);
+    expect((await res.json()).audio).toBe('dGVzdA==');
+    expect(speechService.synthesize).toHaveBeenCalledWith({ userId: 'user-1' },
+      { text: 'Hello', voice: 'Puck' }, { signal: expect.any(AbortSignal) });
+  });
   it('keeps optional engineering review authenticated and isolated from thin chat', async () => {
     const engineeringReviewService = { review: vi.fn(async (auth, input) => ({
       owner: auth.userId, taskId: input.taskId, review: { status: 'passed', advisory: true },

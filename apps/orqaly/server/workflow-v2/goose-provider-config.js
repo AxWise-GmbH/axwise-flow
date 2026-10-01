@@ -7,6 +7,8 @@ import { createDesktopDecisionService } from './desktop-decision-service.js';
 import { createDesktopInformationService } from './desktop-information-service.js';
 import { createDesktopSearchService } from './desktop-search-service.js';
 import { createDesktopImageService } from './desktop-image-service.js';
+import { createDesktopTranscribeService } from './desktop-transcribe-service.js';
+import { createDesktopSpeechService } from './desktop-speech-service.js';
 import { validateClerkKeyEnvironment } from './clerk-config.js';
 
 function denied(status = 403) {
@@ -68,6 +70,8 @@ export function createGooseProviderFromEnvironment({
     fetchImpl,
     searchService: createDesktopSearchService({ apiKey: environment.ORQALY_GOOSE_GEMINI_API_KEY, fetchImpl }),
     imageService: createDesktopImageService({ apiKey: environment.ORQALY_GOOSE_GEMINI_API_KEY, fetchImpl }),
+    transcribeService: createDesktopTranscribeService({ apiKey: environment.ORQALY_GOOSE_GEMINI_API_KEY, fetchImpl }),
+    speechService: createDesktopSpeechService({ apiKey: environment.ORQALY_GOOSE_GEMINI_API_KEY, fetchImpl }),
     ...(environment.TYPESAFE_API_KEY ? {
       decisionService: createDesktopDecisionService({ apiKey: environment.TYPESAFE_API_KEY }),
     } : {}),

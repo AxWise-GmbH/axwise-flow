@@ -69,6 +69,15 @@ export const UTILITY_TOOLS = [
     }, ['prompt']),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
+  {
+    name: 'speak_text', title: 'Speak text',
+    description: 'Convert text to spoken audio using Gemini Flash TTS. Returns synthesized speech audio.',
+    inputSchema: schema({
+      text: { type: 'string', minLength: 1, maxLength: 4_000 },
+      voice: { type: 'string', enum: ['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'] },
+    }, ['text']),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  },
 ];
 
 function widgetHtml(kind) {
@@ -265,6 +274,35 @@ async function readImageResult(response, signal) {
   return data;
 }
 
+async function readSpeechResult(response, signal) {
+  if (!response.ok) {
+    if (response.status === 401) throw new UtilityLookupError('LOGIN_REQUIRED', 'Sign in to use speech synthesis.');
+    if (response.status === 429) throw new UtilityLookupError('BUSY', 'Speech synthesis is busy. Try again shortly.');
+    throw new UtilityLookupError('SPEECH_UNAVAILABLE', 'Speech synthesis is unavailable right now.');
+  }
+  if (response.redirected || !response.headers.get('content-type')?.includes('application/json') || !response.body)
+    throw new UtilityLookupError('SPEECH_INVALID', 'Speech synthesis returned an unusable result.');
+  const reader = response.body.getReader();
+  const chunks = [];
+  let size = 0;
+  try {
+    while (true) {
+      signal.throwIfAborted();
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_IMAGE_RESPONSE_BYTES) throw new UtilityLookupError('SPEECH_INVALID', 'Speech synthesis returned too much data.');
+      chunks.push(Buffer.from(value));
+    }
+  } finally { await reader.cancel().catch(() => {}); }
+  let data;
+  try { data = JSON.parse(Buffer.concat(chunks).toString('utf8')); }
+  catch { throw new UtilityLookupError('SPEECH_INVALID', 'Speech synthesis returned an unusable result.'); }
+  if (!object(data) || data.kind !== 'synthesized_speech' || typeof data.audio !== 'string' || !data.audio.length)
+    throw new UtilityLookupError('SPEECH_INVALID', 'Speech synthesis returned an unusable result.');
+  return data;
+}
+
 export function createUtilityTools({ apiUrl, conversationId, accountHash, token,
   fetchImpl = fetch, providers = createUtilityProviders({ fetchImpl }), newId = randomUUID } = {}) {
   const apiOrigin = origin(apiUrl, { localOverride: true });
@@ -345,6 +383,57 @@ export function createUtilityTools({ apiUrl, conversationId, accountHash, token,
         };
         data = {
           version: 'orqaly.desktop-work.v1', conversationId, requestId, kind: 'generate_image',
+          status: 'completed', markdown, presentations: [presentation],
+        };
+      } else if (name === 'speak_text') {
+        const text = typeof args.text === 'string' ? args.text.trim() : '';
+        const voice = typeof args.voice === 'string' ? args.voice.trim() : 'Puck';
+        if (!text || text.length > 4_000)
+          throw new UtilityLookupError('INVALID_INPUT', 'Use text between 1 and 4,000 characters.');
+        let speech;
+        if (typeof providers?.speech === 'function') {
+          speech = await providers.speech(text, voice, signal);
+        } else {
+          const body = { text, voice };
+          const requestSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(35_000)]) : AbortSignal.timeout(35_000);
+          let accessToken;
+          try { accessToken = await waitWithSignal(Promise.resolve().then(token), requestSignal); }
+          catch (error) {
+            if (requestSignal.aborted) throw new UtilityLookupError('SPEECH_TIMEOUT', 'Speech synthesis timed out.');
+            if (error?.code === 'LOGIN_REQUIRED') throw new UtilityLookupError('LOGIN_REQUIRED', 'Sign in to use speech synthesis.');
+            throw error;
+          }
+          if (typeof accessToken !== 'string' || !accessToken || /\s/.test(accessToken))
+            throw new UtilityLookupError('LOGIN_REQUIRED', 'Sign in to use speech synthesis.');
+          let response;
+          try {
+            response = await fetchImpl(`${apiOrigin}/desktop/v1/speech`, {
+              method: 'POST', redirect: 'error', signal: requestSignal,
+              headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json',
+                'X-Orqaly-Account-Hash': accountHash }, body: JSON.stringify(body),
+            });
+          } catch {
+            throw new UtilityLookupError(requestSignal.aborted ? 'SPEECH_TIMEOUT' : 'SPEECH_UNAVAILABLE',
+              requestSignal.aborted ? 'Speech synthesis timed out.' : 'Speech synthesis is unavailable right now.');
+          }
+          try { speech = await readSpeechResult(response, requestSignal); }
+          catch (error) {
+            if (requestSignal.aborted) throw new UtilityLookupError('SPEECH_TIMEOUT', 'Speech synthesis timed out.');
+            throw error;
+          }
+        }
+        const markdown = `🔊 *[Spoken with ${speech.voice || voice} voice]*: "${text}"`;
+        const presentation = {
+          schemaVersion: 'axwise.presentation.synthesized-speech.v1',
+          kind: 'synthesized_speech',
+          mimeType: speech.mimeType || 'audio/wav',
+          audio: speech.audio,
+          voice: speech.voice || voice,
+          text,
+          markdown,
+        };
+        data = {
+          version: 'orqaly.desktop-work.v1', conversationId, requestId, kind: 'speak_text',
           status: 'completed', markdown, presentations: [presentation],
         };
       } else {
