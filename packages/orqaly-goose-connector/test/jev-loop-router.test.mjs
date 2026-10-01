@@ -3,6 +3,8 @@ import test from "node:test";
 import {
   triageTurnIntentWithJev,
   evaluateArtifactSafetyWithJev,
+  triageComputerUseModalityWithJev,
+  COMPUTER_USE_MODALITIES,
 } from "../src/jev-loop-router.mjs";
 
 const routeBody = () => ({
@@ -208,3 +210,45 @@ for (const [name, method, input] of [
     }
   });
 }
+
+test("triageComputerUseModalityWithJev correctly classifies physical GUI and cursor speed", async () => {
+  const mockBody = {
+    model: "jev-1.13.0",
+    answers: {
+      modality: {
+        type: "choice",
+        choice: "physical_gui",
+        confidence: 0.95,
+        probabilities: {
+          physical_gui: 0.95,
+          background_headless: 0.02,
+          visual_ocr: 0.02,
+          multiapp_workflow: 0.01,
+        },
+      },
+      cursor_speed: {
+        type: "choice",
+        choice: "fast",
+        confidence: 0.88,
+        probabilities: {
+          snappy: 0.05,
+          fast: 0.88,
+          normal: 0.05,
+          smooth: 0.02,
+        },
+      },
+    },
+  };
+
+  const res = await triageComputerUseModalityWithJev({
+    message: "Drag formula from cell A1 to A20 in Google Sheets",
+    apiKey: "fake-key",
+    fetchImpl: async () => Response.json(mockBody),
+  });
+
+  assert.equal(res.evaluated, true);
+  assert.equal(res.modality, COMPUTER_USE_MODALITIES.PHYSICAL_GUI);
+  assert.equal(res.cursorSpeed, "fast");
+  assert.equal(res.confidence, 0.95);
+});
+
