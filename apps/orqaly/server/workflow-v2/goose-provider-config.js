@@ -64,7 +64,13 @@ export function createGooseProviderFromEnvironment({
     publishableKey: environment.CLERK_PUBLISHABLE_KEY }));
   router.use(createGooseProviderRouter({
     ...(legacyWorkflowRoutes ? { commandService } : {}),
-    verifyDesktopAuth: (req) => desktopOAuthIdentity(getAuth(req, { acceptsToken: 'oauth_token' }), clientId),
+    verifyDesktopAuth: (req) => {
+      const auth = getAuth(req, { acceptsToken: 'any' });
+      if (auth?.isAuthenticated && auth?.userId && (auth.tokenType === 'session_token' || auth.tokenType === undefined)) {
+        return { userId: auth.userId };
+      }
+      return desktopOAuthIdentity(auth, clientId);
+    },
     apiKey: environment.ORQALY_GOOSE_GEMINI_API_KEY,
     rateLimiter,
     fetchImpl,
