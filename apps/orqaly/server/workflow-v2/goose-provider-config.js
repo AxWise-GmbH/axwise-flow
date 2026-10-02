@@ -39,7 +39,7 @@ export function createGooseRunContext(commandService) {
 }
 
 export function createGooseProviderFromEnvironment({
-  commandService, rateLimiter, desktopWorkService = null, environment = process.env,
+  commandService, rateLimiter, desktopWorkService = null, userQuotaService = null, adminUserIds = [], resolveAdminUser = null, environment = process.env,
   fetchImpl = fetch,
 }) {
   const enabled = environment.ORQALY_GOOSE_ENABLED;
@@ -68,6 +68,9 @@ export function createGooseProviderFromEnvironment({
     apiKey: environment.ORQALY_GOOSE_GEMINI_API_KEY,
     rateLimiter,
     fetchImpl,
+    userQuotaService,
+    adminUserIds,
+    resolveAdminUser,
     searchService: createDesktopSearchService({ apiKey: environment.ORQALY_GOOSE_GEMINI_API_KEY, fetchImpl }),
     imageService: createDesktopImageService({ apiKey: environment.ORQALY_GOOSE_GEMINI_API_KEY, fetchImpl }),
     transcribeService: createDesktopTranscribeService({ apiKey: environment.ORQALY_GOOSE_GEMINI_API_KEY, fetchImpl }),

@@ -50,4 +50,28 @@ describe('AccountGlassMenuPanel', () => {
     fireEvent.click(screen.getByText('Human tasks'));
     expect(onOpenHumanTasks).toHaveBeenCalled();
   });
+
+  it('renders AI credits and usage progress when quotaSummary is provided', () => {
+    renderPanel({
+      quotaSummary: {
+        spendUsd: 1.25,
+        limitUsd: 5.0,
+        tokens: { total: 45000, prompt: 40000, cached: 32000, cacheHitRate: 80.0 },
+        savingsUsd: 1.80,
+      },
+    });
+    expect(screen.getByText('AI Credits & Usage')).toBeInTheDocument();
+    expect(screen.getByText('⚡ 80% Cached')).toBeInTheDocument();
+    expect(screen.getByText('$1.25 / $5.00')).toBeInTheDocument();
+    expect(screen.getByText(/45,000 tokens/)).toBeInTheDocument();
+    expect(screen.getByText(/32,000 cached/)).toBeInTheDocument();
+    expect(screen.getByText(/Saved \$1.80 with 75% cache discount/)).toBeInTheDocument();
+  });
+  it('shows unlimited usage with metered spend and no quota progress bar', () => {
+    renderPanel({ quotaSummary: { isUnlimited: true, spendUsd: 2500, limitUsd: null, tokens: { total: 1_000_000 } } });
+    expect(screen.getByText('$2500.00 / Unlimited')).toBeInTheDocument();
+    expect(screen.getByText('1,000,000 tokens')).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    expect(screen.queryByText('$2500.00 / $5.00')).not.toBeInTheDocument();
+  });
 });

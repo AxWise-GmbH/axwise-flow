@@ -23,9 +23,11 @@ import {
 import PageLayout from '../../components/Common/PageLayout';
 import LlmUsagePanel from '../../components/LlmUsage/LlmUsagePanel';
 import EntityDirectory from '../../components/LlmUsage/EntityDirectory';
+import UserQuotasDirectory from '../../components/LlmUsage/UserQuotasDirectory';
 
 const CATEGORY_OPTIONS = [
   { value: 'all', label: 'All' },
+  { value: 'users', label: 'User Quotas & Limits' },
   { value: 'goal', label: 'Goal' },
   { value: 'agent', label: 'Agent' },
   { value: 'team', label: 'Team' },
@@ -158,6 +160,8 @@ export default function LlmUsage() {
         {/* All -> aggregate panel; a specific type -> its usage directory. */}
         {category === 'all' ? (
           <LlmUsagePanel key={`all:${from}:${to}`} entity="all" from={from} to={to} />
+        ) : category === 'users' ? (
+          <UserQuotasDirectory />
         ) : (
           <EntityDirectory
             key={`${category}:${from}:${to}`}
