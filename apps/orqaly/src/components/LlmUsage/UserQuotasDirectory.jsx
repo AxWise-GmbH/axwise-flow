@@ -192,6 +192,19 @@ export default function UserQuotasDirectory() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      {/* Cycle Banner */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            Current Month · October 2026
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+            Tracking usage from 01 Oct 2026 to 31 Oct 2026 (resets monthly on 1st at 00:00 UTC)
+          </Typography>
+        </Box>
+        <Chip label="Billing Cycle: Oct 2026" color="primary" variant="outlined" size="small" sx={{ fontWeight: 600 }} />
+      </Box>
+
       {/* Metrics Row */}
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 1.5 }}>
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
@@ -210,7 +223,7 @@ export default function UserQuotasDirectory() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary', mb: 0.5 }}>
             <AttachMoneyIcon fontSize="small" />
             <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase' }}>
-              Monthly Spend
+              October Spend
             </Typography>
           </Box>
           <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
@@ -316,7 +329,7 @@ export default function UserQuotasDirectory() {
               <TableRow>
                 <TableCell sx={{ fontWeight: 700 }}>User / Email</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Tier</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Spend / Limit</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>October Spend / Limit</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Tokens</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Cache Rate</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Calls</TableCell>
