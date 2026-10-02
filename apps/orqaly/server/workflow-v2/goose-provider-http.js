@@ -294,13 +294,29 @@ export function createGooseProviderRouter({
     try {
       const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
       const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
-      const data = await userQuotaService.listUsers({ limit, offset });
+      const month = req.query.month || 'current';
+      const data = await userQuotaService.listUsers({ limit, offset, month });
       if (clerkUserLookup && Array.isArray(data.users)) {
         data.users = await clerkUserLookup.enrichUsers(data.users);
       }
       res.json(data);
     } catch {
       sendError(res, 500, 'USERS_LIST_FAILED');
+    }
+  });
+  router.get('/admin/users/daily', async (req, res) => {
+    if (!userQuotaService) return sendError(res, 503, 'QUOTA_SERVICE_UNAVAILABLE');
+    if (!req.gooseIsAdmin) return sendError(res, 403, 'ADMIN_REQUIRED');
+    try {
+      const month = req.query.month || 'current';
+      const userId = req.query.userId || null;
+      const data = await userQuotaService.getDailyUsage({ month, userId });
+      if (clerkUserLookup && Array.isArray(data.daily)) {
+        data.daily = await clerkUserLookup.enrichUsers(data.daily);
+      }
+      res.json(data);
+    } catch {
+      sendError(res, 500, 'DAILY_USAGE_FAILED');
     }
   });
   router.patch('/admin/users/:userId/quota', express.json({ limit: '16kb', strict: true }), async (req, res) => {

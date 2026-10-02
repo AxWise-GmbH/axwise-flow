@@ -44,7 +44,7 @@ describe('Goose desktop identity and source context', () => {
     const withReview = createGooseProviderFromEnvironment({ environment,
       commandService, desktopWorkService });
     expect(routes(withReview)).toEqual([
-      '/session', '/models', '/usage', '/admin/users', '/admin/users/:userId/quota', '/decisions', '/search', '/image', '/transcribe', '/speech', '/engineering/review', '/chat/completions',
+      '/session', '/models', '/usage', '/admin/users', '/admin/users/daily', '/admin/users/:userId/quota', '/decisions', '/search', '/image', '/transcribe', '/speech', '/engineering/review', '/chat/completions',
     ]);
     expect(commandService.session).not.toHaveBeenCalled();
     expect(desktopWorkService.read).not.toHaveBeenCalled();
@@ -53,7 +53,7 @@ describe('Goose desktop identity and source context', () => {
       ...environment, TYPESAFE_API_KEY: undefined,
     }, commandService, desktopWorkService });
     expect(routes(withoutReview)).toEqual([
-      '/session', '/models', '/usage', '/admin/users', '/admin/users/:userId/quota', '/search', '/image', '/transcribe', '/speech', '/chat/completions',
+      '/session', '/models', '/usage', '/admin/users', '/admin/users/daily', '/admin/users/:userId/quota', '/search', '/image', '/transcribe', '/speech', '/chat/completions',
     ]);
   });
 

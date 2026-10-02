@@ -28,6 +28,8 @@ import {
   Alert,
   IconButton,
   Tooltip,
+  ToggleButton,
+  ToggleButtonGroup,
   alpha,
   useTheme,
 } from '@mui/material';
@@ -39,6 +41,9 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import TokenIcon from '@mui/icons-material/Token';
 import BlockIcon from '@mui/icons-material/Block';
 import BoltIcon from '@mui/icons-material/Bolt';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import ViewListIcon from '@mui/icons-material/ViewList';
+import TableRowsIcon from '@mui/icons-material/TableRows';
 import { useAuth } from '@clerk/react';
 import { formatTokensOrZero } from '../../utils/formatTokens';
 
@@ -57,8 +62,11 @@ export default function UserQuotasDirectory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [users, setUsers] = useState([]);
+  const [dailyList, setDailyList] = useState([]);
   const [search, setSearch] = useState('');
   const [tierFilter, setTierFilter] = useState('all');
+  const [period, setPeriod] = useState('current'); // 'current', 'previous', 'all'
+  const [viewMode, setViewMode] = useState('users'); // 'users', 'daily'
 
   // Edit dialog state
   const [editUser, setEditUser] = useState(null);
@@ -85,15 +93,24 @@ export default function UserQuotasDirectory() {
         const token = await getToken();
         if (token) headers['Authorization'] = `Bearer ${token}`;
       }
-      const res = await fetch(`${apiUrl}/desktop/v1/admin/users`, { headers });
-      if (!res.ok) {
-        if (res.status === 403) {
+      const [usersRes, dailyRes] = await Promise.all([
+        fetch(`${apiUrl}/desktop/v1/admin/users?month=${period}`, { headers }),
+        fetch(`${apiUrl}/desktop/v1/admin/users/daily?month=${period}`, { headers }),
+      ]);
+
+      if (!usersRes.ok) {
+        if (usersRes.status === 403) {
           throw new Error('ADMIN_REQUIRED: Access restricted to authorized administrators (vitalijs@axwise.de, viktors@axwise.de).');
         }
-        throw new Error(`Failed to load users (status ${res.status})`);
+        throw new Error(`Failed to load users (status ${usersRes.status})`);
       }
-      const data = await res.json();
+      const data = await usersRes.json();
       setUsers(data.users || []);
+
+      if (dailyRes.ok) {
+        const dailyData = await dailyRes.json();
+        setDailyList(dailyData.daily || []);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -103,7 +120,7 @@ export default function UserQuotasDirectory() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [period]);
 
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
@@ -118,6 +135,19 @@ export default function UserQuotasDirectory() {
     });
   }, [users, search, tierFilter]);
 
+  const filteredDaily = useMemo(() => {
+    return dailyList.filter((d) => {
+      const q = search.toLowerCase();
+      return (
+        !search ||
+        d.day.includes(q) ||
+        d.userId.toLowerCase().includes(q) ||
+        (d.email && d.email.toLowerCase().includes(q)) ||
+        (d.displayName && d.displayName.toLowerCase().includes(q))
+      );
+    });
+  }, [dailyList, search]);
+
   const summary = useMemo(() => {
     const totalUsers = users.length;
     const totalSpendUsd = users.reduce((acc, u) => acc + (u.spendUsd || 0), 0);
@@ -128,6 +158,8 @@ export default function UserQuotasDirectory() {
     const overQuotaCount = users.filter((u) => (u.spendUsd || 0) >= (u.limitUsd || 5)).length;
     return { totalUsers, totalSpendUsd, totalTokens, totalCached, globalCacheRate, overQuotaCount };
   }, [users]);
+
+  const periodLabel = period === 'previous' ? 'September 2026' : period === 'all' ? 'All Time' : 'October 2026';
 
   const handleOpenEdit = (user) => {
     setEditUser(user);
@@ -192,17 +224,57 @@ export default function UserQuotasDirectory() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-      {/* Cycle Banner */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+      {/* Cycle Banner with Period & View Switcher */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5 }}>
         <Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-            Current Month · October 2026
+            {periodLabel} {viewMode === 'daily' ? '· Day-by-Day Breakdown' : '· User Summary'}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-            Tracking usage from 01 Oct 2026 to 31 Oct 2026 (resets monthly on 1st at 00:00 UTC)
+            {period === 'current'
+              ? 'Tracking current cycle from 01 Oct 2026 to 31 Oct 2026 (resets monthly on 1st at 00:00 UTC)'
+              : period === 'previous'
+              ? 'Closed cycle from 01 Sep 2026 to 30 Sep 2026 (matches Google Cloud September invoice)'
+              : 'Cumulative usage and tokens recorded across all time'}
           </Typography>
         </Box>
-        <Chip label="Billing Cycle: Oct 2026" color="primary" variant="outlined" size="small" sx={{ fontWeight: 600 }} />
+
+        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Period Toggle */}
+          <ToggleButtonGroup
+            value={period}
+            exclusive
+            size="small"
+            onChange={(_, val) => val && setPeriod(val)}
+            aria-label="Billing Period"
+          >
+            <ToggleButton value="current" sx={{ textTransform: 'none', px: 1.5, py: 0.5, fontWeight: 600, fontSize: '0.75rem' }}>
+              <CalendarMonthIcon sx={{ fontSize: 14, mr: 0.5 }} /> Oct 2026
+            </ToggleButton>
+            <ToggleButton value="previous" sx={{ textTransform: 'none', px: 1.5, py: 0.5, fontWeight: 600, fontSize: '0.75rem' }}>
+              Sep 2026
+            </ToggleButton>
+            <ToggleButton value="all" sx={{ textTransform: 'none', px: 1.5, py: 0.5, fontWeight: 600, fontSize: '0.75rem' }}>
+              All Time
+            </ToggleButton>
+          </ToggleButtonGroup>
+
+          {/* View Toggle */}
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            size="small"
+            onChange={(_, val) => val && setViewMode(val)}
+            aria-label="View Mode"
+          >
+            <ToggleButton value="users" sx={{ textTransform: 'none', px: 1.5, py: 0.5, fontWeight: 600, fontSize: '0.75rem' }}>
+              <ViewListIcon sx={{ fontSize: 14, mr: 0.5 }} /> Users
+            </ToggleButton>
+            <ToggleButton value="daily" sx={{ textTransform: 'none', px: 1.5, py: 0.5, fontWeight: 600, fontSize: '0.75rem' }}>
+              <TableRowsIcon sx={{ fontSize: 14, mr: 0.5 }} /> Day by Day
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
       </Box>
 
       {/* Metrics Row */}
@@ -223,7 +295,7 @@ export default function UserQuotasDirectory() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary', mb: 0.5 }}>
             <AttachMoneyIcon fontSize="small" />
             <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase' }}>
-              October Spend
+              {periodLabel} Spend
             </Typography>
           </Box>
           <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
@@ -235,7 +307,7 @@ export default function UserQuotasDirectory() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary', mb: 0.5 }}>
             <TokenIcon fontSize="small" />
             <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase' }}>
-              Monthly Tokens
+              {periodLabel} Tokens
             </Typography>
           </Box>
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
@@ -290,18 +362,20 @@ export default function UserQuotasDirectory() {
           }}
         />
 
-        <FormControl size="small" sx={{ minWidth: 140 }}>
-          <InputLabel>Plan Tier</InputLabel>
-          <Select value={tierFilter} label="Plan Tier" onChange={(e) => setTierFilter(e.target.value)}>
-            <MenuItem value="all">All Tiers</MenuItem>
-            <MenuItem value="free">Free</MenuItem>
-            <MenuItem value="starter">Starter</MenuItem>
-            <MenuItem value="pro">Pro</MenuItem>
-            <MenuItem value="enterprise">Enterprise</MenuItem>
-          </Select>
-        </FormControl>
+        {viewMode === 'users' && (
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel>Plan Tier</InputLabel>
+            <Select value={tierFilter} label="Plan Tier" onChange={(e) => setTierFilter(e.target.value)}>
+              <MenuItem value="all">All Tiers</MenuItem>
+              <MenuItem value="free">Free</MenuItem>
+              <MenuItem value="starter">Starter</MenuItem>
+              <MenuItem value="pro">Pro</MenuItem>
+              <MenuItem value="enterprise">Enterprise</MenuItem>
+            </Select>
+          </FormControl>
+        )}
 
-        <Tooltip title="Refresh user list">
+        <Tooltip title="Refresh list">
           <span>
             <IconButton onClick={fetchUsers} disabled={loading} size="small" sx={{ border: '1px solid', borderColor: 'divider' }}>
               <RefreshIcon fontSize="small" />
@@ -317,20 +391,21 @@ export default function UserQuotasDirectory() {
         </Alert>
       )}
 
-      {/* Table */}
+      {/* Main Table: Users Summary vs Day by Day */}
       <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 6 }}>
             <CircularProgress size={32} />
           </Box>
-        ) : (
+        ) : viewMode === 'users' ? (
           <Table size="small">
             <TableHead sx={{ bgcolor: isDark ? alpha('#ffffff', 0.04) : alpha('#000000', 0.02) }}>
               <TableRow>
                 <TableCell sx={{ fontWeight: 700 }}>User / Email</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Tier</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>October Spend / Limit</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Tokens</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{periodLabel} Spend / Limit</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{periodLabel} Tokens</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Cumulative Tokens</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Cache Rate</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Calls</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
@@ -340,7 +415,7 @@ export default function UserQuotasDirectory() {
             <TableBody>
               {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                  <TableCell colSpan={9} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                     No users match the search filter.
                   </TableCell>
                 </TableRow>
@@ -394,6 +469,14 @@ export default function UserQuotasDirectory() {
                         </Typography>
                       </TableCell>
                       <TableCell>
+                        <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
+                          {formatTokensOrZero(u.cumulativeTokens || u.tokens?.total)}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.7rem' }}>
+                          ${(u.cumulativeSpendUsd || u.spendUsd || 0).toFixed(2)} all-time
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                           <Chip
                             label={`${u.tokens?.cacheHitRate || 0}%`}
@@ -426,6 +509,70 @@ export default function UserQuotasDirectory() {
                     </TableRow>
                   );
                 })
+              )}
+            </TableBody>
+          </Table>
+        ) : (
+          /* Day by Day View */
+          <Table size="small">
+            <TableHead sx={{ bgcolor: isDark ? alpha('#ffffff', 0.04) : alpha('#000000', 0.02) }}>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>User / Email</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Daily Spend</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Daily Tokens</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Cache Hit Rate</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Requests</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredDaily.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                    No daily records found for this period.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredDaily.map((row, idx) => (
+                  <TableRow key={`${row.day}-${row.userId}-${idx}`} hover>
+                    <TableCell sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.8rem' }}>
+                      {row.day}
+                    </TableCell>
+                    <TableCell sx={{ minWidth: 200 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.82rem' }}>
+                        {row.email || row.userId}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace', fontSize: '0.7rem', display: 'block' }}>
+                        {row.displayName ? `${row.displayName} · ` : ''}{row.userId}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'primary.main', fontSize: '0.82rem' }}>
+                      ${row.spendUsd.toFixed(2)}
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+                        {formatTokensOrZero(row.tokens?.total)}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.7rem' }}>
+                        {formatTokensOrZero(row.tokens?.prompt)} in · {formatTokensOrZero(row.tokens?.completion)} out
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <Chip
+                          label={`${row.tokens?.cacheHitRate || 0}%`}
+                          size="small"
+                          color={(row.tokens?.cacheHitRate || 0) > 60 ? 'success' : (row.tokens?.cacheHitRate || 0) > 30 ? 'warning' : 'default'}
+                          sx={{ fontWeight: 600, fontSize: '0.65rem', height: 20 }}
+                        />
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
+                          {formatTokensOrZero(row.tokens?.cached)}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>{row.callCount || 0}</TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>

@@ -311,15 +311,27 @@ export function createUserQuotaService({ pool = null, defaultMonthlyLimitCents =
       return this.checkQuota(targetUserId);
     },
 
-    async listUsers({ limit = 50, offset = 0 } = {}) {
+    async listUsers({ limit = 50, offset = 0, month = 'current' } = {}) {
       if (!pool) {
         const users = Array.from(memoryQuotas.entries()).map(([uId, q]) => {
-          const userRows = memoryLedger.filter((item) => item.userId === uId);
-          const promptTokens = userRows.reduce((sum, item) => sum + item.promptTokens, 0);
-          const completionTokens = userRows.reduce((sum, item) => sum + item.completionTokens, 0);
-          const cachedTokens = userRows.reduce((sum, item) => sum + (item.cachedTokens || 0), 0);
-          const spendCents = userRows.reduce((sum, item) => sum + item.costCents, 0);
+          const allUserRows = memoryLedger.filter((item) => item.userId === uId);
+          const now = new Date();
+          let filteredRows = allUserRows;
+          if (month === 'current') {
+            const start = new Date(now.getFullYear(), now.getMonth(), 1);
+            filteredRows = allUserRows.filter((r) => r.createdAt >= start);
+          } else if (month === 'previous' || month === '2026-09') {
+            const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const end = new Date(now.getFullYear(), now.getMonth(), 1);
+            filteredRows = allUserRows.filter((r) => r.createdAt >= start && r.createdAt < end);
+          }
+          const promptTokens = filteredRows.reduce((sum, item) => sum + item.promptTokens, 0);
+          const completionTokens = filteredRows.reduce((sum, item) => sum + item.completionTokens, 0);
+          const cachedTokens = filteredRows.reduce((sum, item) => sum + (item.cachedTokens || 0), 0);
+          const spendCents = filteredRows.reduce((sum, item) => sum + item.costCents, 0);
           const cacheHitRate = promptTokens > 0 ? Number(((cachedTokens / promptTokens) * 100).toFixed(1)) : 0;
+          const cumulativeTokens = allUserRows.reduce((sum, item) => sum + item.totalTokens, 0);
+          const cumulativeSpendCents = allUserRows.reduce((sum, item) => sum + item.costCents, 0);
           return {
             userId: uId,
             planTier: q.planTier,
@@ -327,6 +339,8 @@ export function createUserQuotaService({ pool = null, defaultMonthlyLimitCents =
             limitUsd: Number((q.monthlyLimitCents / 100).toFixed(2)),
             spendCents: Number(spendCents.toFixed(4)),
             spendUsd: Number((spendCents / 100).toFixed(4)),
+            cumulativeTokens,
+            cumulativeSpendUsd: Number((cumulativeSpendCents / 100).toFixed(4)),
             isBlocked: q.isBlocked,
             tokens: {
               prompt: promptTokens,
@@ -335,10 +349,17 @@ export function createUserQuotaService({ pool = null, defaultMonthlyLimitCents =
               total: promptTokens + completionTokens,
               cacheHitRate,
             },
-            callCount: userRows.length,
+            callCount: filteredRows.length,
           };
         });
         return { users, total: users.length };
+      }
+
+      let dateFilter = "l.created_at >= date_trunc('month', NOW())";
+      if (month === 'previous' || month === '2026-09') {
+        dateFilter = "l.created_at >= date_trunc('month', NOW() - interval '1 month') AND l.created_at < date_trunc('month', NOW())";
+      } else if (month === 'all') {
+        dateFilter = '1=1';
       }
 
       let rows;
@@ -356,11 +377,13 @@ export function createUserQuotaService({ pool = null, defaultMonthlyLimitCents =
              COALESCE(SUM(l.completion_tokens), 0)::bigint AS completion_tokens,
              COALESCE(SUM(l.total_tokens), 0)::bigint AS total_tokens,
              COALESCE(SUM(l.cached_tokens), 0)::bigint AS cached_tokens,
-             COUNT(l.id)::int AS call_count
+             COUNT(l.id)::int AS call_count,
+             (SELECT COALESCE(SUM(total_tokens), 0)::bigint FROM orqaly.user_llm_usage_ledger WHERE user_id = q.user_id) AS cumulative_tokens,
+             (SELECT COALESCE(SUM(estimated_cost_cents), 0) FROM orqaly.user_llm_usage_ledger WHERE user_id = q.user_id) AS cumulative_spend_cents
            FROM orqaly.user_llm_quotas q
            LEFT JOIN orqaly.user_llm_usage_ledger l 
              ON l.user_id = q.user_id 
-            AND l.created_at >= date_trunc('month', NOW())
+            AND ${dateFilter}
            GROUP BY q.user_id, q.plan_tier, q.monthly_limit_cents, q.is_blocked, q.created_at, q.updated_at
            ORDER BY spend_cents DESC, q.created_at DESC
            LIMIT $1 OFFSET $2`,
@@ -381,11 +404,13 @@ export function createUserQuotaService({ pool = null, defaultMonthlyLimitCents =
              COALESCE(SUM(l.completion_tokens), 0)::bigint AS completion_tokens,
              COALESCE(SUM(l.total_tokens), 0)::bigint AS total_tokens,
              0::bigint AS cached_tokens,
-             COUNT(l.id)::int AS call_count
+             COUNT(l.id)::int AS call_count,
+             (SELECT COALESCE(SUM(total_tokens), 0)::bigint FROM orqaly.user_llm_usage_ledger WHERE user_id = q.user_id) AS cumulative_tokens,
+             (SELECT COALESCE(SUM(estimated_cost_cents), 0) FROM orqaly.user_llm_usage_ledger WHERE user_id = q.user_id) AS cumulative_spend_cents
            FROM orqaly.user_llm_quotas q
            LEFT JOIN orqaly.user_llm_usage_ledger l 
              ON l.user_id = q.user_id 
-            AND l.created_at >= date_trunc('month', NOW())
+            AND ${dateFilter}
            GROUP BY q.user_id, q.plan_tier, q.monthly_limit_cents, q.is_blocked, q.created_at, q.updated_at
            ORDER BY spend_cents DESC, q.created_at DESC
            LIMIT $1 OFFSET $2`,
@@ -405,6 +430,8 @@ export function createUserQuotaService({ pool = null, defaultMonthlyLimitCents =
           limitUsd: Number((r.monthly_limit_cents / 100).toFixed(2)),
           spendCents: Number(parseFloat(r.spend_cents || 0).toFixed(4)),
           spendUsd: Number((parseFloat(r.spend_cents || 0) / 100).toFixed(4)),
+          cumulativeTokens: Number(r.cumulative_tokens || 0),
+          cumulativeSpendUsd: Number((parseFloat(r.cumulative_spend_cents || 0) / 100).toFixed(4)),
           isBlocked: Boolean(r.is_blocked),
           tokens: {
             prompt: promptTokens,
@@ -423,6 +450,65 @@ export function createUserQuotaService({ pool = null, defaultMonthlyLimitCents =
       const total = countResult.rows[0]?.total || 0;
 
       return { users, total };
+    },
+
+    async getDailyUsage({ month = 'current', userId = null } = {}) {
+      if (!pool) {
+        return { daily: [] };
+      }
+
+      let dateFilter = "created_at >= date_trunc('month', NOW())";
+      if (month === 'previous' || month === '2026-09') {
+        dateFilter = "created_at >= date_trunc('month', NOW() - interval '1 month') AND created_at < date_trunc('month', NOW())";
+      } else if (month === 'all') {
+        dateFilter = '1=1';
+      }
+
+      const params = [];
+      let userClause = '';
+      if (userId) {
+        params.push(userId);
+        userClause = `AND user_id = $${params.length}`;
+      }
+
+      const { rows } = await pool.query(
+        `SELECT 
+           to_char(created_at, 'YYYY-MM-DD') AS day,
+           user_id,
+           COALESCE(SUM(estimated_cost_cents), 0) AS spend_cents,
+           COALESCE(SUM(prompt_tokens), 0)::bigint AS prompt_tokens,
+           COALESCE(SUM(cached_tokens), 0)::bigint AS cached_tokens,
+           COALESCE(SUM(completion_tokens), 0)::bigint AS completion_tokens,
+           COALESCE(SUM(total_tokens), 0)::bigint AS total_tokens,
+           COUNT(id)::int AS call_count
+         FROM orqaly.user_llm_usage_ledger
+         WHERE ${dateFilter} ${userClause}
+         GROUP BY 1, 2
+         ORDER BY 1 DESC, spend_cents DESC`,
+        params
+      );
+
+      const daily = rows.map((r) => {
+        const prompt = Number(r.prompt_tokens || 0);
+        const cached = Number(r.cached_tokens || 0);
+        const cacheHitRate = prompt > 0 ? Number(((cached / prompt) * 100).toFixed(1)) : 0;
+        return {
+          day: r.day,
+          userId: r.user_id,
+          spendCents: Number(parseFloat(r.spend_cents || 0).toFixed(4)),
+          spendUsd: Number((parseFloat(r.spend_cents || 0) / 100).toFixed(4)),
+          tokens: {
+            prompt,
+            cached,
+            completion: Number(r.completion_tokens || 0),
+            total: Number(r.total_tokens || 0),
+            cacheHitRate,
+          },
+          callCount: Number(r.call_count || 0),
+        };
+      });
+
+      return { daily };
     },
   };
 }
