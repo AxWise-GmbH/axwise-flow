@@ -39,6 +39,7 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import TokenIcon from '@mui/icons-material/Token';
 import BlockIcon from '@mui/icons-material/Block';
 import BoltIcon from '@mui/icons-material/Bolt';
+import { useAuth } from '@clerk/react';
 import { formatTokensOrZero } from '../../utils/formatTokens';
 
 const TIER_COLORS = {
@@ -67,11 +68,24 @@ export default function UserQuotasDirectory() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
+  let getToken;
+  try {
+    const auth = useAuth();
+    getToken = auth?.getToken;
+  } catch {}
+
+  const apiUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ORQALY_API_URL) || '';
+
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/desktop/v1/admin/users');
+      const headers = {};
+      if (getToken) {
+        const token = await getToken();
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+      }
+      const res = await fetch(`${apiUrl}/desktop/v1/admin/users`, { headers });
       if (!res.ok) {
         if (res.status === 403) {
           throw new Error('ADMIN_REQUIRED: Access restricted to authorized administrators (vitalijs@axwise.de, viktors@axwise.de).');
@@ -128,9 +142,15 @@ export default function UserQuotasDirectory() {
         throw new Error('Please enter a valid dollar limit (e.g. 10.00).');
       }
 
-      const res = await fetch(`/desktop/v1/admin/users/${editUser.userId}/quota`, {
+      const headers = { 'Content-Type': 'application/json' };
+      if (getToken) {
+        const token = await getToken();
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${apiUrl}/desktop/v1/admin/users/${editUser.userId}/quota`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           monthlyLimitCents: limitCents,
           planTier: editTier,
