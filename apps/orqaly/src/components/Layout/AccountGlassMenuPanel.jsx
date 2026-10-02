@@ -1,4 +1,4 @@
-import { Box, Badge, Button, ButtonBase, Switch, Typography, alpha, useTheme } from '@mui/material';
+import { Box, Badge, Button, ButtonBase, LinearProgress, Switch, Typography, alpha, useTheme } from '@mui/material';
 import AssignmentLateOutlinedIcon from '@mui/icons-material/AssignmentLateOutlined';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
 import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined';
@@ -16,6 +16,7 @@ export default function AccountGlassMenuPanel({
   simpleMode,
   humanTaskPendingCount = 0,
   notificationCount = 0,
+  quotaSummary = null,
   onClose,
   onModeToggle,
   onOpenHumanTasks,
@@ -27,6 +28,7 @@ export default function AccountGlassMenuPanel({
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const iconTone = simpleMode ? 'brand' : 'neutral';
+  const quotaExceeded = quotaSummary && !quotaSummary.isUnlimited && quotaSummary.spendUsd >= quotaSummary.limitUsd;
 
   const iconCircleSx = {
     width: 28,
@@ -110,6 +112,76 @@ export default function AccountGlassMenuPanel({
           {email}
         </Typography>
       </Box>
+
+      {quotaSummary && (
+        <Box sx={{ ...glassCardSx, px: 1.5, py: 1.25 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Typography
+                sx={{
+                  fontSize: '0.62rem',
+                  fontWeight: 700,
+                  letterSpacing: 0.6,
+                  textTransform: 'uppercase',
+                  color: 'text.secondary',
+                }}
+              >
+                AI Credits & Usage
+              </Typography>
+              {quotaSummary.tokens?.cacheHitRate !== undefined && quotaSummary.tokens.cacheHitRate > 0 && (
+                <Box
+                  component="span"
+                  sx={{
+                    fontSize: '0.6rem',
+                    fontWeight: 700,
+                    px: 0.6,
+                    py: 0.1,
+                    borderRadius: '4px',
+                    bgcolor: alpha(theme.palette.success.main, 0.15),
+                    color: 'success.main',
+                    border: '1px solid',
+                    borderColor: alpha(theme.palette.success.main, 0.3),
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.25,
+                  }}
+                >
+                  ⚡ {quotaSummary.tokens.cacheHitRate}% Cached
+                </Box>
+              )}
+            </Box>
+            <Typography
+              sx={{
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                color: quotaExceeded ? 'error.main' : 'primary.main',
+              }}
+            >
+              ${quotaSummary.spendUsd?.toFixed(2) ?? '0.00'} / {quotaSummary.isUnlimited ? 'Unlimited' : `$${quotaSummary.limitUsd?.toFixed(2) ?? '5.00'}`}
+            </Typography>
+          </Box>
+          {!quotaSummary.isUnlimited && <LinearProgress
+            variant="determinate"
+            value={Math.min(100, Math.max(0, ((quotaSummary.spendUsd || 0) / (quotaSummary.limitUsd || 5)) * 100))}
+            color={quotaExceeded ? 'error' : 'primary'}
+            sx={{
+              height: 5,
+              borderRadius: 2.5,
+              mb: 0.75,
+              bgcolor: isDark ? alpha('#ffffff', 0.08) : alpha(theme.palette.text.primary, 0.08),
+            }}
+          />}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography sx={{ fontSize: '0.68rem', color: 'text.secondary' }}>
+              {(quotaSummary.tokens?.total || 0).toLocaleString()} tokens
+              {quotaSummary.tokens?.cached > 0 && ` (${(quotaSummary.tokens.cached).toLocaleString()} cached)`}
+            </Typography>
+            <Typography sx={{ fontSize: '0.62rem', color: 'text.disabled' }}>
+              {quotaSummary.savingsUsd > 0 ? `Saved $${quotaSummary.savingsUsd.toFixed(2)} with 75% cache discount` : 'Gemini 3.8 Flash (75% cache discount)'}
+            </Typography>
+          </Box>
+        </Box>
+      )}
 
       <Box sx={{ ...glassCardSx, px: 1.25, py: 1 }}>
         <Typography

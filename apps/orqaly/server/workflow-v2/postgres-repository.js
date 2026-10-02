@@ -1037,6 +1037,7 @@ export function createPostgresRepositories({
     : null;
 
   return {
+    apiPool,
     revisionConnectionsEnabled: requireRevisionConnections,
     solutionBuildTransaction(scope, callback) {
       const pool = apiPool || workerPool;

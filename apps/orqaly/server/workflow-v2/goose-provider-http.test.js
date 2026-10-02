@@ -354,6 +354,24 @@ describe('authenticated Goose provider transport', () => {
     expect(f.commandService.session).not.toHaveBeenCalled();
     expect(f.fetchImpl).not.toHaveBeenCalled();
   });
+  it('exempts verified admins from the request-rate cap', async () => {
+    const rateLimiter = vi.fn((_req, res) => res.status(429).json({ error: { code: 'RATE_LIMITED' } }));
+    const resolveAdminUser = vi.fn(async (userId) => userId === 'user-1');
+    const f = await fixture({ rateLimiter, resolveAdminUser });
+    expect((await f.call('/session', null)).status).toBe(200);
+    expect(await (await f.call('/session', null)).json()).toMatchObject({ isAdmin: true });
+    expect(rateLimiter).not.toHaveBeenCalled();
+    expect(resolveAdminUser).toHaveBeenCalledWith('user-1');
+  });
+  it('does not accept admin flags or emails supplied in request headers or bodies', async () => {
+    const userQuotaService = { checkQuota: vi.fn(), recordUsage: vi.fn(), updateUserQuota: vi.fn() };
+    const f = await fixture({ userQuotaService, resolveAdminUser: async () => false });
+    const response = await f.call('/admin/users/target-user/quota', { isAdmin: true, email: 'viktors@axwise.de', monthlyLimitCents: 2500 }, {
+      method: 'PATCH', headers: { Authorization: 'Bearer desktop-token', 'Content-Type': 'application/json', 'X-Admin': 'true', 'X-User-Email': 'viktors@axwise.de' },
+    });
+    expect(response.status).toBe(403);
+    expect(userQuotaService.updateUserQuota).not.toHaveBeenCalled();
+  });
   it('serves authenticated model discovery and session without provider spend', async () => {
     const f = await fixture();
     expect(await (await f.call('/models', null)).json()).toMatchObject({
@@ -635,5 +653,194 @@ describe('authenticated Goose provider transport', () => {
     const sent = JSON.parse(f.fetchImpl.mock.calls[0][1].body);
     expect(sent.messages).toEqual([{ role: 'system', content: expectedContent, extra_content: { keep: 'system extension' } }, ...history]);
     expect(body.messages[0].content).toEqual(content);
+  });
+  it('serves authenticated /usage endpoint with quota and spend details', async () => {
+    const userQuotaService = {
+      checkQuota: vi.fn(async () => ({ allowed: true, limitCents: 500, spendCents: 15.5, remainingCents: 484.5 })),
+      recordUsage: vi.fn(),
+      getUsageSummary: vi.fn(async (userId) => ({
+        userId,
+        planTier: 'free',
+        limitUsd: 5.0,
+        spendUsd: 0.155,
+        remainingUsd: 4.845,
+        tokens: { prompt: 15000, completion: 2000, total: 17000 },
+        callCount: 3,
+        pricing: [{ modelId: 'gemini-3.8-flash', inputPerMillionUsd: 0.75, outputPerMillionUsd: 3.75 }],
+      })),
+    };
+    const f = await fixture({ userQuotaService });
+    const response = await f.call('/usage', null, { method: 'GET' });
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.spendUsd).toBe(0.155);
+    expect(data.tokens.total).toBe(17000);
+    expect(userQuotaService.getUsageSummary).toHaveBeenCalledWith('user-1');
+  });
+  it('blocks chat completion when user quota is exceeded with 402 without upstream spend', async () => {
+    const userQuotaService = {
+      checkQuota: vi.fn(async () => ({ allowed: false, limitCents: 500, spendCents: 500, remainingCents: 0 })),
+      recordUsage: vi.fn(),
+      getUsageSummary: vi.fn(),
+    };
+    const f = await fixture({ userQuotaService });
+    const response = await f.call('/chat/completions', requestBody());
+    expect(response.status).toBe(402);
+    expect(await response.json()).toEqual({
+      error: {
+        type: 'orqaly_provider_error',
+        code: 'QUOTA_EXCEEDED',
+        message: 'QUOTA_EXCEEDED',
+      },
+    });
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+  it('records token usage when stream finishes with usageMetadata', async () => {
+    const userQuotaService = {
+      checkQuota: vi.fn(async () => ({ allowed: true, limitCents: 500, spendCents: 10, remainingCents: 490 })),
+      recordUsage: vi.fn(async () => {}),
+      getUsageSummary: vi.fn(),
+    };
+    const sseResponse = [
+      'data: {"id":"chat-1","choices":[{"delta":{"content":"Hello"}}]}\n\n',
+      'data: {"id":"chat-1","choices":[],"usage":{"prompt_tokens":1200,"completion_tokens":300,"total_tokens":1500}}\n\n',
+      'data: [DONE]\n\n',
+    ].join('');
+    const f = await fixture({
+      userQuotaService,
+      fetchImpl: async () => new Response(sseResponse, {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream; charset=utf-8' },
+      }),
+    });
+    const response = await f.call('/chat/completions', { ...requestBody(), stream: true });
+    expect(response.status).toBe(200);
+    const text = await response.text();
+    expect(text).toContain('Hello');
+    expect(userQuotaService.recordUsage).toHaveBeenCalledWith({
+      userId: 'user-1',
+      model: 'gemini-3.8-flash',
+      promptTokens: 1200,
+      completionTokens: 300,
+      cachedTokens: 0,
+    });
+  });
+  it('extracts cached tokens from prompt_tokens_details in usage stream', async () => {
+    const userQuotaService = {
+      checkQuota: vi.fn(async () => ({ allowed: true, limitCents: 500, spendCents: 10, remainingCents: 490 })),
+      recordUsage: vi.fn(async () => {}),
+      getUsageSummary: vi.fn(),
+    };
+    const sseResponse = [
+      'data: {"id":"chat-1","choices":[{"delta":{"content":"Hi"}}]}\n\n',
+      'data: {"id":"chat-1","choices":[],"usage":{"prompt_tokens":10000,"completion_tokens":200,"total_tokens":10200,"prompt_tokens_details":{"cached_tokens":8500}}}\n\n',
+      'data: [DONE]\n\n',
+    ].join('');
+    const f = await fixture({
+      userQuotaService,
+      fetchImpl: async () => new Response(sseResponse, {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream; charset=utf-8' },
+      }),
+    });
+    const response = await f.call('/chat/completions', { ...requestBody(), stream: true });
+    expect(response.status).toBe(200);
+    await response.text();
+    expect(userQuotaService.recordUsage).toHaveBeenCalledWith({
+      userId: 'user-1',
+      model: 'gemini-3.8-flash',
+      promptTokens: 10000,
+      completionTokens: 200,
+      cachedTokens: 8500,
+    });
+  });
+  it('rejects quota adjustment from non-admin with 403', async () => {
+    const userQuotaService = {
+      checkQuota: vi.fn(),
+      recordUsage: vi.fn(),
+      updateUserQuota: vi.fn(),
+    };
+    const f = await fixture({ userQuotaService, adminUserIds: ['super-admin'] });
+    const response = await f.call('/admin/users/target-user/quota', { monthlyLimitCents: 1500 }, { method: 'PATCH' });
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: {
+        type: 'orqaly_provider_error',
+        code: 'ADMIN_REQUIRED',
+        message: 'ADMIN_REQUIRED',
+      },
+    });
+    expect(userQuotaService.updateUserQuota).not.toHaveBeenCalled();
+  });
+  it('allows quota adjustment from designated admin', async () => {
+    const userQuotaService = {
+      checkQuota: vi.fn(),
+      recordUsage: vi.fn(),
+      updateUserQuota: vi.fn(async (userId, update) => ({
+        userId,
+        limitCents: update.monthlyLimitCents,
+        planTier: 'pro',
+        allowed: true,
+      })),
+    };
+    const f = await fixture({ userQuotaService, adminUserIds: ['user-1'] }); // user-1 is the fixture user
+    const response = await f.call('/admin/users/target-user/quota', { monthlyLimitCents: 2500, planTier: 'pro' }, { method: 'PATCH' });
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.limitCents).toBe(2500);
+    expect(data.planTier).toBe('pro');
+    expect(userQuotaService.updateUserQuota).toHaveBeenCalledWith('target-user', {
+      monthlyLimitCents: 2500,
+      planTier: 'pro',
+      isBlocked: undefined,
+    });
+  });
+  it('allows quota adjustment from a server-resolved verified-email admin', async () => {
+    const userQuotaService = {
+      checkQuota: vi.fn(), recordUsage: vi.fn(), updateUserQuota: vi.fn(async (userId) => ({ userId, allowed: true })),
+    };
+    const f = await fixture({ userQuotaService, resolveAdminUser: async (userId) => userId === 'user-1' });
+    const response = await f.call('/admin/users/target-user/quota', { monthlyLimitCents: 2500 }, { method: 'PATCH' });
+    expect(response.status).toBe(200);
+    expect(userQuotaService.updateUserQuota).toHaveBeenCalledOnce();
+  });
+  it('rejects listing users from non-admin with 403', async () => {
+    const userQuotaService = {
+      checkQuota: vi.fn(), recordUsage: vi.fn(), listUsers: vi.fn(),
+    };
+    const f = await fixture({ userQuotaService, adminUserIds: ['different-admin'] });
+    const response = await f.call('/admin/users', null, { method: 'GET' });
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: {
+        type: 'orqaly_provider_error',
+        code: 'ADMIN_REQUIRED',
+        message: 'ADMIN_REQUIRED',
+      },
+    });
+    expect(userQuotaService.listUsers).not.toHaveBeenCalled();
+  });
+  it('allows listing users from admin', async () => {
+    const userQuotaService = {
+      checkQuota: vi.fn(),
+      recordUsage: vi.fn(),
+      listUsers: vi.fn(async () => ({
+        users: [{
+          userId: 'user_target',
+          planTier: 'free',
+          limitUsd: 5.0,
+          spendUsd: 1.25,
+          tokens: { prompt: 1000, completion: 200, total: 1200 },
+        }],
+        total: 1,
+      })),
+    };
+    const f = await fixture({ userQuotaService, adminUserIds: ['user-1'] });
+    const response = await f.call('/admin/users', null, { method: 'GET' });
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.total).toBe(1);
+    expect(data.users[0].userId).toBe('user_target');
+    expect(userQuotaService.listUsers).toHaveBeenCalledWith({ limit: 50, offset: 0 });
   });
 });

@@ -33,6 +33,8 @@ import { createSolutionFailureProbeService } from './solution-failure-probe-serv
 import { nativeN8nGatewayFromEnvironment } from './native-n8n-config.js';
 import { createSolutionBuildService } from './solution-build-service.js';
 import { createSolutionApplicationKeyService } from './solution-application-key-service.js';
+import { createUserQuotaService } from './user-quota-service.js';
+import { desktopAdminAccessFromEnvironment } from './desktop-admin-access.js';
 import { nativeWorkflowBuilderEnabledFromEnvironment } from './native-workflow-config.js';
 import {
   solutionSchedulesEnabledFromEnvironment,
@@ -163,12 +165,16 @@ const nativeN8nGateway = nativeN8nGatewayFromEnvironment({
   revisionService: solutionRevisionService,
   buildService: solutionBuildService,
 });
+const resolveAdminUser = desktopAdminAccessFromEnvironment();
+const userQuotaService = createUserQuotaService({ pool: repository.apiPool, isUnlimitedUser: resolveAdminUser });
 const app = createWorkflowHttpApp({
   commandService,
   gooseProviderRouter: createGooseProviderFromEnvironment({
     commandService,
     rateLimiter: createMemoryRateLimiter({ limit: 30 }),
     desktopWorkService,
+    userQuotaService,
+    resolveAdminUser,
   }),
   agentEvaluationRouter,
   goalWorkflowViewService: createGoalWorkflowViewService({ repository }),

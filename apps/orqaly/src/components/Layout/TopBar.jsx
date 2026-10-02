@@ -84,6 +84,21 @@ export default function TopBar({
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  const [quotaSummary, setQuotaSummary] = useState(null);
+
+  useEffect(() => {
+    if (anchorEl) {
+      fetch('/desktop/v1/usage')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data && data.spendUsd !== undefined) {
+            setQuotaSummary(data);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [anchorEl]);
+
   // Floating header style: elevated controls that "float in the air"
   const controlSize = 40;
   const controlRadius = 2;
@@ -706,6 +721,7 @@ export default function TopBar({
               displayName={displayName}
               email={user?.email}
               simpleMode={simpleMode}
+              quotaSummary={quotaSummary}
               humanTaskPendingCount={humanTaskPendingCount}
               notificationCount={notifications.length}
               onClose={() => setAnchorEl(null)}

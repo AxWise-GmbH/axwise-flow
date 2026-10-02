@@ -1,5 +1,5 @@
 import express from 'express';
-import { Readable } from 'node:stream';
+import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { createHash } from 'node:crypto';
 import { ENGINEERING_REVIEW_MAX_BYTES } from './engineering-review-service.js';
@@ -176,6 +176,9 @@ export function createGooseProviderRouter({
   imageService = null,
   transcribeService = null,
   speechService = null,
+  userQuotaService = null,
+  adminUserIds = [],
+  resolveAdminUser = null,
   rateLimiter = (_req, _res, next) => next(),
   timeoutMs = MAX_DEADLINE_MS,
 }) {
@@ -196,6 +199,8 @@ export function createGooseProviderRouter({
     throw new Error('GOOSE_PROVIDER_TRANSCRIBE_SERVICE_INVALID');
   if (speechService !== null && typeof speechService?.synthesize !== 'function')
     throw new Error('GOOSE_PROVIDER_SPEECH_SERVICE_INVALID');
+  if (userQuotaService !== null && (typeof userQuotaService?.checkQuota !== 'function' || typeof userQuotaService?.recordUsage !== 'function'))
+    throw new Error('GOOSE_PROVIDER_USER_QUOTA_SERVICE_INVALID');
   if (typeof apiKey !== 'string' || !apiKey.trim() || /[\r\n]/.test(apiKey))
     throw new Error('GOOSE_PROVIDER_API_KEY_REQUIRED');
   if (typeof model !== 'string' || !/^gemini-[a-z0-9.-]+$/.test(model))
@@ -205,6 +210,7 @@ export function createGooseProviderRouter({
   if (contextForRequest !== null && typeof contextForRequest !== 'function')
     throw new Error('GOOSE_PROVIDER_CONTEXT_INVALID');
   if (typeof rateLimiter !== 'function') throw new Error('GOOSE_PROVIDER_RATE_LIMITER_REQUIRED');
+  if (resolveAdminUser !== null && typeof resolveAdminUser !== 'function') throw new Error('GOOSE_PROVIDER_ADMIN_RESOLVER_INVALID');
   const router = express.Router();
   router.use(async (req, res, next) => {
     res.set('Cache-Control', 'no-store');
@@ -216,13 +222,15 @@ export function createGooseProviderRouter({
       if (accountHash !== undefined && accountHash !== createHash('sha256').update(verified.userId).digest('hex'))
         return sendError(res, 403, 'ACCOUNT_CHANGED');
       req.authContext = { userId: verified.userId };
+      req.gooseIsAdmin = adminUserIds.includes(verified.userId) ||
+        (resolveAdminUser !== null && await resolveAdminUser(verified.userId) === true);
       return next();
     } catch (error) {
       const status = [401, 403].includes(error?.status) ? error.status : 503;
       return sendError(res, status, status === 401 ? 'UNAUTHENTICATED' : status === 403 ? 'ACCESS_DENIED' : 'IDENTITY_UNAVAILABLE');
     }
   });
-  router.use(rateLimiter);
+  router.use((req, res, next) => req.gooseIsAdmin ? next() : rateLimiter(req, res, next));
   router.use(async (req, res, next) => {
     if (!commandService) {
       req.gooseSession = { userId: req.authContext.userId, accountScoped: true };
@@ -241,6 +249,7 @@ export function createGooseProviderRouter({
   });
   router.get('/session', (req, res) => res.json({
     ...req.gooseSession, model: GOOSE_PROVIDER_MODEL, input_modalities: INPUT_MODALITIES,
+    ...(req.gooseIsAdmin ? { isAdmin: true } : {}),
   }));
   router.get('/models', (_req, res) => res.json({
     object: 'list',
@@ -260,6 +269,54 @@ export function createGooseProviderRouter({
       sendError(res, status, code);
     }
   };
+  router.get('/usage', desktopRead(async (req) => {
+    if (!userQuotaService) {
+      return {
+        enabled: false,
+        userId: req.authContext.userId,
+        spendCents: 0,
+        limitCents: 500,
+        remainingCents: 500,
+        spendUsd: 0,
+        limitUsd: 5.0,
+        remainingUsd: 5.0,
+        tokens: { prompt: 0, completion: 0, total: 0 },
+        callCount: 0,
+        pricing: [],
+      };
+    }
+    return { ...await userQuotaService.getUsageSummary(req.authContext.userId), isAdmin: req.gooseIsAdmin };
+  }));
+  router.get('/admin/users', async (req, res) => {
+    if (!userQuotaService) return sendError(res, 503, 'QUOTA_SERVICE_UNAVAILABLE');
+    if (!req.gooseIsAdmin) return sendError(res, 403, 'ADMIN_REQUIRED');
+    try {
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+      const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+      const data = await userQuotaService.listUsers({ limit, offset });
+      res.json(data);
+    } catch {
+      sendError(res, 500, 'USERS_LIST_FAILED');
+    }
+  });
+  router.patch('/admin/users/:userId/quota', express.json({ limit: '16kb', strict: true }), async (req, res) => {
+    if (!userQuotaService) return sendError(res, 503, 'QUOTA_SERVICE_UNAVAILABLE');
+    if (!req.gooseIsAdmin) return sendError(res, 403, 'ADMIN_REQUIRED');
+    try {
+      const { monthlyLimitCents, planTier, isBlocked } = req.body || {};
+      const updated = await userQuotaService.updateUserQuota(req.params.userId, {
+        monthlyLimitCents,
+        planTier,
+        isBlocked,
+      });
+      res.json(updated);
+    } catch (error) {
+      if (['TARGET_USER_ID_REQUIRED', 'NO_VALID_QUOTA_UPDATES'].includes(error?.message)) {
+        return sendError(res, 400, 'INVALID_QUOTA_UPDATE');
+      }
+      sendError(res, 500, 'QUOTA_UPDATE_FAILED');
+    }
+  });
   if (desktopContextService) {
     router.get('/goals/:runId/context', desktopRead((req) => desktopContextService.read(req.authContext, req.params.runId)));
     router.get('/goals/:runId/artifacts/:artifactId', desktopRead((req) => desktopContextService.artifact(req.authContext, req.params.runId, req.params.artifactId)));
@@ -377,6 +434,14 @@ export function createGooseProviderRouter({
   router.post('/chat/completions', express.json({ limit: MAX_REQUEST_BYTES, strict: true }), async (req, res) => {
     const validation = inspectGooseChatRequest(req.body);
     if (!validation.valid) return sendError(res, validation.status, validation.code);
+    if (userQuotaService) {
+      try {
+        const quota = await userQuotaService.checkQuota(req.authContext.userId);
+        if (!quota.allowed) return sendError(res, 402, 'QUOTA_EXCEEDED');
+      } catch {
+        return sendError(res, 503, 'QUOTA_UNAVAILABLE');
+      }
+    }
     const controller = new AbortController();
     let timedOut = false;
     const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
@@ -428,6 +493,9 @@ export function createGooseProviderRouter({
         }
       }
       controller.signal.throwIfAborted();
+      if (body.stream && (body.stream_options === undefined || body.stream_options.include_usage !== false)) {
+        body.stream_options = { include_usage: true };
+      }
       const upstreamBody = JSON.stringify(body);
       if (Buffer.byteLength(upstreamBody, 'utf8') > MAX_UPSTREAM_REQUEST_BYTES)
         return sendError(res, 413, 'CHAT_REQUEST_TOO_LARGE');
@@ -455,7 +523,52 @@ export function createGooseProviderRouter({
       });
       // Native backpressure and abort handling; no SSE reconstruction, no lost
       // tool deltas, no synthetic success event, and no mid-stream replay.
-      await pipeline(Readable.fromWeb(upstream.body), res, { signal: controller.signal });
+      const streams = [Readable.fromWeb(upstream.body)];
+      if (userQuotaService) {
+        let streamBuffer = '';
+        const tapStream = new Transform({
+          transform(chunk, encoding, callback) {
+            if (streamBuffer.length < 250_000) {
+              streamBuffer += chunk.toString('utf8');
+            }
+            callback(null, chunk);
+          },
+          flush(callback) {
+            try {
+              if (streamBuffer.includes('"usage"')) {
+                const lines = streamBuffer.split('\n');
+                for (let i = lines.length - 1; i >= 0; i--) {
+                  const line = lines[i].trim();
+                  if (line.includes('"usage"')) {
+                    const dataText = line.startsWith('data: ') ? line.slice(6) : line;
+                    const parsed = JSON.parse(dataText);
+                    if (parsed.usage) {
+                      const promptTokens = parsed.usage.prompt_tokens || 0;
+                      const completionTokens = parsed.usage.completion_tokens || 0;
+                      const cachedTokens = parsed.usage.prompt_tokens_details?.cached_tokens
+                        || parsed.usage.cached_tokens
+                        || parsed.usage.prompt_tokens_details?.cached_tokens_count
+                        || 0;
+                      userQuotaService.recordUsage({
+                        userId: req.authContext.userId,
+                        model: body.model || model,
+                        promptTokens,
+                        completionTokens,
+                        cachedTokens,
+                      }).catch(() => {});
+                      break;
+                    }
+                  }
+                }
+              }
+            } catch {}
+            callback();
+          },
+        });
+        streams.push(tapStream);
+      }
+      streams.push(res);
+      await pipeline(...streams, { signal: controller.signal });
     } catch {
       if (timedOut) sendError(res, 504, 'PROVIDER_TIMEOUT');
       else if (!controller.signal.aborted) sendError(res, 502, 'PROVIDER_UNAVAILABLE');
