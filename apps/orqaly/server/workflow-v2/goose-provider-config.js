@@ -9,6 +9,7 @@ import { createDesktopSearchService } from './desktop-search-service.js';
 import { createDesktopImageService } from './desktop-image-service.js';
 import { createDesktopTranscribeService } from './desktop-transcribe-service.js';
 import { createDesktopSpeechService } from './desktop-speech-service.js';
+import { createClerkUserLookup } from './clerk-user-lookup.js';
 import { validateClerkKeyEnvironment } from './clerk-config.js';
 
 function denied(status = 403) {
@@ -75,6 +76,7 @@ export function createGooseProviderFromEnvironment({
     rateLimiter,
     fetchImpl,
     userQuotaService,
+    clerkUserLookup: createClerkUserLookup({ secretKey: environment.CLERK_SECRET_KEY, fetchImpl }),
     adminUserIds,
     resolveAdminUser,
     searchService: createDesktopSearchService({ apiKey: environment.ORQALY_GOOSE_GEMINI_API_KEY, fetchImpl }),
