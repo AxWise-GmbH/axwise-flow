@@ -70,7 +70,7 @@ export default function AccountPage() {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'text.secondary' }}>
-                    AI Credits & Usage
+                    AI Credits & Usage · Current Month (October 2026)
                   </Typography>
                   {quotaSummary.tokens?.cacheHitRate !== undefined && quotaSummary.tokens.cacheHitRate > 0 && (
                     <Box
