@@ -730,6 +730,7 @@ export default function TopBar({
               onOpenNotifications={openNotificationCenter}
               onNavigateSettings={() => navigate('/settings')}
               onNavigateSetup={() => navigate('/setup')}
+              onNavigateLlmUsage={() => navigate('/llm-usage')}
               onLogout={handleLogout}
             />
           </Menu>

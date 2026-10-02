@@ -23,6 +23,7 @@ export default function AccountGlassMenuPanel({
   onOpenNotifications,
   onNavigateSettings,
   onNavigateSetup,
+  onNavigateLlmUsage,
   onLogout,
 }) {
   const theme = useTheme();
@@ -114,7 +115,27 @@ export default function AccountGlassMenuPanel({
       </Box>
 
       {quotaSummary && (
-        <Box sx={{ ...glassCardSx, px: 1.5, py: 1.25 }}>
+        <Box
+          role={onNavigateLlmUsage ? 'button' : undefined}
+          tabIndex={onNavigateLlmUsage ? 0 : undefined}
+          onClick={() => {
+            if (onNavigateLlmUsage) {
+              onClose?.();
+              onNavigateLlmUsage();
+            }
+          }}
+          sx={{
+            ...glassCardSx,
+            px: 1.5,
+            py: 1.25,
+            cursor: onNavigateLlmUsage ? 'pointer' : 'default',
+            transition: 'background .15s ease, border-color .15s ease',
+            '&:hover': onNavigateLlmUsage ? {
+              bgcolor: isDark ? alpha(theme.palette.background.paper, 0.7) : alpha(theme.palette.background.paper, 0.92),
+              borderColor: alpha(theme.palette.primary.main, 0.4),
+            } : {},
+          }}
+        >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
               <Typography
