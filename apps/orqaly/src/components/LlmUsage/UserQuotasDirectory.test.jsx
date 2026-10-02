@@ -14,6 +14,8 @@ describe('UserQuotasDirectory', () => {
     const mockUsers = [
       {
         userId: 'user_admin_123',
+        email: 'admin@axwise.de',
+        displayName: 'Admin User',
         planTier: 'pro',
         limitUsd: 25.0,
         spendUsd: 4.5,
@@ -23,6 +25,8 @@ describe('UserQuotasDirectory', () => {
       },
       {
         userId: 'user_free_456',
+        email: 'free@example.com',
+        displayName: 'Free User',
         planTier: 'free',
         limitUsd: 5.0,
         spendUsd: 5.0,
@@ -46,8 +50,9 @@ describe('UserQuotasDirectory', () => {
 
     // Verify summary stats and users appear
     await waitFor(() => {
-      expect(screen.getByText('user_admin_123')).toBeInTheDocument();
-      expect(screen.getByText('user_free_456')).toBeInTheDocument();
+      expect(screen.getByText('admin@axwise.de')).toBeInTheDocument();
+      expect(screen.getByText('free@example.com')).toBeInTheDocument();
+      expect(screen.getByText(/user_admin_123/)).toBeInTheDocument();
     });
 
     expect(screen.getByText('Managed Users')).toBeInTheDocument();
@@ -80,6 +85,8 @@ describe('UserQuotasDirectory', () => {
     const mockUsers = [
       {
         userId: 'user_to_edit',
+        email: 'edit@example.com',
+        displayName: 'Editor User',
         planTier: 'free',
         limitUsd: 5.0,
         spendUsd: 1.0,
@@ -114,7 +121,7 @@ describe('UserQuotasDirectory', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('user_to_edit')).toBeInTheDocument();
+      expect(screen.getByText('edit@example.com')).toBeInTheDocument();
     });
 
     // Click edit icon

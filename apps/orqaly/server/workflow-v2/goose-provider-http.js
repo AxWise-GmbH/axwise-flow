@@ -177,6 +177,7 @@ export function createGooseProviderRouter({
   transcribeService = null,
   speechService = null,
   userQuotaService = null,
+  clerkUserLookup = null,
   adminUserIds = [],
   resolveAdminUser = null,
   rateLimiter = (_req, _res, next) => next(),
@@ -294,6 +295,9 @@ export function createGooseProviderRouter({
       const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
       const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
       const data = await userQuotaService.listUsers({ limit, offset });
+      if (clerkUserLookup && Array.isArray(data.users)) {
+        data.users = await clerkUserLookup.enrichUsers(data.users);
+      }
       res.json(data);
     } catch {
       sendError(res, 500, 'USERS_LIST_FAILED');

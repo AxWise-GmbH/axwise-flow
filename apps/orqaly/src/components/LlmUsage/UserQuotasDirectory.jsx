@@ -107,7 +107,12 @@ export default function UserQuotasDirectory() {
 
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
-      const matchesSearch = !search || u.userId.toLowerCase().includes(search.toLowerCase());
+      const q = search.toLowerCase();
+      const matchesSearch =
+        !search ||
+        u.userId.toLowerCase().includes(q) ||
+        (u.email && u.email.toLowerCase().includes(q)) ||
+        (u.displayName && u.displayName.toLowerCase().includes(q));
       const matchesTier = tierFilter === 'all' || u.planTier === tierFilter;
       return matchesSearch && matchesTier;
     });
@@ -259,10 +264,10 @@ export default function UserQuotasDirectory() {
       <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
         <TextField
           size="small"
-          placeholder="Search by Clerk User ID..."
+          placeholder="Search by email, name, or Clerk User ID..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          sx={{ minWidth: 260, flex: 1 }}
+          sx={{ minWidth: 280, flex: 1 }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -309,7 +314,7 @@ export default function UserQuotasDirectory() {
           <Table size="small">
             <TableHead sx={{ bgcolor: isDark ? alpha('#ffffff', 0.04) : alpha('#000000', 0.02) }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>User ID</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>User / Email</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Tier</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Spend / Limit</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Tokens</TableCell>
@@ -335,8 +340,13 @@ export default function UserQuotasDirectory() {
 
                   return (
                     <TableRow key={u.userId} hover>
-                      <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                        {u.userId}
+                      <TableCell sx={{ minWidth: 200 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.82rem', color: 'text.primary' }}>
+                          {u.email || u.userId}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace', fontSize: '0.7rem', display: 'block' }}>
+                          {u.displayName ? `${u.displayName} · ` : ''}{u.userId}
+                        </Typography>
                       </TableCell>
                       <TableCell>
                         <Chip
@@ -416,8 +426,8 @@ export default function UserQuotasDirectory() {
         </DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           {editUser && (
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace' }}>
-              Target: {editUser.userId}
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+              Target: {editUser.email ? `${editUser.email} (${editUser.userId})` : editUser.userId}
             </Typography>
           )}
 
