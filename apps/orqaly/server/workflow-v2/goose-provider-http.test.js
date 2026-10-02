@@ -841,6 +841,6 @@ describe('authenticated Goose provider transport', () => {
     const data = await response.json();
     expect(data.total).toBe(1);
     expect(data.users[0].userId).toBe('user_target');
-    expect(userQuotaService.listUsers).toHaveBeenCalledWith({ limit: 50, offset: 0 });
+    expect(userQuotaService.listUsers).toHaveBeenCalledWith({ limit: 50, offset: 0, month: 'current' });
   });
 });

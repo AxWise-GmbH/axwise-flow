@@ -10,7 +10,7 @@ describe('UserQuotasDirectory', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders loading state then displays users table', async () => {
+  it('renders loading state then displays users table with cumulative tokens', async () => {
     const mockUsers = [
       {
         userId: 'user_admin_123',
@@ -19,6 +19,8 @@ describe('UserQuotasDirectory', () => {
         planTier: 'pro',
         limitUsd: 25.0,
         spendUsd: 4.5,
+        cumulativeTokens: 250000,
+        cumulativeSpendUsd: 15.0,
         tokens: { prompt: 50000, completion: 5000, total: 55000 },
         callCount: 12,
         isBlocked: false,
@@ -30,16 +32,19 @@ describe('UserQuotasDirectory', () => {
         planTier: 'free',
         limitUsd: 5.0,
         spendUsd: 5.0,
+        cumulativeTokens: 62000,
+        cumulativeSpendUsd: 5.0,
         tokens: { prompt: 60000, completion: 2000, total: 62000 },
         callCount: 15,
         isBlocked: false,
       },
     ];
 
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({ users: mockUsers, total: 2 }),
+    vi.spyOn(global, 'fetch').mockImplementation(async (url) => {
+      if (String(url).includes('/daily')) {
+        return { ok: true, status: 200, json: async () => ({ daily: [] }) };
+      }
+      return { ok: true, status: 200, json: async () => ({ users: mockUsers, total: 2 }) };
     });
 
     render(
@@ -57,18 +62,18 @@ describe('UserQuotasDirectory', () => {
 
     expect(screen.getByText('Managed Users')).toBeInTheDocument();
     expect(screen.getByText('Cache Efficiency')).toBeInTheDocument();
-    expect(screen.getByText('Cache Rate')).toBeInTheDocument();
+    expect(screen.getByText('Cumulative Tokens')).toBeInTheDocument();
     expect(screen.getByText('PRO')).toBeInTheDocument();
     expect(screen.getByText('FREE')).toBeInTheDocument();
     expect(screen.getAllByText('Over Quota').length).toBeGreaterThanOrEqual(1);
   });
 
   it('displays error alert when user is unauthorized', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+    vi.spyOn(global, 'fetch').mockImplementation(async () => ({
       ok: false,
       status: 403,
       json: async () => ({ error: { code: 'ADMIN_REQUIRED' } }),
-    });
+    }));
 
     render(
       <ThemeProvider theme={theme}>
@@ -96,23 +101,25 @@ describe('UserQuotasDirectory', () => {
       },
     ];
 
-    vi.spyOn(global, 'fetch')
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ users: mockUsers, total: 1 }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          userId: 'user_to_edit',
-          planTier: 'pro',
-          limitCents: 2000,
-          spendCents: 100,
-          allowed: true,
-        }),
-      });
+    vi.spyOn(global, 'fetch').mockImplementation(async (url, opts) => {
+      if (opts?.method === 'PATCH') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            userId: 'user_to_edit',
+            planTier: 'pro',
+            limitCents: 2000,
+            spendCents: 100,
+            allowed: true,
+          }),
+        };
+      }
+      if (String(url).includes('/daily')) {
+        return { ok: true, status: 200, json: async () => ({ daily: [] }) };
+      }
+      return { ok: true, status: 200, json: async () => ({ users: mockUsers, total: 1 }) };
+    });
 
     render(
       <ThemeProvider theme={theme}>
