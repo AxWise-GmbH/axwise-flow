@@ -30,7 +30,9 @@ export function createDesktopAdminAccess({
 
 export function desktopAdminAccessFromEnvironment(environment = process.env) {
   const adminUserIds = configuredValues(environment.ORQALY_ADMIN_USER_IDS ?? 'user_2xaXl1ECHV80vYTdmiu6x3X66Wf,user_2xdZVfEfNCMGdl6ZsBLYYdCoWIw');
-  const adminEmails = configuredValues(environment.ORQALY_ADMIN_USER_EMAILS ?? 'vitalijs@axwise.de,viktors@axwise.de');
+  const adminEmails = environment.CLERK_SECRET_KEY
+    ? configuredValues(environment.ORQALY_ADMIN_USER_EMAILS ?? 'vitalijs@axwise.de,viktors@axwise.de')
+    : configuredValues(environment.ORQALY_ADMIN_USER_EMAILS ?? '');
   const client = adminEmails.length && environment.CLERK_SECRET_KEY ? createClerkClient({ secretKey: environment.CLERK_SECRET_KEY }) : null;
   return createDesktopAdminAccess({ adminUserIds, adminEmails, getUser: client && ((userId) => client.users.getUser(userId)) });
 }
