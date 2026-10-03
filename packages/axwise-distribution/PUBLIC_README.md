@@ -26,7 +26,7 @@ Synthetic and supplied interview inputs retain their provenance. Outputs are mod
 
 ## Install from a release
 
-Version 0.4.0 is a pure-Python FastMCP extension. It eliminates the previous dual Node.js runtime requirement and PostgreSQL database dependencies, storing all artifacts in an embedded SQLite database (`~/.axwise/state/axwise.db`) and human-readable Markdown files.
+Version 0.4.1 is a pure-Python FastMCP extension. It eliminates the previous dual Node.js runtime requirement and PostgreSQL database dependencies, storing all artifacts in an embedded SQLite database (`~/.axwise/state/axwise.db`) and human-readable Markdown files.
 
 Prerequisites: Python 3.11 or newer; [uv](https://docs.astral.sh/uv/getting-started/installation/) (`uvx` on PATH) or `pip`. No Node.js and no database daemons required.
 
@@ -35,13 +35,13 @@ Prerequisites: Python 3.11 or newer; [uv](https://docs.astral.sh/uv/getting-star
 Run directly without manual installation:
 
 ```sh
-uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl axwise
+uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.1/axwise_extension-0.4.1-py3-none-any.whl axwise
 ```
 
 Or install into your environment:
 
 ```sh
-pip install https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl
+pip install https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.1/axwise_extension-0.4.1-py3-none-any.whl
 ```
 
 ### Codex Setup (`~/.codex/config.toml`)
@@ -61,7 +61,7 @@ args = []
       "command": "uvx",
       "args": [
         "--from",
-        "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl",
+        "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.1/axwise_extension-0.4.1-py3-none-any.whl",
         "axwise"
       ]
     }
@@ -115,7 +115,7 @@ Generic launch configuration (adapt the surrounding keys to your host):
   "command": "uvx",
   "args": [
     "--from",
-    "/absolute/path/axwise_extension-0.4.0-py3-none-any.whl",
+    "/absolute/path/axwise_extension-0.4.1-py3-none-any.whl",
     "axwise",
     "--config",
     "/absolute/path/axwise.json"
