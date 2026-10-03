@@ -521,7 +521,7 @@ export async function triageFullComputerUsePlan({
  * For local OpenAI-compatible llama-server: reasoning_effort ("none" | "low" | "high")
  * For Gemini Google provider: thinking_config with thinking_budget tokens.
  */
-export function mapJevThinkingEffortToProviderParams(thinkingEffort, provider = "openai") {
+export function mapJevThinkingEffortToProviderParams(thinkingEffort, provider = "openai", model = "") {
   const effort = thinkingEffort || "low";
   if (provider === "openai" || provider === "local_vibeforged") {
     return {
@@ -529,6 +529,10 @@ export function mapJevThinkingEffortToProviderParams(thinkingEffort, provider = 
     };
   }
   if (provider === "google" || provider === "gemini") {
+    // Flash-Lite tier enforces zero thinking latency
+    if (model.includes("flash-lite") || model.includes("lite")) {
+      return { thinking_config: { thinking_budget: 0 } };
+    }
     return {
       thinking_config: {
         thinking_budget: effort === "off" ? 0 : effort === "high" ? 1024 : 150,
@@ -539,17 +543,33 @@ export function mapJevThinkingEffortToProviderParams(thinkingEffort, provider = 
 }
 
 /**
+ * Selects the optimal Google Gemini model tier based on prompt token count.
+ * <= 2,500 tokens: gemini-3.1-flash-lite (sub-100ms TTFT, lowest cost)
+ * >  2,500 tokens: gemini-3.8-flash (deep reasoning, multi-file synthesis)
+ */
+export function selectCloudModelTier(body) {
+  const promptLength = JSON.stringify(body?.messages || []).length;
+  const estimatedTokens = Math.round(promptLength / 3.8);
+  return estimatedTokens > 2500 ? "gemini-3.8-flash" : "gemini-3.1-flash-lite";
+}
+
+/**
  * Evaluates the prompt and user mode to select the optimal inference target.
  * Modes: "cloud_only", "hybrid", "local_only".
  * Hybrid uses the verified 2,500 token boundary.
  */
 export function selectInferenceTarget(body, userSettings = {}) {
   const mode = userSettings.mode || "hybrid";
-  if (mode === "cloud_only") return "google";
-  if (mode === "local_only") return "local_vibeforged";
-
-  // Hybrid mode: 2,500 token boundary
   const promptLength = JSON.stringify(body?.messages || []).length;
   const estimatedTokens = Math.round(promptLength / 3.8);
+
+  if (mode === "cloud_only") {
+    return estimatedTokens > 2500 ? "gemini-3.8-flash" : "gemini-3.1-flash-lite";
+  }
+  if (mode === "local_only") {
+    return "local_vibeforged";
+  }
+
+  // Hybrid mode: 2,500 token boundary
   return estimatedTokens > 2500 ? "google" : "local_vibeforged";
 }
