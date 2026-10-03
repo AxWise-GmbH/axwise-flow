@@ -163,6 +163,7 @@ temp/
 !/.github/workflows/
 /.github/workflows/*
 !/.github/workflows/workflow-v2-preview-gates.yml
+!/.github/workflows/publish-pypi.yml
 output/
 process-map.html
 .DS_Store
