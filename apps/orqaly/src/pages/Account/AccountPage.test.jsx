@@ -4,16 +4,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AccountPage from './AccountPage';
 import { DESKTOP_RELEASE } from '../Landing/simple/desktop-release';
 
-const clerk = vi.hoisted(() => ({ user: {}, signOut: vi.fn(), openUserProfile: vi.fn() }));
+const clerk = vi.hoisted(() => ({
+  user: {},
+  signOut: vi.fn(),
+  openUserProfile: vi.fn(),
+  getToken: vi.fn(),
+  token: null,
+}));
 vi.mock('@clerk/react', () => ({
   useUser: () => clerk.user,
   useClerk: () => ({ signOut: clerk.signOut, openUserProfile: clerk.openUserProfile }),
+  useAuth: () => ({ getToken: clerk.getToken }),
 }));
 
 beforeEach(() => {
   clerk.user = { isLoaded: true, isSignedIn: true, user: { primaryEmailAddress: { emailAddress: 'owner@example.com' } } };
   clerk.signOut.mockReset().mockResolvedValue(undefined);
   clerk.openUserProfile.mockReset();
+  clerk.getToken.mockReset().mockImplementation(() => Promise.resolve(clerk.token));
+  clerk.token = null;
   vi.stubGlobal('fetch', vi.fn());
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
@@ -87,5 +96,24 @@ describe('desktop account page', () => {
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Account security and profile' })); });
     expect(screen.getByRole('alert')).toHaveTextContent('The account action could not complete. Please try again.');
     expect(screen.getByRole('button', { name: 'Account security and profile' })).toBeEnabled();
+  });
+
+  it('renders Cloud Gateway vs Local MCP / BYOK quota breakdown when usage data is loaded', async () => {
+    clerk.token = 'active-token';
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        spendUsd: 1.25,
+        limitUsd: 5.0,
+        isUnlimited: false,
+        tokens: { total: 45000, cached: 32000, cacheHitRate: 71 },
+        savingsUsd: 1.80,
+      }),
+    }));
+    await act(async () => { show(); });
+    expect(screen.getByText(/Cloud Gateway LLM Credits/)).toBeInTheDocument();
+    expect(screen.getByText(/Local MCP \/ BYOK/)).toBeInTheDocument();
+    expect(screen.getByText(/45,000 cloud tokens/)).toBeInTheDocument();
+    expect(screen.getByText(/\$0\.00 of cloud quota/)).toBeInTheDocument();
   });
 });

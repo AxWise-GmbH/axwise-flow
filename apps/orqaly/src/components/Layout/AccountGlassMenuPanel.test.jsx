@@ -66,6 +66,8 @@ describe('AccountGlassMenuPanel', () => {
     expect(screen.getByText(/45,000 tokens/)).toBeInTheDocument();
     expect(screen.getByText(/32,000 cached/)).toBeInTheDocument();
     expect(screen.getByText(/Saved \$1.80 with 75% cache discount/)).toBeInTheDocument();
+    expect(screen.getByText('Local MCP / AxWise')).toBeInTheDocument();
+    expect(screen.getByText('$0.00 · BYOK / Free')).toBeInTheDocument();
   });
   it('shows unlimited usage with metered spend and no quota progress bar', () => {
     renderPanel({ quotaSummary: { isUnlimited: true, spendUsd: 2500, limitUsd: null, tokens: { total: 1_000_000 } } });

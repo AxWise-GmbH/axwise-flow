@@ -405,9 +405,14 @@ async def execute_tool(
 
     # 7. Format clean Markdown response for chat UI
     markdown = finalized.get("markdown", "")
+    tot_usage = usage()
+    tokens_label = f"{tot_usage.get('total_tokens', 0):,} tokens" if tot_usage.get("total_tokens") else "Direct inference"
     summary_bullets = [
         f"**Artifact ID:** `{saved_meta['operationId']}` (SHA: `{saved_meta['sha256'][:10]}...`)",
         f"**Saved Local File:** `{saved_meta['mdPath']}`",
+        f"**Execution & Quota:** Local FastMCP · BYOK ($0.00 Orqanix Cloud Quota consumed)",
+        f"**Model & Tokens:** `{llm.model}` ({llm.provider_type}) · {tokens_label}",
+        f"**Storage Engine:** Embedded SQLite (`~/.axwise/state/axwise.db`)",
     ]
     if finalized.get("artifact", {}).get("title"):
         summary_bullets.insert(0, f"**Title:** {finalized['artifact']['title']}")
