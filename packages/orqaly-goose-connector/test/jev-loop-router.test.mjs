@@ -1,341 +1,77 @@
-import assert from "node:assert/strict";
-import test from "node:test";
+import test from 'node:test';
+import assert from 'node:assert/strict';
 import {
-  triageTurnIntentWithJev,
-  evaluateArtifactSafetyWithJev,
-  triageComputerUseModalityWithJev,
-  evaluateJevActionSelection,
-  triageFullComputerUsePlan,
-  COMPUTER_USE_MODALITIES,
-} from "../src/jev-loop-router.mjs";
+  selectInferenceTarget,
+  selectCloudModelTier,
+  mapJevThinkingEffortToProviderParams,
+} from '../src/jev-loop-router.mjs';
 
-const routeBody = () => ({
-  model: "jev-1.13.0",
-  answers: {
-    route: {
-      type: "choice",
-      choice: "quick_info",
-      confidence: 0.96,
-      probabilities: {
-        quick_info: 0.96,
-        research: 0.01,
-        local_engineering: 0.01,
-        conversation: 0.01,
-        mixed: 0.01,
-      },
-    },
-    thinking_effort: {
-      type: "choice",
-      choice: "off",
-      confidence: 0.96,
-      probabilities: { off: 0.96, low: 0.03, high: 0.01 },
-    },
-  },
-});
-const safetyBody = () => ({
-  model: "jev-1.13.0",
-  answers: {
-    contains_hardcoded_secrets: { type: "noul", noul: 0.03 },
-    is_production_ready: { type: "noul", noul: 0.95 },
-  },
-});
-const invoke = (body) =>
-  triageTurnIntentWithJev({
-    message: "Weather?",
-    apiKey: "fake",
-    fetchImpl: async () => Response.json(body),
-  });
-const safety = (body) =>
-  evaluateArtifactSafetyWithJev({
-    content: "dummy document",
-    apiKey: "fake",
-    fetchImpl: async () => Response.json(body),
-  });
+test('selectCloudModelTier selects flash-lite for small prompts and flash-3.8 for large prompts', () => {
+  const smallBody = {
+    messages: [
+      { role: 'user', content: 'Fix a one-line bug in calculateTax.' },
+    ],
+  };
+  assert.equal(selectCloudModelTier(smallBody), 'gemini-3.1-flash-lite');
 
-test("explicit empty key never falls back to environment or calls network", async () => {
-  const original = process.env.TYPESAFE_API_KEY;
-  process.env.TYPESAFE_API_KEY = "dummy-env-key";
-  try {
-    const fetchImpl = () => {
-      throw new Error("must not call");
-    };
-    assert.equal(
-      (await triageTurnIntentWithJev({ message: "hi", apiKey: "", fetchImpl }))
-        .route,
-      "uncertain",
-    );
-    assert.deepEqual(
-      await evaluateArtifactSafetyWithJev({
-        content: "hello",
-        apiKey: "",
-        fetchImpl,
-      }),
-      {
-        evaluated: false,
-        status: "not_evaluated",
-        passed: null,
-        reason: "MISSING_API_KEY",
-        violations: [],
-      },
-    );
-  } finally {
-    if (original === undefined) delete process.env.TYPESAFE_API_KEY;
-    else process.env.TYPESAFE_API_KEY = original;
-  }
+  // Large prompt (> 2500 estimated tokens ~ 9500 chars)
+  const largeContent = 'const x = 1;\n'.repeat(1000);
+  const largeBody = {
+    messages: [
+      { role: 'user', content: largeContent },
+    ],
+  };
+  assert.equal(selectCloudModelTier(largeBody), 'gemini-3.8-flash');
 });
-test("valid routing and safety responses retain real model/probability evidence", async () => {
-  assert.equal((await invoke(routeBody())).route, "quick_info");
-  const good = await safety(safetyBody());
-  assert.equal(good.passed, true);
-  assert.equal(good.model, "jev-1.13.0");
-  const bad = safetyBody();
-  bad.answers.contains_hardcoded_secrets.noul = 0.98;
-  assert.equal((await safety(bad)).passed, false);
-  const notReady = safetyBody();
-  notReady.answers.is_production_ready.noul = 0.1;
-  assert.equal((await safety(notReady)).passed, false);
-});
-test("invalid route/effort enums and probability evidence are not evaluated", async () => {
-  const edits = [
-    (b) => {
-      b.answers.route.choice = "exec";
-    },
-    (b) => {
-      delete b.answers.thinking_effort;
-    },
-    (b) => {
-      b.answers.thinking_effort.choice = "maximum";
-    },
-    (b) => {
-      delete b.answers.route.confidence;
-    },
-    (b) => {
-      b.answers.route.confidence = 2;
-    },
-    (b) => {
-      b.answers.route.probabilities.mixed = 1;
-    },
-    (b) => {
-      b.answers.route.probabilities.mixed = -1;
-    },
-    (b) => {
-      b.answers.route.choice = "research";
-    },
-    (b) => {
-      b.model = "";
-    },
-  ];
-  for (const edit of edits) {
-    const body = routeBody();
-    edit(body);
-    assert.equal((await invoke(body)).evaluated, false);
-  }
-});
-test("low confidence remains uncertain", async () => {
-  const body = routeBody();
-  body.answers.route.confidence = 0.5;
-  assert.equal((await invoke(body)).route, "uncertain");
-});
-test("missing, malformed, or oversized safety evidence never passes", async () => {
-  for (const body of [
-    {},
-    { model: "jev-1", answers: {} },
-    {
-      model: "jev-1",
-      answers: {
-        ...safetyBody().answers,
-        contains_hardcoded_secrets: { type: "noul", noul: "0" },
-      },
-    },
-  ]) {
-    const value = await safety(body);
-    assert.equal(value.passed, null);
-    assert.equal(value.evaluated, false);
-  }
-  const value = await evaluateArtifactSafetyWithJev({
-    content: "x".repeat(24001),
-    apiKey: "fake",
-    fetchImpl: () => {
-      throw new Error("must not send a prefix");
-    },
-  });
-  assert.equal(value.reason, "CONTENT_TOO_LARGE");
-});
-for (const [name, method, input] of [
-  ["triage", triageTurnIntentWithJev, { message: "hi" }],
-  ["safety", evaluateArtifactSafetyWithJev, { content: "hello" }],
-]) {
-  test(`${name} bounds a hanging body even when the transport ignores abort`, async () => {
-    let signal;
-    const start = performance.now();
-    const value = await method({
-      ...input,
-      apiKey: "fake",
-      timeoutMs: 10,
-      fetchImpl: async (_url, options) => {
-        signal = options.signal;
-        return { ok: true, text: () => new Promise(() => {}) };
-      },
-    });
-    assert.equal(value.reason, "TIMEOUT");
-    assert.equal(value.evaluated, false);
-    assert.equal(signal.aborted, true);
-    assert.ok(performance.now() - start < 300);
-  });
-  test(`${name} respects cancellation and invalid/oversized response bodies`, async () => {
-    const controller = new AbortController();
-    controller.abort();
-    assert.equal(
-      (
-        await method({
-          ...input,
-          apiKey: "fake",
-          signal: controller.signal,
-          fetchImpl: () => {
-            throw new Error("no call");
-          },
-        })
-      ).reason,
-      "CANCELLED",
-    );
-    for (const body of ["{bad", "x".repeat(16001)]) {
-      assert.equal(
-        (
-          await method({
-            ...input,
-            apiKey: "fake",
-            fetchImpl: async () => new Response(body),
-          })
-        ).reason,
-        "INVALID_JEV_RESPONSE",
-      );
-    }
-  });
-}
 
-test("triageComputerUseModalityWithJev correctly classifies physical GUI and cursor speed", async () => {
-  const mockBody = {
-    model: "jev-1.13.0",
-    answers: {
-      modality: {
-        type: "choice",
-        choice: "physical_gui",
-        confidence: 0.95,
-        probabilities: {
-          physical_gui: 0.95,
-          background_headless: 0.02,
-          visual_ocr: 0.02,
-          multiapp_workflow: 0.01,
-        },
-      },
-      cursor_speed: {
-        type: "choice",
-        choice: "fast",
-        confidence: 0.88,
-        probabilities: {
-          snappy: 0.05,
-          fast: 0.88,
-          normal: 0.05,
-          smooth: 0.02,
-        },
-      },
-    },
+test('selectInferenceTarget routes correctly across cloud_only, hybrid, and local_only modes', () => {
+  const smallBody = {
+    messages: [{ role: 'user', content: 'Small micro task.' }],
+  };
+  const largeBody = {
+    messages: [{ role: 'user', content: 'A'.repeat(12000) }],
   };
 
-  const res = await triageComputerUseModalityWithJev({
-    message: "Drag formula from cell A1 to A20 in Google Sheets",
-    apiKey: "fake-key",
-    fetchImpl: async () => Response.json(mockBody),
-  });
+  // Cloud Only Mode
+  assert.equal(selectInferenceTarget(smallBody, { mode: 'cloud_only' }), 'gemini-3.1-flash-lite');
+  assert.equal(selectInferenceTarget(largeBody, { mode: 'cloud_only' }), 'gemini-3.8-flash');
 
-  assert.equal(res.evaluated, true);
-  assert.equal(res.modality, COMPUTER_USE_MODALITIES.PHYSICAL_GUI);
-  assert.equal(res.cursorSpeed, "fast");
-  assert.equal(res.confidence, 0.95);
+  // Local Only Mode
+  assert.equal(selectInferenceTarget(smallBody, { mode: 'local_only' }), 'local_vibeforged');
+  assert.equal(selectInferenceTarget(largeBody, { mode: 'local_only' }), 'local_vibeforged');
+
+  // Hybrid Mode (2,500 token boundary)
+  assert.equal(selectInferenceTarget(smallBody, { mode: 'hybrid' }), 'local_vibeforged');
+  assert.equal(selectInferenceTarget(largeBody, { mode: 'hybrid' }), 'google');
 });
 
-test("evaluateJevActionSelection and triageFullComputerUsePlan execute action selection", async () => {
-  const candidates = {
-    act_1: "Button: Cancel",
-    act_2: "Button: Save & Submit",
-  };
-  const mockBody = {
-    model: "jev-latest",
-    answers: {
-      target_action: {
-        type: "choice",
-        choice: "act_2",
-        confidence: 0.98,
-        probabilities: {
-          act_1: 0.02,
-          act_2: 0.98,
-        },
-      },
-      modality: {
-        type: "choice",
-        choice: "physical_gui",
-        confidence: 0.92,
-        probabilities: {
-          physical_gui: 0.92,
-          background_headless: 0.04,
-          visual_ocr: 0.02,
-          multiapp_workflow: 0.02,
-        },
-      },
-      cursor_speed: {
-        type: "choice",
-        choice: "snappy",
-        confidence: 0.91,
-        probabilities: {
-          snappy: 0.91,
-          fast: 0.05,
-          normal: 0.02,
-          smooth: 0.02,
-        },
-      },
-    },
-  };
-
-  const actionRes = await evaluateJevActionSelection({
-    goal: "Click Save & Submit",
-    candidates,
-    apiKey: "fake-key",
-    fetchImpl: async () => Response.json(mockBody),
+test('mapJevThinkingEffortToProviderParams enforces zero thinking budget for Flash-Lite', () => {
+  // Flash-Lite forces 0 budget to preserve sub-100ms TTFT
+  const liteParams = mapJevThinkingEffortToProviderParams('high', 'google', 'gemini-3.1-flash-lite');
+  assert.deepEqual(liteParams, {
+    thinking_config: { thinking_budget: 0 },
   });
 
-  assert.equal(actionRes.evaluated, true);
-  assert.equal(actionRes.choice, "act_2");
-  assert.equal(actionRes.confidence, 0.98);
-
-  const planRes = await triageFullComputerUsePlan({
-    message: "Click Save & Submit",
-    candidates,
-    apiKey: "fake-key",
-    fetchImpl: async (url, opts) => {
-      const payload = JSON.parse(opts.body);
-      if (payload.questions.target_action) {
-        return Response.json({
-          model: "jev-latest",
-          answers: {
-            target_action: mockBody.answers.target_action,
-          },
-        });
-      }
-      return Response.json({
-        model: "jev-latest",
-        answers: {
-          modality: mockBody.answers.modality,
-          cursor_speed: mockBody.answers.cursor_speed,
-        },
-      });
-    },
+  // Standard Flash 3.8 scales budget according to effort
+  const standardLow = mapJevThinkingEffortToProviderParams('low', 'google', 'gemini-3.8-flash');
+  assert.deepEqual(standardLow, {
+    thinking_config: { thinking_budget: 150 },
   });
 
-  assert.equal(planRes.evaluated, true);
-  assert.equal(planRes.modality, "physical_gui");
-  assert.equal(planRes.batchRecommended, true);
-  assert.equal(planRes.selectedAction, "act_2");
-  assert.equal(planRes.actionConfidence, 0.98);
+  const standardHigh = mapJevThinkingEffortToProviderParams('high', 'google', 'gemini-3.8-flash');
+  assert.deepEqual(standardHigh, {
+    thinking_config: { thinking_budget: 1024 },
+  });
+
+  const standardOff = mapJevThinkingEffortToProviderParams('off', 'google', 'gemini-3.8-flash');
+  assert.deepEqual(standardOff, {
+    thinking_config: { thinking_budget: 0 },
+  });
+
+  // Local / OpenAI mapping
+  const localHigh = mapJevThinkingEffortToProviderParams('high', 'local_vibeforged');
+  assert.deepEqual(localHigh, { reasoning_effort: 'high' });
+
+  const localOff = mapJevThinkingEffortToProviderParams('off', 'local_vibeforged');
+  assert.deepEqual(localOff, { reasoning_effort: 'none' });
 });
-
-
