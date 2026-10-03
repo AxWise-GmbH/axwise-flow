@@ -515,3 +515,41 @@ export async function triageFullComputerUsePlan({
     decisionLatencyMs: (modalityResult.latencyMs || 0) + (actionResult?.latencyMs || 0),
   };
 }
+
+/**
+ * Maps JEV thinking_effort ("off" | "low" | "high") directly into provider parameters.
+ * For local OpenAI-compatible llama-server: reasoning_effort ("none" | "low" | "high")
+ * For Gemini Google provider: thinking_config with thinking_budget tokens.
+ */
+export function mapJevThinkingEffortToProviderParams(thinkingEffort, provider = "openai") {
+  const effort = thinkingEffort || "low";
+  if (provider === "openai" || provider === "local_vibeforged") {
+    return {
+      reasoning_effort: effort === "off" ? "none" : effort === "high" ? "high" : "low",
+    };
+  }
+  if (provider === "google" || provider === "gemini") {
+    return {
+      thinking_config: {
+        thinking_budget: effort === "off" ? 0 : effort === "high" ? 1024 : 150,
+      },
+    };
+  }
+  return {};
+}
+
+/**
+ * Evaluates the prompt and user mode to select the optimal inference target.
+ * Modes: "cloud_only", "hybrid", "local_only".
+ * Hybrid uses the verified 2,500 token boundary.
+ */
+export function selectInferenceTarget(body, userSettings = {}) {
+  const mode = userSettings.mode || "hybrid";
+  if (mode === "cloud_only") return "google";
+  if (mode === "local_only") return "local_vibeforged";
+
+  // Hybrid mode: 2,500 token boundary
+  const promptLength = JSON.stringify(body?.messages || []).length;
+  const estimatedTokens = Math.round(promptLength / 3.8);
+  return estimatedTokens > 2500 ? "google" : "local_vibeforged";
+}
