@@ -558,6 +558,25 @@ describe('authenticated Goose provider transport', () => {
     expect(sent.reasoning_effort).toBe('high');
     expect(sent.max_completion_tokens).toBe(64_000);
   });
+  it('translates reasoning_effort none and X-Jev-Thinking-Effort header into upstream reasoning_effort', async () => {
+    const f = await fixture();
+    const response = await f.call('/chat/completions', { ...requestBody(), reasoning_effort: 'none' });
+    expect(response.status).toBe(200);
+    const sent = JSON.parse(f.fetchImpl.mock.calls[0][1].body);
+    expect(sent.reasoning_effort).toBe('none');
+
+    const f2 = await fixture();
+    const response2 = await f2.call('/chat/completions', requestBody(), {
+      headers: {
+        Authorization: 'Bearer desktop-token',
+        'Content-Type': 'application/json',
+        'X-Jev-Thinking-Effort': 'high',
+      },
+    });
+    expect(response2.status).toBe(200);
+    const sent2 = JSON.parse(f2.fetchImpl.mock.calls[0][1].body);
+    expect(sent2.reasoning_effort).toBe('high');
+  });
   it('rejects a non-boolean persistence preference before upstream spend', async () => {
     const f = await fixture();
     expect((await f.call('/chat/completions', { ...requestBody(), store: 'false' })).status).toBe(400);

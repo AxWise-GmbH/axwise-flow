@@ -19,6 +19,11 @@ export const MODEL_PRICING_TABLE = Object.freeze({
     inputPerMillion: 1.00,
     outputPerMillion: 0.00,
   },
+  'gemini-3.1-flash-lite': {
+    name: 'Gemini 3.1 Flash Lite',
+    inputPerMillion: 0.10,
+    outputPerMillion: 0.40,
+  },
 });
 
 export function calculateCostCents(model, promptTokens = 0, completionTokens = 0, cachedTokens = 0) {
