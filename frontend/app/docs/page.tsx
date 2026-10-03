@@ -95,7 +95,7 @@ export default function DocsPage(): React.JSX.Element {
         <div className="border-b border-[#EAE6DF] pb-10 space-y-4">
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-              AXWISE FASTMCP 0.4.0
+              AXWISE FASTMCP 0.4.1
             </span>
             <span className="text-xs font-mono text-stone-500 uppercase tracking-wider">
               PURE-PYTHON MODEL CONTEXT PROTOCOL (MCP) SPECIALIST
@@ -116,7 +116,7 @@ export default function DocsPage(): React.JSX.Element {
             <span className="text-xs font-mono uppercase tracking-wider text-emerald-700 font-semibold">// 1. QUICK LAUNCH &amp; INSTALL</span>
             <h2 className="font-serif text-2xl text-stone-900 mt-1">Run Instantly with uvx or pip</h2>
             <p className="text-sm text-stone-500 mt-1">
-              AxWise 0.4.0 is a pure-Python package. No JSON config files, Node.js runtimes, or database containers required.
+              AxWise 0.4.1 is a pure-Python package. No JSON config files, Node.js runtimes, or database containers required.
             </p>
           </div>
 
@@ -125,14 +125,14 @@ export default function DocsPage(): React.JSX.Element {
             <p className="text-xs text-stone-600">Downloads and executes the FastMCP server in an isolated environment:</p>
             <CodeBlock 
               language="bash"
-              code="uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl axwise"
+              code="uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.1/axwise_extension-0.4.1-py3-none-any.whl axwise"
             />
 
             <h3 className="font-serif text-lg text-stone-900 pt-2">Install via pip</h3>
             <p className="text-xs text-stone-600">Installs the <code>axwise</code> executable directly into your Python environment:</p>
             <CodeBlock 
               language="bash"
-              code="pip install https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl"
+              code="pip install https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.1/axwise_extension-0.4.1-py3-none-any.whl"
             />
           </div>
 
@@ -143,10 +143,10 @@ export default function DocsPage(): React.JSX.Element {
             </div>
             <ul className="space-y-1 font-mono text-[11px] pt-1">
               <li>
-                <a href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl" className="text-emerald-700 underline font-semibold">Python wheel (.whl)</a>: 168,627 bytes · <span className="text-stone-500">e25035620cf4d5125cd7aa46b9ddb119a5a8c735edcffbab50f398ba866b280d</span>
+                <a href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.1/axwise_extension-0.4.1-py3-none-any.whl" className="text-emerald-700 underline font-semibold">Python wheel (.whl)</a>: 184,610 bytes · <span className="text-stone-500">96dc3043accacb266b856acf432a92713e6789c3b5593c0339e56c292b42348c</span>
               </li>
               <li>
-                <a href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise-extension-0.4.0.tgz" className="text-emerald-700 underline font-semibold">npm archive (.tgz)</a>: 173,642 bytes · <span className="text-stone-500">885b98a13ba59da56730035ba8f12419b54e537010a1f0352ef2484812a91c71</span>
+                <a href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.1/axwise-extension-0.4.1.tgz" className="text-emerald-700 underline font-semibold">npm archive (.tgz)</a>: 189,981 bytes · <span className="text-stone-500">064f72959294158b68a9839285de03021daccc6b439b9e748a0caa420fd28ef2</span>
               </li>
             </ul>
           </div>
@@ -213,7 +213,7 @@ export default function DocsPage(): React.JSX.Element {
               </p>
               <CodeBlock 
                 language="bash"
-                code="codex mcp add axwise-local -- uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl axwise"
+                code="codex mcp add axwise-local -- uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.1/axwise_extension-0.4.1-py3-none-any.whl axwise"
               />
 
               <div className="pt-3 border-t border-stone-200 space-y-3">
@@ -250,7 +250,7 @@ export default function DocsPage(): React.JSX.Element {
       "command": "uvx",
       "args": [
         "--from",
-        "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.0/axwise_extension-0.4.0-py3-none-any.whl",
+        "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.1/axwise_extension-0.4.1-py3-none-any.whl",
         "axwise"
       ],
       "env": {
