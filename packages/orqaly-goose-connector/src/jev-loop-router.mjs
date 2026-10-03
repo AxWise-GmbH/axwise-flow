@@ -593,13 +593,39 @@ export function hasAnalyticalIntent(body, userSettings = {}) {
   return ANALYTICAL_INTENT_PATTERN.test(serialized);
 }
 
+export const ERROR_OR_RETRY_PATTERN =
+  /(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(error|failed|failure|exception|traceback|syntaxerror|typeerror|referenceerror|compilation error|rejection|retry|fix|rollback|broken)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu;
+
 /**
- * Selects the optimal Google Gemini model tier based on prompt token count
- * and cognitive complexity / analytical intent auto-detection.
+ * Checks if a conversation history contains tool execution failures, compiler errors,
+ * or retry signals that warrant auto-escalating from Flash-Lite to 3.8 Flash.
+ */
+export function hasToolOrExecutionError(body) {
+  const messages = body?.messages || [];
+  for (const m of messages) {
+    if (m.role === 'tool') {
+      const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content || '');
+      if (m.is_error === true || ERROR_OR_RETRY_PATTERN.test(content)) return true;
+    }
+    if (m.role === 'assistant' && typeof m.content === 'string' && (m.content.includes('Error:') || m.content.includes('failed with status'))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Selects the optimal Google Gemini model tier based on prompt token count,
+ * cognitive complexity, and automatic error-recovery escalation.
  * Simple conversational <= 2,500 tokens: gemini-3.1-flash-lite (sub-100ms TTFT, lowest cost)
- * Heavy / analytical or > 2,500 tokens: gemini-3.8-flash (deep reasoning, multi-file synthesis)
+ * Heavy / analytical, > 2,500 tokens, or error recovery: gemini-3.8-flash (deep reasoning)
  */
 export function selectCloudModelTier(body, userSettings = {}) {
+  // Auto-escalation: tool/execution errors immediately escalate to 3.8 Flash for deep reasoning recovery
+  if (userSettings.autoEscalateOnFailure !== false && hasToolOrExecutionError(body)) {
+    return "gemini-3.8-flash";
+  }
+
   const promptLength = JSON.stringify(body?.messages || []).length;
   const estimatedTokens = Math.round(promptLength / 3.8);
 
@@ -630,3 +656,56 @@ export function selectInferenceTarget(body, userSettings = {}) {
   // Hybrid mode: 2,500 token boundary + cognitive escalation to cloud 3.8 flash
   return isHeavy ? "google" : "local_vibeforged";
 }
+
+export const NATIVE_ENGINEERING_TOOL_NAMES = Object.freeze(
+  new Set(["ast_search", "lsp_query", "hashline_edit", "safe_edit_and_test"])
+);
+
+export const MULTI_FILE_REFACTOR_PATTERN =
+  /(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(refactor|rename|cross-file|multi-file|monorepo|workspace|lsp_query|ast_search|safe_edit|hashline|typecheck|interface|declaration|consumers|symbol|call graph|signature)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu;
+
+/**
+ * Determines whether native engineering tool schemas should be gated (stripped)
+ * from the active prompt to eliminate token bloat and prevent tool confusion on simple tasks.
+ */
+export function shouldGateNativeTools(body, userSettings = {}, workspaceContext = {}) {
+  // If user explicitly forced native tools on, do not gate
+  if (userSettings.nativeToolsExplicit === true || userSettings.forceNativeTools === true) {
+    return false;
+  }
+
+  // Large workspaces or TypeScript project configurations need native LSP/AST
+  if (workspaceContext.hasTsConfig === true || (workspaceContext.fileCount && workspaceContext.fileCount > 5)) {
+    return false;
+  }
+
+  const messages = body?.messages || [];
+  const serialized = typeof messages === "string" ? messages : JSON.stringify(messages);
+
+  // If prompt explicitly mentions multi-file refactoring, symbols, or AST/LSP
+  if (MULTI_FILE_REFACTOR_PATTERN.test(serialized)) {
+    return false;
+  }
+
+  // By default on simple single-file tasks, gate native tools out
+  return true;
+}
+
+/**
+ * Dynamically filters tool schemas for the active turn, removing the 4 heavy
+ * native engineering tools unless multi-file refactoring or project context requires them.
+ */
+export function filterDynamicToolSchemas(tools, body, userSettings = {}, workspaceContext = {}) {
+  if (!Array.isArray(tools) || tools.length === 0) return tools || [];
+
+  if (!shouldGateNativeTools(body, userSettings, workspaceContext)) {
+    return tools;
+  }
+
+  return tools.filter((tool) => {
+    const rawName = tool?.name || tool?.function?.name || "";
+    const shortName = rawName.split("__").at(-1);
+    return !NATIVE_ENGINEERING_TOOL_NAMES.has(shortName) && !rawName.startsWith("native_engineering__");
+  });
+}
+

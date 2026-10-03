@@ -134,7 +134,7 @@ function inspectGooseChatRequest(body) {
   if (body.n !== undefined && body.n !== 1) return invalid;
   if (body.seed !== undefined && !Number.isSafeInteger(body.seed)) return invalid;
   if (body.top_logprobs !== undefined && (!Number.isInteger(body.top_logprobs) || body.top_logprobs < 0 || body.top_logprobs > 20)) return invalid;
-  if (body.reasoning_effort !== undefined && !['low', 'medium', 'high'].includes(body.reasoning_effort)) return invalid;
+  if (body.reasoning_effort !== undefined && !['none', 'low', 'medium', 'high'].includes(body.reasoning_effort)) return invalid;
   if (body.response_format !== undefined && (!isObject(body.response_format)
     || !['text', 'json_object', 'json_schema'].includes(body.response_format.type))) return invalid;
   if (body.stream_options !== undefined && (!isObject(body.stream_options)
@@ -479,6 +479,12 @@ export function createGooseProviderRouter({
       // Clients may send the OpenAI persistence preference. Orqanix never
       // persists requests through the upstream compatibility endpoint.
       delete body.store;
+      // Connect JEV thinking effort advisory or client reasoning_effort into Gemini reasoning_effort
+      const jevHeaderEffort = req.get('X-Jev-Thinking-Effort')?.toLowerCase();
+      const rawEffort = body.reasoning_effort || (jevHeaderEffort === 'off' ? 'none' : jevHeaderEffort);
+      if (rawEffort && ['none', 'low', 'medium', 'high'].includes(rawEffort)) {
+        body.reasoning_effort = rawEffort;
+      }
       if (productGuidance) {
         const [leading, ...history] = body.messages;
         if (leading.role === 'system') {

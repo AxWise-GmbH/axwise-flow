@@ -181,6 +181,12 @@ jobs:
       - name: Verify measured evaluation records, fixtures, publication and dashboard contracts
         run: node --test ../../scripts/agent-evaluations/*.test.mjs
 
+      - name: Run Orqanix connector and multi-file refactor benchmark regression gates
+        run: |
+          node --test ../../packages/orqaly-goose-connector/test/*.test.mjs
+          node --test ../../scripts/benchmark-multi-file-ts-refactor.test.mjs
+          node --test ../../scripts/gavel-ci-pr-review.test.mjs
+
       - name: Verify declarative baseline inventory
         run: npm run verify:workflow-v2-schema
 
