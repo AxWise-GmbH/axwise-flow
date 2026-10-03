@@ -543,33 +543,90 @@ export function mapJevThinkingEffortToProviderParams(thinkingEffort, provider = 
 }
 
 /**
- * Selects the optimal Google Gemini model tier based on prompt token count.
- * <= 2,500 tokens: gemini-3.1-flash-lite (sub-100ms TTFT, lowest cost)
- * >  2,500 tokens: gemini-3.8-flash (deep reasoning, multi-file synthesis)
+ * Analytical & Cognitive Intent Pattern (Multi-lingual EN/RU).
+ * Detects engineering, code investigation, root-cause diagnostics,
+ * architectural planning, algorithmic reasoning, and GAVEL/AST structures.
  */
-export function selectCloudModelTier(body) {
-  const promptLength = JSON.stringify(body?.messages || []).length;
-  const estimatedTokens = Math.round(promptLength / 3.8);
-  return estimatedTokens > 2500 ? "gemini-3.8-flash" : "gemini-3.1-flash-lite";
+export const ANALYTICAL_INTENT_PATTERN =
+  /(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(debug|refactor|architecture|profiling|concurrency|deadlock|race condition|memory leak|heap|stack trace|segfault|regression|security vulnerability|audit|root cause|trade-offs?|pros and cons|benchmark|optimize|optimization|algorithm|complexity|mathematical|formal proof|step-by-step|business logic|prd|specifications?|gavel|ast|tree-sitter|lsp|symbol|diagnostics|preimage|safe_edit|почему|причина|проанализируй|сравни|архитектура|утечка памяти|оптимизируй|исправь|ошибка)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu;
+
+/**
+ * Evaluates whether an incoming payload requires heavy analytical intelligence
+ * (e.g. tools, code blocks, GAVEL/AST context, or explicit analytical intent).
+ */
+export function hasAnalyticalIntent(body, userSettings = {}) {
+  if (!body) return false;
+
+  // 1. Explicit user/settings thinking override
+  if (userSettings.thinkingEffort === "high" || body.reasoning_effort === "high") {
+    return true;
+  }
+  if (body.thinking_config?.thinking_budget && body.thinking_config.thinking_budget > 0) {
+    return true;
+  }
+
+  // 2. Tool presence: schema execution demands high intelligence
+  if (Array.isArray(body.tools) && body.tools.length > 0) return true;
+  if (Array.isArray(body.functions) && body.functions.length > 0) return true;
+
+  const messages = body.messages || [];
+  if (messages.length === 0) return false;
+
+  const serialized = typeof messages === "string" ? messages : JSON.stringify(messages);
+
+  // 3. Native engineering, GAVEL, AST, or JEV routing context
+  if (
+    serialized.includes("gavel_graph") ||
+    serialized.includes("ast_search") ||
+    serialized.includes("lsp_query") ||
+    serialized.includes("safe_edit_and_test") ||
+    serialized.includes("hashline_edit") ||
+    serialized.includes("local_engineering")
+  ) {
+    return true;
+  }
+
+  // 4. Code block detection
+  if (serialized.includes("```")) return true;
+
+  // 5. Semantic intent matching
+  return ANALYTICAL_INTENT_PATTERN.test(serialized);
 }
 
 /**
- * Evaluates the prompt and user mode to select the optimal inference target.
- * Modes: "cloud_only", "hybrid", "local_only".
- * Hybrid uses the verified 2,500 token boundary.
+ * Selects the optimal Google Gemini model tier based on prompt token count
+ * and cognitive complexity / analytical intent auto-detection.
+ * Simple conversational <= 2,500 tokens: gemini-3.1-flash-lite (sub-100ms TTFT, lowest cost)
+ * Heavy / analytical or > 2,500 tokens: gemini-3.8-flash (deep reasoning, multi-file synthesis)
  */
-export function selectInferenceTarget(body, userSettings = {}) {
-  const mode = userSettings.mode || "hybrid";
+export function selectCloudModelTier(body, userSettings = {}) {
   const promptLength = JSON.stringify(body?.messages || []).length;
   const estimatedTokens = Math.round(promptLength / 3.8);
 
-  if (mode === "cloud_only") {
-    return estimatedTokens > 2500 ? "gemini-3.8-flash" : "gemini-3.1-flash-lite";
+  if (estimatedTokens > 2500 || hasAnalyticalIntent(body, userSettings)) {
+    return "gemini-3.8-flash";
   }
-  if (mode === "local_only") {
+  return "gemini-3.1-flash-lite";
+}
+
+/**
+ * Evaluates the prompt, cognitive intent, and user mode to select the optimal inference target.
+ * Modes: "cloud_only", "hybrid", "local_only".
+ * Hybrid uses the verified 2,500 token boundary + cognitive intent auto-escalation.
+ */
+export function selectInferenceTarget(body, userSettings = {}) {
+  const mode = userSettings.mode || "cloud_only";
+  const promptLength = JSON.stringify(body?.messages || []).length;
+  const estimatedTokens = Math.round(promptLength / 3.8);
+  const isHeavy = estimatedTokens > 2500 || hasAnalyticalIntent(body, userSettings);
+
+  if (mode === "cloud_only" || mode === "cloud") {
+    return isHeavy ? "gemini-3.8-flash" : "gemini-3.1-flash-lite";
+  }
+  if (mode === "local_only" || mode === "local") {
     return "local_vibeforged";
   }
 
-  // Hybrid mode: 2,500 token boundary
-  return estimatedTokens > 2500 ? "google" : "local_vibeforged";
+  // Hybrid mode: 2,500 token boundary + cognitive escalation to cloud 3.8 flash
+  return isHeavy ? "google" : "local_vibeforged";
 }
