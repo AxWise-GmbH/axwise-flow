@@ -318,8 +318,20 @@ async def run_full_discovery(
     latest_disc = find_latest_artifact(["prepare_discovery"], session_id=config.scope_id, state_dir=config.state_dir)
     role_limit = 3 if depth == "standard" else 4
     stakeholders = None
-    if latest_disc and len(latest_disc.get("artifact", {}).get("stakeholders", [])) > role_limit:
-        stakeholders = latest_disc["artifact"]["stakeholders"][:role_limit]
+    if latest_disc:
+        saved_roles = latest_disc.get("artifact", {}).get("stakeholders", [])
+        if len(saved_roles) > role_limit:
+            stakeholders = [
+                {
+                    "id": s["id"],
+                    "label": s["label"],
+                    "description": s["description"],
+                    "participants": min(s.get("participants", 1), 2 if depth == "standard" else 3),
+                    **({"countryCode": s["countryCode"]} if s.get("countryCode") else {}),
+                    **({"locality": s["locality"]} if s.get("locality") else {}),
+                }
+                for s in saved_roles[:role_limit]
+            ]
 
     await generate_personas(depth=depth, stakeholders=stakeholders)
 
