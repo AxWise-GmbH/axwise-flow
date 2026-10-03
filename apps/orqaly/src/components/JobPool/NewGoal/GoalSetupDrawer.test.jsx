@@ -104,7 +104,7 @@ describe('GoalSetupDrawer', () => {
 
   it('toggles the AxWise user pref', async () => {
     renderDrawer();
-    fireEvent.click(screen.getByRole('checkbox', { name: 'AxWise cognitive overlay' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'AxWise cognitive overlay' }));
     expect(setUserEnabled).toHaveBeenCalledWith(false);
   });
 
@@ -120,7 +120,7 @@ describe('GoalSetupDrawer', () => {
       setUserEnabled,
     });
     renderDrawer();
-    expect(screen.getByRole('checkbox', { name: 'AxWise cognitive overlay' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'AxWise cognitive overlay' })).toBeDisabled();
     expect(screen.getByText(/Turned off on this server/)).toBeInTheDocument();
   });
 });

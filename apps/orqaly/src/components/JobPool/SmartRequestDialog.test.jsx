@@ -1055,7 +1055,7 @@ describe('SmartRequestDialog', () => {
       renderDialog();
 
       switchToProfessional();
-      const compareSwitch = screen.getByRole('checkbox', { name: 'Compare models' });
+      const compareSwitch = screen.getByRole('switch', { name: 'Compare models' });
       expect(compareSwitch).toBeEnabled();
       fireEvent.click(compareSwitch);
       fireEvent.click(screen.getByRole('button', { name: /Professional/i }));
