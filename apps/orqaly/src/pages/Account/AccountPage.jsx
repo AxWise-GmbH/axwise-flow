@@ -18,12 +18,13 @@ export default function AccountPage() {
     if (!isSignedIn) return;
     const apiUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ORQALY_API_URL) || '';
     getToken()
-      .then((token) =>
-        fetch(`${apiUrl}/desktop/v1/usage`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        })
-      )
-      .then((res) => (res.ok ? res.json() : null))
+      .then((token) => {
+        if (!token) return null;
+        return fetch(`${apiUrl}/desktop/v1/usage`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      })
+      .then((res) => (res && res.ok ? res.json() : null))
       .then((data) => {
         if (data && data.spendUsd !== undefined) setQuotaSummary(data);
       })
@@ -70,7 +71,7 @@ export default function AccountPage() {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'text.secondary' }}>
-                    AI Credits & Usage · Current Month (October 2026)
+                    Cloud Gateway LLM Credits · Current Month (October 2026)
                   </Typography>
                   {quotaSummary.tokens?.cacheHitRate !== undefined && quotaSummary.tokens.cacheHitRate > 0 && (
                     <Box
@@ -106,16 +107,45 @@ export default function AccountPage() {
                   sx={{ height: 6, borderRadius: 3, mb: 1.5, bgcolor: alpha('#ffffff', 0.08) }}
                 />
               )}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 2 }}>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  {(quotaSummary.tokens?.total || 0).toLocaleString()} tokens
+                  {(quotaSummary.tokens?.total || 0).toLocaleString()} cloud tokens
                   {quotaSummary.tokens?.cached > 0 && ` (${(quotaSummary.tokens.cached).toLocaleString()} cached)`}
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#81c784' }}>
                   {quotaSummary.savingsUsd > 0
                     ? `Saved $${quotaSummary.savingsUsd.toFixed(2)} with 75% prompt cache discount`
-                    : 'Gemini 3.8 Flash (75% cache discount active)'}
+                    : 'Gemini 3.8 Flash gateway (75% cache discount active)'}
                 </Typography>
+              </Box>
+
+              {/* Local vs Cloud Scope Clarification */}
+              <Box
+                sx={{
+                  pt: 1.5,
+                  borderTop: '1px solid',
+                  borderColor: alpha('#ffffff', 0.08),
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                  gap: 1.5,
+                }}
+              >
+                <Box sx={{ p: 1.25, borderRadius: 1.5, bgcolor: alpha('#ffffff', 0.02), border: '1px solid', borderColor: alpha('#ffffff', 0.05) }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', color: 'primary.light', mb: 0.25 }}>
+                    ☁️ Cloud Gateway
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem', display: 'block' }}>
+                    Powers conversational chat, grounded web search, and image analysis via managed Gemini relay. Billed against monthly plan.
+                  </Typography>
+                </Box>
+                <Box sx={{ p: 1.25, borderRadius: 1.5, bgcolor: alpha('#ffffff', 0.02), border: '1px solid', borderColor: alpha('#ffffff', 0.05) }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', color: '#81c784', mb: 0.25 }}>
+                    💻 Local MCP / BYOK
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem', display: 'block' }}>
+                    AxWise Local specialist tools, discovery simulations, and PRD generation run directly on your hardware and consume $0.00 of cloud quota.
+                  </Typography>
+                </Box>
               </Box>
             </Paper>
           )}

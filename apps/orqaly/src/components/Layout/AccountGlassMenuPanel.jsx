@@ -192,13 +192,30 @@ export default function AccountGlassMenuPanel({
               bgcolor: isDark ? alpha('#ffffff', 0.08) : alpha(theme.palette.text.primary, 0.08),
             }}
           />}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75 }}>
             <Typography sx={{ fontSize: '0.68rem', color: 'text.secondary' }}>
               {(quotaSummary.tokens?.total || 0).toLocaleString()} tokens
               {quotaSummary.tokens?.cached > 0 && ` (${(quotaSummary.tokens.cached).toLocaleString()} cached)`}
             </Typography>
             <Typography sx={{ fontSize: '0.62rem', color: 'text.disabled' }}>
-              {quotaSummary.savingsUsd > 0 ? `Saved $${quotaSummary.savingsUsd.toFixed(2)} with 75% cache discount` : 'Gemini 3.8 Flash (75% cache discount)'}
+              {quotaSummary.savingsUsd > 0 ? `Saved $${quotaSummary.savingsUsd.toFixed(2)} with 75% cache discount` : '75% cache discount'}
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              pt: 0.75,
+              borderTop: '1px dashed',
+              borderColor: alpha(theme.palette.divider, 0.6),
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <Typography sx={{ fontSize: '0.65rem', color: 'text.secondary', fontWeight: 600 }}>
+              Local MCP / AxWise
+            </Typography>
+            <Typography sx={{ fontSize: '0.65rem', color: '#81c784', fontWeight: 700 }}>
+              $0.00 · BYOK / Free
             </Typography>
           </Box>
         </Box>
