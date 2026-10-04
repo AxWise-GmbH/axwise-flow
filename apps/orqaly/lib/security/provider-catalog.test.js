@@ -1,4 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../security/resolve-user-key.js', () => ({
+  resolveUserKey: vi.fn(),
+}));
 import {
   PROVIDER_CATALOG,
   TOOL_PROVIDER_ALIAS,
