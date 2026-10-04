@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { isAbsolute } from 'node:path';
+import { existsSync } from 'node:fs';
 import { unlink } from 'node:fs/promises';
 import { providerSchema } from './schema.mjs';
 import { AXWISE_TOOL_BOUNDARY } from './conversation-policy.mjs';
@@ -52,7 +53,10 @@ export function validateOrigin(value, { allowLoopback = false } = {}) {
 
 /** Each subprocess is local, bounded and receives only the selected tool input. */
 export function createKernel({ python, kernelRoot, spawnImpl = spawn, timeoutMs = 10_000 } = {}) {
-  if (!isAbsolute(python || '') || !isAbsolute(kernelRoot || '')) throw new Error('Absolute kernel paths are required.');
+  const rustWorker = process.env.AXWISE_USE_RUST === '1'
+    ? (process.env.AXWISE_RUST_WORKER || (existsSync('/Users/admin/.local/bin/axwise-worker') ? '/Users/admin/.local/bin/axwise-worker' : null))
+    : null;
+  if (!rustWorker && (!isAbsolute(python || '') || !isAbsolute(kernelRoot || ''))) throw new Error('Absolute kernel paths are required.');
   return async function kernel(request, signal = new AbortController().signal) {
     const id = randomUUID();
     const input = JSON.stringify({ ...request, id });
@@ -60,11 +64,13 @@ export function createKernel({ python, kernelRoot, spawnImpl = spawn, timeoutMs 
     const deadline = AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]);
     deadline.throwIfAborted();
     return new Promise((resolve, reject) => {
-      const child = spawnImpl(python, ['-s', '-m', 'backend.services.local_axwise.worker'], {
-        cwd: kernelRoot, stdio: ['pipe', 'pipe', 'pipe'],
-        env: { PATH: process.env.PATH || '/usr/bin:/bin', LANG: 'en_US.UTF-8',
-          PYTHONPATH: kernelRoot, PYTHONNOUSERSITE: '1', PYTHONDONTWRITEBYTECODE: '1', PYTHONUNBUFFERED: '1' },
-      });
+      const child = rustWorker
+        ? spawnImpl(rustWorker, [], { stdio: ['pipe', 'pipe', 'pipe'] })
+        : spawnImpl(python, ['-s', '-m', 'backend.services.local_axwise.worker'], {
+            cwd: kernelRoot, stdio: ['pipe', 'pipe', 'pipe'],
+            env: { PATH: process.env.PATH || '/usr/bin:/bin', LANG: 'en_US.UTF-8',
+              PYTHONPATH: kernelRoot, PYTHONNOUSERSITE: '1', PYTHONDONTWRITEBYTECODE: '1', PYTHONUNBUFFERED: '1' },
+          });
       const parts = []; let size = 0, settled = false, killTimer;
       const finish = (error, result) => {
         if (settled) return;

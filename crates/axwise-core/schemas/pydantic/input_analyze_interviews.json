@@ -1,0 +1,205 @@
+{
+  "$defs": {
+    "ArtifactReference": {
+      "additionalProperties": false,
+      "properties": {
+        "operationId": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Operationid",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operationId",
+        "sha256"
+      ],
+      "title": "ArtifactReference",
+      "type": "object"
+    },
+    "SelectedTranscript": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "origin": {
+          "description": "Required original transcript provenance; supplied_transcript does not verify human authenticity. Keep synthetic material synthetic on every call/retry. All synthetic turns need their original questionId. Never omit or change origin to bypass validation; ask for clarification if unknown.",
+          "enum": [
+            "supplied_transcript",
+            "synthetic_transcript"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "turns": {
+          "description": "Only original selected turns, preserving exact text and speaker roles. Never add invented interviewer turns, questions, or answers.",
+          "items": {
+            "$ref": "#/$defs/SelectedTurn"
+          },
+          "maxItems": 128,
+          "minItems": 1,
+          "title": "Turns",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "origin",
+        "turns"
+      ],
+      "title": "SelectedTranscript",
+      "type": "object"
+    },
+    "SelectedTurn": {
+      "additionalProperties": false,
+      "properties": {
+        "questionId": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Original interview question identifier. REQUIRED for every synthetic_transcript turn; use only an ID present in the original source. Do not invent IDs, questions, or turns to pass validation. If unknown for synthetic input, ask the user instead of relabeling the source. May be null for supplied_transcript turns.",
+          "title": "Questionid"
+        },
+        "role": {
+          "enum": [
+            "participant",
+            "interviewer"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "speaker": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Speaker",
+          "type": "string"
+        },
+        "text": {
+          "description": "Exact selected turn text. Preserve its speaker and role; never fabricate interviewer turns or questions.",
+          "maxLength": 64000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "speaker",
+        "role",
+        "text"
+      ],
+      "title": "SelectedTurn",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "decisionQuestion": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Decisionquestion",
+      "type": "string"
+    },
+    "depth": {
+      "default": "standard",
+      "enum": [
+        "standard",
+        "deep"
+      ],
+      "title": "Depth",
+      "type": "string"
+    },
+    "outputs": {
+      "items": {
+        "enum": [
+          "jobs_pains",
+          "personas"
+        ],
+        "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "title": "Outputs",
+      "type": "array"
+    },
+    "questions": {
+      "items": {
+        "maxLength": 4000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 16,
+      "title": "Questions",
+      "type": "array"
+    },
+    "references": {
+      "description": "Exact saved local artifact references returned by earlier tools in this conversation; never invent or retype artifact content.",
+      "items": {
+        "$ref": "#/$defs/ArtifactReference"
+      },
+      "maxItems": 8,
+      "title": "References",
+      "type": "array"
+    },
+    "revisionOf": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactReference"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Exact prior artifact of this same kind to revise; omit for a new result. Preserves previous versions."
+    },
+    "transcripts": {
+      "description": "Exact selected transcripts, or omit when reusing a referenced saved analysis/simulation.",
+      "items": {
+        "$ref": "#/$defs/SelectedTranscript"
+      },
+      "maxItems": 16,
+      "title": "Transcripts",
+      "type": "array"
+    },
+    "views": {
+      "items": {
+        "enum": [
+          "themes",
+          "patterns",
+          "stakeholders",
+          "sentiment",
+          "insights"
+        ],
+        "type": "string"
+      },
+      "maxItems": 5,
+      "title": "Views",
+      "type": "array"
+    }
+  },
+  "required": [
+    "decisionQuestion"
+  ],
+  "title": "AnalysisInput",
+  "type": "object"
+}

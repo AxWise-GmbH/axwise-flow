@@ -1,0 +1,141 @@
+{
+  "title": "Autonomous Baltic Cold-Chain Telemetry & Compliance Platform PRD",
+  "tool": "create_prd",
+  "artifactType": "software_prd",
+  "engine": "axwise-rust-v0.4.2",
+  "sections": [
+    {
+      "heading": "Problem and desired outcome",
+      "items": [
+        {
+          "text": "Perishable cargo losses in Baltic transit due to undetected reefer temperature deviations.",
+          "basis": "proposal",
+          "sourceIds": [],
+          "findingIds": []
+        }
+      ]
+    },
+    {
+      "heading": "Users, jobs, and pains",
+      "items": [
+        {
+          "text": "Fleet managers need continuous temperature visibility without manual driver logbook checks.",
+          "basis": "proposal",
+          "sourceIds": [],
+          "findingIds": []
+        }
+      ]
+    },
+    {
+      "heading": "Product thesis, scope, and non-goals",
+      "items": [
+        {
+          "text": "Automated IoT sensor telemetry streaming directly to dispatcher dashboard with edge caching during cellular dead zones.",
+          "basis": "proposal",
+          "sourceIds": [],
+          "findingIds": []
+        }
+      ]
+    },
+    {
+      "heading": "Technical boundaries",
+      "items": [
+        {
+          "text": "Low-power Bluetooth 5.2 edge nodes communicating with cab gateway; fallback to local flash storage during offline transit.",
+          "basis": "proposal",
+          "sourceIds": [],
+          "findingIds": []
+        }
+      ]
+    },
+    {
+      "heading": "Prioritized requirements",
+      "items": [
+        {
+          "text": "P0: Real-time temperature and humidity streaming with <=60s latency over 4G/LTE.",
+          "basis": "proposal",
+          "sourceIds": [],
+          "findingIds": []
+        },
+        {
+          "text": "P0: Automated SMS and webhook alert dispatch upon breach of HACCP temperature thresholds (+/-0.5C).",
+          "basis": "proposal",
+          "sourceIds": [],
+          "findingIds": []
+        },
+        {
+          "text": "P1: Offline cryptographic data sealing on edge gateway with automatic sync upon reconnection.",
+          "basis": "proposal",
+          "sourceIds": [],
+          "findingIds": []
+        }
+      ]
+    },
+    {
+      "heading": "Acceptance criteria",
+      "items": [
+        {
+          "text": "Given a temperature spike above 4C for >180s, when detected by edge probe, then trigger alert within 15 seconds.",
+          "basis": "proposal",
+          "sourceIds": [],
+          "findingIds": []
+        }
+      ]
+    },
+    {
+      "heading": "Risks",
+      "items": [
+        {
+          "text": "Extreme cold battery degradation leading to unmonitored transit windows.",
+          "basis": "proposal",
+          "sourceIds": [],
+          "findingIds": []
+        }
+      ]
+    },
+    {
+      "heading": "User journeys",
+      "items": [
+        {
+          "text": "Dispatcher inspects live map view of active trucks with colored temperature badges (Green = OK, Amber = Warning, Red = Breach).",
+          "basis": "proposal",
+          "sourceIds": [],
+          "findingIds": []
+        }
+      ]
+    },
+    {
+      "heading": "Metrics and validation",
+      "items": [
+        {
+          "text": "Reduce temperature breach response time from 45 minutes to <2 minutes across a 60-day Baltic pilot fleet.",
+          "basis": "proposal",
+          "sourceIds": [],
+          "findingIds": []
+        }
+      ]
+    },
+    {
+      "heading": "Evidence, assumptions, and gaps",
+      "items": [
+        {
+          "text": "Assumes continuous vehicle auxiliary power availability during transit.",
+          "basis": "gap",
+          "sourceIds": [],
+          "findingIds": []
+        }
+      ]
+    },
+    {
+      "heading": "Next steps",
+      "items": [
+        {
+          "text": "Deploy hardware prototype on 5 test vehicles on the Riga-Tallinn route.",
+          "basis": "proposal",
+          "sourceIds": [],
+          "findingIds": []
+        }
+      ]
+    }
+  ]
+}

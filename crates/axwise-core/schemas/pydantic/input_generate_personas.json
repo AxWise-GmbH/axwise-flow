@@ -1,0 +1,233 @@
+{
+  "$defs": {
+    "ArtifactReference": {
+      "additionalProperties": false,
+      "properties": {
+        "operationId": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Operationid",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operationId",
+        "sha256"
+      ],
+      "title": "ArtifactReference",
+      "type": "object"
+    },
+    "EvidenceSource": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "supplied_document",
+            "supplied_transcript",
+            "synthetic_transcript",
+            "web_source"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "publishedAt": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Publishedat"
+        },
+        "retrievedAt": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retrievedat"
+        },
+        "text": {
+          "maxLength": 64000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "text",
+        "origin"
+      ],
+      "title": "EvidenceSource",
+      "type": "object"
+    },
+    "PersonaRole": {
+      "additionalProperties": false,
+      "properties": {
+        "countryCode": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z]{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Countrycode"
+        },
+        "description": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "locality": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Locality"
+        },
+        "participants": {
+          "default": 1,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Participants",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "description"
+      ],
+      "title": "PersonaRole",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "brief": {
+      "anyOf": [
+        {
+          "maxLength": 4000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Brief"
+    },
+    "depth": {
+      "default": "standard",
+      "enum": [
+        "standard",
+        "deep"
+      ],
+      "title": "Depth",
+      "type": "string"
+    },
+    "references": {
+      "description": "Exact saved local artifact references returned by earlier tools in this conversation; never invent or retype artifact content.",
+      "items": {
+        "$ref": "#/$defs/ArtifactReference"
+      },
+      "maxItems": 8,
+      "title": "References",
+      "type": "array"
+    },
+    "revisionOf": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactReference"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Exact prior artifact of this same kind to revise; omit for a new result. Preserves previous versions."
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/EvidenceSource"
+      },
+      "maxItems": 16,
+      "title": "Sources",
+      "type": "array"
+    },
+    "stakeholders": {
+      "description": "Omit to use all roles from the saved discovery plan only when they fit the depth budget. Otherwise explicitly select a subset using exact saved id, label and description; do not silently drop roles. Standard permits 3 roles and 2 personas per role; deep permits 4 and 3. Scope may contain more roles.",
+      "items": {
+        "$ref": "#/$defs/PersonaRole"
+      },
+      "maxItems": 4,
+      "title": "Stakeholders",
+      "type": "array"
+    }
+  },
+  "title": "GeneratePersonasInput",
+  "type": "object"
+}

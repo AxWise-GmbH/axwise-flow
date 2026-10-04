@@ -1,0 +1,199 @@
+{
+  "$defs": {
+    "DiscoveryQuestion": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "uncertaintyId": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Uncertaintyid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "uncertaintyId"
+      ],
+      "title": "DiscoveryQuestion",
+      "type": "object"
+    },
+    "EvidenceQuote": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "description": "Copy quotationBasisBySourceId[sourceId]. Only origin=synthetic_transcript uses simulation_hypothesis. Exact supplied_document, supplied_transcript or web_source quotations use source_statement; that label proves attribution, not truth, real human testimony or non-fictional content.",
+          "enum": [
+            "source_statement",
+            "simulation_hypothesis"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "quote": {
+          "maxLength": 6000,
+          "minLength": 1,
+          "title": "Quote",
+          "type": "string"
+        },
+        "sourceId": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Sourceid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sourceId",
+        "quote",
+        "basis"
+      ],
+      "title": "EvidenceQuote",
+      "type": "object"
+    },
+    "Stakeholder": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "questions": {
+          "items": {
+            "$ref": "#/$defs/DiscoveryQuestion"
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "title": "Questions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "description",
+        "questions"
+      ],
+      "title": "Stakeholder",
+      "type": "object"
+    },
+    "Uncertainty": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "title": "Uncertainty",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "assumptions": {
+      "items": {
+        "maxLength": 4000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 16,
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "decision": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Decision",
+      "type": "string"
+    },
+    "gaps": {
+      "items": {
+        "maxLength": 4000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 16,
+      "title": "Gaps",
+      "type": "array"
+    },
+    "knownFacts": {
+      "items": {
+        "$ref": "#/$defs/EvidenceQuote"
+      },
+      "maxItems": 32,
+      "title": "Knownfacts",
+      "type": "array"
+    },
+    "scope": {
+      "items": {
+        "maxLength": 4000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 12,
+      "minItems": 1,
+      "title": "Scope",
+      "type": "array"
+    },
+    "stakeholders": {
+      "items": {
+        "$ref": "#/$defs/Stakeholder"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Stakeholders",
+      "type": "array"
+    },
+    "uncertainties": {
+      "items": {
+        "$ref": "#/$defs/Uncertainty"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "title": "Uncertainties",
+      "type": "array"
+    }
+  },
+  "required": [
+    "decision",
+    "scope",
+    "uncertainties",
+    "stakeholders"
+  ],
+  "title": "DiscoveryCandidate",
+  "type": "object"
+}

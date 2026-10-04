@@ -1,0 +1,77 @@
+{
+  "title": "Synthetic Cold-Chain Interview Simulation (OCEAN Traits Verified)",
+  "tool": "simulate_interviews",
+  "engine": "axwise-rust-v0.4.2",
+  "participants": [
+    {
+      "participantId": "418bfb81-fe8c-5fec-ab65-da66888c16ee",
+      "stakeholderId": "fleet_operator",
+      "slotIndex": 1,
+      "countryCode": "LV",
+      "locality": "Riga",
+      "displayName": "Synthetic Janis Berzins",
+      "biography": "Janis has managed Baltic fleet operations for 12 years across Latvia and Estonia, handling perishable dairy and meat transit.",
+      "oceanMicros": {
+        "openness": 448868,
+        "conscientiousness": 491186,
+        "extraversion": 616550,
+        "agreeableness": 505024,
+        "neuroticism": 389734
+      },
+      "motivations": [
+        "Zero perishable cargo loss",
+        "Fast automated turnaround at regional distribution hubs"
+      ],
+      "painPoints": [
+        "Battery drainage on wireless telemetry pods during sub-zero overnight stops",
+        "Manual driver error during logbook entry"
+      ],
+      "communicationStyle": "Direct, pragmatic, and operationally focused"
+    },
+    {
+      "participantId": "14cd3641-dc5e-5abb-bf3a-2178cf1e07c4",
+      "stakeholderId": "fleet_operator",
+      "slotIndex": 2,
+      "countryCode": "LV",
+      "locality": "Riga",
+      "displayName": "Synthetic Mara Kalnina",
+      "biography": "Mara oversees temperature compliance and sensor diagnostics for 80 chilled delivery vans operating in the greater Riga metropolitan area.",
+      "oceanMicros": {
+        "openness": 327547,
+        "conscientiousness": 531117,
+        "extraversion": 353264,
+        "agreeableness": 630137,
+        "neuroticism": 372497
+      },
+      "motivations": [
+        "Strict HACCP regulatory compliance",
+        "Audit-proof digital temperature logs"
+      ],
+      "painPoints": [
+        "Inconsistent calibration between internal reefer thermometer and third-party probes",
+        "Delayed notifications from cloud dashboard"
+      ],
+      "communicationStyle": "Detail-oriented, compliance-centric, and cautious"
+    }
+  ],
+  "interviews": [
+    {
+      "participantId": "418bfb81-fe8c-5fec-ab65-da66888c16ee",
+      "answers": [
+        {
+          "questionId": "fleet_operator-q1",
+          "text": "When temperatures drop below -15°C in Latgale, battery voltage drops immediately. If sensors fail to report every 5 minutes, we face mandatory quarantine at customs."
+        }
+      ]
+    },
+    {
+      "participantId": "14cd3641-dc5e-5abb-bf3a-2178cf1e07c4",
+      "answers": [
+        {
+          "questionId": "fleet_operator-q1",
+          "text": "The main challenge is sensor condensation and frost build-up on optical sensors when trucks open doors for partial unloading in freezing conditions."
+        }
+      ]
+    }
+  ]
+}

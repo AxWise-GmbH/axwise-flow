@@ -1,0 +1,282 @@
+{
+  "$defs": {
+    "AcceptanceTest": {
+      "additionalProperties": false,
+      "properties": {
+        "evidenceExpected": {
+          "maxLength": 2000,
+          "minLength": 12,
+          "title": "Evidenceexpected",
+          "type": "string"
+        },
+        "given": {
+          "maxLength": 2000,
+          "minLength": 12,
+          "title": "Given",
+          "type": "string"
+        },
+        "then": {
+          "maxLength": 2000,
+          "minLength": 12,
+          "title": "Then",
+          "type": "string"
+        },
+        "when": {
+          "maxLength": 2000,
+          "minLength": 12,
+          "title": "When",
+          "type": "string"
+        }
+      },
+      "required": [
+        "given",
+        "when",
+        "then",
+        "evidenceExpected"
+      ],
+      "title": "AcceptanceTest",
+      "type": "object"
+    },
+    "ConditionCoverage": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptanceTestIndex": {
+          "anyOf": [
+            {
+              "maximum": 3,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Zero-based index into that requirement's proposed acceptanceTests when covered; null when deferred.",
+          "title": "Acceptancetestindex"
+        },
+        "conditionId": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Conditionid",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Specific nonblank reason and unresolved action when deferred; null when covered.",
+          "title": "Reason"
+        },
+        "requirementId": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Exact selected requirement ID when covered; null when deferred.",
+          "title": "Requirementid"
+        },
+        "status": {
+          "enum": [
+            "covered",
+            "deferred"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "conditionId",
+        "status",
+        "requirementId",
+        "acceptanceTestIndex",
+        "reason"
+      ],
+      "title": "ConditionCoverage",
+      "type": "object"
+    },
+    "Dependency": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "requirementIds": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Requirementids",
+          "type": "array"
+        },
+        "resolution": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Resolution",
+          "type": "string"
+        }
+      },
+      "required": [
+        "description",
+        "requirementIds",
+        "resolution"
+      ],
+      "title": "Dependency",
+      "type": "object"
+    },
+    "Milestone": {
+      "additionalProperties": false,
+      "properties": {
+        "deliverable": {
+          "maxLength": 2000,
+          "minLength": 12,
+          "title": "Deliverable",
+          "type": "string"
+        },
+        "exitCondition": {
+          "maxLength": 2000,
+          "minLength": 12,
+          "title": "Exitcondition",
+          "type": "string"
+        },
+        "requirementIds": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Requirementids",
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "requirementIds",
+        "deliverable",
+        "exitCondition"
+      ],
+      "title": "Milestone",
+      "type": "object"
+    },
+    "RequirementCoverage": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptanceTests": {
+          "items": {
+            "$ref": "#/$defs/AcceptanceTest"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "title": "Acceptancetests",
+          "type": "array"
+        },
+        "requirementId": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Requirementid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "requirementId",
+        "acceptanceTests"
+      ],
+      "title": "RequirementCoverage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "conditionCoverage": {
+      "description": "Exactly one disposition for EVERY supplied acceptanceConditions ID, including Metrics and validation. Never omit a condition because the generated-test budget is full.",
+      "items": {
+        "$ref": "#/$defs/ConditionCoverage"
+      },
+      "maxItems": 32,
+      "minItems": 2,
+      "title": "Conditioncoverage",
+      "type": "array"
+    },
+    "dependencies": {
+      "items": {
+        "$ref": "#/$defs/Dependency"
+      },
+      "maxItems": 16,
+      "title": "Dependencies",
+      "type": "array"
+    },
+    "milestones": {
+      "items": {
+        "$ref": "#/$defs/Milestone"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Milestones",
+      "type": "array"
+    },
+    "openQuestions": {
+      "items": {
+        "maxLength": 4000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 16,
+      "title": "Openquestions",
+      "type": "array"
+    },
+    "proposedExclusions": {
+      "items": {
+        "maxLength": 4000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 16,
+      "title": "Proposedexclusions",
+      "type": "array"
+    },
+    "requirements": {
+      "items": {
+        "$ref": "#/$defs/RequirementCoverage"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "title": "Requirements",
+      "type": "array"
+    },
+    "title": {
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "requirements",
+    "conditionCoverage",
+    "milestones"
+  ],
+  "title": "DeliveryCandidate",
+  "type": "object"
+}

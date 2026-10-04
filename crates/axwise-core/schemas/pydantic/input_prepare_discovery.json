@@ -1,0 +1,180 @@
+{
+  "$defs": {
+    "ArtifactReference": {
+      "additionalProperties": false,
+      "properties": {
+        "operationId": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Operationid",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operationId",
+        "sha256"
+      ],
+      "title": "ArtifactReference",
+      "type": "object"
+    },
+    "EvidenceSource": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "supplied_document",
+            "supplied_transcript",
+            "synthetic_transcript",
+            "web_source"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "publishedAt": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Publishedat"
+        },
+        "retrievedAt": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retrievedat"
+        },
+        "text": {
+          "maxLength": 64000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "text",
+        "origin"
+      ],
+      "title": "EvidenceSource",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "brief": {
+      "maxLength": 24000,
+      "minLength": 1,
+      "title": "Brief",
+      "type": "string"
+    },
+    "depth": {
+      "default": "standard",
+      "enum": [
+        "standard",
+        "deep"
+      ],
+      "title": "Depth",
+      "type": "string"
+    },
+    "exclusions": {
+      "items": {
+        "maxLength": 300,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 16,
+      "title": "Exclusions",
+      "type": "array"
+    },
+    "references": {
+      "description": "Exact saved local artifact references returned by earlier tools in this conversation; never invent or retype artifact content.",
+      "items": {
+        "$ref": "#/$defs/ArtifactReference"
+      },
+      "maxItems": 8,
+      "title": "References",
+      "type": "array"
+    },
+    "region": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Region"
+    },
+    "revisionOf": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactReference"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Exact prior artifact of this same kind to revise; omit for a new result. Preserves previous versions."
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/EvidenceSource"
+      },
+      "maxItems": 24,
+      "title": "Sources",
+      "type": "array"
+    }
+  },
+  "required": [
+    "brief"
+  ],
+  "title": "DiscoveryInput",
+  "type": "object"
+}

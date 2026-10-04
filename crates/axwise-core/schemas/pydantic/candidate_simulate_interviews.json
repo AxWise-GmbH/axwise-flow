@@ -1,0 +1,234 @@
+{
+  "$defs": {
+    "SimulationAnswerV1": {
+      "additionalProperties": false,
+      "properties": {
+        "questionId": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Questionid",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 4000,
+          "minLength": 20,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "questionId",
+        "text"
+      ],
+      "title": "SimulationAnswerV1",
+      "type": "object"
+    },
+    "SimulationInterviewV1": {
+      "additionalProperties": false,
+      "properties": {
+        "answers": {
+          "items": {
+            "$ref": "#/$defs/SimulationAnswerV1"
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "title": "Answers",
+          "type": "array"
+        },
+        "participantId": {
+          "format": "uuid",
+          "title": "Participantid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "participantId",
+        "answers"
+      ],
+      "title": "SimulationInterviewV1",
+      "type": "object"
+    },
+    "SimulationOceanV1": {
+      "additionalProperties": false,
+      "properties": {
+        "agreeableness": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Agreeableness",
+          "type": "integer"
+        },
+        "conscientiousness": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Conscientiousness",
+          "type": "integer"
+        },
+        "extraversion": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Extraversion",
+          "type": "integer"
+        },
+        "neuroticism": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Neuroticism",
+          "type": "integer"
+        },
+        "openness": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Openness",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "openness",
+        "conscientiousness",
+        "extraversion",
+        "agreeableness",
+        "neuroticism"
+      ],
+      "title": "SimulationOceanV1",
+      "type": "object"
+    },
+    "SimulationParticipantV1": {
+      "additionalProperties": false,
+      "properties": {
+        "biography": {
+          "maxLength": 2000,
+          "minLength": 40,
+          "title": "Biography",
+          "type": "string"
+        },
+        "communicationStyle": {
+          "maxLength": 1000,
+          "minLength": 10,
+          "title": "Communicationstyle",
+          "type": "string"
+        },
+        "countryCode": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z]{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Countrycode"
+        },
+        "displayName": {
+          "maxLength": 120,
+          "minLength": 3,
+          "title": "Displayname",
+          "type": "string"
+        },
+        "locality": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Locality"
+        },
+        "motivations": {
+          "items": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 2,
+          "title": "Motivations",
+          "type": "array"
+        },
+        "oceanMicros": {
+          "$ref": "#/$defs/SimulationOceanV1"
+        },
+        "origin": {
+          "const": "synthetic",
+          "title": "Origin",
+          "type": "string"
+        },
+        "painPoints": {
+          "items": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 2,
+          "title": "Painpoints",
+          "type": "array"
+        },
+        "participantId": {
+          "format": "uuid",
+          "title": "Participantid",
+          "type": "string"
+        },
+        "slotIndex": {
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Slotindex",
+          "type": "integer"
+        },
+        "stakeholderId": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Stakeholderid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "participantId",
+        "stakeholderId",
+        "slotIndex",
+        "countryCode",
+        "locality",
+        "oceanMicros",
+        "displayName",
+        "biography",
+        "motivations",
+        "painPoints",
+        "communicationStyle",
+        "origin"
+      ],
+      "title": "SimulationParticipantV1",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "interviews": {
+      "items": {
+        "$ref": "#/$defs/SimulationInterviewV1"
+      },
+      "maxItems": 12,
+      "minItems": 1,
+      "title": "Interviews",
+      "type": "array"
+    },
+    "participants": {
+      "items": {
+        "$ref": "#/$defs/SimulationParticipantV1"
+      },
+      "maxItems": 12,
+      "minItems": 1,
+      "title": "Participants",
+      "type": "array"
+    }
+  },
+  "required": [
+    "participants",
+    "interviews"
+  ],
+  "title": "SimulationCandidateV1",
+  "type": "object"
+}

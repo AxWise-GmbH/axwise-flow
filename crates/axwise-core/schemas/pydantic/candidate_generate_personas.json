@@ -1,0 +1,243 @@
+{
+  "$defs": {
+    "EvidenceSelection": {
+      "additionalProperties": false,
+      "properties": {
+        "passageId": {
+          "description": "Exact id from evidencePassages; copy it, never calculate byte offsets or invent a quote.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Passageid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "passageId"
+      ],
+      "title": "EvidenceSelection",
+      "type": "object"
+    },
+    "PersonaClaimDraft": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "enum": [
+            "source_statement",
+            "interpretation",
+            "simulation_hypothesis"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceSelection"
+          },
+          "maxItems": 8,
+          "title": "Evidence",
+          "type": "array"
+        },
+        "text": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "basis"
+      ],
+      "title": "PersonaClaimDraft",
+      "type": "object"
+    },
+    "PersonaDraft": {
+      "additionalProperties": false,
+      "properties": {
+        "assumptions": {
+          "items": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "basis": {
+          "enum": [
+            "evidence_informed_hypothesis",
+            "scenario_hypothesis"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "communicationStyle": {
+          "maxLength": 500,
+          "minLength": 10,
+          "title": "Communicationstyle",
+          "type": "string"
+        },
+        "countryCode": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z]{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Countrycode"
+        },
+        "description": {
+          "maxLength": 2000,
+          "minLength": 40,
+          "title": "Description",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "locality": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Locality"
+        },
+        "motivations": {
+          "items": {
+            "$ref": "#/$defs/PersonaProfileClaimDraft"
+          },
+          "maxItems": 6,
+          "minItems": 2,
+          "title": "Motivations",
+          "type": "array"
+        },
+        "origin": {
+          "const": "synthetic",
+          "title": "Origin",
+          "type": "string"
+        },
+        "painPoints": {
+          "items": {
+            "$ref": "#/$defs/PersonaProfileClaimDraft"
+          },
+          "maxItems": 6,
+          "minItems": 2,
+          "title": "Painpoints",
+          "type": "array"
+        },
+        "stakeholderId": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Stakeholderid",
+          "type": "string"
+        },
+        "traits": {
+          "items": {
+            "$ref": "#/$defs/PersonaClaimDraft"
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "title": "Traits",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "stakeholderId",
+        "label",
+        "description",
+        "origin",
+        "basis",
+        "motivations",
+        "painPoints",
+        "traits",
+        "communicationStyle",
+        "assumptions"
+      ],
+      "title": "PersonaDraft",
+      "type": "object"
+    },
+    "PersonaProfileClaimDraft": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "enum": [
+            "source_statement",
+            "interpretation",
+            "simulation_hypothesis"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceSelection"
+          },
+          "maxItems": 8,
+          "title": "Evidence",
+          "type": "array"
+        },
+        "text": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "basis"
+      ],
+      "title": "PersonaProfileClaimDraft",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "limitations": {
+      "items": {
+        "maxLength": 4000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    },
+    "personas": {
+      "items": {
+        "$ref": "#/$defs/PersonaDraft"
+      },
+      "maxItems": 12,
+      "minItems": 1,
+      "title": "Personas",
+      "type": "array"
+    }
+  },
+  "required": [
+    "personas",
+    "limitations"
+  ],
+  "title": "PersonaCandidate",
+  "type": "object"
+}

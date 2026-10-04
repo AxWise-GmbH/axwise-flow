@@ -1,0 +1,102 @@
+{
+  "$defs": {
+    "PrdItem": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "enum": [
+            "source_statement",
+            "owner_decision",
+            "proposal",
+            "gap",
+            "simulation_hypothesis"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "findingIds": {
+          "description": "IDs from the admitted analysis finding catalogue. Required on Prioritized requirements when analysis evidence was selected. Preserve supplied source IDs and synthetic basis.",
+          "items": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Findingids",
+          "type": "array"
+        },
+        "sourceIds": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Sourceids",
+          "type": "array"
+        },
+        "text": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "basis",
+        "sourceIds"
+      ],
+      "title": "PrdItem",
+      "type": "object"
+    },
+    "PrdSection": {
+      "additionalProperties": false,
+      "properties": {
+        "heading": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Heading",
+          "type": "string"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/PrdItem"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "heading",
+        "items"
+      ],
+      "title": "PrdSection",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "sections": {
+      "items": {
+        "$ref": "#/$defs/PrdSection"
+      },
+      "maxItems": 11,
+      "minItems": 10,
+      "title": "Sections",
+      "type": "array"
+    },
+    "title": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "sections"
+  ],
+  "title": "PrdCandidate",
+  "type": "object"
+}

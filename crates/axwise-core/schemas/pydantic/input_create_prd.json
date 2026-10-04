@@ -1,0 +1,240 @@
+{
+  "$defs": {
+    "AnalysisArtifactReference": {
+      "additionalProperties": false,
+      "properties": {
+        "operationId": {
+          "pattern": "^[a-f0-9-]{36}$",
+          "title": "Operationid",
+          "type": "string"
+        },
+        "sha256": {
+          "description": "Exact saved artifact file SHA-256 returned by analyze_interviews. Never fabricate or recompute from retyped analysis.",
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operationId",
+        "sha256"
+      ],
+      "title": "AnalysisArtifactReference",
+      "type": "object"
+    },
+    "ArtifactReference": {
+      "additionalProperties": false,
+      "properties": {
+        "operationId": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Operationid",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operationId",
+        "sha256"
+      ],
+      "title": "ArtifactReference",
+      "type": "object"
+    },
+    "EvidenceSource": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "supplied_document",
+            "supplied_transcript",
+            "synthetic_transcript",
+            "web_source"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "publishedAt": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Publishedat"
+        },
+        "retrievedAt": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retrievedat"
+        },
+        "text": {
+          "maxLength": 64000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "text",
+        "origin"
+      ],
+      "title": "EvidenceSource",
+      "type": "object"
+    },
+    "RevisionEdit": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "replace",
+            "remove"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "instruction": {
+          "description": "Exact user-requested change copied from brief. Select only this item's intentional replacement/removal; omit for additive changes.",
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Instruction",
+          "type": "string"
+        },
+        "itemId": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Itemid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "itemId",
+        "action",
+        "instruction"
+      ],
+      "title": "RevisionEdit",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "analysisArtifact": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AnalysisArtifactReference"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Optional prior locally saved analysis from this account and conversation. Use its exact operationId and artifact file sha256; local host reads immutable evidence, so do not retype findings or transcripts as sources."
+    },
+    "artifactType": {
+      "default": "product_prd",
+      "enum": [
+        "product_prd",
+        "software_prd"
+      ],
+      "title": "Artifacttype",
+      "type": "string"
+    },
+    "brief": {
+      "maxLength": 64000,
+      "minLength": 1,
+      "title": "Brief",
+      "type": "string"
+    },
+    "depth": {
+      "default": "standard",
+      "enum": [
+        "standard",
+        "deep"
+      ],
+      "title": "Depth",
+      "type": "string"
+    },
+    "references": {
+      "description": "Exact saved local artifact references returned by earlier tools in this conversation; never invent or retype artifact content.",
+      "items": {
+        "$ref": "#/$defs/ArtifactReference"
+      },
+      "maxItems": 8,
+      "title": "References",
+      "type": "array"
+    },
+    "revisionEdits": {
+      "description": "Only for explicit changes to EXISTING PRD items: exact saved itemCatalogue IDs, replace/remove action and exact change instruction from brief. Omit for additive edits; revisionOf then preserves every prior item, priority, acceptance check and metric unchanged. Never infer permission to rewrite the full PRD.",
+      "items": {
+        "$ref": "#/$defs/RevisionEdit"
+      },
+      "maxItems": 32,
+      "title": "Revisionedits",
+      "type": "array"
+    },
+    "revisionOf": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactReference"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Exact prior artifact of this same kind to revise; omit for a new result. Preserves previous versions."
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/EvidenceSource"
+      },
+      "maxItems": 16,
+      "title": "Sources",
+      "type": "array"
+    }
+  },
+  "required": [
+    "brief"
+  ],
+  "title": "PrdInput",
+  "type": "object"
+}

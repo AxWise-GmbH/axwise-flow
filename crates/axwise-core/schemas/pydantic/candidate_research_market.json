@@ -1,0 +1,136 @@
+{
+  "$defs": {
+    "Interpretation": {
+      "additionalProperties": false,
+      "properties": {
+        "questionId": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Questionid",
+          "type": "string"
+        },
+        "sourceIds": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+            "type": "string"
+          },
+          "maxItems": 12,
+          "minItems": 1,
+          "title": "Sourceids",
+          "type": "array"
+        },
+        "text": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "questionId",
+        "text",
+        "sourceIds"
+      ],
+      "title": "Interpretation",
+      "type": "object"
+    },
+    "MarketFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "description": "Copy quotationBasisBySourceId[sourceId]. Only origin=synthetic_transcript uses simulation_hypothesis. Exact supplied_document, supplied_transcript or web_source quotations use source_statement; that label proves attribution, not truth, real human testimony or non-fictional content.",
+          "enum": [
+            "source_statement",
+            "simulation_hypothesis"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "questionId": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Questionid",
+          "type": "string"
+        },
+        "quote": {
+          "maxLength": 6000,
+          "minLength": 1,
+          "title": "Quote",
+          "type": "string"
+        },
+        "sourceId": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Sourceid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sourceId",
+        "quote",
+        "basis",
+        "questionId"
+      ],
+      "title": "MarketFinding",
+      "type": "object"
+    },
+    "MarketGap": {
+      "additionalProperties": false,
+      "properties": {
+        "questionId": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$",
+          "title": "Questionid",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "questionId",
+        "reason"
+      ],
+      "title": "MarketGap",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/MarketFinding"
+      },
+      "maxItems": 48,
+      "title": "Findings",
+      "type": "array"
+    },
+    "gaps": {
+      "items": {
+        "$ref": "#/$defs/MarketGap"
+      },
+      "maxItems": 12,
+      "title": "Gaps",
+      "type": "array"
+    },
+    "interpretations": {
+      "items": {
+        "$ref": "#/$defs/Interpretation"
+      },
+      "maxItems": 12,
+      "title": "Interpretations",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "maxLength": 4000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 16,
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "title": "MarketCandidate",
+  "type": "object"
+}

@@ -1,0 +1,324 @@
+{
+  "$defs": {
+    "AnalysisFindingCandidateV1": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "enum": [
+            "source_statement",
+            "interpretation",
+            "simulation_hypothesis"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "job",
+            "pain",
+            "goal",
+            "need",
+            "trait"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "key": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "participantRefs": {
+          "items": {
+            "$ref": "#/$defs/AnalysisParticipantRefV1"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "title": "Participantrefs",
+          "type": "array"
+        },
+        "questionIds": {
+          "items": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Questionids",
+          "type": "array"
+        },
+        "quoteKeys": {
+          "items": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Quotekeys",
+          "type": "array"
+        },
+        "statement": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Statement",
+          "type": "string"
+        },
+        "supportStatus": {
+          "enum": [
+            "supported",
+            "insufficient",
+            "conflicting"
+          ],
+          "title": "Supportstatus",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "category",
+        "statement",
+        "basis",
+        "supportStatus",
+        "quoteKeys",
+        "questionIds",
+        "participantRefs"
+      ],
+      "title": "AnalysisFindingCandidateV1",
+      "type": "object"
+    },
+    "AnalysisGapV1": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "insufficient_evidence",
+            "conflicting_evidence",
+            "missing_participant_turns",
+            "unanswered_question",
+            "no_supported_output"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "enum": [
+                "personas",
+                "jobs_pains"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output"
+        },
+        "participantRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AnalysisParticipantRefV1"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "questionId": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Questionid"
+        }
+      },
+      "required": [
+        "code",
+        "questionId",
+        "participantRef",
+        "output",
+        "message"
+      ],
+      "title": "AnalysisGapV1",
+      "type": "object"
+    },
+    "AnalysisParticipantRefV1": {
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "format": "uuid",
+          "title": "Documentid",
+          "type": "string"
+        },
+        "participantId": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Participantid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "documentId",
+        "participantId"
+      ],
+      "title": "AnalysisParticipantRefV1",
+      "type": "object"
+    },
+    "AnalysisPersonaCandidateV1": {
+      "additionalProperties": false,
+      "properties": {
+        "displayLabel": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Displaylabel",
+          "type": "string"
+        },
+        "participantRef": {
+          "$ref": "#/$defs/AnalysisParticipantRefV1"
+        },
+        "traitFindingKeys": {
+          "items": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "minItems": 1,
+          "title": "Traitfindingkeys",
+          "type": "array"
+        }
+      },
+      "required": [
+        "participantRef",
+        "displayLabel",
+        "traitFindingKeys"
+      ],
+      "title": "AnalysisPersonaCandidateV1",
+      "type": "object"
+    },
+    "AnalysisQuoteCandidateV1": {
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "format": "uuid",
+          "title": "Documentid",
+          "type": "string"
+        },
+        "end": {
+          "exclusiveMinimum": 0,
+          "maximum": 128000,
+          "title": "End",
+          "type": "integer"
+        },
+        "key": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "participantId": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Participantid",
+          "type": "string"
+        },
+        "start": {
+          "maximum": 128000,
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "text": {
+          "maxLength": 128000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "turnId": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Turnid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "documentId",
+        "turnId",
+        "participantId",
+        "start",
+        "end",
+        "text"
+      ],
+      "title": "AnalysisQuoteCandidateV1",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/AnalysisFindingCandidateV1"
+      },
+      "maxItems": 256,
+      "title": "Findings",
+      "type": "array"
+    },
+    "gaps": {
+      "items": {
+        "$ref": "#/$defs/AnalysisGapV1"
+      },
+      "maxItems": 128,
+      "title": "Gaps",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 14,
+      "title": "Limitations",
+      "type": "array"
+    },
+    "personas": {
+      "items": {
+        "$ref": "#/$defs/AnalysisPersonaCandidateV1"
+      },
+      "maxItems": 32,
+      "title": "Personas",
+      "type": "array"
+    },
+    "quotes": {
+      "items": {
+        "$ref": "#/$defs/AnalysisQuoteCandidateV1"
+      },
+      "maxItems": 256,
+      "title": "Quotes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "quotes",
+    "findings",
+    "personas",
+    "gaps",
+    "limitations"
+  ],
+  "title": "AnalysisCandidateV1",
+  "type": "object"
+}

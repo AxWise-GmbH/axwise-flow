@@ -1,0 +1,54 @@
+{
+  "title": "Autonomous Baltic Cold-Chain Logistics Discovery Plan",
+  "tool": "prepare_discovery",
+  "engine": "axwise-rust-v0.4.2",
+  "decision": "Whether to deploy automated real-time telemetry sensors with smart reefer dispatching for Baltic cross-border routes.",
+  "scope": [
+    "Autonomous cold-chain monitoring across Riga, Tallinn, and Vilnius corridors",
+    "Continuous temperature and humidity tracking with strict HACCP compliance",
+    "Predictive spoilage prevention algorithms"
+  ],
+  "uncertainties": [
+    {
+      "id": "unc_1",
+      "text": "Driver compliance during manual temperature verification checkpoints"
+    },
+    {
+      "id": "unc_2",
+      "text": "Cellular dead zones along rural Baltic transit corridors"
+    }
+  ],
+  "stakeholders": [
+    {
+      "id": "fleet_operator",
+      "label": "Fleet Operations Manager",
+      "description": "Oversees 150 refrigerated trucks and driver dispatching",
+      "questions": [
+        {
+          "id": "q_1",
+          "text": "How frequently do sensor disconnects trigger false spoilage alarms?",
+          "uncertaintyId": "unc_2"
+        }
+      ]
+    },
+    {
+      "id": "compliance_officer",
+      "label": "Food Safety Compliance Auditor",
+      "description": "Ensures Baltic and EU food safety standards",
+      "questions": [
+        {
+          "id": "q_2",
+          "text": "What documentation is mandatory for border inspection authorities?",
+          "uncertaintyId": "unc_1"
+        }
+      ]
+    }
+  ],
+  "knownFacts": [],
+  "assumptions": [
+    "Vehicles are equipped with standard OBD-II and CAN bus telemetry interfaces"
+  ],
+  "gaps": [
+    "Exact cellular carrier roaming latencies across the LV-EE border"
+  ]
+}

@@ -1,0 +1,109 @@
+[
+  {
+    "name": "simple_null",
+    "input": null,
+    "expected_json": "null",
+    "expected_hash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+    "expected_uuid": null
+  },
+  {
+    "name": "simple_bool",
+    "input": true,
+    "expected_json": "true",
+    "expected_hash": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+    "expected_uuid": "9a3d1edc-42f4-59ce-856e-2752f3a54428"
+  },
+  {
+    "name": "simple_false",
+    "input": false,
+    "expected_json": "false",
+    "expected_hash": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa",
+    "expected_uuid": "36010db5-3b0a-5775-9883-c1d9d21c26d2"
+  },
+  {
+    "name": "simple_int",
+    "input": 12345,
+    "expected_json": "12345",
+    "expected_hash": "5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5",
+    "expected_uuid": "5262fb84-7e9b-552b-a6e0-d18b4ebc35c5"
+  },
+  {
+    "name": "neg_int",
+    "input": -987654,
+    "expected_json": "-987654",
+    "expected_hash": "68ca4dea647452dd2c5704a472806b368ba9072c47bcfb60285ba842dab88f0e",
+    "expected_uuid": "c5b3d690-3128-53d8-90fe-aa8f2f9353d4"
+  },
+  {
+    "name": "max_safe_int",
+    "input": 9007199254740991,
+    "expected_json": "9007199254740991",
+    "expected_hash": "f40b423c2dd95ff2b2f027e22208f438cf7242862e5e746860e697308c9add26",
+    "expected_uuid": "7c0bf19e-6fe7-50e9-a44d-5fdd618dd638"
+  },
+  {
+    "name": "string_ascii",
+    "input": "hello world",
+    "expected_json": "\"hello world\"",
+    "expected_hash": "9ddefe4435b21d901439e546d54a14a175a3493b9fd8fbf38d9ea6d3cbf70826",
+    "expected_uuid": "093af70d-0b78-51f9-b645-88a84f3189f9"
+  },
+  {
+    "name": "string_unicode",
+    "input": "R\u012bga, Latvija / \u65e5\u672c\u8a9e / \ud83d\ude80",
+    "expected_json": "\"R\u012bga, Latvija / \u65e5\u672c\u8a9e / \ud83d\ude80\"",
+    "expected_hash": "81b3d506dd0bcdb312726669421698e8301dfe087cd02372a5cebca7735210c1",
+    "expected_uuid": "f7286f20-376a-5b2d-b958-be5f987e105d"
+  },
+  {
+    "name": "array_mixed",
+    "input": [
+      1,
+      "two",
+      null,
+      false,
+      {
+        "nested": "value"
+      }
+    ],
+    "expected_json": "[1,\"two\",null,false,{\"nested\":\"value\"}]",
+    "expected_hash": "df59c9dcaa292bdc48f6f873eea78e1aa9a724f74c9baac5f9bc621692762948",
+    "expected_uuid": "6022d7c1-6981-5289-97cb-db78caeba28d"
+  },
+  {
+    "name": "object_keys_sorting",
+    "input": {
+      "zeta": 1,
+      "alpha": 2,
+      "beta": 3,
+      "gamma": 4,
+      "emoji_\ud83d\ude80": 5,
+      "emoji_\ud83c\udf89": 6,
+      "accent_\u00e9": 7,
+      "accent_e": 8
+    },
+    "expected_json": "{\"accent_e\":8,\"accent_\u00e9\":7,\"alpha\":2,\"beta\":3,\"emoji_\ud83c\udf89\":6,\"emoji_\ud83d\ude80\":5,\"gamma\":4,\"zeta\":1}",
+    "expected_hash": "033b2fdbe45bf820cb7196112622308ea890e927c3ba62dd46c248710b830bfc",
+    "expected_uuid": "500cdb81-6bd1-5b9b-9403-eac41fa265e7"
+  },
+  {
+    "name": "nested_deep",
+    "input": {
+      "level1": {
+        "b": [
+          3,
+          2,
+          1
+        ],
+        "a": {
+          "z": true,
+          "y": null,
+          "x": "end"
+        }
+      }
+    },
+    "expected_json": "{\"level1\":{\"a\":{\"x\":\"end\",\"y\":null,\"z\":true},\"b\":[3,2,1]}}",
+    "expected_hash": "5dbdc4ed9be8b22dee54e97715cce8bf38ed7f7434a239542699da10720150c1",
+    "expected_uuid": "66f87d72-238b-5369-ae80-c2435f750d2e"
+  }
+]

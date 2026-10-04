@@ -1,0 +1,87 @@
+{
+  "$defs": {
+    "ArtifactReference": {
+      "additionalProperties": false,
+      "properties": {
+        "operationId": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Operationid",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operationId",
+        "sha256"
+      ],
+      "title": "ArtifactReference",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "depth": {
+      "default": "standard",
+      "enum": [
+        "standard",
+        "deep"
+      ],
+      "title": "Depth",
+      "type": "string"
+    },
+    "documentReference": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactReference"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Exact selected PRD, delivery brief, discovery, analysis, market or interview artifact to discuss. Include it in references alongside the persona cohort/conversation. Optional for one selected document; required to disambiguate multiple documents/versions. Omit to continue the saved document, never guess a newer version."
+    },
+    "message": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "personaId": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Personaid",
+      "type": "string"
+    },
+    "references": {
+      "description": "Exact saved local artifact references returned by earlier tools in this conversation; never invent or retype artifact content.",
+      "items": {
+        "$ref": "#/$defs/ArtifactReference"
+      },
+      "maxItems": 8,
+      "title": "References",
+      "type": "array"
+    },
+    "revisionOf": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactReference"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Exact prior artifact of this same kind to revise; omit for a new result. Preserves previous versions."
+    }
+  },
+  "required": [
+    "personaId",
+    "message"
+  ],
+  "title": "ChatWithPersonaInput",
+  "type": "object"
+}

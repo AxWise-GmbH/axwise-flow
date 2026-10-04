@@ -1,0 +1,60 @@
+{
+  "$defs": {
+    "EvidenceSelection": {
+      "additionalProperties": false,
+      "properties": {
+        "passageId": {
+          "description": "Exact id from evidencePassages; copy it, never calculate byte offsets or invent a quote.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Passageid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "passageId"
+      ],
+      "title": "EvidenceSelection",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "basis": {
+      "const": "simulation_hypothesis",
+      "title": "Basis",
+      "type": "string"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceSelection"
+      },
+      "maxItems": 8,
+      "title": "Evidence",
+      "type": "array"
+    },
+    "origin": {
+      "const": "synthetic",
+      "title": "Origin",
+      "type": "string"
+    },
+    "personaId": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Personaid",
+      "type": "string"
+    },
+    "response": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Response",
+      "type": "string"
+    }
+  },
+  "required": [
+    "personaId",
+    "origin",
+    "basis",
+    "response"
+  ],
+  "title": "PersonaChatCandidate",
+  "type": "object"
+}
