@@ -262,4 +262,5 @@ auth.json
 !/scripts/benchmark-gavel-cross-language.test.mjs
 !/scripts/benchmark-release-quality-matrix.mjs
 !/scripts/benchmark-release-quality-matrix.test.mjs
+apps/orqaly/landing-sanity-check-*.png
 audit-exports/
