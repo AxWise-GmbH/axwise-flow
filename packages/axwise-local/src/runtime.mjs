@@ -53,9 +53,13 @@ export function validateOrigin(value, { allowLoopback = false } = {}) {
 
 /** Each subprocess is local, bounded and receives only the selected tool input. */
 export function createKernel({ python, kernelRoot, spawnImpl = spawn, timeoutMs = 10_000 } = {}) {
-  const rustWorker = process.env.AXWISE_USE_RUST === '1'
-    ? (process.env.AXWISE_RUST_WORKER || (existsSync('/Users/admin/.local/bin/axwise-worker') ? '/Users/admin/.local/bin/axwise-worker' : null))
-    : null;
+  const candidateRustPaths = [
+    process.env.AXWISE_RUST_WORKER,
+    '/Applications/Orqanix.app/Contents/Resources/bin/axwise-worker',
+    '/Users/admin/.local/bin/axwise-worker',
+  ].filter(Boolean);
+  const foundRustWorker = candidateRustPaths.find((p) => existsSync(p)) || null;
+  const rustWorker = process.env.AXWISE_USE_RUST !== '0' && foundRustWorker ? foundRustWorker : null;
   if (!rustWorker && (!isAbsolute(python || '') || !isAbsolute(kernelRoot || ''))) throw new Error('Absolute kernel paths are required.');
   return async function kernel(request, signal = new AbortController().signal) {
     const id = randomUUID();
