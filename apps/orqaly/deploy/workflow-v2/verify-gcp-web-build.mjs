@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 
 const dist = resolve(process.argv[2] || 'dist');
 for (const file of ['index.html', 'manifest.json', 'logo-line.svg', '.vite/manifest.json']) {
@@ -24,8 +24,16 @@ for (const file of readdirSync(dist, { recursive: true })) {
     throw new Error(`GCP web build contains an unpublished legal draft: ${file}`);
   if (/(?:^|\/)(?:WorkflowV2|GcpClerkSettings|HomePage|StructurePage|AgentsPage|AgentDetailPage|SolutionDetailPage|WorkflowBuildPage|WorkflowsPage|CapabilitiesPage|KnowledgePage|ResultsPage|NotificationsPage|ActivityPage|HistoryPage)-[^/]+\.m?js$/u.test(file))
     throw new Error(`Account website contains a retired workspace route chunk: ${file}`);
-  if (!file.endsWith('.json')) continue;
-  const content = JSON.parse(readFileSync(resolve(dist, file), 'utf8'));
+  if (!file.endsWith('.json') || basename(file).startsWith('.')) continue;
+  const fullPath = resolve(dist, file);
+  if (!statSync(fullPath).isFile()) continue;
+  let content;
+  try {
+    content = JSON.parse(readFileSync(fullPath, 'utf8'));
+  } catch (err) {
+    console.error(`Error parsing JSON file: ${file} (resolved: ${fullPath})`);
+    throw err;
+  }
   if (content?.meta && Object.hasOwn(content.meta, 'review'))
     throw new Error(`GCP web build exposes internal document review notes: ${file}`);
 }
