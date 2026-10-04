@@ -145,9 +145,85 @@ const nextConfig = {
   },
 
 
-  // Add redirects to block malicious requests
+  // Add redirects to block malicious requests and redirect legacy routes
   async redirects() {
     return [
+      // Legacy auth and dashboard routes redirect to home
+      {
+        source: '/login',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/sign-in',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/sign-in/:path*',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/sign-up',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/sign-up/:path*',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/unified-dashboard',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/unified-dashboard/:path*',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/customer-research',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/customer-research/:path*',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/axpersona/:path*',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/precall/:path*',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/b2b',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/b2b/:path*',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/:path*',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/prototypes/:path*',
+        destination: '/',
+        permanent: true,
+      },
       // Block environment file access
       {
         source: '/.env:path*',

@@ -4,8 +4,7 @@ import { Button3D } from './Button3D';
 
 export function Footer() {
   const footerLinks = [
-    { name: 'Solutions', href: '/b2b' },
-    { name: 'Blog', href: '/blog' },
+    { name: 'Documentation', href: '/docs' },
     { name: 'Terms', href: '/terms-of-service' },
     { name: 'Privacy', href: '/privacy-policy' },
     { name: 'Imprint', href: '/impressum' },
@@ -16,7 +15,7 @@ export function Footer() {
     {
       name: 'GitHub',
       icon: Github,
-      href: 'https://github.com/AxWise-GmbH/axwise-flow-oss',
+      href: 'https://github.com/AxWise-GmbH/axwise-flow',
       ariaLabel: 'Visit our GitHub'
     },
     {

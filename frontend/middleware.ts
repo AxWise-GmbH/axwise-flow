@@ -50,21 +50,21 @@ const isProtectedRoute = createRouteMatcher([
 
 // Simplified Clerk middleware using recommended patterns
 export default clerkMiddleware(async (auth, req) => {
+  // If Clerk auth is disabled, allow all routes
+  const enableClerk = process.env.NEXT_PUBLIC_ENABLE_CLERK_AUTH === 'true';
+  if (!enableClerk) {
+    return;
+  }
+
   // Allow public routes without authentication
   if (isPublicRoute(req)) {
     return;
   }
 
-  // Check if Clerk validation is disabled in development
-  const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_AUTH === 'true';
-  const isProduction = process.env.NODE_ENV === 'production' || process.env.ENVIRONMENT === 'production';
-
-  // Protect routes that require authentication (only if Clerk validation is enabled or in production)
-  if (isProtectedRoute(req) && (isProduction || enableClerkValidation)) {
+  // Protect routes that require authentication
+  if (isProtectedRoute(req)) {
     await auth.protect();
   }
-
-  // For any other routes not explicitly defined, allow them
 });
 
 // Use Clerk's recommended matcher configuration
