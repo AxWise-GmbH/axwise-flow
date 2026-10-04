@@ -1,0 +1,28 @@
+{
+  "topic": "Autonomous Solar Harbor Cleaning Boat & Telemetry Tracking for Baltic Ports",
+  "status": "completed",
+  "engine": "axwise-rust-v0.4.2",
+  "totalDurationMs": 6.84,
+  "stages": [
+    {
+      "stage": "1_prepare_discovery",
+      "durationMs": "0.18"
+    },
+    {
+      "stage": "2_generate_personas",
+      "durationMs": "0.06"
+    },
+    {
+      "stage": "3_simulate_interviews",
+      "durationMs": "1.15"
+    },
+    {
+      "stage": "4_analyze_interviews",
+      "durationMs": "0.25"
+    },
+    {
+      "stage": "5_create_prd",
+      "durationMs": "0.13"
+    }
+  ]
+}
