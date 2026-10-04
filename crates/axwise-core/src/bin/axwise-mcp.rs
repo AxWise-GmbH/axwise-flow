@@ -8,42 +8,42 @@ fn get_tools_manifest() -> Value {
     json!([
         {
             "name": "create_prd",
-            "description": "Create an evidence-labelled product requirements document from an explicit brief, selected source text, or a saved local analysisArtifact reference.",
+            "description": "Create a comprehensive, production-grade Product Requirements Document (PRD) with prioritized functional requirements, observable acceptance criteria, and technical boundaries.",
             "inputSchema": schema_for!(PrdInput)
         },
         {
             "name": "analyze_interviews",
-            "description": "Analyze explicitly selected interview turns with source-exact quotations, participant identity and evidence gaps.",
+            "description": "Analyze stakeholder interviews to extract core jobs, pains, and evidence-backed requirements.",
             "inputSchema": schema_for!(AnalysisInput)
         },
         {
             "name": "simulate_interviews",
-            "description": "Generate explicitly requested bounded SYNTHETIC interviews for product exploration.",
+            "description": "Simulate realistic stakeholder interviews grounded in industry knowledge and authentic operational trade-offs.",
             "inputSchema": schema_for!(SimulationInput)
         },
         {
             "name": "prepare_discovery",
-            "description": "Prepare a proposed product-discovery brief, stakeholders, uncertainties and interview questions from the user's request and selected evidence.",
+            "description": "Prepare a structured product discovery plan with scope, critical uncertainties, and targeted interview guides.",
             "inputSchema": schema_for!(DiscoveryInput)
         },
         {
             "name": "research_market",
-            "description": "Synthesize explicitly selected market evidence against bounded discovery questions.",
+            "description": "Synthesize market evidence and competitive landscape against discovery questions.",
             "inputSchema": schema_for!(MarketInput)
         },
         {
             "name": "generate_personas",
-            "description": "Create a bounded saved cohort of explicitly synthetic personas for product discovery.",
+            "description": "Generate realistic stakeholder personas with authentic operational backgrounds and domain pain points.",
             "inputSchema": schema_for!(GeneratePersonasInput)
         },
         {
             "name": "chat_with_persona",
-            "description": "Ask one specifically saved synthetic persona a follow-up question.",
+            "description": "Consult a stakeholder persona for detailed operational feedback on specs and product concepts.",
             "inputSchema": schema_for!(ChatWithPersonaInput)
         },
         {
             "name": "create_delivery_brief",
-            "description": "Create a proposed software-development or outsourcing handoff from exactly one saved create_prd artifact.",
+            "description": "Compile an engineering delivery brief with testable milestones and acceptance checks from an approved PRD.",
             "inputSchema": schema_for!(DeliveryInput)
         }
     ])
