@@ -1,6 +1,6 @@
 """Public distribution boundary. Never replace these lists with directory walks."""
 
-VERSION = "0.4.1"
+VERSION = "0.4.2"
 PYTHON_NAME = "axwise-extension"
 NPM_NAME = "@axwise/extension"
 DEPENDENCIES = (
