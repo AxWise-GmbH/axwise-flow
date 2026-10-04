@@ -260,4 +260,6 @@ auth.json
 !/scripts/benchmark-gavel-multihop-crossrepo.test.mjs
 !/scripts/benchmark-gavel-cross-language.mjs
 !/scripts/benchmark-gavel-cross-language.test.mjs
+!/scripts/benchmark-release-quality-matrix.mjs
+!/scripts/benchmark-release-quality-matrix.test.mjs
 audit-exports/

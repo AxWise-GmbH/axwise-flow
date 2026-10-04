@@ -187,6 +187,7 @@ jobs:
           node --test ../../scripts/benchmark-multi-file-ts-refactor.test.mjs
           node --test ../../scripts/gavel-ci-pr-review.test.mjs
           node --test ../../scripts/benchmark-gavel-cross-language.test.mjs
+          node --test ../../scripts/benchmark-release-quality-matrix.test.mjs
 
       - name: Verify declarative baseline inventory
         run: npm run verify:workflow-v2-schema
