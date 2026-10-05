@@ -52,21 +52,125 @@ export function validateOrigin(value, { allowLoopback = false } = {}) {
 }
 
 /** Each subprocess is local, bounded and receives only the selected tool input. */
-export function createKernel({ python, kernelRoot, spawnImpl = spawn, timeoutMs = 10_000 } = {}) {
+export function createKernel({ python, kernelRoot, rustWorker: customRustWorker, spawnImpl = spawn, timeoutMs = 10_000, persistent = process.env.AXWISE_PERSISTENT_WORKER === '1' } = {}) {
   const candidateRustPaths = [
+    customRustWorker,
     process.env.AXWISE_RUST_WORKER,
-    '/Applications/Orqanix.app/Contents/Resources/bin/axwise-worker',
-    '/Users/admin/.local/bin/axwise-worker',
+    ...((!python || process.env.AXWISE_USE_RUST === '1') ? [
+      '/Applications/Orqanix.app/Contents/Resources/bin/axwise-worker',
+      '/Users/admin/.local/bin/axwise-worker',
+    ] : [])
   ].filter(Boolean);
   const foundRustWorker = candidateRustPaths.find((p) => existsSync(p)) || null;
   const rustWorker = process.env.AXWISE_USE_RUST !== '0' && foundRustWorker ? foundRustWorker : null;
   if (!rustWorker && (!isAbsolute(python || '') || !isAbsolute(kernelRoot || ''))) throw new Error('Absolute kernel paths are required.');
-  return async function kernel(request, signal = new AbortController().signal) {
+
+  const usePersistent = persistent && spawnImpl === spawn;
+  let persistentChild = null;
+  let stdoutBuffer = '';
+  const pendingRequests = new Map();
+
+  function ensurePersistentChild() {
+    if (persistentChild && !persistentChild.killed && persistentChild.exitCode === null) {
+      return persistentChild;
+    }
+    const child = rustWorker
+      ? spawn(rustWorker, [], { stdio: ['pipe', 'pipe', 'pipe'] })
+      : spawn(python, ['-s', '-m', 'backend.services.local_axwise.worker'], {
+          cwd: kernelRoot, stdio: ['pipe', 'pipe', 'pipe'],
+          env: { PATH: process.env.PATH || '/usr/bin:/bin', LANG: 'en_US.UTF-8',
+            PYTHONPATH: kernelRoot, PYTHONNOUSERSITE: '1', PYTHONDONTWRITEBYTECODE: '1', PYTHONUNBUFFERED: '1' },
+        });
+
+    child.on('error', () => {
+      persistentChild = null;
+      for (const pending of pendingRequests.values()) {
+        pending.finish(new LocalAxwiseError('KERNEL_UNAVAILABLE', 'The local Axwise runtime could not start.'));
+      }
+      pendingRequests.clear();
+    });
+
+    child.stdout.on('data', (bytes) => {
+      stdoutBuffer += bytes.toString('utf8');
+      let newlineIdx;
+      while ((newlineIdx = stdoutBuffer.indexOf('\n')) !== -1) {
+        const line = stdoutBuffer.slice(0, newlineIdx).trim();
+        stdoutBuffer = stdoutBuffer.slice(newlineIdx + 1);
+        if (!line) continue;
+        let reply;
+        try { reply = JSON.parse(line); } catch {}
+        if (!object(reply) || !reply.id) continue;
+        const pending = pendingRequests.get(reply.id);
+        if (pending) {
+          pendingRequests.delete(reply.id);
+          pending.handleReply(reply);
+        }
+      }
+    });
+
+    child.stderr.resume();
+
+    child.on('close', () => {
+      persistentChild = null;
+      for (const pending of pendingRequests.values()) {
+        pending.finish(new LocalAxwiseError('KERNEL_UNAVAILABLE', 'The local Axwise runtime exited unexpectedly.'));
+      }
+      pendingRequests.clear();
+    });
+
+    persistentChild = child;
+    return child;
+  }
+
+  const kernelFn = async function kernel(request, signal = new AbortController().signal) {
     const id = randomUUID();
     const input = JSON.stringify({ ...request, id });
     if (Buffer.byteLength(input) > MAX_FRAME_BYTES) fail('INVALID_INPUT', 'The specialist request is too large.');
     const deadline = AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]);
     deadline.throwIfAborted();
+
+    if (usePersistent) {
+      return new Promise((resolve, reject) => {
+        let settled = false;
+        const finish = (error, result) => {
+          if (settled) return;
+          settled = true;
+          deadline.removeEventListener('abort', cancel);
+          pendingRequests.delete(id);
+          if (error) reject(error);
+          else resolve(result);
+        };
+        const cancel = () => finish(new LocalAxwiseError(signal.aborted ? 'CANCELLED' : 'KERNEL_TIMEOUT',
+          signal.aborted ? 'The specialist request was cancelled.' : 'The local specialist timed out.'));
+        deadline.addEventListener('abort', cancel, { once: true });
+
+        const handleReply = (reply) => {
+          if (typeof reply.ok !== 'boolean')
+            return finish(new LocalAxwiseError('KERNEL_INVALID', 'The local specialist returned an invalid result.'));
+          if (!reply.ok && request.operation === 'prepare' && Object.hasOwn(INPUT_GUIDANCE, reply.error?.code || ''))
+            return finish(new LocalAxwiseError(reply.error.code === 'DOCUMENT_CONTEXT_REQUIRED' ? reply.error.code : 'INVALID_INPUT', INPUT_GUIDANCE[reply.error.code]));
+          if (!reply.ok) {
+            const output = ['finalize', 'validate_review'].includes(request.operation);
+            const error = new LocalAxwiseError(output ? 'VALIDATION_FAILED' : 'INVALID_INPUT',
+              output ? 'The generated artifact did not pass local validation. No artifact was saved.'
+                : 'The selected specialist input is invalid. Check the tool schema and supplied evidence.');
+            error.diagnostics = safeDiagnostics(reply.error?.diagnostics);
+            return finish(error);
+          }
+          finish(null, reply.result);
+        };
+
+        pendingRequests.set(id, { finish, handleReply });
+        try {
+          const child = ensurePersistentChild();
+          child.stdin.write(`${input}\n`);
+        } catch {
+          finish(new LocalAxwiseError('KERNEL_UNAVAILABLE', 'The local Axwise runtime could not be reached.'));
+        }
+        if (deadline.aborted) cancel();
+      });
+    }
+
     return new Promise((resolve, reject) => {
       const child = rustWorker
         ? spawnImpl(rustWorker, [], { stdio: ['pipe', 'pipe', 'pipe'] })
@@ -122,6 +226,15 @@ export function createKernel({ python, kernelRoot, spawnImpl = spawn, timeoutMs 
       if (deadline.aborted) cancel();
     });
   };
+
+  kernelFn.close = () => {
+    if (persistentChild) {
+      persistentChild.kill('SIGTERM');
+      persistentChild = null;
+    }
+  };
+
+  return kernelFn;
 }
 
 export function validateTools(description, { boundary = AXWISE_TOOL_BOUNDARY } = {}) {

@@ -4,6 +4,6 @@ export const DESKTOP_RELEASE = {
   date: '2026-10-05',
   url: 'https://storage.googleapis.com/orqaly-preview-downloads-161074549006/releases/2026-10-05-v2.7.7/Orqanix-Preview-macOS-arm64.dmg',
   filename: 'Orqanix-Preview-macOS-arm64.dmg',
-  bytes: 392232759,
-  sha256: 'e15f239a2f321299f0c6705f21ae2ddf3e0a3b703c8371e64540909fed094320',
+  bytes: 393249790,
+  sha256: 'f8683497d58dc616a1726f2581e8b5f66aa82fa10da76aa5a4f4bc0fbe51a276',
 };

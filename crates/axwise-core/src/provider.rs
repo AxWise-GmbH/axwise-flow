@@ -47,7 +47,7 @@ pub fn discover_credentials() -> HashMap<String, String> {
     let mut keys = HashMap::new();
 
     // 1. Environment variables
-    for key in &["OPENAI_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY", "ANTHROPIC_API_KEY", "AXWISE_API_KEY"] {
+    for key in &["OPENAI_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY", "ANTHROPIC_API_KEY", "AXWISE_API_KEY"] {
         if let Ok(val) = env::var(key) {
             if !val.trim().is_empty() {
                 keys.insert(key.to_string(), val.trim().to_string());

@@ -49,69 +49,198 @@ fn get_tools_manifest() -> Value {
     ])
 }
 
-fn handle_tool_call(name: &str, arguments: &Value) -> Result<Value, String> {
-    let panic_result = std::panic::catch_unwind(|| match name {
+const KNOWN_TOOLS: &[&str] = &[
+    "create_prd",
+    "analyze_interviews",
+    "simulate_interviews",
+    "prepare_discovery",
+    "research_market",
+    "generate_personas",
+    "chat_with_persona",
+    "create_delivery_brief",
+];
+
+async fn execute_pipeline(name: &str, arguments: &Value) -> Result<Value, String> {
+    if !KNOWN_TOOLS.contains(&name) {
+        return Err(format!("Unknown tool: {}", name));
+    }
+
+    let creds = discover_credentials();
+    let provider = if let Some(key) = creds.get("OPENAI_API_KEY") {
+        Some(ModelProvider::new(ProviderType::OpenAi, key.clone(), None, "gpt-4o".to_string()))
+    } else if let Some(key) = creds.get("ANTHROPIC_API_KEY") {
+        Some(ModelProvider::new(ProviderType::Anthropic, key.clone(), None, "claude-3-5-sonnet-20241022".to_string()))
+    } else if let Some(key) = creds.get("GOOGLE_API_KEY").or_else(|| creds.get("GEMINI_API_KEY")) {
+        let model = std::env::var("AXWISE_GEMINI_MODEL").unwrap_or_else(|_| "gemini-3.8-flash".to_string());
+        Some(ModelProvider::new(ProviderType::Gemini, key.clone(), None, model))
+    } else {
+        None
+    };
+
+    let Some(provider) = provider else {
+        return Ok(json!({
+            "content": [{
+                "type": "text",
+                "text": format!("Native Axwise requires LLM provider credentials to execute '{}'. Please configure OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY in your environment or Goose keychain.", name)
+            }],
+            "isError": true
+        }));
+    };
+
+    let (system_prompt, user_prompt, max_tokens) = match name {
         "create_prd" => {
             let input: PrdInput = serde_json::from_value(arguments.clone())
                 .map_err(|e| format!("Invalid arguments for create_prd: {}", e))?;
-            Ok(json!({
-                "content": [{
-                    "type": "text",
-                    "text": format!("Provisional PRD created for: {}", input.brief)
-                }],
-                "structuredContent": {
-                    "tool": "create_prd",
-                    "brief": input.brief,
-                    "status": "ready"
-                }
-            }))
+            (
+                format!("{}\n{}", prompts::BOUNDARY_PROMPT, prompts::PRD_PROMPT),
+                format!("Brief: {}\nReferences: {:?}", input.brief, input.references),
+                16384,
+            )
         }
         "prepare_discovery" => {
             let input: DiscoveryInput = serde_json::from_value(arguments.clone())
                 .map_err(|e| format!("Invalid arguments for prepare_discovery: {}", e))?;
-            Ok(json!({
-                "content": [{
-                    "type": "text",
-                    "text": format!("Discovery plan prepared for: {}", input.brief)
-                }],
-                "structuredContent": {
-                    "tool": "prepare_discovery",
-                    "brief": input.brief,
-                    "status": "ready"
-                }
-            }))
+            (
+                format!("{}\n{}\n{}", prompts::BOUNDARY_PROMPT, prompts::DISCOVERY_PROMPT, prompts::QUOTATION_BASIS_PROMPT),
+                format!("Brief: {}\nDepth: {:?}", input.brief, input.depth),
+                8192,
+            )
         }
         "simulate_interviews" => {
             let input: SimulationInput = serde_json::from_value(arguments.clone())
                 .map_err(|e| format!("Invalid arguments for simulate_interviews: {}", e))?;
-            let plan = generate_simulation_plan(&input.stakeholders, input.seed, "sim-op-1")
-                .map_err(|e| e.to_string())?;
-            Ok(json!({
-                "content": [{
-                    "type": "text",
-                    "text": format!("Simulated {} participant slots.", plan.len())
-                }],
-                "structuredContent": {
-                    "tool": "simulate_interviews",
-                    "slotsCount": plan.len()
-                }
-            }))
+            (
+                format!("{}\n{}", prompts::BOUNDARY_PROMPT, prompts::SIMULATION_PROMPT),
+                format!("Scenario: {:?}\nSeed: {:?}", input.scenario, input.seed),
+                8192,
+            )
         }
-        _ => Ok(json!({
-            "content": [{
-                "type": "text",
-                "text": format!("Tool '{}' executed successfully via native Axwise Rust engine.", name)
-            }]
-        })),
-    });
+        "analyze_interviews" => {
+            let input: AnalysisInput = serde_json::from_value(arguments.clone())
+                .map_err(|e| format!("Invalid arguments for analyze_interviews: {}", e))?;
+            (
+                format!("{}\n{}", prompts::BOUNDARY_PROMPT, prompts::ANALYSIS_PROMPT),
+                format!("Transcripts to analyze: {} documents", input.transcripts.len()),
+                16384,
+            )
+        }
+        "research_market" => {
+            let input: MarketInput = serde_json::from_value(arguments.clone())
+                .map_err(|e| format!("Invalid arguments for research_market: {}", e))?;
+            (
+                format!("{}\n{}", prompts::BOUNDARY_PROMPT, prompts::MARKET_PROMPT),
+                format!("Discovery Brief: {}\nQuestions: {:?}", input.brief, input.questions),
+                8192,
+            )
+        }
+        "generate_personas" => {
+            let input: GeneratePersonasInput = serde_json::from_value(arguments.clone())
+                .map_err(|e| format!("Invalid arguments for generate_personas: {}", e))?;
+            (
+                format!("{}\n{}", prompts::BOUNDARY_PROMPT, prompts::PERSONA_METHOD),
+                format!("Brief: {:?}\nStakeholders: {} roles", input.brief, input.stakeholders.len()),
+                8192,
+            )
+        }
+        "chat_with_persona" => {
+            let input: ChatWithPersonaInput = serde_json::from_value(arguments.clone())
+                .map_err(|e| format!("Invalid arguments for chat_with_persona: {}", e))?;
+            (
+                format!("{}\n{}", prompts::BOUNDARY_PROMPT, prompts::PERSONA_METHOD),
+                format!("Persona ID: {}\nMessage: {}", input.persona_id, input.message),
+                4096,
+            )
+        }
+        "create_delivery_brief" => {
+            let input: DeliveryInput = serde_json::from_value(arguments.clone())
+                .map_err(|e| format!("Invalid arguments for create_delivery_brief: {}", e))?;
+            (
+                format!("{}\n{}", prompts::BOUNDARY_PROMPT, prompts::PRD_PROMPT),
+                format!("Delivery Brief: {}\nRequirements: {:?}", input.brief, input.requirement_ids),
+                16384,
+            )
+        }
+        _ => unreachable!(),
+    };
 
-    match panic_result {
-        Ok(res) => res,
-        Err(_) => Err("Tool panicked during execution (contained via catch_unwind)".to_string()),
+    let completion = provider
+        .complete(&system_prompt, &user_prompt, max_tokens)
+        .await
+        .map_err(|e| format!("Model provider error during {}: {}", name, e))?;
+
+    let parsed: Value = serde_json::from_str(&completion)
+        .unwrap_or_else(|_| json!({ "raw": completion }));
+
+    let state_dir = std::env::var("AXWISE_STATE_DIR")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|_| {
+            std::env::var("HOME")
+                .map(|h| std::path::PathBuf::from(h).join(".axwise").join("state"))
+                .unwrap_or_else(|_| std::path::PathBuf::from(".axwise-state"))
+        });
+
+    let operation_id = format!("op-{}", uuid::Uuid::new_v4());
+    let session_id = "default".to_string();
+    let timestamp_secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    let created_at = format!("{}", timestamp_secs);
+
+    let raw_artifact_json = serde_json::to_string_pretty(&parsed).unwrap_or_else(|_| completion.clone());
+    let sha256_hash = {
+        use sha2::{Digest, Sha256};
+        let mut hasher = Sha256::new();
+        hasher.update(raw_artifact_json.as_bytes());
+        format!("{:x}", hasher.finalize())
+    };
+
+    let session_dir = state_dir.join(&session_id);
+    let _ = std::fs::create_dir_all(&session_dir);
+    let json_path = session_dir.join(format!("{}.json", operation_id));
+    let md_path = session_dir.join(format!("{}.md", operation_id));
+
+    let record = OperationRecord {
+        operation_id: operation_id.clone(),
+        session_id: session_id.clone(),
+        tool: name.to_string(),
+        title: parsed.get("title").and_then(|t| t.as_str()).map(String::from),
+        created_at: created_at.clone(),
+        sha256: sha256_hash.clone(),
+        json_path: json_path.to_string_lossy().to_string(),
+        md_path: md_path.to_string_lossy().to_string(),
+        markdown: Some(completion.clone()),
+        artifact_json: Some(raw_artifact_json.clone()),
+        candidate_json: Some(completion.clone()),
+        input_json: Some(serde_json::to_string(arguments).unwrap_or_default()),
+        provenance_json: None,
+        quality_review_json: None,
+        status: "completed".to_string(),
+    };
+
+    if let Ok(mut storage) = StorageManager::new(state_dir) {
+        let _ = storage.save_operation(&record, &raw_artifact_json, &completion);
     }
+
+    Ok(json!({
+        "content": [{
+            "type": "text",
+            "text": completion
+        }],
+        "structuredContent": {
+            "tool": name,
+            "status": "completed",
+            "operationId": operation_id,
+            "sha256": sha256_hash,
+            "artifactPath": json_path.to_string_lossy(),
+            "markdownPath": md_path.to_string_lossy(),
+            "artifact": parsed
+        }
+    }))
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let stdin = io::stdin();
     let mut stdout = io::stdout();
 
@@ -170,7 +299,7 @@ fn main() {
                 let tool_name = params.get("name").and_then(|n| n.as_str()).unwrap_or("");
                 let args = params.get("arguments").cloned().unwrap_or(json!({}));
 
-                match handle_tool_call(tool_name, &args) {
+                match execute_pipeline(tool_name, &args).await {
                     Ok(result) => json!({
                         "jsonrpc": "2.0",
                         "id": id,

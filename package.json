@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "profile:test-memory": "node scripts/profile-test-memory.mjs",
+    "test:profile-test-memory": "node --test scripts/profile-test-memory.test.mjs"
+  },
   "dependencies": {
     "chess.js": "^1.4.0"
   }
