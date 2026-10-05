@@ -10,6 +10,7 @@ pub enum ProviderType {
     OpenAi,
     Anthropic,
     Gemini,
+    DesktopGateway,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -47,7 +48,19 @@ pub fn discover_credentials() -> HashMap<String, String> {
     let mut keys = HashMap::new();
 
     // 1. Environment variables
-    for key in &["OPENAI_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY", "ANTHROPIC_API_KEY", "AXWISE_API_KEY"] {
+    for key in &[
+        "OPENAI_API_KEY",
+        "GOOGLE_API_KEY",
+        "GEMINI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "AXWISE_API_KEY",
+        "AXWISE_ACCOUNT_TOKEN",
+        "ORQALY_ACCOUNT_TOKEN",
+        "AXWISE_ACCOUNT_HASH",
+        "ORQALY_ACCOUNT_HASH",
+        "AXWISE_GATEWAY_URL",
+        "ORQALY_GATEWAY_URL",
+    ] {
         if let Ok(val) = env::var(key) {
             if !val.trim().is_empty() {
                 keys.insert(key.to_string(), val.trim().to_string());
@@ -110,6 +123,7 @@ pub struct ModelProvider {
     pub api_key: String,
     pub base_url: String,
     pub model: String,
+    pub account_hash: Option<String>,
 }
 
 impl ModelProvider {
@@ -119,10 +133,21 @@ impl ModelProvider {
         base_url: Option<String>,
         model: String,
     ) -> Self {
+        Self::with_account_hash(provider_type, api_key, base_url, model, None)
+    }
+
+    pub fn with_account_hash(
+        provider_type: ProviderType,
+        api_key: String,
+        base_url: Option<String>,
+        model: String,
+        account_hash: Option<String>,
+    ) -> Self {
         let default_base = match provider_type {
             ProviderType::OpenAi => "https://api.openai.com/v1",
             ProviderType::Anthropic => "https://api.anthropic.com/v1",
             ProviderType::Gemini => "https://generativelanguage.googleapis.com/v1beta",
+            ProviderType::DesktopGateway => "http://127.0.0.1:4545",
         };
 
         let base_url = base_url.unwrap_or_else(|| default_base.to_string());
@@ -137,6 +162,7 @@ impl ModelProvider {
             api_key,
             base_url,
             model,
+            account_hash,
         }
     }
 
@@ -150,6 +176,7 @@ impl ModelProvider {
             ProviderType::OpenAi => self.complete_openai(system_prompt, user_prompt, max_tokens).await,
             ProviderType::Anthropic => self.complete_anthropic(system_prompt, user_prompt, max_tokens).await,
             ProviderType::Gemini => self.complete_gemini(system_prompt, user_prompt, max_tokens).await,
+            ProviderType::DesktopGateway => self.complete_desktop_gateway(system_prompt, user_prompt, max_tokens).await,
         }
     }
 
@@ -286,6 +313,53 @@ impl ModelProvider {
         let content = data["candidates"][0]["content"]["parts"][0]["text"]
             .as_str()
             .ok_or_else(|| ProviderError::Incomplete("Missing candidates[0].content.parts[0].text".to_string()))?;
+
+        Ok(clean_json_completion(content).to_string())
+    }
+
+    async fn complete_desktop_gateway(
+        &self,
+        system_prompt: &str,
+        user_prompt: &str,
+        max_tokens: u32,
+    ) -> Result<String, ProviderError> {
+        let endpoint = format!("{}/desktop/v1/chat/completions", self.base_url.trim_end_matches('/'));
+
+        let body = json!({
+            "model": self.model,
+            "stream": false,
+            "store": false,
+            "max_tokens": max_tokens,
+            "temperature": 0.2,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
+        });
+
+        let mut req = self.client
+            .post(&endpoint)
+            .header("Content-Type", "application/json")
+            .header("Authorization", format!("Bearer {}", self.api_key));
+
+        if let Some(ref hash) = self.account_hash {
+            req = req.header("X-Orqaly-Account-Hash", hash);
+        }
+
+        let response = req.json(&body).send().await?;
+        let status = response.status();
+        if !status.is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(ProviderError::Api {
+                status: status.as_u16(),
+                body: error_text,
+            });
+        }
+
+        let data: Value = response.json().await?;
+        let content = data["choices"][0]["message"]["content"]
+            .as_str()
+            .ok_or_else(|| ProviderError::Incomplete("Missing choices[0].message.content".to_string()))?;
 
         Ok(clean_json_completion(content).to_string())
     }

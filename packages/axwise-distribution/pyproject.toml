@@ -5,7 +5,7 @@ backend-path = ["packages/axwise-distribution"]
 
 [project]
 name = "axwise-extension"
-version = "0.4.2"
+version = "0.4.3"
 description = "Scoped local product discovery and evidence-to-PRD FastMCP extension"
 readme = "README.md"
 requires-python = ">=3.11"

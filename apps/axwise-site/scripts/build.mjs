@@ -16,6 +16,9 @@ export function validateRelease(release) {
   if (!release.published) return;
   if (release.tag !== `axwise-extension-v${release.version}`) throw new Error('Unexpected release tag');
   const expected = { npm: `axwise-extension-${release.version}.tgz`, python: `axwise_extension-${release.version}-py3-none-any.whl` };
+  if (release.artifacts?.native) {
+    expected.native = `axwise-native-darwin-arm64-v${release.version}.tar.gz`;
+  }
   for (const [kind, filename] of Object.entries(expected)) {
     const artifact = release.artifacts?.[kind];
     if (!artifact || artifact.filename !== filename) throw new Error(`Unexpected ${kind} artifact filename`);
@@ -31,7 +34,7 @@ export async function verifyRelease(release, fetchImpl = fetch) {
   validateRelease(release);
   if (!release.published) return null;
   for (const [kind, artifact] of Object.entries(release.artifacts)) {
-    if (!['npm', 'python'].includes(kind)) throw new Error('Unexpected release artifact kind');
+    if (!['npm', 'python', 'native'].includes(kind)) throw new Error('Unexpected release artifact kind');
     const response = await fetchImpl(artifact.url, { signal: AbortSignal.timeout(120_000), redirect: 'follow' });
     if (!response.ok || !response.body) throw new Error(`${kind} artifact is not publicly downloadable`);
     const finalUrl = new URL(response.url || artifact.url);
@@ -54,10 +57,12 @@ export function releaseSection(release) {
   if (!release.published) {
     return `<span class="example-tag">For your own MCP workspace</span><h3>A standalone extension</h3><span class="pending-badge">Version ${version} · release in preparation</span><p>Use the same discovery engine in another compatible host, with your own model credentials. We are preparing a lightweight, pure-Python FastMCP wheel with embedded SQLite storage.</p><p>Download links and exact commands will appear here after the public release artifacts pass verification. Nothing on this page requires you to install an unpublished package.</p><a class="text-link" href="${repository}">Follow the open-source project <span aria-hidden="true">↗</span></a><ul class="requirements"><li>Pure Python: Python 3.11 or newer (uv can provide Python).</li><li>Eliminates the legacy Node.js 22 requirement; no PostgreSQL required.</li><li>Embedded SQLite storage in <code>~/.axwise/state/axwise.db</code> and flat Markdown files.</li><li>Bring provider credentials and configure your host’s MCP connection.</li></ul>`;
   }
-  const { npm, python } = release.artifacts;
+  const { npm, python, native } = release.artifacts;
   const npx = `npx --yes --package=${npm.url} axwise --config /absolute/path/axwise.json`;
   const uvx = `uvx --from ${python.url} axwise --config /absolute/path/axwise.json`;
-  return `<span class="example-tag">For your own MCP workspace</span><h3>AxWise ${version}</h3><p>Two launch paths, the same engine. These commands use the versioned GitHub release artifacts—not an npm or PyPI registry listing.</p><div class="download-links"><a href="${escapeHtml(npm.url)}">Download npm archive (.tgz) ↓</a><a href="${escapeHtml(python.url)}">Download Python wheel (.whl) ↓</a></div><p class="command-label">Launch with npx</p><pre class="command"><code>${escapeHtml(npx)}</code></pre><p class="command-label">Or launch with uvx</p><pre class="command"><code>${escapeHtml(uvx)}</code></pre><ul class="requirements"><li>Pure Python FastMCP runtime with embedded SQLite storage.</li><li>Python 3.11+ (uv can provide Python). Zero PostgreSQL or Docker containers required.</li><li>Provide your own model credentials in your local configuration; do not paste secrets into chat or public config files.</li></ul><p><a class="text-link" href="${repository}#install-from-a-release">Configuration and host examples ↗</a></p><details class="checksums"><summary>Verified download checksums (SHA-256)</summary><p>npm archive · ${npm.bytes.toLocaleString('en-US')} bytes</p><code>${npm.sha256}</code><p>Python wheel · ${python.bytes.toLocaleString('en-US')} bytes</p><code>${python.sha256}</code></details>`;
+  const nativeLink = native ? `<a href="${escapeHtml(native.url)}">Download native macOS binary (.tar.gz) ↓</a>` : '';
+  const nativeChecksum = native ? `<p>Native binary (macOS ARM64) · ${native.bytes.toLocaleString('en-US')} bytes</p><code>${native.sha256}</code>` : '';
+  return `<span class="example-tag">For your own MCP workspace</span><h3>AxWise ${version}</h3><p>Launch via native standalone binary, or using versioned GitHub release artifacts with npx or uvx—not an npm or PyPI registry listing.</p><div class="download-links">${nativeLink}<a href="${escapeHtml(npm.url)}">Download npm archive (.tgz) ↓</a><a href="${escapeHtml(python.url)}">Download Python wheel (.whl) ↓</a></div><p class="command-label">Launch with npx</p><pre class="command"><code>${escapeHtml(npx)}</code></pre><p class="command-label">Or launch with uvx</p><pre class="command"><code>${escapeHtml(uvx)}</code></pre><ul class="requirements"><li>Pure Rust native binary with embedded SQLite storage and Gemini 3.8/3.5 dynamic depth routing.</li><li>Pure Python FastMCP runtime with embedded SQLite storage.</li><li>Python 3.11+ (uv can provide Python). Zero PostgreSQL or Docker containers required.</li><li>Provide your own model credentials in your local configuration; do not paste secrets into chat or public config files.</li></ul><p><a class="text-link" href="${repository}#install-from-a-release">Configuration and host examples ↗</a></p><details class="checksums"><summary>Verified download checksums (SHA-256)</summary>${nativeChecksum}<p>npm archive · ${npm.bytes.toLocaleString('en-US')} bytes</p><code>${npm.sha256}</code><p>Python wheel · ${python.bytes.toLocaleString('en-US')} bytes</p><code>${python.sha256}</code></details>`;
 }
 
 export function documentPage({ title, description, body, path = '/', mainClass = '', noindex = false }) {

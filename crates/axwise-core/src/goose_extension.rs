@@ -20,7 +20,7 @@ impl Default for AxwisePlatformExtension {
     fn default() -> Self {
         Self {
             name: "axwise",
-            version: "0.4.2",
+            version: "0.4.3",
         }
     }
 }

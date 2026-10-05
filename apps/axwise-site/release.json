@@ -1,19 +1,25 @@
 {
   "published": true,
-  "version": "0.4.2",
-  "tag": "axwise-extension-v0.4.2",
+  "version": "0.4.3",
+  "tag": "axwise-extension-v0.4.3",
   "artifacts": {
     "npm": {
-      "filename": "axwise-extension-0.4.2.tgz",
-      "url": "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.2/axwise-extension-0.4.2.tgz",
-      "sha256": "2ce557643498b9b282701c79aedda1d27619a7ab31dfa4fcc78f8ab44f049ab9",
-      "bytes": 190305
+      "filename": "axwise-extension-0.4.3.tgz",
+      "url": "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise-extension-0.4.3.tgz",
+      "sha256": "07d419d1bc65baa206618753494cf443677f6ccfe64b41459c1b35b30d0e428b",
+      "bytes": 191015
     },
     "python": {
-      "filename": "axwise_extension-0.4.2-py3-none-any.whl",
-      "url": "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.2/axwise_extension-0.4.2-py3-none-any.whl",
-      "sha256": "0855d276cd6d596872f98c03a0f150a912f8d774e9febc6687966cdb88569749",
-      "bytes": 184921
+      "filename": "axwise_extension-0.4.3-py3-none-any.whl",
+      "url": "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise_extension-0.4.3-py3-none-any.whl",
+      "sha256": "d6d7a087d355fed5d0d0629dbcf69fde3b2f7ea9ab7771396ff57c2bab3f7408",
+      "bytes": 185619
+    },
+    "native": {
+      "filename": "axwise-native-darwin-arm64-v0.4.3.tar.gz",
+      "url": "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise-native-darwin-arm64-v0.4.3.tar.gz",
+      "sha256": "047635a9ad837b6e5da23ca10a48618a86ef993bbd727c25fb789a68aad4c294",
+      "bytes": 3725974
     }
   }
 }

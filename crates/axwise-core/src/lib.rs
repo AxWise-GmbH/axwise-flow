@@ -3,6 +3,7 @@ pub mod common;
 pub mod delivery;
 pub mod discovery;
 pub mod goose_extension;
+pub mod jev;
 pub mod personas;
 pub mod prd;
 pub mod prompts;
@@ -19,6 +20,7 @@ pub use common::{AnalysisArtifactReference, ArtifactReference, EvidenceSource, R
 pub use delivery::{DeliveryCandidate, DeliveryInput};
 pub use discovery::{DiscoveryCandidate, DiscoveryInput, MarketCandidate, MarketInput};
 pub use goose_extension::{AxwisePlatformExtension, PlatformToolInfo};
+pub use jev::{audit_gate_b, GateBAuditDecision, GateBAuditOutcome, JevError};
 pub use personas::{ChatWithPersonaInput, GeneratePersonasInput, PersonaCandidate, PersonaChatCandidate};
 pub use prd::{PrdCandidate, PrdInput};
 pub use provider::{clean_json_completion, discover_credentials, ModelProvider, ProviderError, ProviderType};

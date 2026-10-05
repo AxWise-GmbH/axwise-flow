@@ -1,5 +1,6 @@
 use std::io::{self, BufRead, Write};
-use schemars::schema_for;
+use schemars::{schema_for, JsonSchema};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use axwise_core::*;
@@ -45,8 +46,23 @@ fn get_tools_manifest() -> Value {
             "name": "create_delivery_brief",
             "description": "Compile an engineering delivery brief with testable milestones and acceptance checks from an approved PRD.",
             "inputSchema": schema_for!(DeliveryInput)
+        },
+        {
+            "name": "audit_gate_b",
+            "description": "Execute Stage 8 Gate B Deliverable Integrity and Hedging Verification via TypeSafe JEV System-1.",
+            "inputSchema": schema_for!(AuditGateBInput)
         }
     ])
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AuditGateBInput {
+    pub deliverable: String,
+    #[serde(default)]
+    pub acceptance_criteria: Vec<Value>,
+    #[serde(default)]
+    pub evidence: Option<Value>,
 }
 
 const KNOWN_TOOLS: &[&str] = &[
@@ -58,6 +74,7 @@ const KNOWN_TOOLS: &[&str] = &[
     "generate_personas",
     "chat_with_persona",
     "create_delivery_brief",
+    "audit_gate_b",
 ];
 
 async fn execute_pipeline(name: &str, arguments: &Value) -> Result<Value, String> {
@@ -65,13 +82,39 @@ async fn execute_pipeline(name: &str, arguments: &Value) -> Result<Value, String
         return Err(format!("Unknown tool: {}", name));
     }
 
+    if name == "audit_gate_b" {
+        let input: AuditGateBInput = serde_json::from_value(arguments.clone())
+            .map_err(|e| format!("Invalid arguments for audit_gate_b: {}", e))?;
+        let outcome = jev::audit_gate_b(&input.deliverable, &input.acceptance_criteria, input.evidence.as_ref())
+            .await
+            .map_err(|e| format!("JEV Gate B error: {}", e))?;
+        return Ok(json!({
+            "content": [{
+                "type": "text",
+                "text": serde_json::to_string_pretty(&outcome).unwrap_or_default()
+            }],
+            "structuredContent": outcome
+        }));
+    }
+
+    let depth = arguments.get("depth").and_then(|d| d.as_str()).unwrap_or("standard");
+    let default_gemini_model = if depth == "deep" {
+        "gemini-3.8-flash"
+    } else {
+        "gemini-3.5-flash-lite"
+    };
+
     let creds = discover_credentials();
-    let provider = if let Some(key) = creds.get("OPENAI_API_KEY") {
+    let provider = if let Some(token) = creds.get("AXWISE_ACCOUNT_TOKEN").or_else(|| creds.get("ORQALY_ACCOUNT_TOKEN")) {
+        let gateway_url = creds.get("AXWISE_GATEWAY_URL").or_else(|| creds.get("ORQALY_GATEWAY_URL")).cloned();
+        let account_hash = creds.get("AXWISE_ACCOUNT_HASH").or_else(|| creds.get("ORQALY_ACCOUNT_HASH")).cloned();
+        Some(ModelProvider::with_account_hash(ProviderType::DesktopGateway, token.clone(), gateway_url, "orqaly-gemini".to_string(), account_hash))
+    } else if let Some(key) = creds.get("OPENAI_API_KEY") {
         Some(ModelProvider::new(ProviderType::OpenAi, key.clone(), None, "gpt-4o".to_string()))
     } else if let Some(key) = creds.get("ANTHROPIC_API_KEY") {
         Some(ModelProvider::new(ProviderType::Anthropic, key.clone(), None, "claude-3-5-sonnet-20241022".to_string()))
     } else if let Some(key) = creds.get("GOOGLE_API_KEY").or_else(|| creds.get("GEMINI_API_KEY")) {
-        let model = std::env::var("AXWISE_GEMINI_MODEL").unwrap_or_else(|_| "gemini-3.8-flash".to_string());
+        let model = std::env::var("AXWISE_GEMINI_MODEL").unwrap_or_else(|_| default_gemini_model.to_string());
         Some(ModelProvider::new(ProviderType::Gemini, key.clone(), None, model))
     } else {
         None
@@ -163,13 +206,54 @@ async fn execute_pipeline(name: &str, arguments: &Value) -> Result<Value, String
         _ => unreachable!(),
     };
 
-    let completion = provider
+    let mut completion = provider
         .complete(&system_prompt, &user_prompt, max_tokens)
         .await
         .map_err(|e| format!("Model provider error during {}: {}", name, e))?;
 
-    let parsed: Value = serde_json::from_str(&completion)
+    let mut parsed: Value = serde_json::from_str(&completion)
         .unwrap_or_else(|_| json!({ "raw": completion }));
+
+    // Stage 2: Substantive Quality Review and Auto-Repair Loop
+    let mut quality_review_val: Option<Value> = None;
+    if let Ok(rev_prompt) = review_engine::prepare_review(name, arguments, &parsed) {
+        if let Ok(rev_completion) = provider.complete(&rev_prompt.system_prompt, &rev_prompt.user_prompt, 4096).await {
+            if let Ok(outcome) = review_engine::validate_review(name, &rev_completion) {
+                if !outcome.passed && !outcome.issues.is_empty() {
+                    // Attempt single bounded repair
+                    let repair_prompt = format!(
+                        "Original Generated Artifact:\n{}\n\nQuality Review Feedback (Unsatisfied Criteria):\n- {}\n\nPlease revise the artifact to resolve every issue above while strictly conforming to the schema.",
+                        completion,
+                        outcome.issues.join("\n- ")
+                    );
+                    if let Ok(repaired_completion) = provider.complete(&system_prompt, &repair_prompt, max_tokens).await {
+                        if let Ok(repaired_parsed) = serde_json::from_str::<Value>(&repaired_completion) {
+                            completion = repaired_completion;
+                            parsed = repaired_parsed;
+                        }
+                    }
+                }
+                quality_review_val = serde_json::to_value(&outcome.review).ok();
+            }
+        }
+    }
+
+    // Stage 3 / Gate B: TypeSafe JEV System-1 Deliverable Integrity Audit
+    let mut gate_b_audit_val: Option<Value> = None;
+    if name == "create_prd" || name == "create_delivery_brief" {
+        let acceptance_criteria = parsed.get("sections")
+            .and_then(|s| s.as_array())
+            .map(|secs| {
+                secs.iter().flat_map(|sec| {
+                    sec.get("items").and_then(|i| i.as_array()).into_iter().flatten().cloned()
+                }).collect::<Vec<Value>>()
+            })
+            .unwrap_or_default();
+
+        if let Ok(outcome) = jev::audit_gate_b(&completion, &acceptance_criteria, arguments.get("sources")).await {
+            gate_b_audit_val = serde_json::to_value(&outcome).ok();
+        }
+    }
 
     let state_dir = std::env::var("AXWISE_STATE_DIR")
         .map(std::path::PathBuf::from)
@@ -188,6 +272,7 @@ async fn execute_pipeline(name: &str, arguments: &Value) -> Result<Value, String
     let created_at = format!("{}", timestamp_secs);
 
     let raw_artifact_json = serde_json::to_string_pretty(&parsed).unwrap_or_else(|_| completion.clone());
+    let quality_review_json = quality_review_val.as_ref().map(|v| v.to_string());
     let sha256_hash = {
         use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
@@ -214,7 +299,7 @@ async fn execute_pipeline(name: &str, arguments: &Value) -> Result<Value, String
         candidate_json: Some(completion.clone()),
         input_json: Some(serde_json::to_string(arguments).unwrap_or_default()),
         provenance_json: None,
-        quality_review_json: None,
+        quality_review_json: quality_review_json.clone(),
         status: "completed".to_string(),
     };
 
@@ -234,6 +319,8 @@ async fn execute_pipeline(name: &str, arguments: &Value) -> Result<Value, String
             "sha256": sha256_hash,
             "artifactPath": json_path.to_string_lossy(),
             "markdownPath": md_path.to_string_lossy(),
+            "qualityReview": quality_review_val,
+            "gateBAudit": gate_b_audit_val,
             "artifact": parsed
         }
     }))
@@ -281,8 +368,8 @@ async fn main() {
                         "tools": {}
                     },
                     "serverInfo": {
-                        "name": "axwise-local",
-                        "version": "0.4.2"
+                        "name": "axwise-mcp",
+                        "version": "0.4.3"
                     }
                 }
             }),
