@@ -545,7 +545,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
               <div className="flex items-center justify-between border-b border-stone-800 pb-2.5">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span className="text-[11px] font-semibold text-stone-200 uppercase tracking-wider">AxWise FastMCP 0.4.2</span>
+                  <span className="text-[11px] font-semibold text-stone-200 uppercase tracking-wider">AxWise FastMCP 0.4.3</span>
                 </div>
                 <span className="text-[10px] text-emerald-400 bg-emerald-950/70 border border-emerald-800/80 px-2 py-0.5 rounded">Verified Release</span>
               </div>
@@ -2383,7 +2383,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                 FOR YOUR OWN MCP WORKSPACE
               </span>
               <span className="text-xs font-mono text-stone-400 font-medium">
-                Version 0.4.2 · Verified release
+                Version 0.4.3 · Verified release
               </span>
             </div>
 

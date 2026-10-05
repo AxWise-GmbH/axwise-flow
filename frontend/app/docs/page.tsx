@@ -95,18 +95,18 @@ export default function DocsPage(): React.JSX.Element {
         <div className="border-b border-[#EAE6DF] pb-10 space-y-4">
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-              AXWISE FASTMCP 0.4.2
+              AXWISE FASTMCP 0.4.3
             </span>
             <span className="text-xs font-mono text-stone-500 uppercase tracking-wider">
-              PURE-PYTHON MODEL CONTEXT PROTOCOL (MCP) SPECIALIST
+              NATIVE RUST &amp; PURE-PYTHON MCP SPECIALIST
             </span>
           </div>
           <h1 className="font-serif text-4xl text-stone-900">Developer Documentation</h1>
           <p className="text-base text-stone-600 max-w-3xl leading-relaxed">
-            AxWise is a scoped, pure-Python local specialist extension for turning product briefs and evidence into discovery scopes, synthetic persona cohorts, simulated interviews, qualitative analysis, evidence-linked PRDs, and delivery handoffs.
+            AxWise is a scoped, native Rust and pure-Python local specialist extension for turning product briefs and evidence into discovery scopes, synthetic persona cohorts, simulated interviews, qualitative analysis, evidence-linked PRDs, and delivery handoffs.
           </p>
           <p className="text-xs text-stone-500 leading-relaxed max-w-3xl">
-            Built with <strong>zero Node.js</strong> and <strong>zero PostgreSQL</strong> dependencies. Runs on standard Python 3.11+ using FastMCP and persists local artifacts in an embedded SQLite database (<code>~/.axwise/state/axwise.db</code>).
+            Built with <strong>zero Node.js</strong> and <strong>zero PostgreSQL</strong> dependencies. Runs on standard Python 3.11+ using FastMCP or standalone native Rust, persisting local artifacts in an embedded SQLite database (<code>~/.axwise/state/axwise.db</code>).
           </p>
         </div>
 
@@ -114,9 +114,9 @@ export default function DocsPage(): React.JSX.Element {
         <section id="launch" className="space-y-6">
           <div className="border-b border-[#EAE6DF] pb-4">
             <span className="text-xs font-mono uppercase tracking-wider text-emerald-700 font-semibold">// 1. QUICK LAUNCH &amp; INSTALL</span>
-            <h2 className="font-serif text-2xl text-stone-900 mt-1">Run Instantly with uvx or pip</h2>
+            <h2 className="font-serif text-2xl text-stone-900 mt-1">Run Instantly with uvx, pip, or Native Binary</h2>
             <p className="text-sm text-stone-500 mt-1">
-              AxWise 0.4.2 is a pure-Python package. No JSON config files, Node.js runtimes, or database containers required.
+              AxWise 0.4.3 is available as a native standalone binary or pure-Python package. No JSON config files, Node.js runtimes, or database containers required.
             </p>
           </div>
 
