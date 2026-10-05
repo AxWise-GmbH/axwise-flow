@@ -176,4 +176,68 @@ test('selectCloudModelTier automatically escalates to 3.8 flash on tool or execu
   assert.equal(selectCloudModelTier(failedToolBody, { autoEscalateOnFailure: false }), 'gemini-3.5-flash-lite');
 });
 
+test('filterDynamicToolSchemas prunes tools based on Jev lane triage while preserving core tools', () => {
+  const allTools = [
+    { type: 'function', function: { name: 'shell' } },
+    { type: 'function', function: { name: 'write' } },
+    { type: 'function', function: { name: 'ast_search' } },
+    { type: 'function', function: { name: 'desktop-utilities__get_weather' } },
+    { type: 'function', function: { name: 'desktop-utilities__search_web' } },
+    { type: 'function', function: { name: 'axwise-local__prepare_discovery' } },
+    { type: 'function', function: { name: 'axwise-local__create_prd' } },
+    { type: 'function', function: { name: 'memory__remember_memory' } },
+  ];
+
+  // 1. Quick Info lane: keeps weather, search, memory, and core shell/write; drops ast_search and axwise
+  const quickInfoBody = {
+    messages: [
+      {
+        role: 'system',
+        content: JSON.stringify({
+          kind: 'orqaly.jev-triage.v1',
+          lane: 'quick_info',
+          target: 'desktop-utilities (weather, currency, search)',
+        }),
+      },
+      { role: 'user', content: 'What is the weather in Riga today?' },
+    ],
+  };
+  const quickTools = filterDynamicToolSchemas(allTools, quickInfoBody);
+  const quickNames = quickTools.map((t) => t.function.name);
+  assert.ok(quickNames.includes('desktop-utilities__get_weather'));
+  assert.ok(quickNames.includes('desktop-utilities__search_web'));
+  assert.ok(quickNames.includes('shell')); // core preserved
+  assert.ok(!quickNames.includes('axwise-local__create_prd')); // axwise pruned
+  assert.ok(!quickNames.includes('ast_search')); // native engineering pruned
+
+  // 2. Local engineering lane: keeps core tools and native engineering (when not gated), drops axwise & weather
+  const localEngBody = {
+    messages: [
+      {
+        role: 'system',
+        content: JSON.stringify({
+          kind: 'orqaly.jev-triage.v1',
+          lane: 'local_engineering',
+        }),
+      },
+      { role: 'user', content: 'Refactor UserService in TypeScript.' },
+    ],
+  };
+  const engTools = filterDynamicToolSchemas(allTools, localEngBody);
+  const engNames = engTools.map((t) => t.function.name);
+  assert.ok(engNames.includes('shell'));
+  assert.ok(engNames.includes('ast_search'));
+  assert.ok(!engNames.includes('desktop-utilities__get_weather'));
+  assert.ok(!engNames.includes('axwise-local__prepare_discovery'));
+
+  // 3. Mixed lane: retains full toolset
+  const mixedBody = {
+    messages: [{ role: 'user', content: 'Refactor UserService and search web for latest patterns.' }],
+    lane: 'mixed',
+  };
+  const mixedTools = filterDynamicToolSchemas(allTools, mixedBody, {}, { hasTsConfig: true, fileCount: 20 });
+  assert.equal(mixedTools.length, allTools.length);
+});
+
+
 

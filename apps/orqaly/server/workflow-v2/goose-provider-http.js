@@ -4,6 +4,7 @@ import { pipeline } from 'node:stream/promises';
 import { createHash } from 'node:crypto';
 import { ENGINEERING_REVIEW_MAX_BYTES } from './engineering-review-service.js';
 import { DesktopWorkReadQuerySchema } from './desktop-work-service.js';
+import { filterDynamicToolSchemas } from './tool-schema-filter.js';
 
 export const GOOSE_PROVIDER_MODEL = 'orqaly-gemini';
 const GOOGLE_CHAT_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
@@ -519,6 +520,9 @@ export function createGooseProviderRouter({
         }
       }
       controller.signal.throwIfAborted();
+      if (Array.isArray(body.tools) && body.tools.length > 0) {
+        body.tools = filterDynamicToolSchemas(body.tools, body, req.headers);
+      }
       if (body.stream && (body.stream_options === undefined || body.stream_options.include_usage !== false)) {
         body.stream_options = { include_usage: true };
       }

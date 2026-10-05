@@ -674,6 +674,11 @@ export function shouldGateNativeTools(body, userSettings = {}, workspaceContext 
     return false;
   }
 
+  // If recovering from an error or failure, do not gate diagnostic tools
+  if (hasToolOrExecutionError(body)) {
+    return false;
+  }
+
   // Large workspaces or TypeScript project configurations need native LSP/AST
   if (workspaceContext.hasTsConfig === true || (workspaceContext.fileCount && workspaceContext.fileCount > 5)) {
     return false;
@@ -691,21 +696,113 @@ export function shouldGateNativeTools(body, userSettings = {}, workspaceContext 
   return true;
 }
 
-/**
- * Dynamically filters tool schemas for the active turn, removing the 4 heavy
- * native engineering tools unless multi-file refactoring or project context requires them.
- */
-export function filterDynamicToolSchemas(tools, body, userSettings = {}, workspaceContext = {}) {
-  if (!Array.isArray(tools) || tools.length === 0) return tools || [];
+export const CORE_TOOLS = new Set([
+  "shell",
+  "write",
+  "edit",
+  "tree",
+  "read_image",
+  "load",
+  "load_skill",
+  "todo__todo_write",
+]);
 
-  if (!shouldGateNativeTools(body, userSettings, workspaceContext)) {
-    return tools;
-  }
+/**
+ * Extracts the Jev triage lane from explicit settings, context, or embedded prompt resources.
+ */
+export function extractTriageLane(body, userSettings = {}, workspaceContext = {}) {
+  if (userSettings?.lane || userSettings?.jevLane) return userSettings.lane || userSettings.jevLane;
+  if (workspaceContext?.lane || workspaceContext?.jevLane) return workspaceContext.lane || workspaceContext.jevLane;
+  if (body?.lane) return body.lane;
+
+  const messages = body?.messages || [];
+  const serialized = typeof messages === "string" ? messages : JSON.stringify(messages);
+  const match = serialized.match(/orqaly\.jev-triage\.v1.*?lane[\\"\s:]+([a-zA-Z_-]+)/u);
+  return match ? match[1] : null;
+}
+
+/**
+ * Filters tool definitions based on the triaged Jev lane while strictly preserving core tools.
+ */
+export function filterToolsByJevLane(tools, lane, isErrorRecovery = false) {
+  if (!lane || lane === GOOSE_LANES.MIXED || !Array.isArray(tools)) return tools;
 
   return tools.filter((tool) => {
     const rawName = tool?.name || tool?.function?.name || "";
     const shortName = rawName.split("__").at(-1);
-    return !NATIVE_ENGINEERING_TOOL_NAMES.has(shortName) && !rawName.startsWith("native_engineering__");
+    const prefix = rawName.includes("__") ? rawName.split("__")[0] : "";
+
+    // Always preserve essential core interaction tools
+    if (CORE_TOOLS.has(shortName) || CORE_TOOLS.has(rawName)) return true;
+
+    // Error recovery exception: preserve search tools so the model can look up error resolutions
+    if (isErrorRecovery && (shortName.includes("search") || rawName.includes("search"))) {
+      return true;
+    }
+
+    if (lane === GOOSE_LANES.CONVERSATION) {
+      return prefix === "memory" || prefix === "todo" || prefix === "chatrecall";
+    }
+
+    if (lane === GOOSE_LANES.QUICK_INFO) {
+      return prefix === "desktop-utilities" || prefix === "orqanix-daily" || prefix === "memory";
+    }
+
+    if (lane === GOOSE_LANES.LOCAL_ENGINEERING) {
+      return (
+        prefix === "native_engineering" ||
+        prefix === "developer" ||
+        prefix === "analyze" ||
+        prefix === "memory" ||
+        prefix === "gavel" ||
+        !prefix
+      );
+    }
+
+    if (lane === GOOSE_LANES.RESEARCH) {
+      return (
+        prefix === "axwise-local" ||
+        prefix === "axwise-mcp" ||
+        prefix === "autovisualiser" ||
+        prefix === "desktop-utilities" ||
+        prefix === "memory"
+      );
+    }
+
+    return true;
   });
+}
+
+/**
+ * Dynamically filters tool schemas for the active turn, combining Jev lane triage
+ * with native engineering tool gating to optimize prompt tokens and response latency.
+ */
+export function filterDynamicToolSchemas(tools, body, userSettings = {}, workspaceContext = {}) {
+  if (!Array.isArray(tools) || tools.length === 0) return tools || [];
+
+  if (userSettings.disableToolPruning === true || userSettings.nativeToolsExplicit === true) {
+    return tools;
+  }
+
+  const isErrorRecovery = hasToolOrExecutionError(body);
+  let filtered = tools;
+
+  // 1. Prune tools by Jev lane if available
+  const lane = extractTriageLane(body, userSettings, workspaceContext);
+  if (lane && lane !== GOOSE_LANES.MIXED) {
+    filtered = filterToolsByJevLane(tools, lane, isErrorRecovery);
+    if (filtered.length === 0) filtered = tools;
+  }
+
+  // 2. Native engineering gating on simple tasks
+  if (shouldGateNativeTools(body, userSettings, workspaceContext)) {
+    filtered = filtered.filter((tool) => {
+      const rawName = tool?.name || tool?.function?.name || "";
+      const shortName = rawName.split("__").at(-1);
+      return !NATIVE_ENGINEERING_TOOL_NAMES.has(shortName) && !rawName.startsWith("native_engineering__");
+    });
+  }
+
+  return filtered.length > 0 ? filtered : tools;
 }
 

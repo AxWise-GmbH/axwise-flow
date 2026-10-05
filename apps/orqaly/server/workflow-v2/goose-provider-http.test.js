@@ -862,4 +862,53 @@ describe('authenticated Goose provider transport', () => {
     expect(data.users[0].userId).toBe('user_target');
     expect(userQuotaService.listUsers).toHaveBeenCalledWith({ limit: 50, offset: 0, month: 'current' });
   });
+
+  it('prunes tool schemas according to Jev lane in /chat/completions before sending upstream', async () => {
+    let capturedBody = null;
+    const fetchImpl = vi.fn(async (_url, options) => {
+      capturedBody = JSON.parse(options.body);
+      return new Response(JSON.stringify({
+        choices: [{ message: { content: 'Weather is fine' } }],
+        usage: { prompt_tokens: 100, completion_tokens: 10 },
+      }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+
+    const f = await fixture({ fetchImpl });
+    const allTools = [
+      { type: 'function', function: { name: 'shell' } },
+      { type: 'function', function: { name: 'ast_search' } },
+      { type: 'function', function: { name: 'desktop-utilities__get_weather' } },
+      { type: 'function', function: { name: 'axwise-local__create_prd' } },
+    ];
+
+    const body = {
+      model: 'orqaly-gemini',
+      messages: [
+        {
+          role: 'system',
+          content: JSON.stringify({
+            kind: 'orqaly.jev-triage.v1',
+            lane: 'quick_info',
+          }),
+        },
+        { role: 'user', content: 'What is the weather in Riga?' },
+      ],
+      tools: allTools,
+    };
+
+    const response = await f.call('/chat/completions', body);
+    expect(response.status).toBe(200);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+
+    const sentToolNames = capturedBody.tools.map((t) => t.function.name);
+    // Preserves quick_info tool and core shell
+    expect(sentToolNames).toContain('desktop-utilities__get_weather');
+    expect(sentToolNames).toContain('shell');
+    // Pruned unrelated research and engineering tools
+    expect(sentToolNames).not.toContain('axwise-local__create_prd');
+    expect(sentToolNames).not.toContain('ast_search');
+  });
 });
