@@ -221,8 +221,8 @@ export async function runRefactorBenchmarkComparison(projectInfo) {
           costCents: Number(((nativePromptTokens * 0.25 * 0.75 + nativePromptTokens * 0.75 * 0.1875 + nativeCompletionTokens * 3.75) / 10000).toFixed(2)),
           typecheckAccuracy: '100%',
         },
-        'gemini-3.1-flash-lite': {
-          modelName: 'Gemini 3.1 Flash-Lite (Cloud Fast)',
+        'gemini-3.5-flash-lite': {
+          modelName: 'Gemini 3.5 Flash-Lite (Cloud Fast)',
           turns: 3,
           promptTokens: nativePromptTokens,
           cachedTokens: Math.round(nativePromptTokens * 0.75),

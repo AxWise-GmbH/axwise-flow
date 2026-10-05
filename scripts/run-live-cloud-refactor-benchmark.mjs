@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Live Cloud Refactoring Benchmark (No Local Models)
- * Sends live requests to Google Gemini 3.8 Flash and Gemini 3.1 Flash-Lite
+ * Sends live requests to Google Gemini 3.8 Flash and Gemini 3.5 Flash-Lite
  * to perform a multi-file TypeScript refactor and measures real latency,
  * TTFT, and compiler validation.
  */
@@ -111,7 +111,7 @@ async function runLiveBenchmark() {
   console.log('================================================================');
   console.log('LIVE CLOUD MULTI-MODEL REFACTOR BENCHMARK (GEMINI ONLY)');
   console.log('Endpoints: Google Generative Language API (OpenAI compatibility)');
-  console.log('Models:    gemini-3.8-flash vs gemini-3.1-flash-lite');
+  console.log('Models:    gemini-3.8-flash vs gemini-3.5-flash-lite');
   console.log('================================================================\n');
 
   // Refactoring task description
@@ -134,7 +134,7 @@ const discount = calculateDiscount(item, tier);
 Provide the TypeScript refactored core function and a standardized consumer implementation pattern that preserves strict type safety.
 Return your answer with a JSON code block with the refactored code and an explanation.`;
 
-  const models = ['gemini-3.8-flash', 'gemini-3.1-flash-lite'];
+  const models = ['gemini-3.8-flash', 'gemini-3.5-flash-lite'];
   const results = [];
 
   for (const model of models) {

@@ -34,10 +34,10 @@ const LLM_OPTIONS = [
   { id: 'gemini-flash-lite-latest', name: 'Gemini Flash Lite (latest)', provider: 'Gemini' },
   { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', provider: 'Gemini' },
   { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro (preview)', provider: 'Gemini' },
-  { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', provider: 'Gemini' },
+  { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash Lite', provider: 'Gemini' },
   {
-    id: 'gemini-3.1-flash-lite-preview',
-    name: 'Gemini 3.1 Flash Lite (preview)',
+    id: 'gemini-3.5-flash-lite-preview',
+    name: 'Gemini 3.5 Flash Lite (preview)',
     provider: 'Gemini',
   },
   { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro (preview)', provider: 'Gemini' },

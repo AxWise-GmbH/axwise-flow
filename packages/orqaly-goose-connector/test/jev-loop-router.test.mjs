@@ -15,7 +15,7 @@ test('selectCloudModelTier selects flash-lite for small prompts and flash-3.8 fo
       { role: 'user', content: 'Fix a one-line bug in calculateTax.' },
     ],
   };
-  assert.equal(selectCloudModelTier(smallBody), 'gemini-3.1-flash-lite');
+  assert.equal(selectCloudModelTier(smallBody), 'gemini-3.5-flash-lite');
 
   // Large prompt (> 2500 estimated tokens ~ 9500 chars)
   const largeContent = 'const x = 1;\n'.repeat(1000);
@@ -36,7 +36,7 @@ test('selectInferenceTarget routes correctly across cloud_only, hybrid, and loca
   };
 
   // Cloud Only Mode
-  assert.equal(selectInferenceTarget(smallBody, { mode: 'cloud_only' }), 'gemini-3.1-flash-lite');
+  assert.equal(selectInferenceTarget(smallBody, { mode: 'cloud_only' }), 'gemini-3.5-flash-lite');
   assert.equal(selectInferenceTarget(largeBody, { mode: 'cloud_only' }), 'gemini-3.8-flash');
 
   // Local Only Mode
@@ -87,11 +87,11 @@ test('selectCloudModelTier automatically escalates heavy requests under 2500 tok
   const conversationalBody = {
     messages: [{ role: 'user', content: 'Hello, what is the capital of Latvia?' }],
   };
-  assert.equal(selectCloudModelTier(conversationalBody), 'gemini-3.1-flash-lite');
+  assert.equal(selectCloudModelTier(conversationalBody), 'gemini-3.5-flash-lite');
 });
 
 test('mapJevThinkingEffortToProviderParams enforces zero thinking budget for Flash-Lite', () => {
-  const liteParams = mapJevThinkingEffortToProviderParams('high', 'google', 'gemini-3.1-flash-lite');
+  const liteParams = mapJevThinkingEffortToProviderParams('high', 'google', 'gemini-3.5-flash-lite');
   assert.deepEqual(liteParams, {
     thinking_config: { thinking_budget: 0 },
   });
@@ -173,7 +173,7 @@ test('selectCloudModelTier automatically escalates to 3.8 flash on tool or execu
   assert.equal(selectCloudModelTier(failedToolBody), 'gemini-3.8-flash');
 
   // Can be opted out if explicitly disabled
-  assert.equal(selectCloudModelTier(failedToolBody, { autoEscalateOnFailure: false }), 'gemini-3.1-flash-lite');
+  assert.equal(selectCloudModelTier(failedToolBody, { autoEscalateOnFailure: false }), 'gemini-3.5-flash-lite');
 });
 
 

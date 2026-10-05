@@ -3,7 +3,7 @@
  * Comprehensive Live Benchmark:
  * 1. Multi-turn loop with dynamic schema gating
  * 2. 10-turn refactoring loop (KV cache growth & TTFT)
- * 3. Gemini 3.1 Flash-Lite in tool-calling loops + auto-escalation
+ * 3. Gemini 3.5 Flash-Lite in tool-calling loops + auto-escalation
  * 4. Gavel In-Memory Graph Performance & Context Pruning
  */
 
@@ -256,11 +256,11 @@ async function run10TurnRefactoringLoop() {
 }
 
 // -------------------------------------------------------------
-// ITEM 3: GEMINI 3.1 FLASH-LITE IN TOOL-CALLING LOOPS
+// ITEM 3: GEMINI 3.5 FLASH-LITE IN TOOL-CALLING LOOPS
 // -------------------------------------------------------------
 async function runFlashLiteToolLoop() {
   console.log('\n----------------------------------------------------------------');
-  console.log('3. LIVE GEMINI 3.1 FLASH-LITE TOOL-CALLING & ERROR AUTO-ESCALATION');
+  console.log('3. LIVE GEMINI 3.5 FLASH-LITE TOOL-CALLING & ERROR AUTO-ESCALATION');
   console.log('----------------------------------------------------------------');
 
   const tools = [
@@ -277,7 +277,7 @@ async function runFlashLiteToolLoop() {
   ];
 
   const t0 = Date.now();
-  const resLite1 = await callGeminiRaw({ model: 'gemini-3.1-flash-lite', messages: messagesLite, tools });
+  const resLite1 = await callGeminiRaw({ model: 'gemini-3.5-flash-lite', messages: messagesLite, tools });
   const latency1 = Date.now() - t0;
   console.log(`• Flash-Lite Turn 1 (Tool Invocation): ${latency1}ms | Tool: ${resLite1.message?.tool_calls?.[0]?.function?.name}`);
 
@@ -289,7 +289,7 @@ async function runFlashLiteToolLoop() {
   });
 
   const t1 = Date.now();
-  const resLite2 = await callGeminiRaw({ model: 'gemini-3.1-flash-lite', messages: messagesLite, tools });
+  const resLite2 = await callGeminiRaw({ model: 'gemini-3.5-flash-lite', messages: messagesLite, tools });
   const latency2 = Date.now() - t1;
   console.log(`• Flash-Lite Turn 2 (Final Response):  ${latency2}ms | Output length: ${resLite2.message?.content?.length} chars`);
 
@@ -387,7 +387,7 @@ async function main() {
   console.log('================================================================');
   console.log(`1. Dynamic Schema Gating:  Saves ~${gating.tokensSaved.toLocaleString()} prompt tokens per turn on simple tasks.`);
   console.log(`2. 10-Turn Refactor Loop:   Prompt tokens scale up to ${loop10[9].promptTokens.toLocaleString()} tokens; cache hits reach ${loop10[9].cachedTokens.toLocaleString()} (${((loop10[9].cachedTokens / loop10[9].promptTokens) * 100).toFixed(1)}%).`);
-  console.log(`3. Gemini 3.1 Flash-Lite:   Ultra-fast tool turns (${lite.latency1}ms TTFT); auto-escalates to 3.8 Flash on compiler/tool errors.`);
+  console.log(`3. Gemini 3.5 Flash-Lite:   Ultra-fast tool turns (${lite.latency1}ms TTFT); auto-escalates to 3.8 Flash on compiler/tool errors.`);
   console.log(`4. GAVEL Graph Model:       Builds in ${gavel.buildTimeMs}ms; cuts prompt context by 98.6% (${gavel.rawTokens} -> ${gavel.prunedTokens} tokens).`);
 }
 

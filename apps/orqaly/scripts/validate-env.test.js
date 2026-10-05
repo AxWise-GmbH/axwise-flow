@@ -159,7 +159,7 @@ describe('validate-env.js', () => {
     ['LLM_DEFAULT_MODEL', 'gemini-3.6-flash'],
     ['LLM_DEFAULT_MODEL', 'gemini-3.5-flash'],
     ['LLM_DEFAULT_CHEAP_MODEL', 'gemini-flash-latest'],
-    ['LLM_DEFAULT_CHEAP_MODEL', 'gemini-3.1-flash-lite'],
+    ['LLM_DEFAULT_CHEAP_MODEL', 'gemini-3.5-flash-lite'],
   ])('rejects non-exact Gemini defaults in %s', (name, value) => {
     const env = {
       ...BLANK_ENV,

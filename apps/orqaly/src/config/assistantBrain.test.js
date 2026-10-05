@@ -55,8 +55,8 @@ describe('assistantBrain', () => {
     expect(shortModelLabel('gemini-3.8-flash')).toBe('Gemini 3.8 Flash');
     expect(shortModelLabel('gemini-3.5-flash')).toBe('Gemini 3.5 Flash');
     expect(shortModelLabel('gemini-3-pro-preview')).toBe('Gemini 3 Pro (preview)');
-    expect(shortModelLabel('gemini-3.1-flash-lite-preview')).toBe(
-      'Gemini 3.1 Flash-Lite (preview)'
+    expect(shortModelLabel('gemini-3.5-flash-lite-preview')).toBe(
+      'Gemini 3.5 Flash-Lite (preview)'
     );
   });
 

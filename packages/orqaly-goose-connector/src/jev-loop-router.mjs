@@ -617,7 +617,7 @@ export function hasToolOrExecutionError(body) {
 /**
  * Selects the optimal Google Gemini model tier based on prompt token count,
  * cognitive complexity, and automatic error-recovery escalation.
- * Simple conversational <= 2,500 tokens: gemini-3.1-flash-lite (sub-100ms TTFT, lowest cost)
+ * Simple conversational <= 2,500 tokens: gemini-3.5-flash-lite (sub-100ms TTFT, lowest cost)
  * Heavy / analytical, > 2,500 tokens, or error recovery: gemini-3.8-flash (deep reasoning)
  */
 export function selectCloudModelTier(body, userSettings = {}) {
@@ -632,7 +632,7 @@ export function selectCloudModelTier(body, userSettings = {}) {
   if (estimatedTokens > 2500 || hasAnalyticalIntent(body, userSettings)) {
     return "gemini-3.8-flash";
   }
-  return "gemini-3.1-flash-lite";
+  return "gemini-3.5-flash-lite";
 }
 
 /**
@@ -647,7 +647,7 @@ export function selectInferenceTarget(body, userSettings = {}) {
   const isHeavy = estimatedTokens > 2500 || hasAnalyticalIntent(body, userSettings);
 
   if (mode === "cloud_only" || mode === "cloud") {
-    return isHeavy ? "gemini-3.8-flash" : "gemini-3.1-flash-lite";
+    return isHeavy ? "gemini-3.8-flash" : "gemini-3.5-flash-lite";
   }
   if (mode === "local_only" || mode === "local") {
     return "local_vibeforged";
