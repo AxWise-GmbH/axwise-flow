@@ -72,7 +72,6 @@ augment-mcp-import.json
 /backend/
 /deploy/
 /docs/
-/frontend/
 /packages/*
 !/packages/axwise-distribution/
 /screenshots/

@@ -125,14 +125,14 @@ export default function DocsPage(): React.JSX.Element {
             <p className="text-xs text-stone-600">Downloads and executes the FastMCP server in an isolated environment:</p>
             <CodeBlock 
               language="bash"
-              code="uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.2/axwise_extension-0.4.2-py3-none-any.whl axwise"
+              code="uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise_extension-0.4.3-py3-none-any.whl axwise"
             />
 
             <h3 className="font-serif text-lg text-stone-900 pt-2">Install via pip</h3>
             <p className="text-xs text-stone-600">Installs the <code>axwise</code> executable directly into your Python environment:</p>
             <CodeBlock 
               language="bash"
-              code="pip install https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.2/axwise_extension-0.4.2-py3-none-any.whl"
+              code="pip install https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise_extension-0.4.3-py3-none-any.whl"
             />
           </div>
 
@@ -143,10 +143,13 @@ export default function DocsPage(): React.JSX.Element {
             </div>
             <ul className="space-y-1 font-mono text-[11px] pt-1">
               <li>
-                <a href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.2/axwise_extension-0.4.2-py3-none-any.whl" className="text-emerald-700 underline font-semibold">Python wheel (.whl)</a>: 184,921 bytes · <span className="text-stone-500">0855d276cd6d596872f98c03a0f150a912f8d774e9febc6687966cdb88569749</span>
+                <a href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise-native-darwin-arm64-v0.4.3.tar.gz" className="text-emerald-700 underline font-semibold">Native macOS binary (.tar.gz)</a>: 3,725,974 bytes · <span className="text-stone-500">047635a9ad837b6e5da23ca10a48618a86ef993bbd727c25fb789a68aad4c294</span>
               </li>
               <li>
-                <a href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.2/axwise-extension-0.4.2.tgz" className="text-emerald-700 underline font-semibold">npm archive (.tgz)</a>: 190,305 bytes · <span className="text-stone-500">2ce557643498b9b282701c79aedda1d27619a7ab31dfa4fcc78f8ab44f049ab9</span>
+                <a href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise_extension-0.4.3-py3-none-any.whl" className="text-emerald-700 underline font-semibold">Python wheel (.whl)</a>: 185,619 bytes · <span className="text-stone-500">d6d7a087d355fed5d0d0629dbcf69fde3b2f7ea9ab7771396ff57c2bab3f7408</span>
+              </li>
+              <li>
+                <a href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise-extension-0.4.3.tgz" className="text-emerald-700 underline font-semibold">npm archive (.tgz)</a>: 191,015 bytes · <span className="text-stone-500">07d419d1bc65baa206618753494cf443677f6ccfe64b41459c1b35b30d0e428b</span>
               </li>
             </ul>
           </div>
@@ -213,7 +216,7 @@ export default function DocsPage(): React.JSX.Element {
               </p>
               <CodeBlock 
                 language="bash"
-                code="codex mcp add axwise-local -- uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.2/axwise_extension-0.4.2-py3-none-any.whl axwise"
+                code="codex mcp add axwise-local -- uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise_extension-0.4.3-py3-none-any.whl axwise"
               />
 
               <div className="pt-3 border-t border-stone-200 space-y-3">
@@ -250,7 +253,7 @@ export default function DocsPage(): React.JSX.Element {
       "command": "uvx",
       "args": [
         "--from",
-        "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.2/axwise_extension-0.4.2-py3-none-any.whl",
+        "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise_extension-0.4.3-py3-none-any.whl",
         "axwise"
       ],
       "env": {
