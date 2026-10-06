@@ -1,4 +1,12 @@
-# AxWise production host
+# AxWise runtimes
+
+## Rust standalone 0.5.1
+
+The `axwise` executable is the Rust-only MCP specialist for external harnesses. Default model access uses negotiated MCP sampling or staged generation/review by the current chat model; this retains the harness’s API key or subscription without reading its authentication tokens. Explicit inherited environment API-key access is optional.
+
+Build with `cargo build --release --locked --manifest-path crates/axwise-core/Cargo.toml --bin axwise`. Run `axwise --workspace /absolute/project/path`. No Python, Node or Orqanix installation is required. Eight specialist tools and `advance_artifact` share Rust schema, domain, review, rendering and storage gates. See [installation, calling contract and limits](../../packages/axwise-distribution/NATIVE_README.md). Reviews are model critiques, with `managedJevAudit=false`; standalone stores/formats differ from the desktop adapter.
+
+## Orqanix production adapter (`axwise-mcp`)
 
 Orqanix exposes one default `axwise` platform extension. Rust owns scope, signed-in inference, orchestration, cancellation, journals and persistence. The bundled Python domain kernel owns the complete input/candidate schemas, evidence rules, frozen persona context, PRD revision preservation, semantic quality review and Markdown rendering. This reuses the tested Local capabilities without running a second MCP extension or a persistent Node sidecar.
 
