@@ -1076,6 +1076,5 @@ pub fn render(artifact: &Value) -> String {
         out.push_str("\n## Original acceptance conditions\n\n");
         render_value(&artifact["originalConditions"], &mut out, 3);
     }
-    out.push_str("\n---\nValidated by the Rust engine and reviewed by the selected model. Model critique is not a managed JEV audit. Synthetic material is hypothesis, not observed research.\n");
     out
 }

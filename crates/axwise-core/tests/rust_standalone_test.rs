@@ -28,6 +28,13 @@ fn prd() -> Value {
 fn run(engine: &mut NativeEngine, tool: &str, input: Value, candidate: Value) -> Value {
     let request = engine.prepare(tool, &input).unwrap();
     assert_eq!(request["structuredContent"]["stage"], "generate");
+    if tool == "chat_with_persona" {
+        let prompt = request["structuredContent"]["systemPrompt"]
+            .as_str()
+            .unwrap();
+        assert!(prompt.contains("exact saved persona\'s voice"));
+        assert!(!prompt.contains(axwise_core::prompts::PERSONA_METHOD));
+    }
     let id = request["structuredContent"]["requestId"].clone();
     let checked = engine
         .advance(&json!({"requestId":id,"stage":"generate","payload":candidate}))
@@ -56,6 +63,54 @@ fn run(engine: &mut NativeEngine, tool: &str, input: Value, candidate: Value) ->
         false
     );
     accepted
+}
+
+#[test]
+fn prompts_preserve_domain_depth_and_do_not_reframe_supplied_research_as_simulation() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut e = engine(dir.path(), "prompt-provenance");
+    for (tool, input, specialist_prompt) in [
+        (
+            "create_prd",
+            json!({"brief":"Launch planning for three shops."}),
+            axwise_core::prompts::PRD_PROMPT,
+        ),
+        (
+            "analyze_interviews",
+            json!({"decisionQuestion":"What delivery problem was reported?","questions":["What is difficult?"],"transcripts":[{"id":"interview1","title":"Operator interview","origin":"supplied_transcript","turns":[{"speaker":"operator1","role":"participant","questionId":"q-1","text":"Delivery times are unpredictable."}]}]}),
+            axwise_core::prompts::ANALYSIS_PROMPT,
+        ),
+    ] {
+        let request = e.prepare(tool, &input).unwrap();
+        let prompt = request["structuredContent"]["systemPrompt"]
+            .as_str()
+            .unwrap();
+        assert!(prompt.starts_with(axwise_core::prompts::BOUNDARY_PROMPT));
+        assert!(prompt.contains(specialist_prompt));
+        assert!(!prompt.contains("All personas and simulated answers must be labelled synthetic"));
+        assert!(!prompt.contains("Record generated provenance"));
+        if tool == "analyze_interviews" {
+            let context: Value =
+                serde_json::from_str(request["structuredContent"]["userPrompt"].as_str().unwrap())
+                    .unwrap();
+            assert!(context.to_string().contains("supplied_transcript"));
+            assert!(context
+                .to_string()
+                .contains("Delivery times are unpredictable."));
+        }
+    }
+    let request = e.prepare("generate_personas", &json!({"brief":"Shop operators","stakeholders":[{"id":"shop","label":"Shop operators","description":"Operators managing local deliveries","participants":1}]})).unwrap();
+    let prompt = request["structuredContent"]["systemPrompt"]
+        .as_str()
+        .unwrap();
+    assert!(prompt.contains(axwise_core::prompts::PERSONA_METHOD));
+    assert!(prompt.contains("Record generated provenance"));
+    assert!(prompt.contains("natural answers"));
+    let markdown = native_validation::render(
+        &json!({"tool":"create_prd","title":"Pilot launch","candidate":prd()}),
+    );
+    assert!(!markdown.contains("Synthetic material is hypothesis"));
+    assert!(!markdown.contains("managed JEV audit"));
 }
 
 #[test]

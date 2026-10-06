@@ -1,6 +1,6 @@
 # AxWise runtimes
 
-## Rust standalone 0.5.1
+## Rust standalone 0.5.2
 
 The `axwise` executable is the Rust-only MCP specialist for external harnesses. Default model access uses negotiated MCP sampling or staged generation/review by the current chat model; this retains the harness’s API key or subscription without reading its authentication tokens. Explicit inherited environment API-key access is optional.
 
