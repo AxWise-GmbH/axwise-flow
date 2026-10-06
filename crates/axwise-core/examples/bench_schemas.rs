@@ -1,6 +1,6 @@
-use std::time::Instant;
-use schemars::schema_for;
 use axwise_core::*;
+use schemars::schema_for;
+use std::time::Instant;
 
 fn main() {
     let t0 = Instant::now();
@@ -35,7 +35,10 @@ fn main() {
     let per_iteration_us = total_micros / iterations as f64;
     let per_model_ns = (per_iteration_us / 16.0) * 1000.0;
 
-    println!("RUST_STARTUP_MICROS: {:.2}", t0.elapsed().as_micros() as f64);
+    println!(
+        "RUST_STARTUP_MICROS: {:.2}",
+        t0.elapsed().as_micros() as f64
+    );
     println!("RUST_TOTAL_16_MODELS_US: {:.2}", per_iteration_us);
     println!("RUST_PER_MODEL_NS: {:.2}", per_model_ns);
     println!("RUST_PER_MODEL_US: {:.4}", per_model_ns / 1000.0);

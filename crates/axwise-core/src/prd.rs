@@ -1,19 +1,16 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::common::{AnalysisArtifactReference, ArtifactReference, EvidenceSource, RevisionEdit, StepDepth};
+use crate::common::{
+    AnalysisArtifactReference, ArtifactReference, EvidenceSource, RevisionEdit, StepDepth,
+};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ArtifactType {
+    #[default]
     ProductPrd,
     SoftwarePrd,
-}
-
-impl Default for ArtifactType {
-    fn default() -> Self {
-        Self::ProductPrd
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

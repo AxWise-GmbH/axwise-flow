@@ -18,7 +18,9 @@ fn test_review_engine_happy_path() {
         review_hash: "hash123".to_string(),
     };
 
-    engine.on_review_outcome(&passing_outcome).expect("Review pass");
+    engine
+        .on_review_outcome(&passing_outcome)
+        .expect("Review pass");
     assert_eq!(engine.state, PipelineState::ReviewPass);
 }
 
@@ -36,8 +38,13 @@ fn test_review_engine_repair_and_terminal_failure() {
     };
 
     // First review failure triggers repair state
-    engine.on_review_outcome(&failing_outcome).expect("Repair allowed");
-    assert_eq!(engine.state, PipelineState::ReviewDefect(vec!["evidence_gaps".to_string()]));
+    engine
+        .on_review_outcome(&failing_outcome)
+        .expect("Repair allowed");
+    assert_eq!(
+        engine.state,
+        PipelineState::ReviewDefect(vec!["evidence_gaps".to_string()])
+    );
     assert_eq!(engine.repair_attempts, 1);
 
     // Second failure on repaired candidate triggers terminal failure

@@ -1,7 +1,7 @@
-use std::collections::{HashMap, HashSet};
 use crate::analysis::{AnalysisCandidateV1, GapCode, SupportStatus};
 use crate::common::EvidenceSource;
 use crate::prd::{ItemBasis, PrdCandidate, PrdInput};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum ValidationError {
@@ -153,13 +153,18 @@ pub fn validate_prd_candidate(
 ) -> Result<(), Vec<ValidationError>> {
     let mut errors = Vec::new();
 
-    let expected_sections: HashSet<&str> = if input.artifact_type == crate::prd::ArtifactType::SoftwarePrd {
-        SOFTWARE_PRD_BASELINE_SECTIONS.iter().copied().collect()
-    } else {
-        PRD_BASELINE_SECTIONS.iter().copied().collect()
-    };
+    let expected_sections: HashSet<&str> =
+        if input.artifact_type == crate::prd::ArtifactType::SoftwarePrd {
+            SOFTWARE_PRD_BASELINE_SECTIONS.iter().copied().collect()
+        } else {
+            PRD_BASELINE_SECTIONS.iter().copied().collect()
+        };
 
-    let actual_sections: HashSet<&str> = candidate.sections.iter().map(|s| s.heading.as_str()).collect();
+    let actual_sections: HashSet<&str> = candidate
+        .sections
+        .iter()
+        .map(|s| s.heading.as_str())
+        .collect();
     if actual_sections != expected_sections || candidate.sections.len() != expected_sections.len() {
         errors.push(ValidationError::InvalidPrdSections);
     }
@@ -193,10 +198,10 @@ pub fn validate_prd_candidate(
             }
 
             // Owner decision must match brief substring and have empty sources
-            if item.basis == ItemBasis::OwnerDecision {
-                if !item.source_ids.is_empty() || !input.brief.contains(&item.text) {
-                    errors.push(ValidationError::InvalidOwnerDecision);
-                }
+            if item.basis == ItemBasis::OwnerDecision
+                && (!item.source_ids.is_empty() || !input.brief.contains(&item.text))
+            {
+                errors.push(ValidationError::InvalidOwnerDecision);
             }
 
             // Source statement must be exact substring of all cited sources
@@ -216,15 +221,18 @@ pub fn validate_prd_candidate(
 
             // Synthetic provenance check
             let cites_synthetic = item.source_ids.iter().any(|sid| {
-                source_map.get(sid.as_str()).map_or(false, |s| {
-                    s.origin == crate::common::SourceOrigin::SyntheticTranscript
-                })
+                source_map
+                    .get(sid.as_str())
+                    .is_some_and(|s| s.origin == crate::common::SourceOrigin::SyntheticTranscript)
             });
             let links_synthetic = item.finding_ids.iter().any(|fid| {
-                finding_map.get(fid).map_or(false, |(basis, _)| *basis == ItemBasis::SimulationHypothesis)
+                finding_map
+                    .get(fid)
+                    .is_some_and(|(basis, _)| *basis == ItemBasis::SimulationHypothesis)
             });
 
-            if (cites_synthetic || links_synthetic) && item.basis != ItemBasis::SimulationHypothesis {
+            if (cites_synthetic || links_synthetic) && item.basis != ItemBasis::SimulationHypothesis
+            {
                 errors.push(ValidationError::SyntheticProvenanceMismatch);
             }
         }

@@ -1,8 +1,8 @@
-use std::fs::{self, File};
-use std::io::Write;
-use std::path::{Path, PathBuf};
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, thiserror::Error)]
 pub enum StorageError {
@@ -43,12 +43,22 @@ pub struct StorageManager {
 impl StorageManager {
     pub fn new(state_dir: PathBuf) -> Result<Self, StorageError> {
         fs::create_dir_all(&state_dir)?;
+        if fs::symlink_metadata(&state_dir)?.file_type().is_symlink() {
+            return Err(StorageError::InvalidScope(
+                "storage root cannot be a symlink".into(),
+            ));
+        }
         let db_path = state_dir.join("axwise.db");
+        if db_path.exists() && fs::symlink_metadata(&db_path)?.file_type().is_symlink() {
+            return Err(StorageError::InvalidScope(
+                "database cannot be a symlink".into(),
+            ));
+        }
         let conn = Connection::open(&db_path)?;
 
         // WAL mode & normal synchronous for concurrency
         conn.pragma_update(None, "journal_mode", "WAL")?;
-        conn.pragma_update(None, "synchronous", "NORMAL")?;
+        conn.pragma_update(None, "synchronous", "FULL")?;
 
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS operations (
@@ -98,8 +108,32 @@ impl StorageManager {
         raw_artifact_json: &str,
         raw_markdown: &str,
     ) -> Result<(), StorageError> {
+        if !crate::scope::valid_component(&record.session_id)
+            || !crate::scope::valid_component(&record.operation_id)
+        {
+            return Err(StorageError::InvalidScope(
+                "invalid session or operation id".into(),
+            ));
+        }
+        let expected = self.state_dir.join(&record.session_id);
+        if Path::new(&record.json_path) != expected.join(format!("{}.json", record.operation_id))
+            || Path::new(&record.md_path) != expected.join(format!("{}.md", record.operation_id))
+        {
+            return Err(StorageError::InvalidScope(
+                "artifact destination is outside its scoped store".into(),
+            ));
+        }
         let session_dir = self.state_dir.join(&record.session_id);
         fs::create_dir_all(&session_dir)?;
+        if fs::symlink_metadata(&session_dir)?.file_type().is_symlink()
+            || !session_dir
+                .canonicalize()?
+                .starts_with(self.state_dir.canonicalize()?)
+        {
+            return Err(StorageError::InvalidScope(
+                "session directory escapes storage root".into(),
+            ));
+        }
 
         let json_dest = PathBuf::from(&record.json_path);
         let md_dest = PathBuf::from(&record.md_path);
@@ -109,7 +143,7 @@ impl StorageManager {
         Self::atomic_write(&md_dest, raw_markdown.as_bytes())?;
 
         self.conn.execute(
-            "INSERT OR REPLACE INTO operations (
+            "INSERT INTO operations (
                 operation_id, session_id, tool, title, created_at, sha256,
                 json_path, md_path, markdown, artifact_json, candidate_json,
                 input_json, provenance_json, quality_review_json, status
@@ -187,17 +221,66 @@ impl StorageManager {
         Ok(result)
     }
 
+    pub fn find_operation(
+        &self,
+        operation_id: &str,
+    ) -> Result<Option<OperationRecord>, StorageError> {
+        let query = "SELECT operation_id, session_id, tool, title, created_at, sha256,
+                    json_path, md_path, markdown, artifact_json, candidate_json,
+                    input_json, provenance_json, quality_review_json, status
+             FROM operations
+             WHERE operation_id = ? LIMIT 1";
+
+        let mut stmt = self.conn.prepare(query)?;
+        let result = stmt
+            .query_row([operation_id], |row| {
+                Ok(OperationRecord {
+                    operation_id: row.get(0)?,
+                    session_id: row.get(1)?,
+                    tool: row.get(2)?,
+                    title: row.get(3)?,
+                    created_at: row.get(4)?,
+                    sha256: row.get(5)?,
+                    json_path: row.get(6)?,
+                    md_path: row.get(7)?,
+                    markdown: row.get(8)?,
+                    artifact_json: row.get(9)?,
+                    candidate_json: row.get(10)?,
+                    input_json: row.get(11)?,
+                    provenance_json: row.get(12)?,
+                    quality_review_json: row.get(13)?,
+                    status: row.get(14)?,
+                })
+            })
+            .optional()?;
+
+        Ok(result)
+    }
+
     fn atomic_write(dest: &Path, content: &[u8]) -> Result<(), StorageError> {
         if let Some(parent) = dest.parent() {
             fs::create_dir_all(parent)?;
         }
-        let temp_path = dest.with_extension("tmp");
+        let temp_path = dest.with_extension(format!("{}.tmp", uuid::Uuid::new_v4()));
         {
-            let mut file = File::create(&temp_path)?;
+            let mut file = fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&temp_path)?;
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                file.set_permissions(fs::Permissions::from_mode(0o600))?;
+            }
             file.write_all(content)?;
-            file.flush()?;
+            file.sync_all()?;
         }
-        fs::rename(temp_path, dest)?;
+        let result = fs::hard_link(&temp_path, dest);
+        let _ = fs::remove_file(&temp_path);
+        result?;
+        if let Some(parent) = dest.parent() {
+            fs::File::open(parent)?.sync_all()?;
+        }
         Ok(())
     }
 }

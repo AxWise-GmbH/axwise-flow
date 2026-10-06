@@ -72,19 +72,14 @@ fn default_stakeholder_participants() -> u32 {
     1
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum SimulationResponseStyle {
     Realistic,
     Optimistic,
     Critical,
+    #[default]
     Mixed,
-}
-
-impl Default for SimulationResponseStyle {
-    fn default() -> Self {
-        Self::Mixed
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

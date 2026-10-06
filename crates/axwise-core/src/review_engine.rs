@@ -1,6 +1,6 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use schemars::JsonSchema;
 use std::collections::HashSet;
 
 use crate::prompts::{BOUNDARY_PROMPT, REVIEW_PROMPT};
@@ -82,7 +82,10 @@ pub fn prepare_review(
     selected_evidence: &Value,
     candidate_artifact: &Value,
 ) -> Result<PreparedReviewPrompt, ReviewError> {
-    let required_criteria: Vec<String> = get_tool_criteria(tool).iter().map(|s| s.to_string()).collect();
+    let required_criteria: Vec<String> = get_tool_criteria(tool)
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
 
     let payload = json!({
         "selectedEvidence": selected_evidence,
@@ -107,17 +110,17 @@ pub fn prepare_review(
     })
 }
 
-pub fn validate_review(
-    tool: &str,
-    review_response: &str,
-) -> Result<ReviewOutcome, ReviewError> {
+pub fn validate_review(tool: &str, review_response: &str) -> Result<ReviewOutcome, ReviewError> {
     let review: ReviewCandidate = serde_json::from_str(review_response)?;
     let expected_criteria: HashSet<&str> = get_tool_criteria(tool).iter().copied().collect();
 
-    let actual_criteria: HashSet<&str> = review.checks.iter().map(|c| c.criterion.as_str()).collect();
+    let actual_criteria: HashSet<&str> =
+        review.checks.iter().map(|c| c.criterion.as_str()).collect();
 
     if actual_criteria != expected_criteria || review.checks.len() != expected_criteria.len() {
-        return Err(ReviewError::Validation("review must cover every criterion exactly once".to_string()));
+        return Err(ReviewError::Validation(
+            "review must cover every criterion exactly once".to_string(),
+        ));
     }
 
     let mut issues = Vec::new();
@@ -186,7 +189,9 @@ impl TwoStageReviewEngine {
             self.state = PipelineState::ValidatedPass;
             Ok(())
         } else if self.repair_attempts >= self.max_repairs {
-            self.state = PipelineState::TerminalFailure("Validation defects exceed maximum repair attempts".to_string());
+            self.state = PipelineState::TerminalFailure(
+                "Validation defects exceed maximum repair attempts".to_string(),
+            );
             Err("Terminal failure: validation defect on repaired candidate")
         } else {
             self.repair_attempts += 1;
@@ -204,7 +209,9 @@ impl TwoStageReviewEngine {
             }
             Ok(())
         } else if self.repair_attempts >= self.max_repairs {
-            self.state = PipelineState::TerminalFailure("Quality review failed on final repair attempt".to_string());
+            self.state = PipelineState::TerminalFailure(
+                "Quality review failed on final repair attempt".to_string(),
+            );
             Err("Terminal failure: final review failed")
         } else {
             self.repair_attempts += 1;

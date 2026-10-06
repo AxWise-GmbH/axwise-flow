@@ -90,11 +90,41 @@ pub fn generate_simulation_plan(
 
     for stakeholder in stakeholders {
         for index in 1..=stakeholder.participants {
-            let openness = sample_ocean_trait(DEFAULT_SAMPLING_PROFILE, seed, &stakeholder.id, index, traits[0])?;
-            let conscientiousness = sample_ocean_trait(DEFAULT_SAMPLING_PROFILE, seed, &stakeholder.id, index, traits[1])?;
-            let extraversion = sample_ocean_trait(DEFAULT_SAMPLING_PROFILE, seed, &stakeholder.id, index, traits[2])?;
-            let agreeableness = sample_ocean_trait(DEFAULT_SAMPLING_PROFILE, seed, &stakeholder.id, index, traits[3])?;
-            let neuroticism = sample_ocean_trait(DEFAULT_SAMPLING_PROFILE, seed, &stakeholder.id, index, traits[4])?;
+            let openness = sample_ocean_trait(
+                DEFAULT_SAMPLING_PROFILE,
+                seed,
+                &stakeholder.id,
+                index,
+                traits[0],
+            )?;
+            let conscientiousness = sample_ocean_trait(
+                DEFAULT_SAMPLING_PROFILE,
+                seed,
+                &stakeholder.id,
+                index,
+                traits[1],
+            )?;
+            let extraversion = sample_ocean_trait(
+                DEFAULT_SAMPLING_PROFILE,
+                seed,
+                &stakeholder.id,
+                index,
+                traits[2],
+            )?;
+            let agreeableness = sample_ocean_trait(
+                DEFAULT_SAMPLING_PROFILE,
+                seed,
+                &stakeholder.id,
+                index,
+                traits[3],
+            )?;
+            let neuroticism = sample_ocean_trait(
+                DEFAULT_SAMPLING_PROFILE,
+                seed,
+                &stakeholder.id,
+                index,
+                traits[4],
+            )?;
 
             let ocean_micros = SimulationOceanV1 {
                 openness,

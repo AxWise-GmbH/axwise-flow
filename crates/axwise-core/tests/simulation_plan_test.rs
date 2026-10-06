@@ -24,7 +24,10 @@ fn test_simulation_plan_and_ocean_parity() {
 
     // Slot 1
     assert_eq!(slots[0].slot_index, 1);
-    assert_eq!(slots[0].participant_id, "418bfb81-fe8c-5fec-ab65-da66888c16ee");
+    assert_eq!(
+        slots[0].participant_id,
+        "418bfb81-fe8c-5fec-ab65-da66888c16ee"
+    );
     assert_eq!(slots[0].ocean_micros.openness, 448868);
     assert_eq!(slots[0].ocean_micros.conscientiousness, 491186);
     assert_eq!(slots[0].ocean_micros.extraversion, 616550);
@@ -33,7 +36,10 @@ fn test_simulation_plan_and_ocean_parity() {
 
     // Slot 2
     assert_eq!(slots[1].slot_index, 2);
-    assert_eq!(slots[1].participant_id, "14cd3641-dc5e-5abb-bf3a-2178cf1e07c4");
+    assert_eq!(
+        slots[1].participant_id,
+        "14cd3641-dc5e-5abb-bf3a-2178cf1e07c4"
+    );
     assert_eq!(slots[1].ocean_micros.openness, 327547);
     assert_eq!(slots[1].ocean_micros.conscientiousness, 531117);
     assert_eq!(slots[1].ocean_micros.extraversion, 353264);

@@ -1,8 +1,8 @@
-use std::time::Instant;
 use axwise_core::prd::*;
 use axwise_core::validation::*;
 use axwise_core::wire::*;
 use std::collections::HashMap;
+use std::time::Instant;
 
 fn main() {
     let finding_id = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef".to_string();
@@ -38,7 +38,11 @@ fn main() {
     };
 
     let raw_json = serde_json::to_string(&prd_candidate).unwrap();
-    println!("Rust payload: {} bytes across {} sections (165 items)", raw_json.len(), prd_candidate.sections.len());
+    println!(
+        "Rust payload: {} bytes across {} sections (165 items)",
+        raw_json.len(),
+        prd_candidate.sections.len()
+    );
 
     // 1. Benchmark Deserialization
     let iterations = 10_000;

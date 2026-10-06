@@ -1,6 +1,6 @@
-use std::cmp::Ordering;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
+use std::cmp::Ordering;
 use uuid::Uuid;
 
 pub const KERNEL_VERSION: &str = "axwise.local.v1";
@@ -26,7 +26,11 @@ pub fn utf16_ordinal_cmp(a: &str, b: &str) -> Ordering {
 pub fn canonical_json(value: &Value) -> Result<String, WireError> {
     match value {
         Value::Null => Ok("null".to_string()),
-        Value::Bool(b) => Ok(if *b { "true".to_string() } else { "false".to_string() }),
+        Value::Bool(b) => Ok(if *b {
+            "true".to_string()
+        } else {
+            "false".to_string()
+        }),
         Value::Number(n) => {
             if let Some(i) = n.as_i64() {
                 if !(MIN_SAFE_INTEGER..=MAX_SAFE_INTEGER).contains(&i) {
@@ -42,7 +46,9 @@ pub fn canonical_json(value: &Value) -> Result<String, WireError> {
                 Err(WireError::FloatsForbidden)
             }
         }
-        Value::String(s) => serde_json::to_string(s).map_err(|e| WireError::Serialization(e.to_string())),
+        Value::String(s) => {
+            serde_json::to_string(s).map_err(|e| WireError::Serialization(e.to_string()))
+        }
         Value::Array(arr) => {
             let mut result = String::with_capacity(arr.len() * 16 + 2);
             result.push('[');

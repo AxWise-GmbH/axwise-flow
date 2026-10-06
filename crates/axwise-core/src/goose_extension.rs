@@ -1,6 +1,6 @@
-use schemars::schema_for;
-use serde_json::{json, Value};
 use crate::*;
+use schemars::schema_for;
+use serde_json::Value;
 
 pub const EXTENSION_NAME: &str = "axwise";
 
@@ -20,7 +20,7 @@ impl Default for AxwisePlatformExtension {
     fn default() -> Self {
         Self {
             name: "axwise",
-            version: "0.4.3",
+            version: env!("CARGO_PKG_VERSION"),
         }
     }
 }
@@ -31,7 +31,7 @@ impl AxwisePlatformExtension {
     }
 
     pub fn get_instructions(&self) -> &'static str {
-        crate::prompts::BOUNDARY_PROMPT
+        crate::prompts::CONVERSATION_INSTRUCTIONS
     }
 
     pub fn list_tools(&self) -> Vec<PlatformToolInfo> {
@@ -79,55 +79,30 @@ impl AxwisePlatformExtension {
         ]
     }
 
-    pub fn call_tool(
+    pub async fn call_tool_in_scope(
         &self,
         name: &str,
         arguments: &Value,
+        scope: &crate::scope::HostScope,
     ) -> Result<Value, String> {
-        // Direct zero-IPC in-memory dispatch wrapped in catch_unwind
-        let panic_result = std::panic::catch_unwind(|| match name {
-            "create_prd" => {
-                let input: PrdInput = serde_json::from_value(arguments.clone())
-                    .map_err(|e| format!("Invalid create_prd arguments: {}", e))?;
-                Ok(json!({
-                    "content": [{
-                        "type": "text",
-                        "text": format!("Provisional PRD created for: {}", input.brief)
-                    }],
-                    "structuredContent": {
-                        "tool": "create_prd",
-                        "brief": input.brief,
-                        "status": "ready"
-                    }
-                }))
-            }
-            "simulate_interviews" => {
-                let input: SimulationInput = serde_json::from_value(arguments.clone())
-                    .map_err(|e| format!("Invalid simulate_interviews arguments: {}", e))?;
-                let plan = generate_simulation_plan(&input.stakeholders, input.seed, "goose-sim-1")
-                    .map_err(|e| e.to_string())?;
-                Ok(json!({
-                    "content": [{
-                        "type": "text",
-                        "text": format!("Simulated {} participant slots via Goose in-process extension.", plan.len())
-                    }],
-                    "structuredContent": {
-                        "tool": "simulate_interviews",
-                        "slots": plan.len()
-                    }
-                }))
-            }
-            _ => Ok(json!({
-                "content": [{
-                    "type": "text",
-                    "text": format!("Tool '{}' executed in-process inside Goose.", name)
-                }]
-            })),
-        });
+        crate::pipeline::execute_in_scope(name, arguments, scope).await
+    }
 
-        match panic_result {
-            Ok(res) => res,
-            Err(_) => Err("In-process tool call panicked (contained)".to_string()),
-        }
+    /// Standalone compatibility entry point; embedded hosts should pass trusted scope.
+    pub fn call_tool(&self, name: &str, arguments: &Value) -> Result<Value, String> {
+        let name = name.to_owned();
+        let arguments = arguments.clone();
+        std::thread::Builder::new()
+            .name("axwise-pipeline".into())
+            .spawn(move || {
+                tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(|e| e.to_string())?
+                    .block_on(crate::pipeline::execute_pipeline(&name, &arguments, None))
+            })
+            .map_err(|e| e.to_string())?
+            .join()
+            .map_err(|_| "Native AxWise pipeline panicked".to_owned())?
     }
 }

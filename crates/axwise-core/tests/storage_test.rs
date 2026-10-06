@@ -8,8 +8,8 @@ fn test_storage_wal_and_atomic_records() {
 
     let mut storage = StorageManager::new(state_dir.clone()).expect("Failed to init storage");
 
-    let json_file = state_dir.join("test-session").join("test-op.json");
-    let md_file = state_dir.join("test-session").join("test-op.md");
+    let json_file = state_dir.join("test-session").join("op-12345.json");
+    let md_file = state_dir.join("test-session").join("op-12345.md");
 
     let record = OperationRecord {
         operation_id: "op-12345".to_string(),
@@ -29,7 +29,8 @@ fn test_storage_wal_and_atomic_records() {
         status: "completed".to_string(),
     };
 
-    storage.save_operation(&record, r#"{"title": "My Provisional PRD"}"#, "# My PRD")
+    storage
+        .save_operation(&record, r#"{"title": "My Provisional PRD"}"#, "# My PRD")
         .expect("Failed to save operation");
 
     // Assert files exist on disk
@@ -37,7 +38,8 @@ fn test_storage_wal_and_atomic_records() {
     assert!(md_file.is_file(), "MD artifact was not written");
 
     // Query back
-    let found = storage.find_latest_artifact(&["create_prd"], "test-session")
+    let found = storage
+        .find_latest_artifact(&["create_prd"], "test-session")
         .expect("Query failed")
         .expect("Artifact not found");
 

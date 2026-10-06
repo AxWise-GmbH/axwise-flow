@@ -1,6 +1,6 @@
-use std::io::{self, BufRead, Write};
 use schemars::schema_for;
 use serde_json::{json, Value};
+use std::io::{self, BufRead, Write};
 
 use axwise_core::analysis::{AnalysisCandidateV1, AnalysisInput};
 use axwise_core::delivery::{DeliveryCandidate, DeliveryInput};
@@ -72,7 +72,8 @@ fn handle_prepare(tool: &str, input: &Value) -> Result<Value, String> {
             let prd_in: PrdInput = serde_json::from_value(input.clone())
                 .map_err(|e| format!("Invalid PrdInput: {}", e))?;
             let prompt = format!("{}\n{}", BOUNDARY_PROMPT, PRD_PROMPT);
-            let schema = serde_json::to_value(schema_for!(PrdCandidate)).map_err(|e| e.to_string())?;
+            let schema =
+                serde_json::to_value(schema_for!(PrdCandidate)).map_err(|e| e.to_string())?;
             let user_prompt = canonical_json(input).map_err(|e| e.to_string())?;
 
             Ok(json!({
@@ -90,8 +91,12 @@ fn handle_prepare(tool: &str, input: &Value) -> Result<Value, String> {
         "prepare_discovery" => {
             let disc_in: DiscoveryInput = serde_json::from_value(input.clone())
                 .map_err(|e| format!("Invalid DiscoveryInput: {}", e))?;
-            let prompt = format!("{}\n{}\n{}", BOUNDARY_PROMPT, DISCOVERY_PROMPT, QUOTATION_BASIS_PROMPT);
-            let schema = serde_json::to_value(schema_for!(DiscoveryCandidate)).map_err(|e| e.to_string())?;
+            let prompt = format!(
+                "{}\n{}\n{}",
+                BOUNDARY_PROMPT, DISCOVERY_PROMPT, QUOTATION_BASIS_PROMPT
+            );
+            let schema =
+                serde_json::to_value(schema_for!(DiscoveryCandidate)).map_err(|e| e.to_string())?;
             let user_prompt = canonical_json(input).map_err(|e| e.to_string())?;
 
             Ok(json!({
@@ -110,7 +115,8 @@ fn handle_prepare(tool: &str, input: &Value) -> Result<Value, String> {
             let sim_in: SimulationInput = serde_json::from_value(input.clone())
                 .map_err(|e| format!("Invalid SimulationInput: {}", e))?;
             let prompt = format!("{}\n{}", BOUNDARY_PROMPT, SIMULATION_PROMPT);
-            let schema = serde_json::to_value(schema_for!(SimulationCandidateV1)).map_err(|e| e.to_string())?;
+            let schema = serde_json::to_value(schema_for!(SimulationCandidateV1))
+                .map_err(|e| e.to_string())?;
             let user_prompt = canonical_json(input).map_err(|e| e.to_string())?;
 
             Ok(json!({
@@ -127,7 +133,8 @@ fn handle_prepare(tool: &str, input: &Value) -> Result<Value, String> {
         }
         "analyze_interviews" => {
             let prompt = format!("{}\n{}", BOUNDARY_PROMPT, ANALYSIS_PROMPT);
-            let schema = serde_json::to_value(schema_for!(AnalysisCandidateV1)).map_err(|e| e.to_string())?;
+            let schema = serde_json::to_value(schema_for!(AnalysisCandidateV1))
+                .map_err(|e| e.to_string())?;
             let user_prompt = canonical_json(input).map_err(|e| e.to_string())?;
 
             Ok(json!({
@@ -143,7 +150,8 @@ fn handle_prepare(tool: &str, input: &Value) -> Result<Value, String> {
         }
         "research_market" => {
             let prompt = format!("{}\n{}", BOUNDARY_PROMPT, MARKET_PROMPT);
-            let schema = serde_json::to_value(schema_for!(MarketCandidate)).map_err(|e| e.to_string())?;
+            let schema =
+                serde_json::to_value(schema_for!(MarketCandidate)).map_err(|e| e.to_string())?;
             let user_prompt = canonical_json(input).map_err(|e| e.to_string())?;
 
             Ok(json!({
@@ -159,7 +167,8 @@ fn handle_prepare(tool: &str, input: &Value) -> Result<Value, String> {
         }
         "generate_personas" => {
             let prompt = format!("{}\n{}", BOUNDARY_PROMPT, PERSONA_METHOD);
-            let schema = serde_json::to_value(schema_for!(PersonaCandidate)).map_err(|e| e.to_string())?;
+            let schema =
+                serde_json::to_value(schema_for!(PersonaCandidate)).map_err(|e| e.to_string())?;
             let user_prompt = canonical_json(input).map_err(|e| e.to_string())?;
 
             Ok(json!({
@@ -175,7 +184,8 @@ fn handle_prepare(tool: &str, input: &Value) -> Result<Value, String> {
         }
         "chat_with_persona" => {
             let prompt = format!("{}\n{}", BOUNDARY_PROMPT, PERSONA_METHOD);
-            let schema = serde_json::to_value(schema_for!(PersonaChatCandidate)).map_err(|e| e.to_string())?;
+            let schema = serde_json::to_value(schema_for!(PersonaChatCandidate))
+                .map_err(|e| e.to_string())?;
             let user_prompt = canonical_json(input).map_err(|e| e.to_string())?;
 
             Ok(json!({
@@ -191,7 +201,8 @@ fn handle_prepare(tool: &str, input: &Value) -> Result<Value, String> {
         }
         "create_delivery_brief" => {
             let prompt = format!("{}\n{}", BOUNDARY_PROMPT, PRD_PROMPT);
-            let schema = serde_json::to_value(schema_for!(DeliveryCandidate)).map_err(|e| e.to_string())?;
+            let schema =
+                serde_json::to_value(schema_for!(DeliveryCandidate)).map_err(|e| e.to_string())?;
             let user_prompt = canonical_json(input).map_err(|e| e.to_string())?;
 
             Ok(json!({
@@ -206,7 +217,10 @@ fn handle_prepare(tool: &str, input: &Value) -> Result<Value, String> {
             }))
         }
         _ => {
-            let prompt = format!("{}\nGeneric specialist execution for {}", BOUNDARY_PROMPT, tool);
+            let prompt = format!(
+                "{}\nGeneric specialist execution for {}",
+                BOUNDARY_PROMPT, tool
+            );
             let user_prompt = canonical_json(input).map_err(|e| e.to_string())?;
             Ok(json!({
                 "systemPrompt": prompt,
@@ -229,7 +243,10 @@ fn handle_finalize(tool: &str, input: &Value, response: &Value) -> Result<Value,
                 .map_err(|e| format!("Invalid PrdCandidate: {}", e))?;
             let _ = validate_prd_candidate(&prd_in, &candidate, &std::collections::HashMap::new());
 
-            let mut markdown = format!("# {}\n\nProvisional PRD — synthesized via native Axwise Rust engine.\n", candidate.title);
+            let mut markdown = format!(
+                "# {}\n\nProvisional PRD — synthesized via native Axwise Rust engine.\n",
+                candidate.title
+            );
             for s in &candidate.sections {
                 markdown.push_str(&format!("\n## {}\n\n", s.heading));
                 for item in &s.items {
@@ -249,7 +266,10 @@ fn handle_finalize(tool: &str, input: &Value, response: &Value) -> Result<Value,
         "prepare_discovery" => {
             let candidate: DiscoveryCandidate = serde_json::from_value(response.clone())
                 .map_err(|e| format!("Invalid DiscoveryCandidate: {}", e))?;
-            let mut markdown = format!("# Product Discovery Plan\n\n**Decision:** {}\n\n## Scope\n", candidate.decision);
+            let mut markdown = format!(
+                "# Product Discovery Plan\n\n**Decision:** {}\n\n## Scope\n",
+                candidate.decision
+            );
             for item in &candidate.scope {
                 markdown.push_str(&format!("- {}\n", item));
             }
@@ -259,7 +279,10 @@ fn handle_finalize(tool: &str, input: &Value, response: &Value) -> Result<Value,
             }
             markdown.push_str("\n## Stakeholders & Targeted Questions\n");
             for s in &candidate.stakeholders {
-                markdown.push_str(&format!("\n### {} ({})\n{}\n", s.label, s.id, s.description));
+                markdown.push_str(&format!(
+                    "\n### {} ({})\n{}\n",
+                    s.label, s.id, s.description
+                ));
                 for q in &s.questions {
                     markdown.push_str(&format!("- [{}] {}\n", q.id, q.text));
                 }
@@ -278,8 +301,14 @@ fn handle_finalize(tool: &str, input: &Value, response: &Value) -> Result<Value,
                 .map_err(|e| format!("Invalid SimulationCandidateV1: {}", e))?;
             let mut markdown = format!("# Simulated Stakeholder Interviews\n\n**Cohort size:** {} participants\n\n## Participants\n", candidate.participants.len());
             for p in &candidate.participants {
-                markdown.push_str(&format!("\n### {} ({})\n{}\n- **Motivations:** {}\n- **Pain Points:** {}\n",
-                    p.display_name, p.participant_id, p.biography, p.motivations.join("; "), p.pain_points.join("; ")));
+                markdown.push_str(&format!(
+                    "\n### {} ({})\n{}\n- **Motivations:** {}\n- **Pain Points:** {}\n",
+                    p.display_name,
+                    p.participant_id,
+                    p.biography,
+                    p.motivations.join("; "),
+                    p.pain_points.join("; ")
+                ));
             }
             markdown.push_str("\n## Interview Transcripts\n");
             for inv in &candidate.interviews {
@@ -300,9 +329,15 @@ fn handle_finalize(tool: &str, input: &Value, response: &Value) -> Result<Value,
         "analyze_interviews" => {
             let candidate: AnalysisCandidateV1 = serde_json::from_value(response.clone())
                 .map_err(|e| format!("Invalid AnalysisCandidateV1: {}", e))?;
-            let mut markdown = format!("# Qualitative Interview Analysis\n\n**Synthesized Findings:** {}\n\n## Findings\n", candidate.findings.len());
+            let mut markdown = format!(
+                "# Qualitative Interview Analysis\n\n**Synthesized Findings:** {}\n\n## Findings\n",
+                candidate.findings.len()
+            );
             for f in &candidate.findings {
-                markdown.push_str(&format!("- **[{:?}] {:?}:** {} (Support: {:?})\n", f.category, f.basis, f.statement, f.support_status));
+                markdown.push_str(&format!(
+                    "- **[{:?}] {:?}:** {} (Support: {:?})\n",
+                    f.category, f.basis, f.statement, f.support_status
+                ));
             }
             if !candidate.gaps.is_empty() {
                 markdown.push_str("\n## Evidence Gaps\n");
@@ -322,9 +357,15 @@ fn handle_finalize(tool: &str, input: &Value, response: &Value) -> Result<Value,
         "research_market" => {
             let candidate: MarketCandidate = serde_json::from_value(response.clone())
                 .map_err(|e| format!("Invalid MarketCandidate: {}", e))?;
-            let mut markdown = format!("# Market Research Synthesis\n\n**Findings:** {}\n\n## Verified Findings\n", candidate.findings.len());
+            let mut markdown = format!(
+                "# Market Research Synthesis\n\n**Findings:** {}\n\n## Verified Findings\n",
+                candidate.findings.len()
+            );
             for f in &candidate.findings {
-                markdown.push_str(&format!("- **[{:?}]:** \"{}\" (Source: {}, Question: {})\n", f.basis, f.quote, f.source_id, f.question_id));
+                markdown.push_str(&format!(
+                    "- **[{:?}]:** \"{}\" (Source: {}, Question: {})\n",
+                    f.basis, f.quote, f.source_id, f.question_id
+                ));
             }
             if !candidate.interpretations.is_empty() {
                 markdown.push_str("\n## Interpretations\n");
@@ -350,10 +391,15 @@ fn handle_finalize(tool: &str, input: &Value, response: &Value) -> Result<Value,
         "generate_personas" => {
             let candidate: PersonaCandidate = serde_json::from_value(response.clone())
                 .map_err(|e| format!("Invalid PersonaCandidate: {}", e))?;
-            let mut markdown = format!("# Generated Stakeholder Personas\n\n**Cohort size:** {}\n", candidate.personas.len());
+            let mut markdown = format!(
+                "# Generated Stakeholder Personas\n\n**Cohort size:** {}\n",
+                candidate.personas.len()
+            );
             for p in &candidate.personas {
-                markdown.push_str(&format!("\n## {} ({})\n{}\n- **Origin:** {}\n- **Communication Style:** {}\n",
-                    p.label, p.id, p.description, p.origin, p.communication_style));
+                markdown.push_str(&format!(
+                    "\n## {} ({})\n{}\n- **Origin:** {}\n- **Communication Style:** {}\n",
+                    p.label, p.id, p.description, p.origin, p.communication_style
+                ));
                 markdown.push_str("### Motivations\n");
                 for m in &p.motivations {
                     markdown.push_str(&format!("- {}\n", m.text));
@@ -375,7 +421,10 @@ fn handle_finalize(tool: &str, input: &Value, response: &Value) -> Result<Value,
         "chat_with_persona" => {
             let candidate: PersonaChatCandidate = serde_json::from_value(response.clone())
                 .map_err(|e| format!("Invalid PersonaChatCandidate: {}", e))?;
-            let markdown = format!("# Consultation with Persona {}\n\n{}\n", candidate.persona_id, candidate.response);
+            let markdown = format!(
+                "# Consultation with Persona {}\n\n{}\n",
+                candidate.persona_id, candidate.response
+            );
             Ok(json!({
                 "artifact": response,
                 "markdown": markdown,
@@ -388,7 +437,10 @@ fn handle_finalize(tool: &str, input: &Value, response: &Value) -> Result<Value,
         "create_delivery_brief" => {
             let candidate: DeliveryCandidate = serde_json::from_value(response.clone())
                 .map_err(|e| format!("Invalid DeliveryCandidate: {}", e))?;
-            let mut markdown = format!("# Engineering Delivery Brief: {}\n\n## Milestones\n", candidate.title);
+            let mut markdown = format!(
+                "# Engineering Delivery Brief: {}\n\n## Milestones\n",
+                candidate.title
+            );
             for m in &candidate.milestones {
                 markdown.push_str(&format!("\n### {}\n- **Deliverable:** {}\n- **Exit Condition:** {}\n- **Requirements:** {}\n",
                     m.title, m.deliverable, m.exit_condition, m.requirement_ids.join(", ")));
@@ -397,8 +449,10 @@ fn handle_finalize(tool: &str, input: &Value, response: &Value) -> Result<Value,
             for r in &candidate.requirements {
                 markdown.push_str(&format!("\n### Requirement {}\n", r.requirement_id));
                 for t in &r.acceptance_tests {
-                    markdown.push_str(&format!("- **Given** {}, **When** {}, **Then** {} (Evidence: {})\n",
-                        t.given, t.when, t.then, t.evidence_expected));
+                    markdown.push_str(&format!(
+                        "- **Given** {}, **When** {}, **Then** {} (Evidence: {})\n",
+                        t.given, t.when, t.then, t.evidence_expected
+                    ));
                 }
             }
             Ok(json!({
@@ -423,7 +477,10 @@ fn handle_finalize(tool: &str, input: &Value, response: &Value) -> Result<Value,
 
 fn dispatch(message: &Value) -> Value {
     let id = message.get("id").cloned();
-    let operation = message.get("operation").and_then(|o| o.as_str()).unwrap_or("");
+    let operation = message
+        .get("operation")
+        .and_then(|o| o.as_str())
+        .unwrap_or("");
     let tool = message.get("tool").and_then(|t| t.as_str()).unwrap_or("");
     let input = message.get("input").cloned().unwrap_or(json!({}));
     let response = message.get("response").cloned().unwrap_or(json!({}));
@@ -435,12 +492,14 @@ fn dispatch(message: &Value) -> Value {
         "prepare_review" => {
             let evidence = message.get("artifact").cloned().unwrap_or(json!({}));
             prepare_review(tool, &input, &evidence)
-                .map(|p| json!({
-                    "systemPrompt": p.system_prompt,
-                    "userPrompt": p.user_prompt,
-                    "responseSchema": p.response_schema,
-                    "maxOutputTokens": 4096
-                }))
+                .map(|p| {
+                    json!({
+                        "systemPrompt": p.system_prompt,
+                        "userPrompt": p.user_prompt,
+                        "responseSchema": p.response_schema,
+                        "maxOutputTokens": 4096
+                    })
+                })
                 .map_err(|e| e.to_string())
         }
         "validate_review" => {
@@ -450,12 +509,14 @@ fn dispatch(message: &Value) -> Value {
                 serde_json::to_string(&response).unwrap_or_default()
             };
             validate_review(tool, &review_str)
-                .map(|o| json!({
-                    "passed": o.passed,
-                    "issues": o.issues,
-                    "review": o.review,
-                    "reviewHash": o.review_hash
-                }))
+                .map(|o| {
+                    json!({
+                        "passed": o.passed,
+                        "issues": o.issues,
+                        "review": o.review,
+                        "reviewHash": o.review_hash
+                    })
+                })
                 .map_err(|e| e.to_string())
         }
         _ => Err(format!("Unknown operation: {}", operation)),

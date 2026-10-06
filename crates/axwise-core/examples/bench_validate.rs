@@ -1,5 +1,5 @@
-use std::time::Instant;
 use axwise_core::prd::*;
+use std::time::Instant;
 
 fn main() {
     let mut sections = Vec::new();
@@ -7,7 +7,10 @@ fn main() {
         let mut items = Vec::new();
         for j in 0..10 {
             items.push(PrdItem {
-                text: format!("Item {} with some realistic requirement description text", j),
+                text: format!(
+                    "Item {} with some realistic requirement description text",
+                    j
+                ),
                 basis: ItemBasis::Proposal,
                 source_ids: vec!["src-1".to_string()],
                 finding_ids: Vec::new(),

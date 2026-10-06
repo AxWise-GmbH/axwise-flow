@@ -1,5 +1,5 @@
-use schemars::schema_for;
 use axwise_core::*;
+use schemars::schema_for;
 
 fn main() {
     let schema = schema_for!(PrdInput);

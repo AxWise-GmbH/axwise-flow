@@ -1,9 +1,9 @@
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
-use serde_json::{json, Value};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProviderType {
@@ -71,7 +71,14 @@ pub fn discover_credentials() -> HashMap<String, String> {
     // 2. macOS Keychain (Goose secrets)
     if !keys.contains_key("OPENAI_API_KEY") || !keys.contains_key("GEMINI_API_KEY") {
         if let Ok(output) = Command::new("security")
-            .args(["find-generic-password", "-s", "goose", "-a", "secrets", "-w"])
+            .args([
+                "find-generic-password",
+                "-s",
+                "goose",
+                "-a",
+                "secrets",
+                "-w",
+            ])
             .output()
         {
             if output.status.success() {
@@ -153,6 +160,7 @@ impl ModelProvider {
         let base_url = base_url.unwrap_or_else(|| default_base.to_string());
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(90))
+            .redirect(reqwest::redirect::Policy::none())
             .build()
             .expect("Failed to build HTTP client");
 
@@ -166,6 +174,72 @@ impl ModelProvider {
         }
     }
 
+    /// Strict structured completion used by the production specialist. Schema
+    /// compilation hints never replace the deterministic publication validator.
+    pub async fn complete_prepared(
+        &self,
+        system: &str,
+        user: &str,
+        budget: u32,
+        schema: &Value,
+    ) -> Result<String, ProviderError> {
+        if self.provider_type != ProviderType::DesktopGateway {
+            return Err(ProviderError::Incomplete(
+                "Signed-in gateway required".into(),
+            ));
+        }
+        let mut response = self.client.post(format!("{}/desktop/v1/chat/completions", self.base_url.trim_end_matches('/')))
+            .bearer_auth(&self.api_key)
+            .header("X-Orqaly-Account-Hash", self.account_hash.as_deref().unwrap_or(""))
+            .json(&json!({"model":self.model,"stream":false,"store":false,"reasoning_effort":"low","max_completion_tokens":budget,
+                "messages":[{"role":"system","content":system},{"role":"user","content":user}],
+                "response_format":{"type":"json_schema","json_schema":{"name":"axwise_specialist_artifact","strict":true,"schema":schema}}}))
+            .send().await?;
+        if !response.status().is_success() {
+            return Err(ProviderError::Api {
+                status: response.status().as_u16(),
+                body: "Managed inference unavailable".into(),
+            });
+        }
+        if response
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .is_none_or(|v| !v.starts_with("application/json"))
+        {
+            return Err(ProviderError::Incomplete("Invalid response type".into()));
+        }
+        let mut bytes = Vec::new();
+        while let Some(chunk) = response.chunk().await? {
+            if bytes.len() + chunk.len() > 1_048_576 {
+                return Err(ProviderError::Incomplete(
+                    "Response exceeded byte budget".into(),
+                ));
+            }
+            bytes.extend_from_slice(&chunk);
+        }
+        let data: Value = serde_json::from_slice(&bytes)?;
+        let choices = data["choices"]
+            .as_array()
+            .filter(|v| v.len() == 1)
+            .ok_or_else(|| ProviderError::Incomplete("Expected one choice".into()))?;
+        let choice = &choices[0];
+        if choice["finish_reason"] != "stop"
+            || choice["message"]["tool_calls"]
+                .as_array()
+                .is_some_and(|v| !v.is_empty())
+        {
+            return Err(ProviderError::Incomplete(
+                "Incomplete structured completion".into(),
+            ));
+        }
+        choice["message"]["content"]
+            .as_str()
+            .filter(|v| !v.trim().is_empty())
+            .map(str::to_owned)
+            .ok_or_else(|| ProviderError::Incomplete("Missing structured completion".into()))
+    }
+
     pub async fn complete(
         &self,
         system_prompt: &str,
@@ -173,10 +247,22 @@ impl ModelProvider {
         max_tokens: u32,
     ) -> Result<String, ProviderError> {
         match self.provider_type {
-            ProviderType::OpenAi => self.complete_openai(system_prompt, user_prompt, max_tokens).await,
-            ProviderType::Anthropic => self.complete_anthropic(system_prompt, user_prompt, max_tokens).await,
-            ProviderType::Gemini => self.complete_gemini(system_prompt, user_prompt, max_tokens).await,
-            ProviderType::DesktopGateway => self.complete_desktop_gateway(system_prompt, user_prompt, max_tokens).await,
+            ProviderType::OpenAi => {
+                self.complete_openai(system_prompt, user_prompt, max_tokens)
+                    .await
+            }
+            ProviderType::Anthropic => {
+                self.complete_anthropic(system_prompt, user_prompt, max_tokens)
+                    .await
+            }
+            ProviderType::Gemini => {
+                self.complete_gemini(system_prompt, user_prompt, max_tokens)
+                    .await
+            }
+            ProviderType::DesktopGateway => {
+                self.complete_desktop_gateway(system_prompt, user_prompt, max_tokens)
+                    .await
+            }
         }
     }
 
@@ -198,7 +284,8 @@ impl ModelProvider {
             "temperature": 0.2
         });
 
-        let response = self.client
+        let response = self
+            .client
             .post(&endpoint)
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("Content-Type", "application/json")
@@ -218,7 +305,9 @@ impl ModelProvider {
         let data: Value = response.json().await?;
         let content = data["choices"][0]["message"]["content"]
             .as_str()
-            .ok_or_else(|| ProviderError::Incomplete("Missing choices.message.content".to_string()))?;
+            .ok_or_else(|| {
+                ProviderError::Incomplete("Missing choices.message.content".to_string())
+            })?;
 
         Ok(clean_json_completion(content).to_string())
     }
@@ -241,7 +330,8 @@ impl ModelProvider {
             "temperature": 0.2
         });
 
-        let response = self.client
+        let response = self
+            .client
             .post(&endpoint)
             .header("x-api-key", &self.api_key)
             .header("anthropic-version", "2023-06-01")
@@ -293,7 +383,8 @@ impl ModelProvider {
             }
         });
 
-        let response = self.client
+        let response = self
+            .client
             .post(&endpoint)
             .header("Content-Type", "application/json")
             .json(&body)
@@ -312,7 +403,9 @@ impl ModelProvider {
         let data: Value = response.json().await?;
         let content = data["candidates"][0]["content"]["parts"][0]["text"]
             .as_str()
-            .ok_or_else(|| ProviderError::Incomplete("Missing candidates[0].content.parts[0].text".to_string()))?;
+            .ok_or_else(|| {
+                ProviderError::Incomplete("Missing candidates[0].content.parts[0].text".to_string())
+            })?;
 
         Ok(clean_json_completion(content).to_string())
     }
@@ -323,7 +416,10 @@ impl ModelProvider {
         user_prompt: &str,
         max_tokens: u32,
     ) -> Result<String, ProviderError> {
-        let endpoint = format!("{}/desktop/v1/chat/completions", self.base_url.trim_end_matches('/'));
+        let endpoint = format!(
+            "{}/desktop/v1/chat/completions",
+            self.base_url.trim_end_matches('/')
+        );
 
         let body = json!({
             "model": self.model,
@@ -337,7 +433,8 @@ impl ModelProvider {
             ]
         });
 
-        let mut req = self.client
+        let mut req = self
+            .client
             .post(&endpoint)
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", self.api_key));
@@ -359,7 +456,9 @@ impl ModelProvider {
         let data: Value = response.json().await?;
         let content = data["choices"][0]["message"]["content"]
             .as_str()
-            .ok_or_else(|| ProviderError::Incomplete("Missing choices[0].message.content".to_string()))?;
+            .ok_or_else(|| {
+                ProviderError::Incomplete("Missing choices[0].message.content".to_string())
+            })?;
 
         Ok(clean_json_completion(content).to_string())
     }
