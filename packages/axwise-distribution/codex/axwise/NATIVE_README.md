@@ -5,7 +5,7 @@ A local MCP specialist engine for discovery plans, selected market evidence, syn
 ## Install in Codex CLI
 
 For a bundled local **Codex plugin** with the end-to-end workflow skill, use
-[AxWise for Codex](codex/README.md). Plugin 0.1.1 packages this same Rust 0.5.2
+[AxWise for Codex](README.md). Plugin 0.1.1 packages this same Rust 0.5.2
 binary and exposes its tools through normal plugin installation. The direct
 MCP setup below remains available for hosts that do not use plugins.
 

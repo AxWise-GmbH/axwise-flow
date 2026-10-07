@@ -1,0 +1,23 @@
+{
+  "name": "axwise",
+  "interface": {
+    "displayName": "AxWise"
+  },
+  "plugins": [
+    {
+      "name": "axwise",
+      "source": {
+        "source": "local",
+        "path": "./packages/axwise-distribution/codex/axwise"
+      },
+      "interface": {
+        "displayName": "AxWise"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

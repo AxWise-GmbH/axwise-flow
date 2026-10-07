@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "axwise-rust": {
+      "type": "stdio",
+      "command": "${PLUGIN_ROOT}/bin/axwise",
+      "args": [
+        "--model-access",
+        "host"
+      ]
+    }
+  }
+}

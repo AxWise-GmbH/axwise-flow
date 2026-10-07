@@ -2,6 +2,22 @@
 
 A local MCP specialist engine for discovery plans, selected market evidence, synthetic personas and interviews, interview analysis, PRDs, and delivery briefs. The release contains one Rust executable, `bin/axwise`, plus documentation, license and provenance. No Python, Node, Orqanix installation or separate AxWise subscription is required.
 
+## Install the AxWise Codex plugin
+
+The public **AxWise 0.1.1** plugin bundles this same Rust 0.5.2 engine with the
+end-to-end workflow skill for **Apple Silicon macOS**. It uses your existing
+Codex model access and needs no Python, Node.js, Rust build tools or AxWise login.
+
+```sh
+codex plugin marketplace add AxWise-GmbH/axwise-flow --ref axwise-codex-v0.1.1
+codex plugin add axwise@axwise
+```
+
+Start a new chat and ask: “Use AxWise for the complete discovery-to-PRD flow.”
+See [plugin instructions](packages/axwise-distribution/codex/README.md) and the
+[public download](https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-codex-v0.1.1).
+This is a public Codex marketplace release, separate from OpenAI's built-in directory.
+
 ## Install in Codex CLI
 
 Download `axwise-native-darwin-arm64-v0.5.2.tar.gz` from the [public release](https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-rust-v0.5.2), check its SHA-256 against `SHA256SUMS.txt`, and extract it. This binary targets Apple Silicon macOS. It is ad-hoc signed, not Apple notarized.

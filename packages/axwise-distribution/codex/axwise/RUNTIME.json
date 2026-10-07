@@ -1,0 +1,10 @@
+{
+  "engine": "rust_standalone",
+  "version": "0.5.2",
+  "platform": "darwin-arm64",
+  "binary": "bin/axwise",
+  "sha256": "816af0bd6dd31a109300f066d41c08ff01c285d82bdcd2d0144df5d37385aea8",
+  "release": "https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-rust-v0.5.2",
+  "modelAccess": "host",
+  "managedJevAudit": false
+}

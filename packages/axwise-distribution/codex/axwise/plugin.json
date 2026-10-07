@@ -1,0 +1,46 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "axwise",
+  "version": "0.1.1",
+  "description": "Product discovery, saved personas, simulated interviews, evidence analysis, PRDs and delivery briefs through the Rust AxWise specialist and your current Codex model.",
+  "author": {
+    "name": "AxWise GmbH",
+    "url": "https://axwise.de"
+  },
+  "homepage": "https://axwise.de/docs",
+  "repository": "https://github.com/AxWise-GmbH/axwise-flow",
+  "license": "Apache-2.0",
+  "keywords": [
+    "product discovery",
+    "personas",
+    "interviews",
+    "analysis",
+    "prd",
+    "rust"
+  ],
+  "extensions": {
+    "com.openai": {
+      "skills": "./skills/",
+      "mcpServers": "./.mcp.json",
+      "interface": {
+        "displayName": "AxWise",
+        "shortDescription": "From product scope to PRD",
+        "longDescription": "Scope a product, build a saved stakeholder cohort, explore explicitly requested interview simulations, analyze exact evidence and create a traceable PRD. Rust validates, reviews, renders and saves each artifact while Codex supplies model access. This local edition bundles the Apple Silicon macOS AxWise 0.5.2 executable.",
+        "developerName": "AxWise GmbH",
+        "category": "Productivity",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "websiteURL": "https://axwise.de",
+        "logo": "./assets/icon.svg",
+        "composerIcon": "./assets/icon.svg",
+        "defaultPrompt": [
+          "Use AxWise for the complete flow: scope, personas, simulated interviews, analysis and a launch PRD.",
+          "Use AxWise to analyze these real interview transcripts and turn the findings into a PRD.",
+          "Use AxWise to create an engineering delivery brief from this saved PRD."
+        ]
+      }
+    }
+  }
+}
