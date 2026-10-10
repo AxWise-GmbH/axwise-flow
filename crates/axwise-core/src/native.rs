@@ -287,7 +287,7 @@ impl NativeEngine {
                 "simulate_interviews" => prompts::SIMULATION_PROMPT,
                 "generate_personas" => prompts::PERSONA_METHOD,
                 "chat_with_persona" => "Respond to the user's message in the exact saved persona's voice, preserving its identity and profile. Draw on the selected documents and authentic domain knowledge. Give a natural, concrete answer rather than creating a new persona.",
-                _ => "Create a delivery brief covering every selected PRD requirement and original acceptance condition exactly once. Preserve exact constraints. Defer explicitly with a reason when coverage is unavailable.",
+                _ => "Create a delivery brief covering every selected PRD requirement and original acceptance condition exactly once. Preserve exact constraints. Include every resolvedContext.requestedTechnicalSections heading in technicalSections with substantive proposed architecture, data, API or role decisions. Unknown decisions must be explicit; never claim implementation or testing. Defer explicitly with a reason when coverage is unavailable.",
             };
             let provenance = match job.tool.as_str() {
                 "generate_personas" | "simulate_interviews" | "chat_with_persona" => "Record generated provenance in the schema's origin and basis fields. Use realistic names, biographies and natural answers; do not repeat provenance disclaimers in their prose.",

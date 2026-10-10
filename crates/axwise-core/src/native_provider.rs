@@ -62,6 +62,14 @@ impl NativeProvider {
         {
             return Err("invalid_model_name".into());
         }
+        if kind == "gemini"
+            && !matches!(
+                model.trim_start_matches("models/"),
+                "gemini-3.5-flash-lite" | "gemini-3.8-flash"
+            )
+        {
+            return Err("unsupported_gemini_model".into());
+        }
         let base = std::env::var("AXWISE_BASE_URL").unwrap_or_else(|_| default_base.into());
         let url = reqwest::Url::parse(&base).map_err(|_| "invalid_provider_origin")?;
         if !url.username().is_empty()

@@ -2,8 +2,16 @@ use schemars::schema_for;
 use serde_json::{json, Value};
 use std::io::{self, BufRead, Write};
 
-use axwise_core::pipeline::{execute_pipeline, AuditGateBInput};
+use axwise_core::pipeline::{execute_pipeline_with_progress, AuditGateBInput};
 use axwise_core::*;
+
+fn progress_token(value: &Value) -> Option<Value> {
+    match value {
+        Value::String(token) if !token.is_empty() && token.len() <= 256 => Some(value.clone()),
+        Value::Number(_) => Some(value.clone()),
+        _ => None,
+    }
+}
 
 async fn get_tools_manifest() -> Result<Value, String> {
     if std::env::var("AXWISE_EXPERIMENTAL_RUST_PIPELINE").as_deref() != Ok("1") {
@@ -90,6 +98,21 @@ async fn main() {
                 let tool_name = params.get("name").and_then(|n| n.as_str()).unwrap_or("");
                 let args = params.get("arguments").cloned().unwrap_or(json!({}));
 
+                let progress = progress_token(&params["_meta"]["progressToken"])
+                    .map(|token| {
+                        let sequence = std::sync::atomic::AtomicU32::new(0);
+                        std::sync::Arc::new(move |phase: axwise_core::progress::SpecialistPhase| {
+                            let sequence = sequence.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+                            let notification = json!({"jsonrpc":"2.0","method":"notifications/progress","params":{
+                                "progressToken":token,"progress":sequence,"message":phase.message(),
+                                "_meta":{"orqanix/axwise-progress":{"schemaVersion":"axwise.progress.v1","phase":phase}}
+                            }});
+                            let mut output = io::stdout().lock();
+                            let _ = writeln!(output, "{notification}");
+                            let _ = output.flush();
+                        }) as axwise_core::progress::ProgressObserver
+                    });
+
                 let metadata = params
                     .get("_meta")
                     .and_then(|meta| meta.get("orqanix/host-context"));
@@ -102,11 +125,17 @@ async fn main() {
                         std::env::var("AXWISE_SESSION_ID").ok(),
                         &args,
                     ) {
-                        Ok(scope) => extension.call_tool_in_scope(tool_name, &args, &scope).await,
+                        Ok(scope) => {
+                            extension
+                                .call_tool_in_scope_with_progress(
+                                    tool_name, &args, &scope, progress,
+                                )
+                                .await
+                        }
                         Err(error) => Err(error),
                     }
                 } else {
-                    execute_pipeline(tool_name, &args, metadata).await
+                    execute_pipeline_with_progress(tool_name, &args, metadata, progress).await
                 };
                 match execution {
                     Ok(result) => json!({

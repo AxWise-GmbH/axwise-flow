@@ -25,6 +25,35 @@ fn review(tool: &str, pass: bool) -> Value {
 fn prd() -> Value {
     json!({"title":"Synthetic cat-food launch PRD","sections":PRD_BASELINE_SECTIONS.iter().map(|h|json!({"heading":h,"items":[{"text":format!("Proposed {}: validate with three pilot shops before launch.",h),"basis":"proposal","sourceIds":[]}]})).collect::<Vec<_>>()})
 }
+
+#[test]
+fn delivery_rejects_missing_requested_design_sections_before_acceptance() {
+    let input =
+        json!({"brief":"Include architecture, data model, API contracts and role permissions."});
+    let context = json!({"sources":[],"requirements":[{"id":"r1"}],"conditions":[]});
+    let mut candidate = json!({"title":"Proposed handoff","requirements":[{"requirementId":"r1","acceptanceTests":[{"given":"A proposed implementation","when":"Its contract is exercised","then":"The required behavior is observed","evidenceExpected":"Recorded results"}]}],"conditionCoverage":[],"milestones":[{"title":"Proposed implementation","requirementIds":["r1"],"deliverable":"Proposed modules","exitCondition":"Acceptance conditions are demonstrated"}]});
+    assert!(
+        native_validation::validate("create_delivery_brief", &input, &context, &candidate)
+            .unwrap_err()
+            .contains("requested_technical_section_missing")
+    );
+    candidate["technicalSections"] = json!(axwise_core::delivery::requested_technical_sections(input["brief"].as_str().unwrap()).iter().map(|heading| json!({"heading":heading,"content":"Proposed design: define module boundaries, explicit inputs and outputs, ownership and acceptance conditions. Implementation remains to be performed."})).collect::<Vec<_>>());
+    native_validation::validate("create_delivery_brief", &input, &context, &candidate).unwrap();
+    let rendered = native_validation::render(
+        &json!({"tool":"create_delivery_brief","title":"Proposed handoff","candidate":candidate}),
+    );
+    for heading in
+        axwise_core::delivery::requested_technical_sections(input["brief"].as_str().unwrap())
+    {
+        assert!(rendered.contains(heading));
+    }
+    candidate["technicalSections"][0]["heading"] = json!("Unknown section");
+    assert!(
+        native_validation::validate("create_delivery_brief", &input, &context, &candidate)
+            .unwrap_err()
+            .contains("invalid_technical_section")
+    );
+}
 fn run(engine: &mut NativeEngine, tool: &str, input: Value, candidate: Value) -> Value {
     let request = engine.prepare(tool, &input).unwrap();
     assert_eq!(request["structuredContent"]["stage"], "generate");

@@ -88,6 +88,16 @@ impl AxwisePlatformExtension {
         crate::pipeline::execute_in_scope(name, arguments, scope).await
     }
 
+    pub async fn call_tool_in_scope_with_progress(
+        &self,
+        name: &str,
+        arguments: &Value,
+        scope: &crate::scope::HostScope,
+        progress: Option<crate::progress::ProgressObserver>,
+    ) -> Result<Value, String> {
+        crate::pipeline::execute_in_scope_with_progress(name, arguments, scope, progress).await
+    }
+
     /// Standalone compatibility entry point; embedded hosts should pass trusted scope.
     pub fn call_tool(&self, name: &str, arguments: &Value) -> Result<Value, String> {
         let name = name.to_owned();

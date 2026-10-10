@@ -305,6 +305,7 @@ pub fn prepare_context(
         }
         "create_delivery_brief" => {
             let arg: DeliveryInput = parse(input)?;
+            context["requestedTechnicalSections"] = json!(requested_technical_sections(&arg.brief));
             let prds = artifacts
                 .iter()
                 .filter(|a| a["tool"] == "create_prd")
@@ -871,6 +872,32 @@ pub fn validate(
         }
         "create_delivery_brief" => {
             let c: DeliveryCandidate = parse(candidate)?;
+            let arg: DeliveryInput = parse(input)?;
+            fail(
+                c.technical_sections.iter().all(|s| {
+                    [
+                        "Architecture and modules",
+                        "Data model",
+                        "API contracts",
+                        "Role permissions",
+                    ]
+                    .contains(&s.heading.as_str())
+                        && s.content.trim().len() >= 60
+                }),
+                "invalid_technical_section",
+            )?;
+            fail(
+                unique(c.technical_sections.iter().map(|s| s.heading.as_str())),
+                "duplicate_technical_section",
+            )?;
+            for heading in requested_technical_sections(&arg.brief) {
+                fail(
+                    c.technical_sections
+                        .iter()
+                        .any(|s| s.heading == heading && s.content.trim().len() >= 60),
+                    "requested_technical_section_missing",
+                )?;
+            }
             let requirements = context["requirements"]
                 .as_array()
                 .ok_or("requirements_missing")?;

@@ -1,19 +1,16 @@
-# AxWise Rust standalone 0.5.2
+# AxWise Rust standalone 0.5.3
 
-A local MCP specialist engine for discovery plans, selected market evidence, synthetic personas and interviews, interview analysis, PRDs, and delivery briefs. The release contains one Rust executable, `bin/axwise`, plus documentation, license and provenance. No Python, Node, Orqanix installation or separate AxWise subscription is required.
+A local MCP specialist engine for discovery plans, selected market evidence, synthetic personas and interviews, interview analysis, PRDs, and delivery briefs. The release contains the Rust MCP executable `bin/axwise`, an optional offline desktop-kernel bridge `bin/axwise-kernel`, documentation, license and provenance. No Python, Node, Orqanix installation or separate AxWise subscription is required.
 
 ## Install in Codex CLI
 
-For a bundled local **Codex plugin** with the end-to-end workflow skill, use
-[AxWise for Codex](codex/README.md). Plugin 0.1.1 packages this same Rust 0.5.2
-binary and exposes its tools through normal plugin installation. The direct
-MCP setup below remains available for hosts that do not use plugins.
+The direct MCP setup below uses Rust 0.5.3. The separately versioned [AxWise for Codex plugin](codex/README.md) 0.1.1 remains pinned to Rust 0.5.2.
 
-Download `axwise-native-darwin-arm64-v0.5.2.tar.gz` from the [public release](https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-rust-v0.5.2), check its SHA-256 against `SHA256SUMS.txt`, and extract it. This binary targets Apple Silicon macOS. It is ad-hoc signed, not Apple notarized.
+Download `axwise-native-darwin-arm64-v0.5.3.tar.gz` from the [public release](https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-rust-v0.5.3), check its SHA-256 against `SHA256SUMS.txt`, and extract it. This binary targets Apple Silicon macOS. It is ad-hoc signed, not Apple notarized.
 
 ```sh
-tar -xzf axwise-native-darwin-arm64-v0.5.2.tar.gz
-codex mcp add axwise -- /absolute/path/axwise-native-darwin-arm64-v0.5.2/bin/axwise --workspace /absolute/path/project
+tar -xzf axwise-native-darwin-arm64-v0.5.3.tar.gz
+codex mcp add axwise -- /absolute/path/axwise-native-darwin-arm64-v0.5.3/bin/axwise --workspace /absolute/path/project
 ```
 
 Start a new Codex chat. Ask: “Use AxWise to create a proposed PRD for a cat-food pilot in Estonia with three shops. Label assumptions and do not invent research.” The host must follow pending model requests through `advance_artifact` until a completed receipt is returned. Do not manually write a replacement artifact and claim that AxWise saved it.
@@ -59,4 +56,4 @@ The default store is `~/.axwise/native/<local-account>/<workspace-session>/`; th
 
 Messages and artifacts are capped at 1 MiB; selected inputs and candidates at 512 KiB; at most 16 selected references; at most 12 questions per simulation role and 72 total answers; 32 jobs are retained; each automatic inference has a 120-second timeout and a 16,384-token generation ceiling. Host-chat generation is governed by the harness's own resource controls. This runtime is not an OS sandbox. Host permissions remain responsible for launching the server and selecting its writable store.
 
-Reviews are model critiques, not an independent managed JEV Gate B audit. Provenance records this as `reviewAuthority=model_critique` and `managedJevAudit=false`. The installed Orqanix 2.8.4 adapter still uses its existing managed hybrid engine; this Rust standalone release does not change that app or claim complete behavioral parity with its Python kernel. Standalone and desktop artifacts use distinct stores and formats.
+Reviews are model critiques, not an independent managed JEV Gate B audit. Provenance records this as `reviewAuthority=model_critique` and `managedJevAudit=false`. Orqanix 2.9.3/build 5999 bundles this same AxWise 0.5.3 core source and compiles its Rust desktop domain kernel into the existing managed Rust host. The standalone harness keeps its own typed calling contract, model access, artifact format and storage. The frozen 647-case comparison verifies the desktop kernel against the previous Python implementation; it does not equate these two host contracts. The optional `bin/axwise-kernel` reads bounded JSON-line desktop-kernel requests on stdin and writes protocol replies. It performs no model calls, web requests or artifact persistence.

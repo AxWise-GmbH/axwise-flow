@@ -1,0 +1,102 @@
+{
+  "input": {
+    "brief": "Explore shared handoff software for small restaurant teams.",
+    "stakeholders": [
+      {
+        "id": "buyer",
+        "label": "Restaurant buyer",
+        "description": "Owner who approves the restaurant software budget.",
+        "participants": 1
+      }
+    ],
+    "sources": [
+      {
+        "id": "interview-1",
+        "title": "Selected interview",
+        "text": "I lose time copying requests between tools.",
+        "origin": "supplied_transcript"
+      }
+    ]
+  },
+  "candidate": {
+    "personas": [
+      {
+        "id": "persona-02369774c9ead2c0278be123",
+        "stakeholderId": "buyer",
+        "label": "Synthetic buyer 278be123",
+        "description": "A hypothetical restaurant buyer who balances team adoption, budget and operating simplicity.",
+        "origin": "synthetic",
+        "basis": "scenario_hypothesis",
+        "motivations": [
+          {
+            "text": "May prefer simple onboarding and clear ownership.",
+            "basis": "simulation_hypothesis",
+            "evidence": []
+          },
+          {
+            "text": "May seek predictable ongoing costs.",
+            "basis": "simulation_hypothesis",
+            "evidence": []
+          }
+        ],
+        "painPoints": [
+          {
+            "text": "May prefer simple onboarding and clear ownership.",
+            "basis": "simulation_hypothesis",
+            "evidence": []
+          },
+          {
+            "text": "May struggle with unclear task ownership.",
+            "basis": "simulation_hypothesis",
+            "evidence": []
+          }
+        ],
+        "traits": [
+          {
+            "text": "May prefer simple onboarding and clear ownership.",
+            "basis": "simulation_hypothesis",
+            "evidence": []
+          }
+        ],
+        "communicationStyle": "Direct, concise and interested in practical examples.",
+        "countryCode": null,
+        "locality": null,
+        "assumptions": [
+          "This profile has not been validated through a real interview."
+        ]
+      }
+    ],
+    "limitations": [
+      "A bounded synthetic cohort is not a market sample."
+    ]
+  },
+  "review": {
+    "checks": [
+      {
+        "criterion": "answers_requested_questions",
+        "passed": true,
+        "reason": "The selected evidence and scope are respected."
+      },
+      {
+        "criterion": "evidence_gaps",
+        "passed": true,
+        "reason": "The selected evidence and scope are respected."
+      },
+      {
+        "criterion": "actionability",
+        "passed": true,
+        "reason": "The selected evidence and scope are respected."
+      },
+      {
+        "criterion": "source_fidelity",
+        "passed": true,
+        "reason": "The selected evidence and scope are respected."
+      },
+      {
+        "criterion": "synthetic_identity",
+        "passed": true,
+        "reason": "The selected evidence and scope are respected."
+      }
+    ]
+  }
+}
