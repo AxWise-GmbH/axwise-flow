@@ -1,5 +1,5 @@
 // Live acceptance check: invokes the installed plugin through Codex, never a direct MCP bridge.
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile, open } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
@@ -16,6 +16,18 @@ const marketplaceRoot = marketplaceOption < 0 ? root : resolve(process.argv[mark
 if (marketplaceOption >= 0 && (!process.argv[marketplaceOption + 1] || defaultConfig)) {
   throw new Error('--marketplace-root needs a path and cannot be combined with --default-config');
 }
+// A marketplace override does not replace an already installed cache. Fail before
+// spending model requests if Codex still resolves an older plugin or executable.
+const expectedPlugin = JSON.parse(await readFile(join(root, 'axwise/plugin.json'), 'utf8'));
+const expectedRuntime = JSON.parse(await readFile(join(root, 'axwise/RUNTIME.json'), 'utf8'));
+const catalog = JSON.parse(execFileSync('codex', ['plugin', 'list', '--json'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
+const installed = catalog.installed?.find(plugin => plugin.pluginId === 'axwise@axwise');
+if (!installed?.enabled || installed.version !== expectedPlugin.version) {
+  throw new Error(`Install AxWise ${expectedPlugin.version} with codex plugin add before this check; a marketplace override does not update the installed cache`);
+}
+const cachedBinary = join(homedir(), '.codex/plugins/cache/axwise/axwise', expectedPlugin.version, 'bin/axwise');
+const cachedDigest = createHash('sha256').update(await readFile(cachedBinary)).digest('hex');
+if (cachedDigest !== expectedRuntime.sha256) throw new Error('Installed runtime differs from the verified release binary');
 await mkdir(output, { recursive: true });
 const prompt = scopeOnly ? `Use the installed AxWise plugin and its axwise skill to prepare and save a discovery
 scope for a ten-week cat-food pilot in three Estonia pet shops. Use only the installed plugin's

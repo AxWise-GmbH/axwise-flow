@@ -57,5 +57,5 @@ No draft, submission or approval is claimed by these build scripts.
 On 7 October 2026, the extracted public ZIP passed the five runtime contract
 checks, installed successfully through Codex, and completed a saved discovery
 scope through its ordinary tools. The binary digest matched the released Rust
-0.5.3 executable. This check does not establish directory eligibility, support
+0.5.2 executable. This historical check does not establish directory eligibility, support
 for another platform, or a new full-chain acceptance run; see ENGINEERING.md.

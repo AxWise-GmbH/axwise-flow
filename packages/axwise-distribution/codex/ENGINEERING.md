@@ -1,6 +1,6 @@
 # AxWise Codex plugin architecture
 
-Plugin **0.1.1** bundles the unchanged Rust standalone engine **0.5.2**.
+Plugin **0.1.2** bundles the verified Rust standalone engine **0.5.3** recovery build.
 Source and private services remain separate; this package contains only the
 allowlisted plugin files and the verified public executable.
 
