@@ -46,6 +46,33 @@ work. Automatic restart reconciliation is not added by a plugin manifest.
 Existing host approvals remain in control; the live acceptance helper grants
 approval only to its isolated AxWise test server for the requested example.
 
+## Recovery release acceptance, 11 October 2026
+
+Plugin 0.1.2 and its extracted public ZIP passed all five runtime contract
+checks. Its installed candidate completed scope → five saved personas →
+explicitly synthetic interviews → analysis → PRD through 17 ordinary AxWise
+tool calls. Every accepted receipt reported Rust 0.5.3, passed review, and
+matched its saved JSON digest; every required reference edge and prioritized
+requirement link was verified. The first attempt reused a stale 0.5.2 cache
+and was excluded from release acceptance.
+
+The standalone suite passed 49 tests with one authenticated managed-audit test
+intentionally ignored. The final offline kernel bridge passed 647 captured
+comparison cases. Exact-binary probes covered all eight specialist tools,
+evidence identity rejection, bounded repair, fresh review and forged-reference
+rejection. These checks establish the tested routes, not universal model
+accuracy or an independent managed JEV audit.
+
+## Verification prerequisites
+
+Install the candidate with the supported `codex plugin add axwise@axwise`
+command before running `verify-installed.mjs`. The helper checks the active
+installed version and cached binary digest before making model requests.
+A temporary `--marketplace-root PATH` override selects a marketplace but does
+not replace an already installed cache. Every accepted receipt must also
+report the expected Rust version; a successful flow on an older runtime fails
+release acceptance.
+
 ## Public distribution acceptance, 7 October 2026
 
 The public marketplace exporter retains the plugin unchanged. Its ZIP has

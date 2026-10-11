@@ -59,3 +59,8 @@ checks, installed successfully through Codex, and completed a saved discovery
 scope through its ordinary tools. The binary digest matched the released Rust
 0.5.2 executable. This historical check does not establish directory eligibility, support
 for another platform, or a new full-chain acceptance run; see ENGINEERING.md.
+
+On 11 October 2026, plugin 0.1.2 with Rust 0.5.3 passed the source, extracted
+ZIP and installed-cache contract checks and a fresh five-stage live plugin
+flow. Runtime provenance, saved file hashes and reference lineage were
+verified. The earlier stale-runtime attempt did not count as a pass.

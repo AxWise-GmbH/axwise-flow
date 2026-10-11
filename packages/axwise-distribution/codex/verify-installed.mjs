@@ -25,6 +25,13 @@ const installed = catalog.installed?.find(plugin => plugin.pluginId === 'axwise@
 if (!installed?.enabled || installed.version !== expectedPlugin.version) {
   throw new Error(`Install AxWise ${expectedPlugin.version} with codex plugin add before this check; a marketplace override does not update the installed cache`);
 }
+const selectedPluginRoot = defaultConfig ? installed.source?.path : join(marketplaceRoot, 'axwise');
+if (!selectedPluginRoot) throw new Error('Installed local plugin source is unavailable');
+const selectedManifest = JSON.parse(await readFile(join(selectedPluginRoot, 'plugin.json'), 'utf8'));
+const selectedDigest = createHash('sha256').update(await readFile(join(selectedPluginRoot, 'bin/axwise'))).digest('hex');
+if (selectedManifest.version !== expectedPlugin.version || selectedDigest !== expectedRuntime.sha256) {
+  throw new Error('Refresh the configured AxWise marketplace before this check; its source still selects an older runtime');
+}
 const cachedBinary = join(homedir(), '.codex/plugins/cache/axwise/axwise', expectedPlugin.version, 'bin/axwise');
 const cachedDigest = createHash('sha256').update(await readFile(cachedBinary)).digest('hex');
 if (cachedDigest !== expectedRuntime.sha256) throw new Error('Installed runtime differs from the verified release binary');
