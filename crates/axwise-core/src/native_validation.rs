@@ -32,6 +32,27 @@ fn selected_sources(input: &Value, artifacts: &[Value]) -> Result<Vec<EvidenceSo
             !source.id.trim().is_empty() && !source.text.trim().is_empty(),
             "empty_evidence_source",
         )?;
+        if source.origin == SourceOrigin::WebSource {
+            fail(
+                source.url.as_ref().is_some_and(|url| !url.trim().is_empty())
+                    && source
+                        .retrieved_at
+                        .as_ref()
+                        .is_some_and(|date| !date.trim().is_empty()),
+                "web_source_identity_required: retain the actual URL and retrieval time; do not relabel web evidence as a supplied document",
+            )?;
+        }
+        if let Some(url) = &source.url {
+            let parsed = reqwest::Url::parse(url).map_err(|_| "invalid_source_url")?;
+            fail(
+                ["http", "https"].contains(&parsed.scheme())
+                    && parsed.host_str().is_some()
+                    && parsed.username().is_empty()
+                    && parsed.password().is_none()
+                    && !url.chars().any(char::is_whitespace),
+                "invalid_source_url",
+            )?;
+        }
         if let Some(previous) = map.insert(source.id.clone(), source.clone()) {
             fail(previous == source, "conflicting_source_id")?;
         }
@@ -305,6 +326,7 @@ pub fn prepare_context(
         }
         "create_delivery_brief" => {
             let arg: DeliveryInput = parse(input)?;
+            context["requestedTechnicalSections"] = json!(requested_technical_sections(&arg.brief));
             let prds = artifacts
                 .iter()
                 .filter(|a| a["tool"] == "create_prd")
@@ -871,6 +893,32 @@ pub fn validate(
         }
         "create_delivery_brief" => {
             let c: DeliveryCandidate = parse(candidate)?;
+            let arg: DeliveryInput = parse(input)?;
+            fail(
+                c.technical_sections.iter().all(|s| {
+                    [
+                        "Architecture and modules",
+                        "Data model",
+                        "API contracts",
+                        "Role permissions",
+                    ]
+                    .contains(&s.heading.as_str())
+                        && s.content.trim().len() >= 60
+                }),
+                "invalid_technical_section",
+            )?;
+            fail(
+                unique(c.technical_sections.iter().map(|s| s.heading.as_str())),
+                "duplicate_technical_section",
+            )?;
+            for heading in requested_technical_sections(&arg.brief) {
+                fail(
+                    c.technical_sections
+                        .iter()
+                        .any(|s| s.heading == heading && s.content.trim().len() >= 60),
+                    "requested_technical_section_missing",
+                )?;
+            }
             let requirements = context["requirements"]
                 .as_array()
                 .ok_or("requirements_missing")?;

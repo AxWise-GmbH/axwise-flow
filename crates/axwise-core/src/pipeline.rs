@@ -200,6 +200,15 @@ pub async fn execute_pipeline(
     arguments: &Value,
     metadata: Option<&Value>,
 ) -> Result<Value, String> {
+    execute_pipeline_with_progress(name, arguments, metadata, None).await
+}
+
+pub async fn execute_pipeline_with_progress(
+    name: &str,
+    arguments: &Value,
+    metadata: Option<&Value>,
+    progress: Option<crate::progress::ProgressObserver>,
+) -> Result<Value, String> {
     let scope = crate::scope::HostScope::resolve(
         metadata,
         std::env::var("AXWISE_ACCOUNT_HASH")
@@ -209,13 +218,22 @@ pub async fn execute_pipeline(
         arguments,
     )?;
 
-    execute_in_scope(name, arguments, &scope).await
+    execute_in_scope_with_progress(name, arguments, &scope, progress).await
 }
 
 pub async fn execute_in_scope(
     name: &str,
     arguments: &Value,
     scope: &crate::scope::HostScope,
+) -> Result<Value, String> {
+    execute_in_scope_with_progress(name, arguments, scope, None).await
+}
+
+pub async fn execute_in_scope_with_progress(
+    name: &str,
+    arguments: &Value,
+    scope: &crate::scope::HostScope,
+    progress: Option<crate::progress::ProgressObserver>,
 ) -> Result<Value, String> {
     if !KNOWN_TOOLS.contains(&name) {
         return Err(format!("Unknown tool: {name}"));
@@ -232,7 +250,7 @@ pub async fn execute_in_scope(
     if name != "audit_gate_b"
         && std::env::var("AXWISE_EXPERIMENTAL_RUST_PIPELINE").as_deref() != Ok("1")
     {
-        return crate::specialist::execute(name, arguments, &scope).await;
+        return crate::specialist::execute_with_progress(name, arguments, &scope, progress).await;
     }
     if name == "audit_gate_b" {
         let input: AuditGateBInput = serde_json::from_value(arguments.clone())

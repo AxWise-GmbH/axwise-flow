@@ -45,9 +45,11 @@ pub use wire::{artifact_id, canonical_hash, canonical_json, WireError};
 
 pub mod scope;
 
+pub mod desktop_kernel;
 pub mod native;
 pub mod native_provider;
 pub mod native_transport;
 pub mod native_validation;
 pub mod pipeline;
+pub mod progress;
 pub mod specialist;

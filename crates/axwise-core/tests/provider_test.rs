@@ -1,5 +1,25 @@
 use axwise_core::provider::*;
 
+#[tokio::test]
+async fn unsupported_gemini_models_never_reach_http() {
+    for model in [
+        "gemini-2.5-flash",
+        "gemini-3.5-flash",
+        "gemini-flash-latest",
+    ] {
+        let provider = ModelProvider::new(
+            ProviderType::Gemini,
+            "dummy".into(),
+            Some("http://127.0.0.1:1".into()),
+            model.into(),
+        );
+        let result = provider.complete("system", "prompt", 100).await;
+        assert!(
+            matches!(result, Err(ProviderError::Incomplete(message)) if message.contains("Unsupported Gemini model"))
+        );
+    }
+}
+
 #[test]
 fn test_clean_json_completion() {
     let with_fences = "```json\n{\n  \"title\": \"Sample PRD\"\n}\n```";

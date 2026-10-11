@@ -1,6 +1,6 @@
 # AxWise for Codex
 
-Plugin **0.1.1** packages Rust AxWise **0.5.2** for **Apple Silicon macOS**.
+Plugin **0.1.2** packages Rust AxWise **0.5.3** for **Apple Silicon macOS**.
 It uses your existing Codex model access. The installed plugin requires no
 Python, Node.js, Rust build tools or separate AxWise login.
 
@@ -9,7 +9,7 @@ Python, Node.js, Rust build tools or separate AxWise login.
 With a Codex client supporting plugin marketplaces (0.159.3 was tested):
 
 ```sh
-codex plugin marketplace add AxWise-GmbH/axwise-flow --ref axwise-codex-v0.1.1
+codex plugin marketplace add AxWise-GmbH/axwise-flow --ref axwise-codex-v0.1.2
 codex plugin add axwise@axwise
 ```
 
@@ -20,7 +20,7 @@ OpenAI's built-in directory. This release supports local Codex on Apple Silicon
 Macs; other platforms still need verified builds. The executable is ad-hoc
 signed and is not Apple notarized.
 
-The [release download](https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-codex-v0.1.1)
+The [release download](https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-codex-v0.1.2)
 also includes a ZIP marketplace and SHA-256 checksum. Extract it, run
 `codex plugin marketplace add .` from that folder, then install `axwise@axwise`.
 For help, use [the public issue tracker](https://github.com/AxWise-GmbH/axwise-flow/issues).
@@ -30,10 +30,10 @@ For help, use [the public issue tracker](https://github.com/AxWise-GmbH/axwise-f
 The plugin source is `axwise/`. The custom local marketplace is rooted in this
 directory, with `.agents/plugins/marketplace.json` selecting `./axwise`.
 
-Build using the verified Apple Silicon macOS executable from AxWise Rust 0.5.2:
+Build using the verified Apple Silicon macOS executable from AxWise Rust 0.5.3:
 
 ```sh
-node build.mjs /absolute/path/axwise-native-darwin-arm64-v0.5.2/bin/axwise
+node build.mjs /absolute/path/axwise-native-darwin-arm64-v0.5.3/bin/axwise
 node --test plugin.test.mjs
 codex plugin marketplace add /absolute/path/to/packages/axwise-distribution/codex
 codex plugin add axwise@axwise
@@ -83,7 +83,7 @@ credentials, per-tool policies and saved legacy files.
 
 For updates, edit this source, rebuild, and reinstall from the marketplace.
 Do not edit `~/.codex/plugins/cache/` directly. Engine and plugin versions are
-separate: plugin 0.1.1 bundles unchanged engine 0.5.2. Other operating systems
+separate: plugin 0.1.2 bundles unchanged engine 0.5.3. Other operating systems
 need their own verified binary edition. Account upload and public-directory
 submission are separate from this local installation.
 

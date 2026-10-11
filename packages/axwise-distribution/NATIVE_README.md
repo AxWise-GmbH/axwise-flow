@@ -1,19 +1,19 @@
-# AxWise Rust standalone 0.5.2
+# AxWise Rust standalone 0.5.3 — recovery build
 
-A local MCP specialist engine for discovery plans, selected market evidence, synthetic personas and interviews, interview analysis, PRDs, and delivery briefs. The release contains one Rust executable, `bin/axwise`, plus documentation, license and provenance. No Python, Node, Orqanix installation or separate AxWise subscription is required.
+A local MCP specialist engine for discovery plans, selected market evidence, synthetic personas and interviews, interview analysis, PRDs, and delivery briefs. The release contains the Rust MCP executable `bin/axwise` and optional offline desktop-domain bridge `bin/axwise-kernel`, plus documentation, license and provenance. No Python, Node, Orqanix installation or separate AxWise subscription is required.
 
 ## Install in Codex CLI
 
 For a bundled local **Codex plugin** with the end-to-end workflow skill, use
-[AxWise for Codex](codex/README.md). Plugin 0.1.1 packages this same Rust 0.5.2
+[AxWise for Codex](codex/README.md). Plugin 0.1.2 packages this same Rust 0.5.3
 binary and exposes its tools through normal plugin installation. The direct
 MCP setup below remains available for hosts that do not use plugins.
 
-Download `axwise-native-darwin-arm64-v0.5.2.tar.gz` from the [public release](https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-rust-v0.5.2), check its SHA-256 against `SHA256SUMS.txt`, and extract it. This binary targets Apple Silicon macOS. It is ad-hoc signed, not Apple notarized.
+Download `axwise-native-darwin-arm64-v0.5.3.tar.gz` from the [0.5.3 recovery release](https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-rust-v0.5.3-recovery). Check its SHA-256 against the accompanying `SHA256SUMS.txt`, and extract it. The earlier 0.5.3 release remains available under its original tag. This binary targets Apple Silicon macOS. It is ad-hoc signed, not Apple notarized.
 
 ```sh
-tar -xzf axwise-native-darwin-arm64-v0.5.2.tar.gz
-codex mcp add axwise -- /absolute/path/axwise-native-darwin-arm64-v0.5.2/bin/axwise --workspace /absolute/path/project
+tar -xzf axwise-native-darwin-arm64-v0.5.3.tar.gz
+codex mcp add axwise -- /absolute/path/axwise-native-darwin-arm64-v0.5.3/bin/axwise --workspace /absolute/path/project
 ```
 
 Start a new Codex chat. Ask: “Use AxWise to create a proposed PRD for a cat-food pilot in Estonia with three shops. Label assumptions and do not invent research.” The host must follow pending model requests through `advance_artifact` until a completed receipt is returned. Do not manually write a replacement artifact and claim that AxWise saved it.
@@ -59,4 +59,8 @@ The default store is `~/.axwise/native/<local-account>/<workspace-session>/`; th
 
 Messages and artifacts are capped at 1 MiB; selected inputs and candidates at 512 KiB; at most 16 selected references; at most 12 questions per simulation role and 72 total answers; 32 jobs are retained; each automatic inference has a 120-second timeout and a 16,384-token generation ceiling. Host-chat generation is governed by the harness's own resource controls. This runtime is not an OS sandbox. Host permissions remain responsible for launching the server and selecting its writable store.
 
-Reviews are model critiques, not an independent managed JEV Gate B audit. Provenance records this as `reviewAuthority=model_critique` and `managedJevAudit=false`. The installed Orqanix 2.8.4 adapter still uses its existing managed hybrid engine; this Rust standalone release does not change that app or claim complete behavioral parity with its Python kernel. Standalone and desktop artifacts use distinct stores and formats.
+Reviews are model critiques, not an independent managed JEV Gate B audit. Provenance records this as `reviewAuthority=model_critique` and `managedJevAudit=false`. Orqanix's Rust desktop adapter is a separate entry point with host-owned model access and acceptance checks. This standalone release does not update an installed Orqanix app. Standalone and desktop artifacts use distinct stores and formats.
+
+The 0.5.3 recovery build requires web evidence to retain its URL and retrieval time, supplies specific correction guidance for quote/interpretation mismatches, and passes the failed review's exact reasons to the single bounded repair. Repaired candidates still require a fresh review before saving.
+
+`bin/axwise-kernel` is a JSON-line diagnostic bridge for the desktop contract. It performs bounded domain operations without model access or persistence. Orqanix uses the same domain module in process; this optional executable does not replace its host.

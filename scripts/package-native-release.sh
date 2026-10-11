@@ -16,24 +16,29 @@ fi
 if [[ -n "$(git -C "${REPO_ROOT}" ls-files --others --exclude-standard -- crates/axwise-core/src crates/axwise-core/tests)" ]]; then
   echo 'Untracked Rust release source cannot be packaged' >&2; exit 1
 fi
-cargo build --release --locked --manifest-path "${REPO_ROOT}/crates/axwise-core/Cargo.toml" --bin axwise
+cargo build --release --locked --manifest-path "${REPO_ROOT}/crates/axwise-core/Cargo.toml" --bin axwise --bin axwise-kernel
+BUILD_TARGET_DIR="${CARGO_TARGET_DIR:-${REPO_ROOT}/crates/axwise-core/target}"
+BUILD_BINARY_DIR="${BUILD_TARGET_DIR}/${CARGO_BUILD_TARGET:+${CARGO_BUILD_TARGET}/}release"
 mkdir -p "${DIST_DIR}"
 STAGE_DIR="$(mktemp -d)"
 trap 'rm -rf "${STAGE_DIR}"' EXIT
 PACKAGE="axwise-native-${PLATFORM}-v${VERSION}"
 mkdir -p "${STAGE_DIR}/${PACKAGE}/bin"
-cp "${REPO_ROOT}/crates/axwise-core/target/release/axwise" "${STAGE_DIR}/${PACKAGE}/bin/axwise"
-if [[ "${PLATFORM}" == darwin-* ]]; then
-  codesign -s - -f "${STAGE_DIR}/${PACKAGE}/bin/axwise"
-  codesign --verify --strict "${STAGE_DIR}/${PACKAGE}/bin/axwise"
-fi
+for BINARY_NAME in axwise axwise-kernel; do
+  cp "${BUILD_BINARY_DIR}/${BINARY_NAME}" "${STAGE_DIR}/${PACKAGE}/bin/${BINARY_NAME}"
+  if [[ "${PLATFORM}" == darwin-* ]]; then
+    codesign -s - -f "${STAGE_DIR}/${PACKAGE}/bin/${BINARY_NAME}"
+    codesign --verify --strict "${STAGE_DIR}/${PACKAGE}/bin/${BINARY_NAME}"
+  fi
+done
 cp "${REPO_ROOT}/packages/axwise-distribution/NATIVE_README.md" "${STAGE_DIR}/${PACKAGE}/README.md"
 cp "${REPO_ROOT}/LICENSE" "${STAGE_DIR}/${PACKAGE}/LICENSE"
 SOURCE_COMMIT="$(git -C "${REPO_ROOT}" rev-parse HEAD)"
 SOURCE_DIGEST="$(cd "${REPO_ROOT}"; git ls-files crates/axwise-core/src crates/axwise-core/Cargo.toml crates/axwise-core/Cargo.lock | LC_ALL=C sort | while IFS= read -r FILE; do shasum -a 256 "${FILE}"; done | shasum -a 256 | cut -d ' ' -f1)"
 BINARY_DIGEST="$(shasum -a 256 "${STAGE_DIR}/${PACKAGE}/bin/axwise" | cut -d ' ' -f1)"
+KERNEL_DIGEST="$(shasum -a 256 "${STAGE_DIR}/${PACKAGE}/bin/axwise-kernel" | cut -d ' ' -f1)"
 cat > "${STAGE_DIR}/${PACKAGE}/PROVENANCE.json" <<JSON
-{"version":"${VERSION}","platform":"${PLATFORM}","sourceCommit":"${SOURCE_COMMIT}","sourceDigest":"${SOURCE_DIGEST}","binarySha256":"${BINARY_DIGEST}","runtime":"rust","defaultModelAccess":"host","managedJevAudit":false}
+{"version":"${VERSION}","releaseVariant":"recovery","platform":"${PLATFORM}","sourceCommit":"${SOURCE_COMMIT}","sourceDigest":"${SOURCE_DIGEST}","binarySha256":"${BINARY_DIGEST}","kernelSha256":"${KERNEL_DIGEST}","runtime":"rust","defaultModelAccess":"host","managedJevAudit":false}
 JSON
 "${STAGE_DIR}/${PACKAGE}/bin/axwise" --version
 COPYFILE_DISABLE=1 tar -czf "${DIST_DIR}/${PACKAGE}.tar.gz" -C "${STAGE_DIR}" "${PACKAGE}"

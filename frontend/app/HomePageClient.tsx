@@ -27,6 +27,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { EcosystemLogos } from '@/components/landing/EcosystemLogos';
+import { AxwiseDownloadCard } from '@/components/landing/AxwiseDownloadCard';
 
 // ============================================================================
 // MOCK DATA FOR INTERACTIVE SHOWCASES
@@ -540,77 +541,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
               </p>
             </div>
 
-            {/* Quick Package & Launch Panel */}
-            <div className="bg-[#1A1A1A] text-stone-300 rounded-xl p-4 sm:p-5 font-mono text-xs border border-stone-800 shadow-xl max-w-lg space-y-3">
-              <div className="flex items-center justify-between border-b border-stone-800 pb-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span className="text-[11px] font-semibold text-stone-200 uppercase tracking-wider">AxWise FastMCP 0.4.3</span>
-                </div>
-                <span className="text-[10px] text-emerald-400 bg-emerald-950/70 border border-emerald-800/80 px-2 py-0.5 rounded">Verified Release</span>
-              </div>
-
-              {/* One-click launch command */}
-              <div>
-                <div className="flex items-center justify-between text-[10px] text-stone-400 mb-1">
-                  <span>LAUNCH IN YOUR AGENT (UVX / PIP)</span>
-                  <button
-                    onClick={() => handleCopy('uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise_extension-0.4.3-py3-none-any.whl axwise', 'hero-uvx')}
-                    className="text-stone-400 hover:text-white flex items-center gap-1 transition-colors"
-                  >
-                    {copiedCommand === 'hero-uvx' ? (
-                      <span className="text-emerald-400 flex items-center gap-1"><Check className="w-3 h-3" /> Copied!</span>
-                    ) : (
-                      <span className="flex items-center gap-1"><Copy className="w-3 h-3" /> Copy</span>
-                    )}
-                  </button>
-                </div>
-                <div className="p-2.5 bg-stone-950 border border-stone-800 rounded-md text-[11px] text-stone-200 overflow-x-auto whitespace-pre">
-                  <span className="text-emerald-400 select-none mr-1.5">$</span>
-                  <span>uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise_extension-0.4.3-py3-none-any.whl axwise</span>
-                </div>
-              </div>
-
-              {/* Direct Download Buttons */}
-              <div className="pt-1 flex flex-wrap items-center gap-2">
-                <a
-                  href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise-native-darwin-arm64-v0.4.3.tar.gz"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-900 hover:bg-stone-800 border border-stone-700 hover:border-emerald-500/50 rounded-md text-[11px] text-emerald-400 transition-all font-sans"
-                >
-                  <Download className="w-3 h-3" />
-                  <span>Download Native macOS (ARM64)</span>
-                </a>
-                <a
-                  href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise-extension-0.4.3.tgz"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-900 hover:bg-stone-800 border border-stone-700 hover:border-emerald-500/50 rounded-md text-[11px] text-emerald-400 transition-all font-sans"
-                >
-                  <Download className="w-3 h-3" />
-                  <span>Download .tgz (npm)</span>
-                </a>
-                <a
-                  href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise_extension-0.4.3-py3-none-any.whl"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-900 hover:bg-stone-800 border border-stone-700 hover:border-emerald-500/50 rounded-md text-[11px] text-emerald-400 transition-all font-sans"
-                >
-                  <Download className="w-3 h-3" />
-                  <span>Download .whl (Python)</span>
-                </a>
-                <a
-                  href="https://orqanix.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-stone-400 hover:text-stone-200 text-[11px] transition-colors font-sans ml-auto"
-                >
-                  <span>Orqanix Desktop</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-            </div>
+            <AxwiseDownloadCard compact />
 
             <div className="flex flex-wrap gap-4 pt-4">
               <a
@@ -2353,7 +2284,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
               </span>
               <h3 className="font-serif text-2xl text-stone-900 font-medium">Included in Orqanix</h3>
               <p className="text-stone-600 text-sm leading-relaxed">
-                The desktop bundles AxWise and its local runtime. Enable the extension when you want its specialist capabilities, and keep working in the same chat.
+                The desktop bundles AxWise and its local runtime. AxWise is enabled by default, so its specialist tools are available in the same chat.
               </p>
               <p className="text-stone-500 text-xs leading-relaxed">
                 Orqanix adds its own sign-in, model access, and shared Results experience. Its service terms and model access are separate from the open-source license.
@@ -2376,158 +2307,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
             </div>
           </div>
 
-          {/* Card 2: Standalone Extension & Packages */}
-          <div className="lg:col-span-7 bg-[#1A1A1A] text-stone-200 border border-stone-800 rounded-xl p-7 space-y-6 shadow-lg">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="text-[10px] font-mono uppercase tracking-wider bg-stone-800 text-emerald-400 border border-stone-700 px-2.5 py-1 rounded-full font-semibold">
-                FOR YOUR OWN MCP WORKSPACE
-              </span>
-              <span className="text-xs font-mono text-stone-400 font-medium">
-                Version 0.4.3 · Verified release
-              </span>
-            </div>
-
-            <div>
-              <h3 className="font-serif text-2xl text-white font-medium">AxWise FastMCP 0.4.3</h3>
-              <p className="text-stone-400 text-xs mt-1 leading-relaxed">
-                Feature-complete native Rust and pure-Python MCP specialist runtime with dynamic Gemini 3.8/3.5 depth routing, embedded SQLite WAL storage, and Stage 8 Gate B JEV System-1 audit.
-              </p>
-            </div>
-
-            {/* Direct Download Links */}
-            <div className="flex flex-wrap gap-3">
-              <a
-                href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise-native-darwin-arm64-v0.4.3.tar.gz"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2.5 bg-stone-900 hover:bg-stone-800 border border-stone-700 hover:border-emerald-500/50 rounded-lg text-xs font-mono text-emerald-400 transition-all"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Download Native macOS (ARM64)</span>
-                <span className="text-stone-500 text-[10px]">3.7 MB</span>
-              </a>
-
-              <a
-                href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise_extension-0.4.3-py3-none-any.whl"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2.5 bg-stone-900 hover:bg-stone-800 border border-stone-700 hover:border-emerald-500/50 rounded-lg text-xs font-mono text-emerald-400 transition-all"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Download Python wheel (.whl)</span>
-                <span className="text-stone-500 text-[10px]">185 KB</span>
-              </a>
-
-              <a
-                href="https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise-extension-0.4.3.tgz"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2.5 bg-stone-900 hover:bg-stone-800 border border-stone-700 hover:border-emerald-500/50 rounded-lg text-xs font-mono text-emerald-400 transition-all"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Download npm archive (.tgz)</span>
-                <span className="text-stone-500 text-[10px]">191 KB</span>
-              </a>
-            </div>
-
-            {/* Launch Commands with Copy */}
-            <div className="space-y-3 font-mono text-xs">
-              <div>
-                <div className="flex items-center justify-between text-[11px] text-stone-400 mb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <TerminalIcon className="w-3 h-3 text-emerald-400" />
-                    Codex 1-Line Setup
-                  </span>
-                  <button
-                    onClick={() => handleCopy('codex mcp add axwise-local -- uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise_extension-0.4.3-py3-none-any.whl axwise', 'codex-cli')}
-                    className="hover:text-white flex items-center gap-1 transition-colors"
-                  >
-                    {copiedCommand === 'codex-cli' ? (
-                      <span className="text-emerald-400 flex items-center gap-1"><Check className="w-3 h-3" /> Copied!</span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-stone-400 hover:text-stone-200"><Copy className="w-3 h-3" /> Copy</span>
-                    )}
-                  </button>
-                </div>
-                <pre className="p-3 bg-stone-950 border border-stone-800 rounded-lg text-stone-300 overflow-x-auto text-[11px] leading-relaxed selection:bg-emerald-900 selection:text-emerald-200">
-                  <code>codex mcp add axwise-local -- uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise_extension-0.4.3-py3-none-any.whl axwise</code>
-                </pre>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between text-[11px] text-stone-400 mb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <TerminalIcon className="w-3 h-3 text-emerald-400" />
-                    Launch directly with uvx (no install needed)
-                  </span>
-                  <button
-                    onClick={() => handleCopy('uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise_extension-0.4.3-py3-none-any.whl axwise', 'uvx')}
-                    className="hover:text-white flex items-center gap-1 transition-colors"
-                  >
-                    {copiedCommand === 'uvx' ? (
-                      <span className="text-emerald-400 flex items-center gap-1"><Check className="w-3 h-3" /> Copied!</span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-stone-400 hover:text-stone-200"><Copy className="w-3 h-3" /> Copy</span>
-                    )}
-                  </button>
-                </div>
-                <pre className="p-3 bg-stone-950 border border-stone-800 rounded-lg text-stone-300 overflow-x-auto text-[11px] leading-relaxed selection:bg-emerald-900 selection:text-emerald-200">
-                  <code>uvx --from https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise_extension-0.4.3-py3-none-any.whl axwise</code>
-                </pre>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between text-[11px] text-stone-400 mb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <TerminalIcon className="w-3 h-3 text-emerald-400" />
-                    Or install via pip
-                  </span>
-                  <button
-                    onClick={() => handleCopy('pip install https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise_extension-0.4.3-py3-none-any.whl', 'pip')}
-                    className="hover:text-white flex items-center gap-1 transition-colors"
-                  >
-                    {copiedCommand === 'pip' ? (
-                      <span className="text-emerald-400 flex items-center gap-1"><Check className="w-3 h-3" /> Copied!</span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-stone-400 hover:text-stone-200"><Copy className="w-3 h-3" /> Copy</span>
-                    )}
-                  </button>
-                </div>
-                <pre className="p-3 bg-stone-950 border border-stone-800 rounded-lg text-stone-300 overflow-x-auto text-[11px] leading-relaxed selection:bg-emerald-900 selection:text-emerald-200">
-                  <code>pip install https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-extension-v0.4.3/axwise_extension-0.4.3-py3-none-any.whl</code>
-                </pre>
-              </div>
-            </div>
-
-            {/* Checksums Accordion / Details */}
-            <details className="text-[11px] font-mono text-stone-400 border border-stone-800 rounded-lg p-3 bg-stone-900/50 cursor-pointer">
-              <summary className="hover:text-stone-200 select-none flex items-center justify-between">
-                <span>Verified SHA-256 download checksums</span>
-                <span className="text-stone-500 text-[10px]">Expand</span>
-              </summary>
-              <div className="mt-3 pt-3 border-t border-stone-800 space-y-2 text-[10px] text-stone-400 break-all">
-                <div>
-                  <div className="text-stone-300 font-semibold">Native macOS binary (.tar.gz · 3,725,974 bytes):</div>
-                  <code className="text-emerald-400/90 font-mono">047635a9ad837b6e5da23ca10a48618a86ef993bbd727c25fb789a68aad4c294</code>
-                </div>
-                <div>
-                  <div className="text-stone-300 font-semibold">Python wheel (.whl · 185,619 bytes):</div>
-                  <code className="text-emerald-400/90 font-mono">d6d7a087d355fed5d0d0629dbcf69fde3b2f7ea9ab7771396ff57c2bab3f7408</code>
-                </div>
-                <div>
-                  <div className="text-stone-300 font-semibold">npm archive (.tgz · 191,015 bytes):</div>
-                  <code className="text-emerald-400/90 font-mono">07d419d1bc65baa206618753494cf443677f6ccfe64b41459c1b35b30d0e428b</code>
-                </div>
-              </div>
-            </details>
-
-            <ul className="text-[11px] text-stone-400 space-y-1 list-disc pl-4 font-sans leading-relaxed">
-              <li>Pure Python: Python 3.11 or newer (uv can provide Python).</li>
-              <li>Eliminates the legacy Node.js 22 requirement; zero PostgreSQL or Docker containers needed.</li>
-              <li>Embedded SQLite storage (~/.axwise/state/axwise.db) and plain Markdown files.</li>
-              <li>Zero-config AI discovery: automatically detects GEMINI_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY.</li>
-            </ul>
-          </div>
+          <AxwiseDownloadCard />
         </div>
       </section>
 

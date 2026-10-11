@@ -20,7 +20,7 @@ This is a public Codex marketplace release, separate from OpenAI's built-in dire
 
 ## Install in Codex CLI
 
-Download `axwise-native-darwin-arm64-v0.5.2.tar.gz` from the [public release](https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-rust-v0.5.2), check its SHA-256 against `SHA256SUMS.txt`, and extract it. This binary targets Apple Silicon macOS. It is ad-hoc signed, not Apple notarized.
+Download `axwise-native-darwin-arm64-v0.5.2.tar.gz` from the [public release](https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-rust-v0.5.3-recovery), check its SHA-256 against `SHA256SUMS.txt`, and extract it. This binary targets Apple Silicon macOS. It is ad-hoc signed, not Apple notarized.
 
 ```sh
 tar -xzf axwise-native-darwin-arm64-v0.5.2.tar.gz

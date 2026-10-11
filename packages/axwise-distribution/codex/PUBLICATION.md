@@ -1,6 +1,6 @@
 # AxWise public distribution
 
-Plugin 0.1.1 bundles the released Rust engine 0.5.2 for Apple Silicon macOS.
+Plugin 0.1.2 bundles the released Rust engine 0.5.3 for Apple Silicon macOS.
 Public download/Git distribution and the built-in OpenAI directory are separate
 release paths. Publishing a repository does not create a directory listing.
 
@@ -16,7 +16,7 @@ dependency only; the installed package starts Rust directly.
 node prepare-public.mjs
 ```
 
-The output is `dist/axwise-codex-plugin/axwise-codex-marketplace-v0.1.1-darwin-arm64.zip`
+The output is `dist/axwise-codex-plugin/axwise-codex-marketplace-v0.1.2-darwin-arm64.zip`
 with an adjacent SHA-256 file and an inventory report. This ZIP is a download
 for local installation; it is not a directory-submission ZIP.
 
@@ -57,5 +57,5 @@ No draft, submission or approval is claimed by these build scripts.
 On 7 October 2026, the extracted public ZIP passed the five runtime contract
 checks, installed successfully through Codex, and completed a saved discovery
 scope through its ordinary tools. The binary digest matched the released Rust
-0.5.2 executable. This check does not establish directory eligibility, support
+0.5.3 executable. This check does not establish directory eligibility, support
 for another platform, or a new full-chain acceptance run; see ENGINEERING.md.

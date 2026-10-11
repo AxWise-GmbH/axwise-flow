@@ -55,6 +55,13 @@ pub struct Dependency {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct TechnicalSection {
+    pub heading: String,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct DeliveryCandidate {
     pub title: String,
     pub requirements: Vec<RequirementCoverage>,
@@ -66,6 +73,31 @@ pub struct DeliveryCandidate {
     pub proposed_exclusions: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub open_questions: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub technical_sections: Vec<TechnicalSection>,
+}
+
+pub fn requested_technical_sections(brief: &str) -> Vec<&'static str> {
+    let text = brief.to_lowercase();
+    [
+        (
+            "Architecture and modules",
+            &["architecture", "modules", "modular"][..],
+        ),
+        (
+            "Data model",
+            &["data model", "data schema", "database schema"][..],
+        ),
+        ("API contracts", &["api contract", "api endpoint"][..]),
+        (
+            "Role permissions",
+            &["permission", "role boundaries", "access control"][..],
+        ),
+    ]
+    .into_iter()
+    .filter(|(_, terms)| terms.iter().any(|term| text.contains(term)))
+    .map(|(heading, _)| heading)
+    .collect()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

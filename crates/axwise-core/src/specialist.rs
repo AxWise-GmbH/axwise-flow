@@ -1,7 +1,8 @@
-//! Production AxWise: Rust orchestration over the shared, deterministic domain kernel.
+//! Production AxWise: Rust orchestration over the in-process desktop domain kernel.
 //! The kernel has no credentials or filesystem authority. Only the host resolves saved
 //! references; candidates are never published before domain validation, review and audit.
 use crate::{
+    progress::{report, ProgressObserver, SpecialistPhase},
     provider::{ModelProvider, ProviderType},
     scope::HostScope,
     storage::{OperationRecord, StorageManager},
@@ -10,36 +11,21 @@ use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{
     path::{Path, PathBuf},
-    process::Stdio,
     time::Duration,
 };
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    process::Command,
-};
 
-// Complete refresh-token rotation even when the enclosing chat is cancelled.
-static ACTIVE_AUTH: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
-pub fn active_auth_refreshes() -> usize {
-    ACTIVE_AUTH.load(std::sync::atomic::Ordering::SeqCst)
-}
-struct AuthRefresh;
-impl AuthRefresh {
-    fn begin() -> Self {
-        ACTIVE_AUTH.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        Self
-    }
-}
-impl Drop for AuthRefresh {
-    fn drop(&mut self) {
-        ACTIVE_AUTH.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
-    }
+pub trait TokenProvider: Send + Sync {
+    fn get_token<'a>(
+        &'a self,
+        scope: &'a HostScope,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send + 'a>>;
 }
 
 struct Journal {
     directory: PathBuf,
     sequence: usize,
     finished: bool,
+    publication_started: bool,
 }
 impl Journal {
     fn new(base: &Path, scope: &HostScope, operation: &str) -> Result<Self, String> {
@@ -75,6 +61,7 @@ impl Journal {
             directory,
             sequence: 0,
             finished: false,
+            publication_started: false,
         })
     }
     fn stage(&mut self, stage: &str, data: &Value) -> Result<(), String> {
@@ -145,81 +132,140 @@ fn configured_path(key: &str) -> Result<PathBuf, String> {
 }
 
 /// Killing or dropping a turn kills its active worker. One bounded protocol frame per process.
-async fn bounded_command(
-    mut command: Command,
-    input: Option<&Value>,
-    limit: usize,
-    timeout: Duration,
-) -> Result<Vec<u8>, String> {
-    command
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .kill_on_drop(true);
-    let mut child = command.spawn().map_err(|_| "worker_unavailable")?;
-    let mut stdout = child.stdout.take().ok_or("worker_stdout_unavailable")?;
-    let mut stdin = child.stdin.take().ok_or("worker_stdin_unavailable")?;
-    let request = input.map(|v| format!("{v}\n")).unwrap_or_default();
-    if request.len() > LIMIT {
-        return Err("worker_input_too_large".into());
+const VALIDATION_DIAGNOSTICS: &[&str] = &[
+    "WEB_SOURCE_IDENTITY_REQUIRED",
+    "SOURCE_STATEMENT_MISMATCH",
+    "UNKNOWN_EVIDENCE_PASSAGE",
+    "PERSONA_SLOT_MISMATCH",
+    "MISSING_CLAIM_EVIDENCE",
+    "INVALID_CANDIDATE_SCHEMA",
+    "INVALID_PRD_SECTIONS",
+    "UNKNOWN_SOURCE_REFERENCE",
+    "INVALID_SOURCE_QUOTE",
+    "SYNTHETIC_PROVENANCE_MISMATCH",
+    "INVALID_OWNER_DECISION",
+    "INVALID_ANALYSIS_LINEAGE",
+    "UNKNOWN_FINDING_REFERENCE",
+    "MISSING_REQUIREMENT_FINDING_LINK",
+    "INVALID_MODEL_JSON",
+    "MISSING_CONFLICT_GAP",
+    "MISSING_INSUFFICIENT_GAP",
+    "UNREQUESTED_ANALYSIS_OUTPUT",
+    "INVALID_PRD_REVISION_BASE",
+    "INVALID_PRD_REVISION_EDIT",
+    "INVALID_PRD_REVISION_PATCH",
+    "SOURCE_QUOTATION_BASIS_MISMATCH",
+];
+
+#[derive(Debug)]
+struct KernelFailure {
+    code: String,
+    diagnostics: Vec<String>,
+}
+impl From<String> for KernelFailure {
+    fn from(code: String) -> Self {
+        let diagnostics = if code == "INVALID_MODEL_JSON" {
+            vec![code.clone()]
+        } else {
+            vec![]
+        };
+        Self { code, diagnostics }
     }
-    let run = async {
-        let write = async {
-            stdin.write_all(request.as_bytes()).await?;
-            drop(stdin);
-            Ok::<_, std::io::Error>(())
-        };
-        let read = async {
-            let mut bytes = Vec::new();
-            (&mut stdout)
-                .take(limit as u64 + 1)
-                .read_to_end(&mut bytes)
-                .await?;
-            Ok::<_, std::io::Error>(bytes)
-        };
-        let (_, bytes) = tokio::try_join!(write, read).map_err(|_| "worker_transport_failed")?;
-        if bytes.len() > limit {
-            return Err("worker_output_too_large".to_string());
-        }
-        let status = child.wait().await.map_err(|_| "worker_wait_failed")?;
-        if !status.success() {
-            return Err("worker_failed".into());
-        }
-        Ok(bytes)
+}
+impl From<KernelFailure> for String {
+    fn from(error: KernelFailure) -> Self {
+        error.code
+    }
+}
+fn safe_failure_code(error: &str) -> &str {
+    let code = error.split([':', ';', ' ']).next().unwrap_or_default();
+    if !code.is_empty()
+        && code.len() <= 64
+        && code.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+    {
+        code
+    } else {
+        "AXWISE_FAILED"
+    }
+}
+fn rejected(code: &str, diagnostics: &[String]) -> Value {
+    let reason = if diagnostics.is_empty() {
+        code.to_owned()
+    } else {
+        format!("{code}: {}", diagnostics.join(", "))
     };
-    tokio::time::timeout(timeout, run)
-        .await
-        .map_err(|_| "worker_timeout".to_string())?
+    let guidance: Vec<_> = diagnostics
+        .iter()
+        .filter_map(|code| {
+            crate::desktop_kernel::diagnostic_guidance(code)
+                .map(|message| json!({"code":code,"message":message}))
+        })
+        .collect();
+    let explanation = guidance
+        .iter()
+        .filter_map(|item| item["message"].as_str())
+        .collect::<Vec<_>>()
+        .join(" ");
+    json!({"isError":true,"content":[{"type":"text","text":format!("AxWise artifact rejected ({reason}); no artifact was published. {explanation}")}],
+        "structuredContent":{"schemaVersion":"axwise.failure.v1","status":"rejected",
+            "code":code,"diagnostics":diagnostics,"diagnosticGuidance":guidance,"artifactPublished":false,"effectsPossible":false}})
 }
 
 pub async fn kernel(message: &Value) -> Result<Value, String> {
-    let root = configured_path("AXWISE_KERNEL_ROOT")?;
-    let python = configured_path("AXWISE_KERNEL_PYTHON")?;
-    let mut command = Command::new(python);
-    command.args(["-I", "-B", "-c", "import runpy,sys; sys.path.insert(0,sys.argv[1]); runpy.run_module('backend.services.local_axwise.worker',run_name='__main__')"])
-        .arg(&root).current_dir(&root).env_clear();
-    // CPython isolated mode ignores user packages and startup hooks. No account
-    // token, selected paths, provider key or host environment reaches the kernel.
-    #[cfg(windows)]
-    if let Some(value) = std::env::var_os("SYSTEMROOT") {
-        command.env("SYSTEMROOT", value);
+    kernel_checked(message).await.map_err(String::from)
+}
+
+async fn kernel_checked(message: &Value) -> Result<Value, KernelFailure> {
+    kernel_frame(message)
+        .await
+        .map_err(KernelFailure::from)
+        .and_then(|reply| {
+            if reply["ok"] != true {
+                let code =
+                    safe_failure_code(reply["error"]["code"].as_str().unwrap_or("KERNEL_FAILED"))
+                        .to_owned();
+                let diagnostics = reply["error"]["diagnostics"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(Value::as_str)
+                    .filter(|code| VALIDATION_DIAGNOSTICS.contains(code))
+                    .take(10)
+                    .map(str::to_owned)
+                    .collect();
+                return Err(KernelFailure { code, diagnostics });
+            }
+            reply
+                .get("result")
+                .cloned()
+                .ok_or_else(|| KernelFailure::from("invalid_kernel_result".to_owned()))
+        })
+}
+
+async fn kernel_frame(message: &Value) -> Result<Value, String> {
+    if serde_json::to_vec(message)
+        .map_err(|_| "invalid_kernel_frame")?
+        .len()
+        > LIMIT
+    {
+        return Err("kernel_request_too_large".into());
     }
-    let bytes = bounded_command(command, Some(message), LIMIT, Duration::from_secs(10)).await?;
-    let reply: Value = serde_json::from_slice(&bytes).map_err(|_| "invalid_kernel_frame")?;
-    if reply["ok"] != true {
-        let code = reply["error"]["code"].as_str().unwrap_or("KERNEL_FAILED");
-        // Diagnostic enums, never source text or provider exception bodies.
-        return Err(format!(
-            "{code}: {}",
-            reply["error"]["message"]
-                .as_str()
-                .unwrap_or("AxWise validation failed; no artifact was published.")
-        ));
+    let message = message.clone();
+    let reply = tokio::time::timeout(
+        Duration::from_secs(10),
+        tokio::task::spawn_blocking(move || crate::desktop_kernel::dispatch(&message)),
+    )
+    .await
+    .map_err(|_| "kernel_timeout")?
+    .map_err(|_| "kernel_failed")?;
+    if serde_json::to_vec(&reply)
+        .map_err(|_| "invalid_kernel_frame")?
+        .len()
+        > LIMIT
+    {
+        return Err("kernel_response_too_large".into());
     }
-    reply
-        .get("result")
-        .cloned()
-        .ok_or_else(|| "invalid_kernel_result".into())
+    Ok(reply)
 }
 
 pub async fn describe() -> Result<Value, String> {
@@ -352,20 +398,11 @@ pub fn provider_schema(schema: &Value) -> Result<Value, String> {
     hints(&expanded)
 }
 
-async fn protected_auth_refresh(command: Command) -> Result<Vec<u8>, String> {
-    let refresh = AuthRefresh::begin();
-    let task = tokio::spawn(async move {
-        let _refresh = refresh;
-        bounded_command(command, None, 32_768, Duration::from_secs(60)).await
-    });
-    task.await
-        .map_err(|_| "login_required")?
-        .map_err(|_| "login_required".into())
-}
-
-async fn managed_provider(scope: &HostScope) -> Result<ModelProvider, String> {
-    let (token, base) = if let Some(runtime) = std::env::var_os("ORQALY_DESKTOP_RUNTIME_ROOT") {
-        let runtime = PathBuf::from(runtime);
+async fn managed_provider(
+    scope: &HostScope,
+    tokens: Option<&dyn TokenProvider>,
+) -> Result<ModelProvider, String> {
+    let (token, base) = if std::env::var_os("ORQALY_DESKTOP_RUNTIME_ROOT").is_some() {
         let profile = configured_path("GOOSE_PATH_ROOT")?;
         if profile.file_name().and_then(|s| s.to_str()) != Some(&scope.account) {
             return Err("account_scope_mismatch".into());
@@ -380,22 +417,10 @@ async fn managed_provider(scope: &HostScope) -> Result<ModelProvider, String> {
         if config["headers"]["X-Orqaly-Account-Hash"].as_str() != Some(&scope.account) {
             return Err("provider_scope_mismatch".into());
         }
-        let mut command = Command::new(runtime.join("node").join(if cfg!(windows) {
-            "node.exe"
-        } else {
-            "bin/node"
-        }));
-        command
-            .arg(runtime.join("connector/src/cli.mjs"))
-            .arg("token")
-            .arg("--config")
-            .arg(runtime.join("connector/production.config.example.json"))
-            .current_dir(runtime.join("connector"));
-        let bytes = protected_auth_refresh(command).await?;
-        let token = String::from_utf8(bytes)
-            .map_err(|_| "invalid_account_token")?
-            .trim()
-            .to_string();
+        let token = tokens
+            .ok_or("missing_host_token_provider")?
+            .get_token(scope)
+            .await?;
         let base = config["base_url"]
             .as_str()
             .ok_or("missing_managed_gateway_url")?
@@ -585,30 +610,121 @@ async fn infer(provider: &ModelProvider, prepared: &Value) -> Result<Value, Stri
 }
 
 pub async fn execute(tool: &str, input: &Value, scope: &HostScope) -> Result<Value, String> {
+    execute_with_progress(tool, input, scope, None).await
+}
+
+pub async fn execute_with_progress(
+    tool: &str,
+    input: &Value,
+    scope: &HostScope,
+    progress: Option<ProgressObserver>,
+) -> Result<Value, String> {
+    execute_with_token_provider(tool, input, scope, progress, None).await
+}
+
+pub async fn execute_with_token_provider(
+    tool: &str,
+    input: &Value,
+    scope: &HostScope,
+    progress: Option<ProgressObserver>,
+    tokens: Option<std::sync::Arc<dyn TokenProvider>>,
+) -> Result<Value, String> {
+    execute_with_host_task(tool, input, scope, progress, tokens, None).await
+}
+
+pub async fn execute_with_host_task(
+    tool: &str,
+    input: &Value,
+    scope: &HostScope,
+    progress: Option<ProgressObserver>,
+    tokens: Option<std::sync::Arc<dyn TokenProvider>>,
+    host_task: Option<Value>,
+) -> Result<Value, String> {
     let scope = HostScope::resolve(Some(&json!(scope)), None, None, input)?;
     if !TOOLS.contains(&tool)
         || !input.is_object()
         || input.to_string().len() > 160_000
         || input.get("hostEvidence").is_some()
         || input.get("hostContext").is_some()
+        || input.get("hostTask").is_some()
     {
         return Err("invalid_specialist_input".into());
     }
     tokio::time::timeout(
         Duration::from_secs(180),
-        execute_bounded(tool, input, &scope),
+        execute_bounded(tool, input, &scope, progress, tokens, host_task),
     )
     .await
     .map_err(|_| "axwise_timeout; no completed receipt was issued".to_string())?
 }
 
-async fn execute_bounded(tool: &str, input: &Value, scope: &HostScope) -> Result<Value, String> {
+async fn execute_bounded(
+    tool: &str,
+    input: &Value,
+    scope: &HostScope,
+    progress: Option<ProgressObserver>,
+    tokens: Option<std::sync::Arc<dyn TokenProvider>>,
+    host_task: Option<Value>,
+) -> Result<Value, String> {
     let base = configured_path("AXWISE_STATE_DIR")?;
     let operation_id = uuid::Uuid::new_v4().to_string();
     let mut journal = Journal::new(&base, scope, &operation_id)?;
+    report(&progress, SpecialistPhase::Preparing);
+    let outcome = execute_journaled(
+        tool,
+        input,
+        scope,
+        &base,
+        &operation_id,
+        &mut journal,
+        SpecialistHost {
+            progress: &progress,
+            tokens: tokens.as_deref(),
+            task: host_task.as_ref().unwrap_or(&Value::Null),
+        },
+    )
+    .await;
+    match &outcome {
+        Ok(value) if value["isError"] == true => {
+            journal.stage("rejected", &value["structuredContent"])?;
+            journal.finished = true;
+        }
+        Err(error) => {
+            let code = safe_failure_code(error);
+            journal.stage("rejected", &json!({"code":code,"effectsPossible":journal.publication_started,"artifactPublished":if journal.publication_started {Value::Null} else {json!(false)}}))?;
+            journal.finished = true;
+            if !journal.publication_started {
+                return Ok(rejected(code, &[]));
+            }
+        }
+        _ => {}
+    }
+    outcome
+}
+
+struct SpecialistHost<'a> {
+    progress: &'a Option<ProgressObserver>,
+    tokens: Option<&'a dyn TokenProvider>,
+    task: &'a Value,
+}
+
+async fn execute_journaled(
+    tool: &str,
+    input: &Value,
+    scope: &HostScope,
+    base: &Path,
+    operation_id: &str,
+    journal: &mut Journal,
+    host: SpecialistHost<'_>,
+) -> Result<Value, String> {
+    let SpecialistHost {
+        progress,
+        tokens,
+        task: host_task,
+    } = host;
     journal.stage("selected_input", &json!({"tool":tool,"input":input}))?;
     let legacy = std::env::var_os("AXWISE_LEGACY_STATE_DIR").map(PathBuf::from);
-    let resolve = |reference: &Value| match resolve_reference(&base, scope, reference) {
+    let resolve = |reference: &Value| match resolve_reference(base, scope, reference) {
         Ok(value) => Ok(value),
         Err(error) => match &legacy {
             Some(legacy) => resolve_reference(legacy, scope, reference).map_err(|_| error),
@@ -673,11 +789,15 @@ async fn execute_bounded(tool: &str, input: &Value, scope: &HostScope) -> Result
             evidence.push(analysis);
         }
     }
-    let request = |operation: &str| json!({"operation":operation,"tool":tool,"input":input,"hostEvidence":evidence});
-    let prepared = kernel(&request("prepare")).await?;
+    let request = |operation: &str| json!({"operation":operation,"tool":tool,"input":input,"hostEvidence":evidence,"hostTask":host_task});
+    let prepared = match kernel_checked(&request("prepare")).await {
+        Ok(prepared) => prepared,
+        Err(error) => return Ok(rejected(&error.code, &error.diagnostics)),
+    };
     journal.stage("prepared", &json!({"tool":tool,"references":references}))?;
-    let provider = managed_provider(scope).await?;
+    let provider = managed_provider(scope, tokens).await?;
     let mut calls = 0;
+    report(progress, SpecialistPhase::Generating);
     let generation = if let Some(tasks) = prepared.get("generationTasks") {
         let tasks = tasks
             .as_array()
@@ -739,6 +859,7 @@ async fn execute_bounded(tool: &str, input: &Value, scope: &HostScope) -> Result
     }
     let mut candidate = generation.clone().unwrap_or(Value::Null);
     journal.stage("generated", &json!({"candidate":candidate,"calls":calls}))?;
+    report(progress, SpecialistPhase::Validating);
     let finalize = |candidate: &Value| {
         let mut value = request("finalize");
         value["response"] = candidate.clone();
@@ -746,14 +867,21 @@ async fn execute_bounded(tool: &str, input: &Value, scope: &HostScope) -> Result
         value
     };
     let mut finalized = match generation {
-        Ok(_) => kernel(&finalize(&candidate)).await,
-        Err(error) => Err(error),
+        Ok(_) => kernel_checked(&finalize(&candidate)).await,
+        Err(error) => Err(KernelFailure::from(error)),
     };
     let mut quality = None;
     if tool == "simulate_interviews" {
-        finalized.as_ref().map_err(Clone::clone)?;
+        if let Err(error) = &finalized {
+            journal.stage(
+                "validation_failed",
+                &json!({"code":error.code,"diagnostics":error.diagnostics}),
+            )?;
+            return Ok(rejected(&error.code, &error.diagnostics));
+        }
     } else {
         if let Ok(value) = &finalized {
+            report(progress, SpecialistPhase::Reviewing);
             let mut review = request("prepare_review");
             review["artifact"] = value["artifact"].clone();
             let prompt = kernel(&review).await?;
@@ -769,17 +897,36 @@ async fn execute_bounded(tool: &str, input: &Value, scope: &HostScope) -> Result
             let mut repair = request("prepare_repair");
             repair["candidate"] = candidate.clone();
             repair["review"] = quality.clone().unwrap_or(Value::Null);
-            // A malformed completion is repairable, with no raw provider text echoed.
-            repair["diagnostics"] = if finalized.is_err() {
-                json!(["INVALID_CANDIDATE_SCHEMA"])
+            repair["diagnostics"] = if let Err(error) = &finalized {
+                journal.stage(
+                    "validation_failed",
+                    &json!({"code":error.code,"diagnostics":error.diagnostics}),
+                )?;
+                if error.diagnostics.is_empty() {
+                    return Ok(rejected(&error.code, &[]));
+                }
+                json!(error.diagnostics)
             } else {
                 json!([])
             };
+            report(progress, SpecialistPhase::Repairing);
             let prompt = kernel(&repair).await?;
             calls += 1;
             candidate = infer(&provider, &prompt).await?;
-            finalized = kernel(&finalize(&candidate)).await;
-            let value = finalized.as_ref().map_err(Clone::clone)?;
+            journal.stage("repaired", &json!({"candidate":candidate,"calls":calls}))?;
+            report(progress, SpecialistPhase::Validating);
+            finalized = kernel_checked(&finalize(&candidate)).await;
+            let value = match &finalized {
+                Ok(value) => value,
+                Err(error) => {
+                    journal.stage(
+                        "validation_failed",
+                        &json!({"code":error.code,"diagnostics":error.diagnostics}),
+                    )?;
+                    return Ok(rejected(&error.code, &error.diagnostics));
+                }
+            };
+            report(progress, SpecialistPhase::Reviewing);
             let mut review = request("prepare_review");
             review["artifact"] = value["artifact"].clone();
             let prompt = kernel(&review).await?;
@@ -792,7 +939,13 @@ async fn execute_bounded(tool: &str, input: &Value, scope: &HostScope) -> Result
             quality = Some(kernel(&check).await?);
         }
         if quality.as_ref().is_none_or(|v| v["passed"] != true) {
-            return Err("quality_review_failed; no artifact was published".into());
+            let mut failure = rejected("QUALITY_REVIEW_FAILED", &[]);
+            failure["structuredContent"]["qualityReview"] = quality.clone().unwrap_or(Value::Null);
+            failure["content"][0]["text"] = json!(format!(
+                "AxWise quality review failed after one bounded repair; no artifact was published. Review feedback: {}",
+                quality.as_ref().map(|v| &v["review"]).unwrap_or(&Value::Null)
+            ));
+            return Ok(failure);
         }
     }
     let finalized = finalized?;
@@ -808,16 +961,21 @@ async fn execute_bounded(tool: &str, input: &Value, scope: &HostScope) -> Result
         .filter(|v| !v.trim().is_empty())
         .ok_or("missing_rendered_document")?;
     let gate = if tool == "create_prd" || tool == "create_delivery_brief" {
+        report(progress, SpecialistPhase::Auditing);
         let audited = finalized["artifact"].to_string();
         let criteria = finalized["artifact"]["requirements"]
             .as_array()
             .cloned()
             .unwrap_or_default();
+        let mut gate_context = json!({"input":input,"references":evidence});
+        if !host_task.is_null() {
+            gate_context["hostTask"] = host_task.clone();
+        }
         let value = crate::jev::audit_gate_b_with_credentials(
             scope,
             &audited,
             &criteria,
-            Some(&json!({"input":input,"references":evidence})),
+            Some(&gate_context),
             &provider.api_key,
             &provider.base_url,
         )
@@ -843,6 +1001,9 @@ async fn execute_bounded(tool: &str, input: &Value, scope: &HostScope) -> Result
         .collect::<String>();
     let descriptor = json!({"schemaVersion":"orqanix.result.v1","artifactId":parent.as_ref().map(|p| p["resultArtifact"]["artifactId"].clone()).unwrap_or(json!(operation_id)),"revisionId":operation_id,"parentRevisionId":parent.as_ref().map(|p| p["reference"]["operationId"].clone()),"title":title,"mimeType":"text/markdown","path":session.join(format!("{operation_id}.md")),"sha256":digest(markdown.as_bytes()),"createdAt":created_at,"previousPath":parent.as_ref().map(|p| p["resultArtifact"]["path"].clone())});
     let mut record = json!({"version":"axwise.artifact.v3","operationId":operation_id,"accountHash":scope.account,"conversationId":scope.session,"tool":tool,"createdAt":created_at,"selectedInput":input,"inputSha256":value_digest(input),"candidate":candidate,"artifact":finalized["artifact"],"artifactSha256":value_digest(&finalized["artifact"]),"markdown":markdown,"validation":finalized["validation"],"provenance":finalized["provenance"],"qualityReview":quality,"gateBAudit":gate,"resultArtifact":descriptor,"execution":{"orchestration":"rust","pipelineVersion":"axwise.specialist.v1","calls":calls,"inference":"authenticated-desktop-gateway"}});
+    if !host_task.is_null() {
+        record["hostTask"] = host_task.clone();
+    }
     if let Some(resolved) = prepared.get("resolvedInput") {
         record["resolvedInput"] = resolved.clone();
         record["resolvedInputSha256"] = json!(value_digest(resolved));
@@ -853,7 +1014,7 @@ async fn execute_bounded(tool: &str, input: &Value, scope: &HostScope) -> Result
         return Err("artifact_too_large".into());
     }
     let receipt = OperationRecord {
-        operation_id: operation_id.clone(),
+        operation_id: operation_id.to_owned(),
         session_id: scope.session.clone(),
         tool: tool.into(),
         title: Some(title.clone()),
@@ -875,6 +1036,8 @@ async fn execute_bounded(tool: &str, input: &Value, scope: &HostScope) -> Result
         quality_review_json: quality.as_ref().map(Value::to_string),
         status: "completed".into(),
     };
+    report(progress, SpecialistPhase::Saving);
+    journal.publication_started = true;
     let mut storage =
         StorageManager::new(owner).map_err(|_| "storage_failed; no artifact was accepted")?;
     storage
@@ -882,7 +1045,7 @@ async fn execute_bounded(tool: &str, input: &Value, scope: &HostScope) -> Result
         .map_err(|_| "storage_failed; no artifact was accepted")?;
     // Read-back acceptance verifies immutable disk bytes and the SQLite receipt.
     resolve_reference(
-        &base,
+        base,
         scope,
         &json!({"operationId":operation_id,"sha256":receipt.sha256}),
     )?;
@@ -894,40 +1057,4 @@ async fn execute_bounded(tool: &str, input: &Value, scope: &HostScope) -> Result
     Ok(
         json!({"content":[{"type":"text","text":format!("{markdown}\n\nOpen saved result: [{title}](orqanix-result:{operation_id})\nSaved artifact reference: {}\nUse this saved result only after this tool has completed successfully.",json!({"operationId":operation_id,"sha256":receipt.sha256}))}],"structuredContent":{"tool":tool,"status":"completed","operationId":operation_id,"sha256":receipt.sha256,"bytes":bytes.len(),"artifactPath":receipt.json_path,"markdownPath":receipt.md_path,"storageAccepted":true,"qualityReview":quality.unwrap_or(json!({"passed":true,"method":"deterministic_simulation_validation"})),"gateBAudit":gate,"artifact":finalized["artifact"],"markdown":markdown,"resultArtifact":descriptor,"execution":record["execution"]}}),
     )
-}
-
-#[cfg(all(test, unix))]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn cancellation_finishes_token_refresh_before_releasing_maintenance_count() {
-        let root = tempfile::tempdir().unwrap();
-        let marker = root.path().join("refresh-completed");
-        let mut command = Command::new("/bin/sh");
-        command.args([
-            "-c",
-            &format!(
-                "/bin/sleep 0.2; printf done > '{}'; printf synthetic-fixture-token",
-                marker.display()
-            ),
-        ]);
-        let task = tokio::spawn(protected_auth_refresh(command));
-        let deadline = tokio::time::Instant::now() + Duration::from_secs(3);
-        while active_auth_refreshes() == 0 && tokio::time::Instant::now() < deadline {
-            tokio::time::sleep(Duration::from_millis(5)).await;
-        }
-        assert_eq!(active_auth_refreshes(), 1);
-        task.abort();
-        assert!(matches!(task.await, Err(error) if error.is_cancelled()));
-        assert_eq!(active_auth_refreshes(), 1);
-        while active_auth_refreshes() != 0 && tokio::time::Instant::now() < deadline {
-            tokio::time::sleep(Duration::from_millis(5)).await;
-        }
-        assert!(
-            marker.exists(),
-            "the detached refresh must complete its credential write"
-        );
-        assert_eq!(active_auth_refreshes(), 0);
-    }
 }

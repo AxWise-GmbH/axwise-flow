@@ -1,6 +1,6 @@
 # AxWise for Codex
 
-This local plugin bundles **Rust AxWise 0.5.2** for **Apple Silicon macOS** and
+This local plugin bundles **Rust AxWise 0.5.3** for **Apple Silicon macOS** and
 the `axwise` workflow skill. It uses the current Codex model through MCP
 sampling or host-chat generation/review. No Python, Node runtime, separate
 AxWise account or copied subscription credentials are required.

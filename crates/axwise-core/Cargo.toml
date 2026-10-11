@@ -1,6 +1,6 @@
 [package]
 name = "axwise-core"
-version = "0.5.2"
+version = "0.5.3"
 edition = "2021"
 
 [dependencies]
@@ -16,6 +16,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "proce
 jsonschema = { version = "0.52.1", default-features = false }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 libc = "0.2"
+regex = "1.13.1"
 
 [dev-dependencies]
 similar = "2.6"

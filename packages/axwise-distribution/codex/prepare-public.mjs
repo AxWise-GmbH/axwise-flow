@@ -12,14 +12,14 @@ const files = [
   'README.md', 'NATIVE_README.md', 'LICENSE', 'RUNTIME.json', 'bin/axwise',
   'assets/icon.svg', 'skills/axwise/SKILL.md', 'skills/axwise/references/workflow.md',
 ];
-const expectedBinaryHash = '816af0bd6dd31a109300f066d41c08ff01c285d82bdcd2d0144df5d37385aea8';
+const expectedBinaryHash = 'edc9bccd7655a006f77cdcddcd20671f14cc3b2d87866a7ed624ad062009000d';
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const manifest = JSON.parse(await readFile(join(plugin, 'plugin.json'), 'utf8'));
 const runtime = JSON.parse(await readFile(join(plugin, 'RUNTIME.json'), 'utf8'));
-if (manifest.name !== 'axwise' || manifest.version !== '0.1.1') throw new Error('Unexpected plugin release');
-if (runtime.platform !== 'darwin-arm64' || runtime.version !== '0.5.2' ||
+if (manifest.name !== 'axwise' || manifest.version !== '0.1.2') throw new Error('Unexpected plugin release');
+if (runtime.platform !== 'darwin-arm64' || runtime.version !== '0.5.3' ||
     runtime.sha256 !== expectedBinaryHash || hash(await readFile(join(plugin, 'bin/axwise'))) !== expectedBinaryHash) {
-  throw new Error('Build the verified Apple Silicon Rust 0.5.2 package first');
+  throw new Error('Build the verified Apple Silicon Rust 0.5.3 package first');
 }
 
 async function inspect(dir) {
@@ -74,7 +74,7 @@ Codex CLI 0.159.3 was tested. The client must support local plugin marketplaces.
 
 This is a public download for local Codex installation, separate from OpenAI's built-in directory.
 See [the plugin instructions](axwise/README.md) for storage, limits and supported tools.
-The archive contains the published Rust 0.5.2 executable, unchanged and hash checked.
+The archive contains the published Rust 0.5.3 executable, unchanged and hash checked.
 The macOS executable is ad-hoc signed and is not Apple notarized.
 
 Support: https://github.com/AxWise-GmbH/axwise-flow/issues

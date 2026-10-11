@@ -363,10 +363,18 @@ impl ModelProvider {
         user_prompt: &str,
         max_tokens: u32,
     ) -> Result<String, ProviderError> {
+        if !matches!(
+            self.model.trim_start_matches("models/"),
+            "gemini-3.5-flash-lite" | "gemini-3.8-flash"
+        ) {
+            return Err(ProviderError::Incomplete(
+                "Unsupported Gemini model; use gemini-3.5-flash-lite or gemini-3.8-flash".into(),
+            ));
+        }
         let endpoint = format!(
             "{}/models/{}:generateContent?key={}",
             self.base_url.trim_end_matches('/'),
-            self.model,
+            self.model.trim_start_matches("models/"),
             self.api_key
         );
 
@@ -378,8 +386,7 @@ impl ModelProvider {
                 {"role": "user", "parts": [{"text": user_prompt}]}
             ],
             "generationConfig": {
-                "maxOutputTokens": max_tokens,
-                "temperature": 0.2
+                "maxOutputTokens": max_tokens
             }
         });
 

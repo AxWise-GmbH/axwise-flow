@@ -132,7 +132,7 @@ const lineage = scopeOnly ? {} : {
   analysisToPrd: !!analysisRef && prdInput?.analysisArtifact?.operationId === analysisRef.operationId && prdInput?.analysisArtifact?.sha256 === analysisRef.sha256,
   requirementsLinked: !!requirements?.length && requirements.every(i => i.findingIds?.length > 0 || i.basis === 'owner_decision'),
 };
-const runtimeVerified = verified.every(r => r.provenance?.engine === 'rust_standalone' && r.provenance?.version === '0.5.2' && r.reviewPassed === true);
+const runtimeVerified = verified.every(r => r.provenance?.engine === 'rust_standalone' && r.provenance?.version === '0.5.3' && r.reviewPassed === true);
 const report = { exit, calls, verified, missing, lineage, runtimeVerified,
   configuration: defaultConfig ? 'existing_user_configuration' : 'isolated_installed_plugin',
   passed: exit.code === 0 && missing.length === 0 && runtimeVerified && Object.values(lineage).every(Boolean) };
