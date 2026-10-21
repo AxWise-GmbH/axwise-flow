@@ -45,6 +45,8 @@ auth.json
 .env
 .env.local
 .env.*.local
+frontend/.env*
+!frontend/.env.local.oss
 codex_migration/
 .codex/
 .gmail-mcp/
