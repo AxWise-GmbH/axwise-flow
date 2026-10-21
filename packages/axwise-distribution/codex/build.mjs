@@ -7,8 +7,8 @@ import { execFileSync } from 'node:child_process';
 const root = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(root, '../../..');
 const plugin = join(root, 'axwise');
-const runtimeVersion = '0.5.3';
-const runtimeSha256 = 'edc9bccd7655a006f77cdcddcd20671f14cc3b2d87866a7ed624ad062009000d';
+const runtimeVersion = '0.5.5';
+const runtimeSha256 = 'aa39fbb77f510cfbe3191a8364e9adc08004de40f44f1111d792c0f4a9201955';
 const binary = process.argv[2];
 if (!binary) throw new Error('Usage: node build.mjs /absolute/path/to/released/bin/axwise');
 if (process.platform !== 'darwin' || process.arch !== 'arm64') {
@@ -17,7 +17,7 @@ if (process.platform !== 'darwin' || process.arch !== 'arm64') {
 if (!(await lstat(binary)).isFile()) throw new Error('Runtime must be a regular file, not a symlink');
 const runtimeBytes = await readFile(binary);
 if (createHash('sha256').update(runtimeBytes).digest('hex') !== runtimeSha256) {
-  throw new Error('Runtime does not match the verified public AxWise 0.5.3 binary');
+  throw new Error('Runtime does not match the verified public AxWise 0.5.5 binary');
 }
 const version = execFileSync(binary, ['--version'], { encoding: 'utf8' }).trim();
 if (version !== `axwise ${runtimeVersion}`) throw new Error('Runtime version mismatch');
@@ -50,7 +50,7 @@ await writeFile(join(plugin, 'assets/icon.svg'), icon);
 await writeFile(join(plugin, 'RUNTIME.json'), JSON.stringify({
   engine: 'rust_standalone', version: runtimeVersion, platform: 'darwin-arm64',
   binary: 'bin/axwise', sha256: runtimeSha256,
-  release: 'https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-rust-v0.5.3-recovery',
+  release: 'https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-rust-v0.5.5',
   modelAccess: 'host', managedJevAudit: false,
 }, null, 2) + '\n');
 

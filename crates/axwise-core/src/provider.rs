@@ -27,6 +27,22 @@ pub enum ProviderError {
     Incomplete(String),
 }
 
+pub fn gemini_reasoning_effort(model: &str) -> &'static str {
+    if model.trim_start_matches("models/") == "gemini-4-argon" {
+        "high"
+    } else {
+        "low"
+    }
+}
+
+pub fn gemini_thinking_level(model: &str) -> &'static str {
+    if model.trim_start_matches("models/") == "gemini-4-argon" {
+        "HIGH"
+    } else {
+        "LOW"
+    }
+}
+
 /// Strips markdown code fences (e.g. ```json ... ```) from model completions.
 pub fn clean_json_completion(raw: &str) -> &str {
     let trimmed = raw.trim();
@@ -124,6 +140,7 @@ fn dirs_home() -> Option<PathBuf> {
     env::var("HOME").ok().map(PathBuf::from)
 }
 
+#[derive(Clone)]
 pub struct ModelProvider {
     client: reqwest::Client,
     pub provider_type: ProviderType,
@@ -159,7 +176,7 @@ impl ModelProvider {
 
         let base_url = base_url.unwrap_or_else(|| default_base.to_string());
         let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(90))
+            .timeout(std::time::Duration::from_secs(180))
             .redirect(reqwest::redirect::Policy::none())
             .build()
             .expect("Failed to build HTTP client");
@@ -188,10 +205,11 @@ impl ModelProvider {
                 "Signed-in gateway required".into(),
             ));
         }
+        let effort = gemini_reasoning_effort(&self.model);
         let mut response = self.client.post(format!("{}/desktop/v1/chat/completions", self.base_url.trim_end_matches('/')))
             .bearer_auth(&self.api_key)
             .header("X-Orqaly-Account-Hash", self.account_hash.as_deref().unwrap_or(""))
-            .json(&json!({"model":self.model,"stream":false,"store":false,"reasoning_effort":"low","max_completion_tokens":budget,
+            .json(&json!({"model":self.model,"stream":false,"store":false,"reasoning_effort":effort,"max_completion_tokens":budget,
                 "messages":[{"role":"system","content":system},{"role":"user","content":user}],
                 "response_format":{"type":"json_schema","json_schema":{"name":"axwise_specialist_artifact","strict":true,"schema":schema}}}))
             .send().await?;
@@ -365,10 +383,10 @@ impl ModelProvider {
     ) -> Result<String, ProviderError> {
         if !matches!(
             self.model.trim_start_matches("models/"),
-            "gemini-3.5-flash-lite" | "gemini-3.8-flash"
+            "gemini-3.5-flash-lite" | "gemini-3.8-flash" | "gemini-4-argon"
         ) {
             return Err(ProviderError::Incomplete(
-                "Unsupported Gemini model; use gemini-3.5-flash-lite or gemini-3.8-flash".into(),
+                "Unsupported Gemini model; use gemini-3.5-flash-lite, gemini-3.8-flash or gemini-4-argon".into(),
             ));
         }
         let endpoint = format!(
@@ -386,7 +404,10 @@ impl ModelProvider {
                 {"role": "user", "parts": [{"text": user_prompt}]}
             ],
             "generationConfig": {
-                "maxOutputTokens": max_tokens
+                "maxOutputTokens": max_tokens,
+                "thinkingConfig": {
+                    "thinkingLevel": gemini_thinking_level(&self.model)
+                }
             }
         });
 
@@ -432,8 +453,8 @@ impl ModelProvider {
             "model": self.model,
             "stream": false,
             "store": false,
-            "max_tokens": max_tokens,
-            "temperature": 0.2,
+            "reasoning_effort": gemini_reasoning_effort(&self.model),
+            "max_completion_tokens": max_tokens,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}

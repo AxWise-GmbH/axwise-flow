@@ -98,7 +98,7 @@ test('package keeps portable and Codex wiring equivalent, without credentials or
 
 test('actual bundled Rust server starts in the host workspace and advertises the nine supported tools', async t => {
   const { rpc, initialized } = await client(t);
-  assert.deepEqual(initialized.serverInfo, { name: 'axwise', version: '0.5.3' });
+  assert.deepEqual(initialized.serverInfo, { name: 'axwise', version: '0.5.5' });
   const result = await rpc('tools/list', {});
   assert.deepEqual(result.tools.map(t => t.name).sort(), [
     'prepare_discovery', 'research_market', 'generate_personas', 'simulate_interviews',

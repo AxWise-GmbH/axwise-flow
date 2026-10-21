@@ -1,10 +1,10 @@
-# AxWise Rust standalone 0.5.2
+# AxWise Rust standalone 0.5.5
 
 A local MCP specialist engine for discovery plans, selected market evidence, synthetic personas and interviews, interview analysis, PRDs, and delivery briefs. The release contains one Rust executable, `bin/axwise`, plus documentation, license and provenance. No Python, Node, Orqanix installation or separate AxWise subscription is required.
 
 ## Install the AxWise Codex plugin
 
-The public **AxWise 0.1.1** plugin bundles this same Rust 0.5.2 engine with the
+The public **AxWise 0.1.1** plugin bundles this same Rust 0.5.5 engine with the
 end-to-end workflow skill for **Apple Silicon macOS**. It uses your existing
 Codex model access and needs no Python, Node.js, Rust build tools or AxWise login.
 
@@ -20,11 +20,11 @@ This is a public Codex marketplace release, separate from OpenAI's built-in dire
 
 ## Install in Codex CLI
 
-Download `axwise-native-darwin-arm64-v0.5.2.tar.gz` from the [public release](https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-rust-v0.5.3-recovery), check its SHA-256 against `SHA256SUMS.txt`, and extract it. This binary targets Apple Silicon macOS. It is ad-hoc signed, not Apple notarized.
+Download `axwise-native-darwin-arm64-v0.5.5.tar.gz` from the [public release](https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-rust-v0.5.5), check its SHA-256 against `SHA256SUMS.txt`, and extract it. This binary targets Apple Silicon macOS. It is ad-hoc signed, not Apple notarized.
 
 ```sh
-tar -xzf axwise-native-darwin-arm64-v0.5.2.tar.gz
-codex mcp add axwise -- /absolute/path/axwise-native-darwin-arm64-v0.5.2/bin/axwise --workspace /absolute/path/project
+tar -xzf axwise-native-darwin-arm64-v0.5.5.tar.gz
+codex mcp add axwise -- /absolute/path/axwise-native-darwin-arm64-v0.5.5/bin/axwise --workspace /absolute/path/project
 ```
 
 Start a new Codex chat. Ask: “Use AxWise to create a proposed PRD for a cat-food pilot in Estonia with three shops. Label assumptions and do not invent research.” The host must follow pending model requests through `advance_artifact` until a completed receipt is returned. Do not manually write a replacement artifact and claim that AxWise saved it.

@@ -1,4 +1,5 @@
 use axwise_core::provider::*;
+use axwise_core::specialist::model_for_depth;
 
 #[tokio::test]
 async fn unsupported_gemini_models_never_reach_http() {
@@ -18,6 +19,18 @@ async fn unsupported_gemini_models_never_reach_http() {
             matches!(result, Err(ProviderError::Incomplete(message)) if message.contains("Unsupported Gemini model"))
         );
     }
+}
+
+#[test]
+fn depth_routes_standard_to_3_8_flash_and_deep_to_4_argon() {
+    assert_eq!(model_for_depth("standard"), "gemini-3.8-flash");
+    assert_eq!(model_for_depth("deep"), "gemini-4-argon");
+    assert_eq!(model_for_depth(""), "gemini-3.8-flash");
+    assert_eq!(gemini_reasoning_effort("gemini-4-argon"), "high");
+    assert_eq!(gemini_reasoning_effort("models/gemini-4-argon"), "high");
+    assert_eq!(gemini_reasoning_effort("gemini-3.8-flash"), "low");
+    assert_eq!(gemini_thinking_level("gemini-4-argon"), "HIGH");
+    assert_eq!(gemini_thinking_level("gemini-3.8-flash"), "LOW");
 }
 
 #[test]

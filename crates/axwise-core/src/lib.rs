@@ -53,3 +53,4 @@ pub mod native_validation;
 pub mod pipeline;
 pub mod progress;
 pub mod specialist;
+pub mod gavel;

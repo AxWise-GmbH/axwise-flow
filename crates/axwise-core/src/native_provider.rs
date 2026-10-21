@@ -65,7 +65,7 @@ impl NativeProvider {
         if kind == "gemini"
             && !matches!(
                 model.trim_start_matches("models/"),
-                "gemini-3.5-flash-lite" | "gemini-3.8-flash"
+                "gemini-3.5-flash-lite" | "gemini-3.8-flash" | "gemini-4-argon"
             )
         {
             return Err("unsupported_gemini_model".into());
@@ -84,7 +84,7 @@ impl NativeProvider {
         }
         let client = Client::builder()
             .redirect(reqwest::redirect::Policy::none())
-            .timeout(Duration::from_secs(120))
+            .timeout(Duration::from_secs(180))
             .build()
             .map_err(|_| "http_client_failed")?;
         Ok(Self {
@@ -116,14 +116,18 @@ impl NativeProvider {
                 format!("{}/messages", self.base),
                 json!({"model":self.model,"system":system,"messages":[{"role":"user","content":user}],"max_tokens":budget}),
             ),
-            _ => (
-                format!(
-                    "{}/models/{}:generateContent",
-                    self.base,
-                    self.model.trim_start_matches("models/")
-                ),
-                json!({"systemInstruction":{"parts":[{"text":system}]},"contents":[{"role":"user","parts":[{"text":user}]}],"generationConfig":{"maxOutputTokens":budget,"responseMimeType":"application/json"}}),
-            ),
+            _ => {
+                let model_id = self.model.trim_start_matches("models/");
+                let thinking_level = if model_id == "gemini-4-argon" {
+                    "HIGH"
+                } else {
+                    "LOW"
+                };
+                (
+                    format!("{}/models/{}:generateContent", self.base, model_id),
+                    json!({"systemInstruction":{"parts":[{"text":system}]},"contents":[{"role":"user","parts":[{"text":user}]}],"generationConfig":{"maxOutputTokens":budget,"responseMimeType":"application/json","thinkingConfig":{"thinkingLevel":thinking_level}}}),
+                )
+            }
         };
         let mut call = self.client.post(endpoint).json(&body);
         call = match self.kind.as_str() {

@@ -277,9 +277,9 @@ pub async fn execute_in_scope_with_progress(
         .and_then(|d| d.as_str())
         .unwrap_or("standard");
     let default_gemini_model = if depth == "deep" {
-        "gemini-3.8-flash"
+        "gemini-4-argon"
     } else {
-        "gemini-3.5-flash-lite"
+        "gemini-3.8-flash"
     };
 
     let creds = discover_credentials();
@@ -299,7 +299,7 @@ pub async fn execute_in_scope_with_progress(
             ProviderType::DesktopGateway,
             token.clone(),
             gateway_url,
-            "orqaly-gemini".to_string(),
+            default_gemini_model.to_string(),
             account_hash,
         ))
     } else if let Some(key) = creds.get("OPENAI_API_KEY") {
@@ -445,22 +445,114 @@ pub async fn execute_in_scope_with_progress(
         _ => unreachable!(),
     };
 
-    let mut completion = provider
-        .complete(&system_prompt, &user_prompt, max_tokens)
-        .await
-        .map_err(|e| format!("Model provider error during {}: {}", name, e))?;
+    let (mut completion, mut parsed): (String, Value) = if name == "simulate_interviews" {
+        let sim_input: Result<SimulationInput, _> = serde_json::from_value(arguments.clone());
+        if let Ok(input) = sim_input {
+            if input.stakeholders.len() > 1 {
+                let mut handles = Vec::new();
+                for s in &input.stakeholders {
+                    let sub_input = SimulationInput {
+                        stakeholders: vec![s.clone()],
+                        ..input.clone()
+                    };
+                    let sub_prompt = format_simulation_substantive_prompt(&sub_input);
+                    let sys = system_prompt.clone();
+                    let prov = provider.clone();
+                    handles.push(tokio::spawn(async move {
+                        prov.complete(&sys, &sub_prompt, 4096).await
+                    }));
+                }
+                let mut combined_participants = Vec::new();
+                let mut combined_interviews = Vec::new();
+                for h in handles {
+                    let comp = h
+                        .await
+                        .map_err(|e| format!("Parallel task join error: {}", e))?
+                        .map_err(|e| format!("Parallel model provider error: {}", e))?;
+                    let part: Value = match serde_json::from_str(&comp) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            return Ok(json!({
+                                "content": [{
+                                    "type": "text",
+                                    "text": format!("Parallel simulation completion did not conform to JSON syntax: {}. Completion: {}", e, comp)
+                                }],
+                                "isError": true
+                            }));
+                        }
+                    };
+                    if let Some(arr) = part.get("participants").and_then(|v| v.as_array()) {
+                        combined_participants.extend(arr.clone());
+                    }
+                    if let Some(arr) = part.get("interviews").and_then(|v| v.as_array()) {
+                        combined_interviews.extend(arr.clone());
+                    }
+                }
+                let combined = json!({
+                    "participants": combined_participants,
+                    "interviews": combined_interviews,
+                });
+                let comp_str = serde_json::to_string_pretty(&combined).unwrap_or_default();
+                (comp_str, combined)
+            } else {
+                let comp = provider
+                    .complete(&system_prompt, &user_prompt, max_tokens)
+                    .await
+                    .map_err(|e| format!("Model provider error during {}: {}", name, e))?;
 
-    let mut parsed: Value = match serde_json::from_str(&completion) {
-        Ok(v) => v,
-        Err(e) => {
-            return Ok(json!({
-                "content": [{
-                    "type": "text",
-                    "text": format!("Model completion for '{}' did not conform to JSON syntax: {}. Completion: {}", name, e, completion)
-                }],
-                "isError": true
-            }));
+                let val = match serde_json::from_str(&comp) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        return Ok(json!({
+                            "content": [{
+                                "type": "text",
+                                "text": format!("Model completion for '{}' did not conform to JSON syntax: {}. Completion: {}", name, e, comp)
+                            }],
+                            "isError": true
+                        }));
+                    }
+                };
+                (comp, val)
+            }
+        } else {
+            let comp = provider
+                .complete(&system_prompt, &user_prompt, max_tokens)
+                .await
+                .map_err(|e| format!("Model provider error during {}: {}", name, e))?;
+
+            let val = match serde_json::from_str(&comp) {
+                Ok(v) => v,
+                Err(e) => {
+                    return Ok(json!({
+                        "content": [{
+                            "type": "text",
+                            "text": format!("Model completion for '{}' did not conform to JSON syntax: {}. Completion: {}", name, e, comp)
+                        }],
+                        "isError": true
+                    }));
+                }
+            };
+            (comp, val)
         }
+    } else {
+        let comp = provider
+            .complete(&system_prompt, &user_prompt, max_tokens)
+            .await
+            .map_err(|e| format!("Model provider error during {}: {}", name, e))?;
+
+        let val = match serde_json::from_str(&comp) {
+            Ok(v) => v,
+            Err(e) => {
+                return Ok(json!({
+                    "content": [{
+                        "type": "text",
+                        "text": format!("Model completion for '{}' did not conform to JSON syntax: {}. Completion: {}", name, e, comp)
+                    }],
+                    "isError": true
+                }));
+            }
+        };
+        (comp, val)
     };
 
     // Validate against canonical typed candidate schema

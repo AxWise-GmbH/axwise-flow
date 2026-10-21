@@ -1,0 +1,14 @@
+{
+  "published": true,
+  "version": "0.5.5",
+  "tag": "axwise-rust-v0.5.5",
+  "artifacts": {
+    "native": {
+      "filename": "axwise-native-darwin-arm64-v0.5.5.tar.gz",
+      "url": "https://github.com/AxWise-GmbH/axwise-flow/releases/download/axwise-rust-v0.5.5/axwise-native-darwin-arm64-v0.5.5.tar.gz",
+      "sha256": "a24fa4a2be938c4e9a63e62980f3a8521fd3dccf5d501170bfd4b89876fc3c73",
+      "bytes": 7210478
+    }
+  },
+  "verifiedAt": "2026-10-14T13:45:00.000Z"
+}

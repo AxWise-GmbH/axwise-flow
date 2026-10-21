@@ -1,19 +1,19 @@
-# AxWise Rust standalone 0.5.3 — recovery build
+# AxWise Rust standalone 0.5.5
 
 A local MCP specialist engine for discovery plans, selected market evidence, synthetic personas and interviews, interview analysis, PRDs, and delivery briefs. The release contains the Rust MCP executable `bin/axwise` and optional offline desktop-domain bridge `bin/axwise-kernel`, plus documentation, license and provenance. No Python, Node, Orqanix installation or separate AxWise subscription is required.
 
 ## Install in Codex CLI
 
 For a bundled local **Codex plugin** with the end-to-end workflow skill, use
-[AxWise for Codex](README.md). Plugin 0.1.2 packages this same Rust 0.5.3
+[AxWise for Codex](README.md). Plugin 0.1.2 packages this same Rust 0.5.5
 binary and exposes its tools through normal plugin installation. The direct
 MCP setup below remains available for hosts that do not use plugins.
 
-Download `axwise-native-darwin-arm64-v0.5.3.tar.gz` from the [0.5.3 recovery release](https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-rust-v0.5.3-recovery). Check its SHA-256 against the accompanying `SHA256SUMS.txt`, and extract it. The earlier 0.5.3 release remains available under its original tag. This binary targets Apple Silicon macOS. It is ad-hoc signed, not Apple notarized.
+Download `axwise-native-darwin-arm64-v0.5.5.tar.gz` from the [0.5.5 release](https://github.com/AxWise-GmbH/axwise-flow/releases/tag/axwise-rust-v0.5.5). Check its SHA-256 against the accompanying `SHA256SUMS.txt`, and extract it. The earlier 0.5.3 release remains available under its original tag. This binary targets Apple Silicon macOS. It is ad-hoc signed, not Apple notarized.
 
 ```sh
-tar -xzf axwise-native-darwin-arm64-v0.5.3.tar.gz
-codex mcp add axwise -- /absolute/path/axwise-native-darwin-arm64-v0.5.3/bin/axwise --workspace /absolute/path/project
+tar -xzf axwise-native-darwin-arm64-v0.5.5.tar.gz
+codex mcp add axwise -- /absolute/path/axwise-native-darwin-arm64-v0.5.5/bin/axwise --workspace /absolute/path/project
 ```
 
 Start a new Codex chat. Ask: “Use AxWise to create a proposed PRD for a cat-food pilot in Estonia with three shops. Label assumptions and do not invent research.” The host must follow pending model requests through `advance_artifact` until a completed receipt is returned. Do not manually write a replacement artifact and claim that AxWise saved it.
@@ -61,6 +61,6 @@ Messages and artifacts are capped at 1 MiB; selected inputs and candidates at 51
 
 Reviews are model critiques, not an independent managed JEV Gate B audit. Provenance records this as `reviewAuthority=model_critique` and `managedJevAudit=false`. Orqanix's Rust desktop adapter is a separate entry point with host-owned model access and acceptance checks. This standalone release does not update an installed Orqanix app. Standalone and desktop artifacts use distinct stores and formats.
 
-The 0.5.3 recovery build requires web evidence to retain its URL and retrieval time, supplies specific correction guidance for quote/interpretation mismatches, and passes the failed review's exact reasons to the single bounded repair. Repaired candidates still require a fresh review before saving.
+The 0.5.5 build requires web evidence to retain its URL and retrieval time, supplies specific correction guidance for quote/interpretation mismatches, and passes the failed review's exact reasons to the single bounded repair. Repaired candidates still require a fresh review before saving.
 
 `bin/axwise-kernel` is a JSON-line diagnostic bridge for the desktop contract. It performs bounded domain operations without model access or persistence. Orqanix uses the same domain module in process; this optional executable does not replace its host.

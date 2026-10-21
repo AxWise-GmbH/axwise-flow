@@ -398,9 +398,18 @@ pub fn provider_schema(schema: &Value) -> Result<Value, String> {
     hints(&expanded)
 }
 
+pub fn model_for_depth(depth: &str) -> &'static str {
+    if depth == "deep" {
+        "gemini-4-argon"
+    } else {
+        "gemini-3.8-flash"
+    }
+}
+
 async fn managed_provider(
     scope: &HostScope,
     tokens: Option<&dyn TokenProvider>,
+    depth: &str,
 ) -> Result<ModelProvider, String> {
     let (token, base) = if std::env::var_os("ORQALY_DESKTOP_RUNTIME_ROOT").is_some() {
         let profile = configured_path("GOOSE_PATH_ROOT")?;
@@ -452,7 +461,7 @@ async fn managed_provider(
         ProviderType::DesktopGateway,
         token,
         Some(base),
-        "orqaly-gemini".into(),
+        model_for_depth(depth).into(),
         Some(scope.account.clone()),
     ))
 }
@@ -651,7 +660,7 @@ pub async fn execute_with_host_task(
         return Err("invalid_specialist_input".into());
     }
     tokio::time::timeout(
-        Duration::from_secs(180),
+        Duration::from_secs(300),
         execute_bounded(tool, input, &scope, progress, tokens, host_task),
     )
     .await
@@ -795,7 +804,11 @@ async fn execute_journaled(
         Err(error) => return Ok(rejected(&error.code, &error.diagnostics)),
     };
     journal.stage("prepared", &json!({"tool":tool,"references":references}))?;
-    let provider = managed_provider(scope, tokens).await?;
+    let depth = input
+        .get("depth")
+        .and_then(|d| d.as_str())
+        .unwrap_or("standard");
+    let provider = managed_provider(scope, tokens, depth).await?;
     let mut calls = 0;
     report(progress, SpecialistPhase::Generating);
     let generation = if let Some(tasks) = prepared.get("generationTasks") {

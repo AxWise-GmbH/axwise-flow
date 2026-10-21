@@ -202,3 +202,94 @@ pub fn decode_audit_reply(
         reviewed_sha256: sha256_hash.to_owned(),
     })
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GavelTraceabilityReport {
+    pub all_satisfied: bool,
+    pub total_requirements: usize,
+    pub satisfied_requirements: usize,
+    pub orphaned_requirements: Vec<String>,
+    pub paths: HashMap<String, Value>,
+}
+
+/// Deterministically verifies PRD requirement traceability using Gavel's in-memory Bi-BFS engine.
+/// For each required `REQ-*` token, searches for a topological path to any of the changed or entry symbols.
+pub fn audit_traceability_with_gavel(
+    graph: &crate::gavel::GavelGraph,
+    requirement_ids: &[&str],
+    entry_or_changed_symbols: &[&str],
+    max_depth: usize,
+) -> GavelTraceabilityReport {
+    let mut paths = HashMap::new();
+    let mut orphaned = Vec::new();
+    let mut satisfied_count = 0;
+
+    for &req_id in requirement_ids {
+        let mut found_path = None;
+        for &entry in entry_or_changed_symbols {
+            let res = graph.find_shortest_path(entry, req_id, max_depth);
+            if res["found"].as_bool() == Some(true) {
+                found_path = Some(res);
+                break;
+            }
+        }
+        if let Some(p) = found_path {
+            paths.insert(req_id.to_string(), p);
+            satisfied_count += 1;
+        } else {
+            orphaned.push(req_id.to_string());
+        }
+    }
+
+    GavelTraceabilityReport {
+        all_satisfied: orphaned.is_empty(),
+        total_requirements: requirement_ids.len(),
+        satisfied_requirements: satisfied_count,
+        orphaned_requirements: orphaned,
+        paths,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+    use std::fs;
+
+    #[test]
+    fn test_audit_traceability_with_gavel() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        fs::write(
+            root.join("PRD.md"),
+            "# PRD\n- [ ] REQ-AUTH-01: Auth check\n- [ ] REQ-DATA-02: Data persist\n",
+        )
+        .unwrap();
+
+        fs::write(
+            root.join("auth.ts"),
+            "// Implements REQ-AUTH-01\nexport function verifyToken(t: string) { return t.length > 0; }\n",
+        )
+        .unwrap();
+
+        fs::write(
+            root.join("api.ts"),
+            "export function handleApi(t: string) { return verifyToken(t); }\n",
+        )
+        .unwrap();
+
+        let graph = crate::gavel::GavelGraph::build_from_workspace(root, 10).unwrap();
+
+        // 1. Fully connected requirement REQ-AUTH-01
+        let report = audit_traceability_with_gavel(&graph, &["REQ-AUTH-01"], &["handleApi"], 6);
+        assert!(report.all_satisfied);
+        assert_eq!(report.satisfied_requirements, 1);
+        assert!(report.orphaned_requirements.is_empty());
+
+        // 2. Disconnected requirement REQ-DATA-02
+        let report_orphaned = audit_traceability_with_gavel(&graph, &["REQ-DATA-02"], &["handleApi"], 6);
+        assert!(!report_orphaned.all_satisfied);
+        assert_eq!(report_orphaned.orphaned_requirements, vec!["REQ-DATA-02"]);
+    }
+}

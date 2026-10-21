@@ -1,6 +1,6 @@
 # AxWise runtimes
 
-## Rust standalone 0.5.3
+## Rust standalone 0.5.5
 
 The `axwise` executable is the Rust-only MCP specialist for external harnesses. Default model access uses negotiated MCP sampling or staged generation/review by the current chat model; this retains the harness’s API key or subscription without reading its authentication tokens. Explicit inherited environment API-key access is optional.
 
@@ -17,6 +17,8 @@ Production calls require absolute host-selected `AXWISE_STATE_DIR`; no Python ex
 `AXWISE_LEGACY_STATE_DIR` is an optional read-only compatibility store. Validated `axwise.local-artifact.v2` documents remain available by exact ID/digest in their original account and conversation. New records use `axwise.artifact.v3`, immutable Markdown/JSON, an accepted SQLite operation and an `orqanix.result.v1` descriptor. The host verifies bytes and digest after saving. Invalid, missing, cross-session, symlinked or tampered references fail before inference. Old schema-only Rust outputs are not silently upgraded into accepted domain artifacts.
 
 Generation sends the exact structural response schema, then runs the full unchanged domain validator. Reviewed tools allow one repair and a new review, with at most four model calls; simulation allows at most twelve planned interviews with concurrency two. PRDs and delivery briefs additionally require a scope/digest-bound managed Gate B audit. Storage failure never emits a completed receipt. Calls have a 180-second deadline, kernel operations ten seconds, frames/artifacts one MiB and selected inputs 160 kB. Cancellation stops host orchestration; pure, bounded kernel computation has no effects or publication authority. Protected OAuth token rotation may finish for up to sixty seconds; the backend updater waits for it.
+
+Domain validation diagnostics remain finite, content-free enum codes through the Rust host and MCP. The internal repair receives the exact codes and domain guidance. Initial rejection, the repaired candidate and terminal rejection are journaled. A rejection before publication returns MCP `isError` with an `axwise.failure.v1` receipt (`status=rejected`, `artifactPublished=false`, `effectsPossible=false`); storage attempts and cancellation retain conservative uncertainty. Brief-only drafts use proposals and gaps under the unchanged evidence/owner-decision rules.
 
 Domain validation diagnostics remain finite, content-free enum codes through the Rust host and MCP. The internal repair receives the exact codes and domain guidance. Initial rejection, the repaired candidate and terminal rejection are journaled. A rejection before publication returns MCP `isError` with an `axwise.failure.v1` receipt (`status=rejected`, `artifactPublished=false`, `effectsPossible=false`); storage attempts and cancellation retain conservative uncertainty. Brief-only drafts use proposals and gaps under the unchanged evidence/owner-decision rules.
 
